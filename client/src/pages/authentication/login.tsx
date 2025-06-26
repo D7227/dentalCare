@@ -49,11 +49,6 @@ const Login = () => {
     }
   };
 
-  const handleSkipLogin = () => {
-    // Allow users to skip login and go directly to dashboard
-    setLocation('/');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -116,17 +111,6 @@ const Login = () => {
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
             </form>
-            
-            <div className="mt-4 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleSkipLogin}
-              >
-                Continue without login
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>

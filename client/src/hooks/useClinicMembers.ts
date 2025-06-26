@@ -21,6 +21,7 @@ export const useClinicMembers = (clinicName?: string) => {
     error,
   } = useQuery<ClinicMember[]>({
     queryKey,
+    refetchInterval: 2000,
   });
 
   return {
