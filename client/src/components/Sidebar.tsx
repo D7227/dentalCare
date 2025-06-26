@@ -8,6 +8,7 @@ import logoImage from '@/assets/logo.png';
 import { useClinicMembers } from '@/hooks/useClinicMembers';
 import LoadingSpinner from './shared/LoadingSpinner';
 import { useAppSelector } from '@/store/hooks';
+import LayoutConstants from '@/utils/staticValue';
 
 export interface SidebarProps {
   isCollapsed: boolean;
@@ -110,7 +111,7 @@ const Sidebar = ({
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-800 pl-[0px] pr-[0px] pt-[0px] pb-[0px]">
+      <div className={`p-0 border-b border-gray-200 dark:border-gray-800 !max-h-[${LayoutConstants.NAVBAR_HEIGHT}px]`} >
         <div className="flex items-center gap-3 pt-[8px] pb-[8px]">
           <div className="flex items-center justify-center">
             <img 

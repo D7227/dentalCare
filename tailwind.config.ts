@@ -61,8 +61,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        customBlack:{
-          100:'#231F20',
+        mainBrackground:{
+          DEFAULT: "#F7FEFF",
+        },
+        customBlack: {
+          100: '#231F20',
         },
         customPurple: {
           30: "#6B21A84D",
@@ -79,6 +82,7 @@ export default {
         customGreen: {
           15: "#0B804326",
           100: "#0B8043",
+          200: '#07AD94'
         },
         customYellow: {
           15: "#A1620726",
@@ -88,21 +92,22 @@ export default {
           15: "#DB1A1A26",
           100: "#DB1A1A",
         },
-        customPrimery:{
-          20:'#0B804333',
-          100:'#07AD94',
+        customPrimery: {
+          20: '#0B804333',
+          100: '#07AD94',
         },
-        customGray:{
-          100:'#5B6664',
+        customGray: {
+          100: '#5B6664',
         },
       },
-       fontSize: {
+      fontSize: {
         '10/12': ['10px', { lineHeight: '12px' }],
         '12/14': ['12px', { lineHeight: '14px' }],
         '12/16': ['12px', { lineHeight: '16px' }],
         '13/16': ['13px', { lineHeight: '16px' }],
         '14/16': ['14px', { lineHeight: '16px' }],
         '14/20': ['14px', { lineHeight: '20px' }],
+        '14/24': ['14px', { lineHeight: '24px' }],
         '16/18': ['16px', { lineHeight: '18px' }],
         '18/22': ['18px', { lineHeight: '22px' }],
         '20/24': ['20px', { lineHeight: '24px' }],

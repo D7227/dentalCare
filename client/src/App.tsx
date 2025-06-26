@@ -279,7 +279,7 @@ const DashboardLayout = () => {
           clinicName="Smile Dental Clinic"
           onSectionChange={handleSectionChange}
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-mainBrackground">
           {renderMainContent()}
         </main>
       </div>

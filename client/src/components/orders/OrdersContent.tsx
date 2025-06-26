@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
   Clock,
@@ -42,6 +42,8 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [activeTab, setAvtiveTab] = useState();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [detailsHeight, setDetailsHeight] = useState(600);
+  const orderDetailRef = useRef(null);
 
   const {
     data: dbOrders = [],
@@ -267,7 +269,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
     // Return all original fields, but override/add the mapped ones for the card
     return {
       ...order,
-      id:order.id,
+      id: order.id,
       refId: order.referenceId || order.id,
       orderId: order.orderId || order.referenceId || order.id,
       prescription: order.restorationType || order.productSelection || "-",
@@ -293,6 +295,13 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
 
   // Use filteredOrders (from API) and map to DentalOrder for rendering
   const dentalOrders = filteredOrders.map(mapApiOrderToDentalOrder);
+
+  useEffect(() => {
+    const el = orderDetailRef.current as HTMLElement | null;
+    if (el) {
+      setDetailsHeight(el.offsetHeight);
+    }
+  }, [selectedOrder, dentalOrders]); // update height when selected order or orders list changes
 
   const handleViewOrder = (order: any) => {
     setSelectedOrder(order);
@@ -375,9 +384,9 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
         <div className="space-y-4">
           <Tabs value={activeFilter} onValueChange={setActiveFilter}>
             <TabsContent value={activeFilter} className="mt-4">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 min-h-[600px]" style={{ alignItems: 'stretch' }}>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6" style={{ alignItems: 'stretch' }}>
                 {/* Orders List */}
-                <div className="xl:col-span-1 flex flex-col max-h-[600px] h-full">
+                <div className="xl:col-span-1 flex flex-col" style={{ minHeight: 600, maxHeight: detailsHeight }}>
                   {/* Search Bar - sticky */}
                   <div className="sticky top-0 z-10 bg-white pb-2">
                     <div className="relative w-full">
@@ -390,12 +399,14 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
                       />
                     </div>
                   </div>
-                  {/* Card List - scrollable, with padding for focus ring */}
-                  <div className="flex-1 overflow-y-auto pr-2 pb-2 pt-1" style={{ minHeight: 0 }}>
+                  {/* Card List */}
+                  <div
+                    className="flex-1 overflow-y-auto pr-2 pb-2 pt-1"
+                    style={{ minHeight: 0, maxHeight: detailsHeight - 60 }} // adjust for sticky search bar
+                  >
                     {dentalOrders.map((order) => (
-                      <div className="mb-4 last:mb-0 px-1">
+                      <div key={order.id} className="mb-4 last:mb-0 px-1">
                         <OrderCard
-                          key={order.id}
                           order={order}
                           onView={() => handleViewOrder(order)}
                           onPricing={handlePricing}
@@ -414,8 +425,12 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
                     )}
                   </div>
                 </div>
+
                 {/* Order Details */}
-                <div className="xl:col-span-2 border rounded-lg bg-background min-h-[600px] h-full flex flex-col overflow-y-auto">
+                <div
+                  className="xl:col-span-2 border rounded-lg bg-background h-full flex flex-col overflow-y-auto"
+                  ref={orderDetailRef}
+                >
                   {selectedOrder ? (
                     <OrderDetailView
                       isOpen={!!selectedOrder}
