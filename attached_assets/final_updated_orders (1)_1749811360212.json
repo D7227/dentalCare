@@ -1,0 +1,1046 @@
+[
+  {
+    "id": "917dc779-db96-43fc-b396-da309153692b",
+    "referenceId": "REF-659031",
+    "orderId": "ORD-4020",
+    "orderType": "repair",
+    "status": "approved",
+    "priority": "standard",
+    "category": "removable",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Aarav",
+      "lastName": "Bansal",
+      "age": 61,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          31,
+          22
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": true,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-01-22T10:32:17.463260",
+    "updatedAt": "2025-01-22T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "f78b79b9-19f7-4b47-a295-267da03352c4",
+    "referenceId": "REF-669035",
+    "orderId": "ORD-5349",
+    "orderType": "repair",
+    "status": "approved",
+    "priority": "urgent",
+    "category": "others",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Aanya",
+      "lastName": "Shah",
+      "age": 39,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          34,
+          21
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": true,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-02-10T10:32:17.463260",
+    "updatedAt": "2025-02-10T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "f4af92bb-8834-4994-9683-0dda742b7a86",
+    "referenceId": "REF-500846",
+    "orderId": "ORD-7254",
+    "orderType": "repair",
+    "status": "in_process",
+    "priority": "urgent",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Ishaan",
+      "lastName": "Bansal",
+      "age": 38,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "separate",
+        "teeth": [
+          11,
+          13
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-03-05T10:32:17.463260",
+    "updatedAt": "2025-03-05T10:32:17.463260",
+    "paymentStatus": "paid"
+  },
+  {
+    "id": "7d8c5464-2901-4b4b-b4cd-1c329600ba90",
+    "referenceId": "REF-670972",
+    "orderId": "ORD-3908",
+    "orderType": "repeat",
+    "status": "trial_ready",
+    "priority": "standard",
+    "category": "implant",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Vihaan",
+      "lastName": "Patel",
+      "age": 65,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "separate",
+        "teeth": [
+          32,
+          33
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-02-12T10:32:17.463260",
+    "updatedAt": "2025-02-12T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "886d4b98-2672-43d8-a9df-d2366f613931",
+    "referenceId": "REF-644911",
+    "orderId": "ORD-3177",
+    "orderType": "repair",
+    "status": "approved",
+    "priority": "high",
+    "category": "removable",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Kiara",
+      "lastName": "Gupta",
+      "age": 60,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          20,
+          33
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": true,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-02-13T10:32:17.463260",
+    "updatedAt": "2025-02-13T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "1e323f2b-1bd9-43e6-bcb9-4324aa852508",
+    "referenceId": "REF-152776",
+    "orderId": "ORD-2496",
+    "orderType": "repeat",
+    "status": "trial_ready",
+    "priority": "urgent",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Vivaan",
+      "lastName": "Desai",
+      "age": 38,
+      "sex": "other"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          18,
+          27
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": true,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2024-11-29T10:32:17.463260",
+    "updatedAt": "2024-11-29T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "0922c9a1-feef-410e-9082-29afb47d4c2a",
+    "referenceId": "REF-808439",
+    "orderId": "ORD-8556",
+    "orderType": "repair",
+    "status": "in_process",
+    "priority": "standard",
+    "category": "crown_bridge",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Anaya",
+      "lastName": "Mehta",
+      "age": 40,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "bridge",
+        "teeth": [
+          40,
+          30
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-06-05T10:32:17.463260",
+    "updatedAt": "2025-06-05T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "f4cb7037-69d4-4607-8c0f-0e4ecfe33657",
+    "referenceId": "REF-532269",
+    "orderId": "ORD-9198",
+    "orderType": "new",
+    "status": "completed",
+    "priority": "high",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Aarav",
+      "lastName": "Mehta",
+      "age": 18,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "separate",
+        "teeth": [
+          45,
+          21
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": {
+      "areaManagerId": "7f2bb1ab-6e12-4896-862c-1dfd60b72738",
+      "scanDate": "2025-06-12",
+      "scanTime": "14:00",
+      "notes": "First scan"
+    },
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2024-12-21T10:32:17.463260",
+    "updatedAt": "2024-12-21T10:32:17.463260",
+    "paymentStatus": "paid"
+  },
+  {
+    "id": "a1b1f812-1c08-4834-8a01-f12975b16f6c",
+    "referenceId": "REF-377040",
+    "orderId": "ORD-8952",
+    "orderType": "repair",
+    "status": "trial_ready",
+    "priority": "standard",
+    "category": "crown_bridge",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Myra",
+      "lastName": "Reddy",
+      "age": 28,
+      "sex": "other"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          25,
+          29
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-02-21T10:32:17.463260",
+    "updatedAt": "2025-02-21T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "6ae370ba-925c-4c56-a5f6-4c453605ddef",
+    "referenceId": "REF-554539",
+    "orderId": "ORD-8669",
+    "orderType": "repair",
+    "status": "completed",
+    "priority": "high",
+    "category": "implant",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Vivaan",
+      "lastName": "Bansal",
+      "age": 21,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "bridge",
+        "teeth": [
+          32,
+          13
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2024-12-28T10:32:17.463260",
+    "updatedAt": "2024-12-28T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "b07b159e-d239-4c1f-bc07-629c95210ad2",
+    "referenceId": "REF-630886",
+    "orderId": "ORD-9631",
+    "orderType": "repair",
+    "status": "rejected",
+    "priority": "high",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Advait",
+      "lastName": "Kapoor",
+      "age": 36,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          33,
+          47
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": "Impression not clear",
+    "createdAt": "2025-06-09T10:32:17.463260",
+    "updatedAt": "2025-06-09T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "7b0a595d-5a5b-4537-88eb-a048b5ded928",
+    "referenceId": "REF-488048",
+    "orderId": "ORD-5717",
+    "orderType": "new",
+    "status": "trial_ready",
+    "priority": "high",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Myra",
+      "lastName": "Joshi",
+      "age": 48,
+      "sex": "male"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "separate",
+        "teeth": [
+          17,
+          46
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": {
+      "areaManagerId": "38703cab-ec36-43b3-b2bc-b24002b26077",
+      "scanDate": "2025-06-12",
+      "scanTime": "14:00",
+      "notes": "First scan"
+    },
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-06-09T10:32:17.463260",
+    "updatedAt": "2025-06-09T10:32:17.463260",
+    "paymentStatus": "paid"
+  },
+  {
+    "id": "019f7862-803d-4ed3-a11f-7c0c42ac0412",
+    "referenceId": "REF-946772",
+    "orderId": null,
+    "orderType": "new",
+    "status": "pending_approval",
+    "priority": "standard",
+    "category": "others",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Anaya",
+      "lastName": "Patel",
+      "age": 63,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "joint",
+        "teeth": [
+          28,
+          13
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": {
+      "areaManagerId": "bab2b117-3b4d-483e-a5cf-2d2fbed8e4c6",
+      "scanDate": "2025-06-12",
+      "scanTime": "14:00",
+      "notes": "First scan"
+    },
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-06-03T10:32:17.463260",
+    "updatedAt": "2025-06-03T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "a8f88da1-06b9-4f70-a57a-d0e9b3da4c69",
+    "referenceId": "REF-415076",
+    "orderId": "ORD-3814",
+    "orderType": "new",
+    "status": "in_process",
+    "priority": "high",
+    "category": "implant",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Aanya",
+      "lastName": "Joshi",
+      "age": 40,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "bridge",
+        "teeth": [
+          42,
+          12
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": {
+      "areaManagerId": "763f3923-19bb-431f-bc39-41ec815a5daf",
+      "scanDate": "2025-06-12",
+      "scanTime": "14:00",
+      "notes": "First scan"
+    },
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-03-13T10:32:17.463260",
+    "updatedAt": "2025-03-13T10:32:17.463260",
+    "paymentStatus": "paid"
+  },
+  {
+    "id": "dfd5af97-a2d6-44c1-ab16-b5edf027ef1b",
+    "referenceId": "REF-769660",
+    "orderId": null,
+    "orderType": "repair",
+    "status": "pending_approval",
+    "priority": "high",
+    "category": "aligner",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Arjun",
+      "lastName": "Joshi",
+      "age": 19,
+      "sex": "other"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "bridge",
+        "teeth": [
+          40,
+          47
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": null,
+    "createdAt": "2025-06-11T10:32:17.463260",
+    "updatedAt": "2025-06-11T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  },
+  {
+    "id": "d6a9517f-b011-4862-8459-74b7cb27c910",
+    "referenceId": "REF-749586",
+    "orderId": "ORD-9565",
+    "orderType": "repair",
+    "status": "rejected",
+    "priority": "high",
+    "category": "removable",
+    "notes": "Sample note for testing",
+    "patient": {
+      "firstName": "Anaya",
+      "lastName": "Singh",
+      "age": 28,
+      "sex": "female"
+    },
+    "doctor": {
+      "name": "Dr. Sarah Mitchell",
+      "phone": "9876543210",
+      "email": "sarah@example.com",
+      "clinicName": "Smile Dental Clinic",
+      "clinicAddress": "123 Main St",
+      "city": "Surat",
+      "state": "Gujarat",
+      "pincode": "395007"
+    },
+    "toothGroups": [
+      {
+        "type": "bridge",
+        "teeth": [
+          30,
+          45
+        ]
+      }
+    ],
+    "restoration_products": [
+      {
+        "name": "PFM Crown",
+        "quantity": 1
+      }
+    ],
+    "accessories": [
+      "spatula",
+      "tray"
+    ],
+    "otherAccessory": "custom tool",
+    "returnAccessories": false,
+    "files": [
+      {
+        "fileName": "xray1.png",
+        "fileType": "image/png",
+        "url": "/uploads/xray1.png"
+      }
+    ],
+    "scanBooking": null,
+    "pickup": {
+      "pickupDate": "2025-06-12",
+      "pickupTime": "10:00",
+      "pickupRemarks": "Handle with care"
+    },
+    "rejectionReason": "Impression not clear",
+    "createdAt": "2025-02-03T10:32:17.463260",
+    "updatedAt": "2025-02-03T10:32:17.463260",
+    "paymentStatus": "unpaid"
+  }
+]
