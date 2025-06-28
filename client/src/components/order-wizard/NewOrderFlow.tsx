@@ -39,7 +39,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps)
           })} 
         />
         
-        <Card className="border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
+        {/* <Card className="border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-primary">Expected Date of Delivery</CardTitle>
           </CardHeader>
@@ -62,7 +62,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps)
               </p>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     );
   }

@@ -6,6 +6,7 @@ import ToothChart from './components/ToothChart';
 import SelectedToothGroups from './components/SelectedToothGroups';
 import ToothTypeDialog from './components/ToothTypeDialog';
 import { ToothGroup } from './types/tooth';
+import { CrownBridgeTeeth, ImpantTeeth } from '@/assets/svg';
 interface ToothSelectorProps {
   selectedGroups: ToothGroup[];
   onGroupsChange: (groups: ToothGroup[]) => void;
@@ -28,6 +29,7 @@ const ToothSelector = ({
     y: 0
   });
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
+  const [deliveryType, setDeliveryType] = useState<'digital' | 'manual' | null>(null);
 
   // Is a tooth selected?
   const isToothSelected = useCallback((toothNumber: number) => {
@@ -204,8 +206,8 @@ const ToothSelector = ({
   const findValidAdjacentFragments = (teeth: number[]): number[][] => {
     if (teeth.length === 0) return [];
     // FDI arch orders
-    const upperArch = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
-    const lowerArch = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+    const upperArch = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+    const lowerArch = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
     // Determine arch
     const isUpper = teeth.every(t => upperArch.includes(t));
     const isLower = teeth.every(t => lowerArch.includes(t));
@@ -243,19 +245,19 @@ const ToothSelector = ({
   // Handle joining tooth to existing group
   const handleJoinGroup = (toothNumber: number, groupId: string) => {
     console.log('Joining tooth', toothNumber, 'to group', groupId);
-    
+
     const targetGroup = selectedGroups.find(g => g.groupId === groupId);
     if (!targetGroup) return;
-    
+
     // Add the tooth to the group
     const updatedGroup = {
       ...targetGroup,
       teeth: [...targetGroup.teeth, toothNumber].sort((a, b) => a - b)
     };
-    
+
     // Update the groups
     onGroupsChange(selectedGroups.map(g => g.groupId === groupId ? updatedGroup : g));
-    
+
     // Close dialog
     setShowTypeDialog(false);
     setClickedTooth(null);
@@ -351,8 +353,8 @@ const ToothSelector = ({
       const finalTeethArray = Array.from(allTeethInConnection);
 
       // Define full arch sets as explicit arrays (FDI arch order)
-      const upperArch = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
-      const lowerArch = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+      const upperArch = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+      const lowerArch = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
       const isFullUpperArch = upperArch.every(t => finalTeethArray.includes(t)) && finalTeethArray.length === upperArch.length;
       const isFullLowerArch = lowerArch.every(t => finalTeethArray.includes(t)) && finalTeethArray.length === lowerArch.length;
 
@@ -457,108 +459,185 @@ const ToothSelector = ({
     setSelectedTeeth([]);
   };
   return <div className="flex gap-6">
-      <div className="w-1/2">
-        <Card className="border shadow-sm">
-          <CardContent className="p-3">
-            {/* Product Selection */}
-            {!productSelection && <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  🦷 Select Product Type First
-                </h4>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                    <input type="radio" id="implant" name="product" value="implant" onChange={e => setProductSelection('implant')} className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]" />
-                    <label htmlFor="implant" className="text-sm font-medium cursor-pointer flex-1">
-                      🔩 Implant
-                      <span className="block text-xs text-gray-500">Single tooth replacement</span>
-                    </label>
+    <div className="w-1/2">
+      <Card className="border shadow-sm">
+        <CardContent className="p-3">
+          {/* Product Selection */}
+
+          {!productSelection && <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              Select Prescription
+            </h4>
+            <div className="space-y-3">
+              {/* Implant Option */}
+              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  id="implant"
+                  name="product"
+                  value="implant"
+                  checked={productSelection === 'implant'}
+                  onChange={() => setProductSelection('implant')}
+                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
+                />
+                <label
+                  // htmlFor="implant"
+                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
+                >
+                  <div className="w-6 h-6 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
+                    <img className="w-4 h-4" src={ImpantTeeth} alt="ImplantTeeth" />
                   </div>
-                  <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                    <input type="radio" id="crown-bridge" name="product" value="crown-bridge" onChange={e => setProductSelection('crown-bridge')} className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]" />
-                    <label htmlFor="crown-bridge" className="text-sm font-medium cursor-pointer flex-1">
-                      👑 Crown & Bridge
-                      <span className="block text-xs text-gray-500">Multiple tooth restoration</span>
-                    </label>
+                  <span>Implant</span>
+                </label>
+              </div>
+
+              {/* Crown & Bridge Option */}
+              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  id="crown-bridge"
+                  name="product"
+                  value="crown-bridge"
+                  checked={productSelection === 'crown-bridge'}
+                  onChange={() => setProductSelection('crown-bridge')}
+                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
+                />
+                <label
+                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
+                >
+                  <div className="w-6 h-6 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
+                    <img className="w-4 h-4" src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
                   </div>
-                </div>
-              </div>}
-
-            {productSelection}
-
-            {productSelection && <div className="mb-4">
-                <ToothChart selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onToothClick={handleToothClick} onDragConnection={handleDragConnection} isToothSelected={isToothSelected} getToothType={getToothType} onGroupsChange={onGroupsChange} setSelectedTeeth={setSelectedTeeth} />
-              </div>}
-
-            <SelectedToothGroups selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onRemoveGroup={handleRemoveGroup} onRemoveTooth={handleRemoveTooth} onUpdateGroup={handleUpdateGroup} onUpdateTooth={handleUpdateTooth} onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Right side */}
-      <div className="w-1/2 space-y-4">
-        {(selectedGroups.length > 0 || selectedTeeth.length > 0) && <Card className="border shadow-sm">
-            
-          </Card>}
-        {productSelection && <Card className="border shadow-sm">
-            <CardContent className="p-3">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
-              <div className="space-y-2 text-xs text-gray-600">
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500">1.</span>
-                  <span>Click any tooth to select as Abutment or Pontic</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500">2.</span>
-                  
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500">3.</span>
-                  <span>Groups with pontics become Bridges, without pontics become Joints</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500">4.</span>
-                  <span>Double-click connector lines to split groups</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-blue-500">5.</span>
-                  <span>⚠️ Connections that skip teeth are blocked for clinical accuracy</span>
-                </div>
+                  <span>Crown & Bridge</span>
+                </label>
               </div>
-              
-              <h4 className="text-sm font-semibold text-gray-900 mb-3 mt-4">Visual Legend</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                  <span>Abutment (Individual)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  <span>Joint Group</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                  <span>Bridge Group</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                  <span>Pontic</span>
-                </div>
+            </div>
+          </div>}
+          
+          {!productSelection && <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              Select Delivery Type
+            </h4>
+            <div className="space-y-3">
+              {/* Digital */}
+              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  id="delivery-digital"
+                  name="deliveryType"
+                  value="digital"
+                  checked={deliveryType === 'digital'}
+                  onChange={() => setDeliveryType('digital')}
+                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
+                />
+                <label
+                  htmlFor="delivery-digital"
+                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
+                >
+                  <span>Digital</span>
+                </label>
               </div>
-            </CardContent>
-          </Card>}
-      </div>
 
-      {/* Tooth Type Selection Dialog */}
-      <ToothTypeDialog 
-        isOpen={showTypeDialog} 
-        onClose={() => setShowTypeDialog(false)} 
-        toothNumber={clickedTooth || 0} 
-        position={dialogPosition} 
-        onSelectType={handleToothTypeSelection}
-        selectedGroups={selectedGroups}
-        onJoinGroup={handleJoinGroup}
-        debugMode={false}
-      />
-    </div>;
+              {/* Manual */}
+              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  id="delivery-manual"
+                  name="deliveryType"
+                  value="manual"
+                  checked={deliveryType === 'manual'}
+                  onChange={() => setDeliveryType('manual')}
+                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
+                />
+                <label
+                  htmlFor="delivery-manual"
+                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
+                >
+                  <span>Manual</span>
+                </label>
+              </div>
+            </div>
+          </div>}
+        
+
+
+
+          {productSelection}
+
+          {productSelection && <div className="mb-4">
+            <ToothChart selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onToothClick={handleToothClick} onDragConnection={handleDragConnection} isToothSelected={isToothSelected} getToothType={getToothType} onGroupsChange={onGroupsChange} setSelectedTeeth={setSelectedTeeth} />
+          </div>}
+        </CardContent>
+      </Card>
+    </div>
+
+    {/* Right side */}
+    <div className="w-1/2 space-y-4">
+
+      {(selectedGroups.length > 0 || selectedTeeth.length > 0) && <Card className="border shadow-sm">
+
+      </Card>}
+      {productSelection && <Card className="border shadow-sm">
+        <CardContent className="p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
+          <div className="space-y-2 text-xs text-gray-600">
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500">1.</span>
+              <span>Click any tooth to select as Abutment or Pontic</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500">2.</span>
+
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500">3.</span>
+              <span>Groups with pontics become Bridges, without pontics become Joints</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500">4.</span>
+              <span>Double-click connector lines to split groups</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-blue-500">5.</span>
+              <span>⚠️ Connections that skip teeth are blocked for clinical accuracy</span>
+            </div>
+          </div>
+
+          <h4 className="text-sm font-semibold text-gray-900 mb-3 mt-4">Visual Legend</h4>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+              <span>Abutment (Individual)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded"></div>
+              <span>Joint Group</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-orange-500 rounded"></div>
+              <span>Bridge Group</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-purple-500 rounded"></div>
+              <span>Pontic</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>}
+      <SelectedToothGroups selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onRemoveGroup={handleRemoveGroup} onRemoveTooth={handleRemoveTooth} onUpdateGroup={handleUpdateGroup} onUpdateTooth={handleUpdateTooth} onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])} />
+    </div>
+
+    {/* Tooth Type Selection Dialog */}
+    <ToothTypeDialog
+      isOpen={showTypeDialog}
+      onClose={() => setShowTypeDialog(false)}
+      toothNumber={clickedTooth || 0}
+      position={dialogPosition}
+      onSelectType={handleToothTypeSelection}
+      selectedGroups={selectedGroups}
+      onJoinGroup={handleJoinGroup}
+      debugMode={false}
+    />
+  </div>;
 };
 export default ToothSelector;
