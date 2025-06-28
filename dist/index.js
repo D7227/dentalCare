@@ -1644,6 +1644,110 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch chat for order" });
     }
   });
+  app2.get("/api/userData/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log("getUserData API called with ID:", id);
+      let clinic2 = await storage.getClinic(id);
+      console.log("Clinic lookup result:", clinic2 ? "Found" : "Not found");
+      if (clinic2) {
+        console.log("Processing clinic data for:", clinic2.firstname, clinic2.lastname);
+        let roleName = "";
+        if (clinic2.roleId) {
+          try {
+            const role2 = await storage.getRoleById(clinic2.roleId);
+            roleName = role2?.name || "";
+            console.log("Role name for clinic:", roleName);
+          } catch (error) {
+            console.log("Failed to fetch role name:", error);
+          }
+        }
+        let clinicAddress = {};
+        let billingInfo = {};
+        try {
+          if (clinic2.clinicAddress) {
+            clinicAddress = JSON.parse(clinic2);
+          }
+        } catch (e) {
+          clinicAddress = { address: clinic2 || "" };
+        }
+        try {
+          if (clinic2.billingInfo) {
+            billingInfo = JSON.parse(clinic2.billingInfo);
+          }
+        } catch (e) {
+          billingInfo = {};
+        }
+        console.log("Clinic", clinic2);
+        const userData = {
+          id: clinic2.id,
+          firstName: clinic2.firstname,
+          lastName: clinic2.lastname,
+          email: clinic2.email,
+          phone: clinic2.phone,
+          clinicName: clinic2.clinicName,
+          licenseNumber: clinic2.clinicLicenseNumber,
+          clinicAddress: clinic2.clinicAddress || "",
+          billingAddress: clinic2.billingInfo || "",
+          gstNumber: clinic2.gstNumber || "",
+          panNumber: clinic2.panNumber || "",
+          roleName,
+          userType: "clinic",
+          permissions: clinic2.permissions || []
+        };
+        console.log("Returning clinic user data");
+        return res.json(userData);
+      }
+      let teamMember = await storage.getTeamMember(id);
+      console.log("Team member lookup result:", teamMember ? "Found" : "Not found");
+      if (teamMember) {
+        console.log("Processing team member data for:", teamMember.fullName);
+        let roleName = "";
+        if (teamMember.roleId) {
+          try {
+            const role2 = await storage.getRoleById(teamMember.roleId);
+            roleName = role2?.name || "";
+            console.log("Role name for team member:", roleName);
+          } catch (error) {
+            console.log("Failed to fetch role name:", error);
+          }
+        }
+        const userData = {
+          id: teamMember.id,
+          firstName: teamMember.fullName.split(" ")[0] || "",
+          lastName: teamMember.fullName.split(" ").slice(1).join(" ") || "",
+          email: teamMember.email,
+          phone: teamMember.contactNumber,
+          clinicName: teamMember.clinicName,
+          licenseNumber: "",
+          clinicAddressLine1: "",
+          clinicAddressLine2: "",
+          clinicCity: "",
+          clinicState: "",
+          clinicPincode: "",
+          clinicCountry: "India",
+          billingAddressLine1: "",
+          billingAddressLine2: "",
+          billingCity: "",
+          billingState: "",
+          billingPincode: "",
+          billingCountry: "India",
+          gstNumber: "",
+          panNumber: "",
+          roleName,
+          userType: "teamMember",
+          permissions: teamMember.permissions || []
+        };
+        console.log("Returning team member user data");
+        return res.json(userData);
+      }
+      console.log("User not found in either clinic or team member tables");
+      return res.status(404).json({ error: "User not found" });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      res.status(500).json({ error: "Failed to fetch user data" });
+    }
+  });
   const httpServer2 = createServer(app2);
   return httpServer2;
 }

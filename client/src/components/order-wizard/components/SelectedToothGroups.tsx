@@ -1,169 +1,240 @@
-
-import React from 'react';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Trash2, Edit2 } from 'lucide-react';
+import { X, Edit } from 'lucide-react';
 import { ToothGroup } from '../types/tooth';
+import ToothModificationDialog from './ToothModificationDialog.tsx';
+
+interface SelectedTooth {
+  toothNumber: number;
+  type: 'abutment' | 'pontic';
+}
 
 interface SelectedToothGroupsProps {
   selectedGroups: ToothGroup[];
+  selectedTeeth: SelectedTooth[];
   onRemoveGroup: (groupId: string) => void;
-  onEditGroup?: (group: ToothGroup) => void;
+  onRemoveTooth: (toothNumber: number) => void;
+  onUpdateGroup?: (groupId: string, updatedGroup: ToothGroup) => void;
+  onUpdateTooth?: (toothNumber: number, newType: 'abutment' | 'pontic') => void;
+  onAddIndividualTooth?: (toothNumber: number, type: 'abutment' | 'pontic') => void;
 }
 
-const SelectedToothGroups = ({ selectedGroups, onRemoveGroup, onEditGroup }: SelectedToothGroupsProps) => {
-  if (selectedGroups.length === 0) {
-    return null;
+const SelectedToothGroups = ({ 
+  selectedGroups, 
+  selectedTeeth, 
+  onRemoveGroup, 
+  onRemoveTooth,
+  onUpdateGroup,
+  onUpdateTooth,
+  onAddIndividualTooth
+}: SelectedToothGroupsProps) => {
+  const [showModificationDialog, setShowModificationDialog] = useState(false);
+  const [selectedToothForEdit, setSelectedToothForEdit] = useState<number | null>(null);
+  const [selectedGroupForEdit, setSelectedGroupForEdit] = useState<ToothGroup | null>(null);
+
+  const handleEditTooth = (toothNumber: number, group?: ToothGroup) => {
+    console.log('Edit tooth clicked:', toothNumber, 'group:', group);
+    setSelectedToothForEdit(toothNumber);
+    setSelectedGroupForEdit(group || null);
+    setShowModificationDialog(true);
+  };
+
+  const handleMakeAbutment = () => {
+    if (selectedToothForEdit && selectedGroupForEdit && onUpdateGroup) {
+      console.log('Making abutment for tooth:', selectedToothForEdit);
+      const updatedGroup = {
+        ...selectedGroupForEdit,
+        pontics: selectedGroupForEdit.pontics?.filter(p => p !== selectedToothForEdit) || []
+      };
+      onUpdateGroup(selectedGroupForEdit.groupId, updatedGroup);
+    }
+    setShowModificationDialog(false);
+  };
+
+  const handleMakePontic = () => {
+    if (selectedToothForEdit && selectedGroupForEdit && onUpdateGroup) {
+      console.log('Making pontic for tooth:', selectedToothForEdit);
+      const updatedGroup = {
+        ...selectedGroupForEdit,
+        pontics: [...(selectedGroupForEdit.pontics || []), selectedToothForEdit],
+        type: 'bridge' as const
+      };
+      onUpdateGroup(selectedGroupForEdit.groupId, updatedGroup);
+    }
+    setShowModificationDialog(false);
+  };
+
+  const handleRemoveFromGroup = () => {
+    if (selectedToothForEdit && selectedGroupForEdit) {
+      console.log('Removing tooth from group:', selectedToothForEdit, selectedGroupForEdit);
+      if (selectedGroupForEdit.teeth.length === 1) {
+        // If only one tooth left, remove entire group
+        onRemoveGroup(selectedGroupForEdit.groupId);
+      } else if (onUpdateGroup) {
+        // Remove tooth from group
+        const updatedGroup = {
+          ...selectedGroupForEdit,
+          teeth: selectedGroupForEdit.teeth.filter(t => t !== selectedToothForEdit),
+          pontics: selectedGroupForEdit.pontics?.filter(p => p !== selectedToothForEdit) || []
+        };
+        onUpdateGroup(selectedGroupForEdit.groupId, updatedGroup);
+      }
+    }
+    setShowModificationDialog(false);
+  };
+
+  const handleSplitGroup = () => {
+    if (selectedToothForEdit && selectedGroupForEdit && onUpdateGroup) {
+      console.log('Splitting group - removing tooth:', selectedToothForEdit, 'from group:', selectedGroupForEdit);
+      
+      // Create individual tooth from the one being split
+      const toothType = selectedGroupForEdit.pontics?.includes(selectedToothForEdit) ? 'pontic' : 'abutment';
+      
+      // Add the split tooth as individual tooth
+      if (onAddIndividualTooth) {
+        onAddIndividualTooth(selectedToothForEdit, toothType);
+      }
+      
+      // Remove tooth from the group
+      if (selectedGroupForEdit.teeth.length === 1) {
+        // If only one tooth left, remove entire group
+        onRemoveGroup(selectedGroupForEdit.groupId);
+      } else {
+        // Update the group to remove this tooth
+        const updatedGroup = {
+          ...selectedGroupForEdit,
+          teeth: selectedGroupForEdit.teeth.filter(t => t !== selectedToothForEdit),
+          pontics: selectedGroupForEdit.pontics?.filter(p => p !== selectedToothForEdit) || []
+        };
+        onUpdateGroup(selectedGroupForEdit.groupId, updatedGroup);
+      }
+    }
+    setShowModificationDialog(false);
+  };
+
+  if (selectedGroups.length === 0 && selectedTeeth.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-gray-400 mb-2">
+          <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        </div>
+        <p className="text-sm text-gray-500">No teeth selected</p>
+        <p className="text-xs text-gray-400 mt-1">Click on teeth to start selecting</p>
+      </div>
+    );
   }
 
-  const getRestorationTypeLabel = (type: string) => {
-    switch (type) {
-      case 'bridge': return 'Bridge';
-      case 'joint': return 'Joint';
-      case 'separate': return 'Separate';
-      default: return type;
-    }
-  };
-
-  const getRestorationTypeColor = (type: string) => {
-    switch (type) {
-      case 'bridge': return 'default';
-      case 'joint': return 'secondary';
-      case 'separate': return 'outline';
-      default: return 'outline';
-    }
-  };
-
-  const getMainCategoryLabel = (productType: string) => {
-    switch (productType) {
-      case 'implant': return 'Implant';
-      case 'crown-bridge': return 'Crown & Bridge';
-      default: return 'Product';
-    }
-  };
-
-  const getMainCategoryColor = (productType: string) => {
-    switch (productType) {
-      case 'implant': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'crown-bridge': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   return (
-    <div className="mt-8 pt-6 border-t border-gray-200">
-      <h4 className="text-base font-semibold text-gray-900 mb-4">Selected Tooth Groups</h4>
-      <div className="space-y-4">
-        {selectedGroups.map((group) => (
-          <div key={group.groupId} className="p-4 bg-gray-50 rounded-lg border animate-fade-in">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Main Category Tag - Read from group's productType */}
-                <Badge 
-                  className={`text-xs font-medium px-2 py-1 ${getMainCategoryColor(group.productType)}`}
+    <div className="space-y-3">
+      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        📋 Selected Teeth
+      </h4>
+
+      {/* Individual Teeth */}
+      {selectedTeeth.length > 0 && (
+        <Card className="border border-blue-200 bg-blue-50">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-800">Individual Teeth</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedTeeth.map(tooth => (
+                <div
+                  key={tooth.toothNumber}
+                  className="flex items-center gap-1 px-2 py-1 bg-white rounded-full border border-blue-200"
                 >
-                  {getMainCategoryLabel(group.productType)}
-                </Badge>
-                
-                {/* Restoration Type Tag */}
-                <Badge 
-                  variant={getRestorationTypeColor(group.type)} 
-                  className="text-xs"
-                >
-                  {getRestorationTypeLabel(group.type)}
-                </Badge>
-                
-                <span className="text-sm font-medium">
-                  Teeth: {group.teeth.sort((a, b) => a - b).join(', ')}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                {onEditGroup && (
+                  <span className="text-xs font-medium">
+                    {tooth.toothNumber} ({tooth.type === 'abutment' ? 'A' : 'P'})
+                  </span>
                   <Button
-                    type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onEditGroup(group)}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-1"
-                    title="Edit tooth group"
+                    onClick={() => handleEditTooth(tooth.toothNumber)}
+                    className="h-4 w-4 p-0 hover:bg-blue-100 mr-1"
                   >
-                    <Edit2 size={14} />
+                    <Edit size={8} />
                   </Button>
-                )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemoveTooth(tooth.toothNumber)}
+                    className="h-4 w-4 p-0 hover:bg-red-100"
+                  >
+                    <X size={10} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Groups */}
+      {selectedGroups.map(group => {
+        const bgColor = group.type === 'joint' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
+        const textColor = group.type === 'joint' ? 'text-green-800' : 'text-orange-800';
+        const icon = group.type === 'joint' ? '🔗' : '🌉';
+
+        return (
+          <Card key={group.groupId} className={`border ${bgColor}`}>
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-sm font-medium ${textColor} flex items-center gap-1`}>
+                  {icon} {group.type === 'joint' ? 'Joint' : 'Bridge'} Group
+                </span>
                 <Button
-                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => onRemoveGroup(group.groupId)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1"
-                  title="Remove tooth group"
+                  className="h-6 w-6 p-0 hover:bg-red-100"
                 >
-                  <Trash2 size={14} />
+                  <X size={12} />
                 </Button>
               </div>
-            </div>
-            
-            {/* Product Details */}
-            <div className="grid grid-cols-1 gap-2 text-sm">
-              {/* Selected Products */}
-              {group.products && group.products.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-gray-600">Products:</span>
-                  {group.products.map((product, index) => (
-                    <Badge key={index} variant="outline" className="text-xs mr-2">
-                      {product.name} (Qty: {product.quantity})
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              
-              {/* Material fallback for legacy groups */}
-              {group.material && (!group.products || group.products.length === 0) && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Material:</span>
-                  <Badge variant="outline" className="text-xs">
-                    {group.material}
-                  </Badge>
-                </div>
-              )}
-              
-              {group.shade && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Shade:</span>
-                  <Badge variant="outline" className="text-xs">
-                    {group.shade}
-                  </Badge>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Occlusal Staining:</span>
-                <span className="text-xs text-gray-800 capitalize">
-                  {group.occlusalStaining || 'Medium'}
-                </span>
+              <div className="flex flex-wrap gap-2">
+                {group.teeth.map(toothNumber => {
+                  const isPontic = group.pontics?.includes(toothNumber);
+                  return (
+                    <div
+                      key={toothNumber}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                        isPontic 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-white border border-gray-200'
+                      }`}
+                    >
+                      <span>{toothNumber} {isPontic ? '(P)' : '(A)'}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditTooth(toothNumber, group)}
+                        className="h-3 w-3 p-0 hover:bg-gray-100 mr-1"
+                      >
+                        <Edit size={8} />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
-              
-              {group.type === 'bridge' && group.ponticDesign && (
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Pontic Design:</span>
-                  <span className="text-xs text-gray-800 capitalize">
-                    {group.ponticDesign}
-                  </span>
-                </div>
-              )}
-              
-              {group.notes && (
-                <div className="mt-2">
-                  <span className="text-gray-600">Notes:</span>
-                  <p className="text-xs text-gray-800 mt-1 italic">
-                    {group.notes}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {/* Tooth Modification Dialog */}
+      <ToothModificationDialog
+        isOpen={showModificationDialog}
+        onClose={() => setShowModificationDialog(false)}
+        clickedTooth={selectedToothForEdit || 0}
+        currentGroup={selectedGroupForEdit}
+        onMakeAbutment={handleMakeAbutment}
+        onMakePontic={handleMakePontic}
+        onRemoveTooth={handleRemoveFromGroup}
+        onSplitGroup={handleSplitGroup}
+      />
     </div>
   );
 };

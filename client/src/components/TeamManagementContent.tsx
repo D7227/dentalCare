@@ -101,6 +101,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
         password: data.password,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       setCurrentView('list');
       resetForm();
       toast({ title: "Team member added successfully" });
@@ -139,6 +142,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       setCurrentView('list');
       resetForm();
       toast({ title: "Team member updated successfully" });
@@ -157,6 +163,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       toast({ title: "Team member removed successfully" });
     },
     onError: () => {
@@ -358,13 +367,17 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
   useEffect(() => {
     if (!socket) return;
     const handlePermissionsUpdated = () => {
+      // Invalidate both query patterns to update sidebar and team management
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
     };
     socket.on('permissions-updated', handlePermissionsUpdated);
     return () => {
       socket.off('permissions-updated', handlePermissionsUpdated);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, user?.clinicName]);
 
   if (currentView === 'add' || currentView === 'edit') {
     return (

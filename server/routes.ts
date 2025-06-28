@@ -997,6 +997,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user data by ID - handles both clinic and team member
+  app.get('/api/userData/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log('getUserData API called with ID:', id);
+      
+      // First try to find clinic (main_doctor)
+      let clinic = await storage.getClinic(id);
+      console.log('Clinic lookup result:', clinic ? 'Found' : 'Not found');
+      
+      if (clinic) {
+        console.log('Processing clinic data for:', clinic.firstname, clinic.lastname);
+        // Get role name
+        let roleName = '';
+        if (clinic.roleId) {
+          try {
+            const role = await storage.getRoleById(clinic.roleId);
+            roleName = role?.name || '';
+            console.log('Role name for clinic:', roleName);
+          } catch (error) {
+            console.log('Failed to fetch role name:', error);
+          }
+        }
+
+        // Parse clinic address and billing info
+        let clinicAddress: any = {};
+        let billingInfo: any = {};
+        
+        try {
+          if (clinic.clinicAddress) {
+            clinicAddress = JSON.parse(clinic);
+          }
+        } catch (e) {
+          clinicAddress = { address: clinic || '' };
+        }
+        
+        try {
+          if (clinic.billingInfo) {
+            billingInfo = JSON.parse(clinic.billingInfo);
+          }
+        } catch (e) {
+          billingInfo = {};
+        }
+
+        console.log('Clinic', clinic);
+
+        const userData = {
+          id: clinic.id,
+          firstName: clinic.firstname,
+          lastName: clinic.lastname,
+          email: clinic.email,
+          phone: clinic.phone,
+          clinicName: clinic.clinicName,
+          licenseNumber: clinic.clinicLicenseNumber,
+          clinicAddress: clinic.clinicAddress || '',
+          billingAddress: clinic.billingInfo || '',
+          gstNumber: clinic.gstNumber || '',
+          panNumber: clinic.panNumber || '',
+          roleName: roleName,
+          userType: 'clinic',
+          permissions: clinic.permissions || []
+        };
+        
+        console.log('Returning clinic user data');
+        return res.json(userData);
+      }
+
+      // If not found in clinic table, try team member table
+      let teamMember = await storage.getTeamMember(id);
+      console.log('Team member lookup result:', teamMember ? 'Found' : 'Not found');
+      
+      if (teamMember) {
+        console.log('Processing team member data for:', teamMember.fullName);
+        // Get role name
+        let roleName = '';
+        if (teamMember.roleId) {
+          try {
+            const role = await storage.getRoleById(teamMember.roleId);
+            roleName = role?.name || '';
+            console.log('Role name for team member:', roleName);
+          } catch (error) {
+            console.log('Failed to fetch role name:', error);
+          }
+        }
+
+        const userData = {
+          id: teamMember.id,
+          firstName: teamMember.fullName.split(' ')[0] || '',
+          lastName: teamMember.fullName.split(' ').slice(1).join(' ') || '',
+          email: teamMember.email,
+          phone: teamMember.contactNumber,
+          clinicName: teamMember.clinicName,
+          licenseNumber: '',
+          clinicAddressLine1: '',
+          clinicAddressLine2: '',
+          clinicCity: '',
+          clinicState: '',
+          clinicPincode: '',
+          clinicCountry: 'India',
+          billingAddressLine1: '',
+          billingAddressLine2: '',
+          billingCity: '',
+          billingState: '',
+          billingPincode: '',
+          billingCountry: 'India',
+          gstNumber: '',
+          panNumber: '',
+          roleName: roleName,
+          userType: 'teamMember',
+          permissions: teamMember.permissions || []
+        };
+        
+        console.log('Returning team member user data');
+        return res.json(userData);
+      }
+
+      // If not found in either table
+      console.log('User not found in either clinic or team member tables');
+      return res.status(404).json({ error: 'User not found' });
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      res.status(500).json({ error: 'Failed to fetch user data' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

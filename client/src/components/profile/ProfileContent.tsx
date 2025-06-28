@@ -1,8 +1,11 @@
-import React, { useState, useRef, ChangeEvent } from 'react';
+import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { Pen, LogOut, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GradientInput from '@/components/ui/gradient-input';
 import { Label } from '@/components/ui/label';
+import { useAppSelector } from '@/store/hooks';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 // SectionCard helper for section layout
 interface SectionCardProps {
@@ -28,6 +31,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, children }) => (
 );
 
 interface ProfileData {
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -48,6 +52,9 @@ interface ProfileData {
   billingCountry: string;
   gstNumber: string;
   panNumber: string;
+  roleName: string;
+  userType: string;
+  permissions: string[];
 }
 
 interface Errors {
@@ -57,36 +64,87 @@ interface Errors {
 
 const ProfileContent: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: 'Dr. Sarah',
-    lastName: 'Mitchell',
-    email: 'sarah.mitchell@smiledental.com',
-    phone: '+1 (555) 123-4567',
-    clinicName: 'Smile Dental Clinic',
-    licenseNumber: 'DDS-12345',
-    clinicAddressLine1: '123 Medical Center Dr',
-    clinicAddressLine2: 'Suite 401',
-    clinicCity: 'Mumbai',
-    clinicState: 'Maharashtra',
-    clinicPincode: '400001',
-    clinicCountry: 'India',
-    billingAddressLine1: '123 Medical Center Dr',
-    billingAddressLine2: 'Suite 401',
-    billingCity: 'Mumbai',
-    billingState: 'Maharashtra',
-    billingPincode: '400001',
-    billingCountry: 'India',
-    gstNumber: '27ABCDE1234F1Z5',
-    panNumber: 'ABCDE1234F'
-  });
   const [errors, setErrors] = useState<Errors>({ gstNumber: '', panNumber: '' });
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { user } = useAppSelector((state) => state.auth);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch user data from API using user ID
+  const { data: profileData, isLoading, error } = useQuery<ProfileData>({
+    queryKey: ['/api/userData', user?.id],
+    queryFn: async () => {
+      
+      if (!user?.id) {
+        console.error('User ID not available');
+        throw new Error('User ID not available');
+      }
+      
+      const response = await fetch(`/api/userData/${user.id}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`Failed to fetch user data: ${response.status} ${errorText}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!user?.id,
+    retry: 1,
+    retryDelay: 1000,
+  });
+
+  // Update profile mutation - using existing team member or clinic update endpoints
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: Partial<ProfileData>) => {
+      if (!user?.id) {
+        throw new Error('User ID not available');
+      }
+
+      // Determine which endpoint to use based on user type
+      const endpoint = data.userType === 'clinic' 
+        ? `/api/clinics/${user.id}` 
+        : `/api/team-members/${user.id}`;
+
+      const response = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/userData', user?.id] });
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const validateGST = (gst: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
   const validatePAN = (pan: string) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
 
   const handleSave = () => {
+    if (!profileData) return;
+
     const newErrors: Errors = { gstNumber: '', panNumber: '' };
     if (profileData.gstNumber && !validateGST(profileData.gstNumber)) {
       newErrors.gstNumber = 'Invalid GST format. Format: 22AAAAA0000A1Z5';
@@ -95,28 +153,36 @@ const ProfileContent: React.FC = () => {
       newErrors.panNumber = 'Invalid PAN format. Format: AAAAA0000A';
     }
     setErrors(newErrors);
+    
     if (!newErrors.gstNumber && !newErrors.panNumber) {
-      setIsEditing(false);
+      updateProfileMutation.mutate(profileData);
     }
   };
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
-    setProfileData(prev => ({ ...prev, [field]: value }));
+    if (!profileData) return;
+    
+    const updatedData = { ...profileData, [field]: value };
+    queryClient.setQueryData(['/api/userData', user?.id], updatedData);
+    
     if (field === 'gstNumber' || field === 'panNumber') {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
   const copyClinicToBilling = () => {
-    setProfileData(prev => ({
-      ...prev,
-      billingAddressLine1: prev.clinicAddressLine1,
-      billingAddressLine2: prev.clinicAddressLine2,
-      billingCity: prev.clinicCity,
-      billingState: prev.clinicState,
-      billingPincode: prev.clinicPincode,
-      billingCountry: prev.clinicCountry
-    }));
+    if (!profileData) return;
+    
+    const updatedData = {
+      ...profileData,
+      billingAddressLine1: profileData.clinicAddressLine1,
+      billingAddressLine2: profileData.clinicAddressLine2,
+      billingCity: profileData.clinicCity,
+      billingState: profileData.clinicState,
+      billingPincode: profileData.clinicPincode,
+      billingCountry: profileData.clinicCountry
+    };
+    queryClient.setQueryData(['/api/userData', user?.id], updatedData);
   };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -132,22 +198,81 @@ const ProfileContent: React.FC = () => {
     value: string,
     field: keyof ProfileData,
     type: string = 'text',
-    colSpan: number = 1
+    colSpan: number = 1,
+    disabled: boolean = false
   ) => (
-    <div className={`flex flex-col gap-1 ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
-      <Label className="text-16/25 text-customGray-100 font-medium mb-1">{label}</Label>
+    <div className={`mb-4 flex flex-col gap-0.2 ${colSpan === 2 ? 'md:col-span-2' : ''}`}>
+      <Label className="text-16/25 text-customGray-100 font-medium mb-0.5">{label}</Label>
       {isEditing ? (
         <GradientInput
           type={type}
           value={value}
           onChange={e => handleInputChange(field, type === 'text' ? e.target.value : e.target.value.toUpperCase())}
           className=""
+          disabled={disabled}
         />
       ) : (
         <span className="text-14/24 text-foreground font-medium flex items-center">{value || <span className="text-muted-foreground">-</span>}</span>
       )}
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+            <p className="text-muted-foreground">Loading profile data...</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+            <p className="text-muted-foreground">Error loading profile data</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="text-center">
+            <p className="text-red-500">Failed to load profile data. Please try again.</p>
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/userData', user?.id] })}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="mx-auto">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+            <p className="text-muted-foreground">No profile data available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto">
@@ -204,7 +329,9 @@ const ProfileContent: React.FC = () => {
             )}
           </div>
           <h2 className="mt-4 text-xl font-semibold text-foreground">Profile Information</h2>
-          <p className="text-muted-foreground text-sm mt-1">Manage your account settings and preferences</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {profileData.userType === 'clinic' ? 'Clinic Profile' : 'Team Member Profile'}
+          </p>
         </div>
         <div className="px-6 pb-6">
           {/* General Information */}
@@ -216,69 +343,63 @@ const ProfileContent: React.FC = () => {
               {renderField('Phone', profileData.phone, 'phone', 'text')}
             </div>
           </SectionCard>
-          {/* Clinic Information */}
-          <SectionCard title="Clinic Information">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderField('Clinic Name', profileData.clinicName, 'clinicName')}
-              {renderField('License Number', profileData.licenseNumber, 'licenseNumber')}
-            </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderField('Address Line 1', profileData.clinicAddressLine1, 'clinicAddressLine1', 'text', 2)}
-              {renderField('Address Line 2 (Optional)', profileData.clinicAddressLine2, 'clinicAddressLine2', 'text', 2)}
-              {renderField('City', profileData.clinicCity, 'clinicCity')}
-              {renderField('State', profileData.clinicState, 'clinicState')}
-              {renderField('Pincode', profileData.clinicPincode, 'clinicPincode')}
-              {renderField('Country', profileData.clinicCountry, 'clinicCountry')}
-            </div>
-          </SectionCard>
-          {/* Billing Information */}
-          <SectionCard title="Billing Information">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                {renderField('GST Number', profileData.gstNumber, 'gstNumber', 'text')}
-                {errors.gstNumber && (
-                  <p className="text-red-500 text-xs mt-1">{errors.gstNumber}</p>
-                )}
+          
+          {/* Clinic Information - Only show for main_doctor or if user has clinic data */}
+          {(profileData.userType === 'clinic' || profileData.roleName === 'main_doctor') && (
+            <SectionCard title="Clinic Information">
+             
+                {renderField('Clinic Name', profileData.clinicName, 'clinicName')}
+                {renderField('License Number', profileData.licenseNumber, 'licenseNumber')}
+                {renderField('Address Line 1', profileData.clinicAddressLine1, 'clinicAddressLine1', 'text', 2)}
+            </SectionCard>
+          )}
+          
+          {/* Billing Information - Only show for main_doctor */}
+          {profileData.userType === 'clinic' && (
+            <SectionCard title="Billing Information">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  {renderField('GST Number', profileData.gstNumber, 'gstNumber', 'text')}
+                  {errors.gstNumber && (
+                    <p className="text-red-500 text-xs mt-1">{errors.gstNumber}</p>
+                  )}
+                </div>
+                <div>
+                  {renderField('PAN Number', profileData.panNumber, 'panNumber', 'text')}
+                  {errors.panNumber && (
+                    <p className="text-red-500 text-xs mt-1">{errors.panNumber}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                {renderField('PAN Number', profileData.panNumber, 'panNumber', 'text')}
-                {errors.panNumber && (
-                  <p className="text-red-500 text-xs mt-1">{errors.panNumber}</p>
-                )}
+              {isEditing && (
+                <div className="flex items-center space-x-2 mt-4 mb-2">
+                  <input
+                    type="checkbox"
+                    id="sameAsClinic"
+                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    onChange={e => { if (e.target.checked) copyClinicToBilling(); }}
+                  />
+                  <Label htmlFor="sameAsClinic" className="text-sm text-muted-foreground cursor-pointer">
+                    Billing address is same as clinic address
+                  </Label>
+                </div>
+              )}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderField('Billing Address', profileData.billingAddress, 'Billing Address', 'text', 2)}
               </div>
-            </div>
-            {isEditing && (
-              <div className="flex items-center space-x-2 mt-4 mb-2">
-                <input
-                  type="checkbox"
-                  id="sameAsClinic"
-                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                  onChange={e => { if (e.target.checked) copyClinicToBilling(); }}
-                />
-                <Label htmlFor="sameAsClinic" className="text-sm text-muted-foreground cursor-pointer">
-                  Billing address is same as clinic address
-                </Label>
-              </div>
-            )}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {renderField('Address Line 1', profileData.billingAddressLine1, 'billingAddressLine1', 'text', 2)}
-              {renderField('Address Line 2 (Optional)', profileData.billingAddressLine2, 'billingAddressLine2', 'text', 2)}
-              {renderField('City', profileData.billingCity, 'billingCity')}
-              {renderField('State', profileData.billingState, 'billingState')}
-              {renderField('Pincode', profileData.billingPincode, 'billingPincode')}
-              {renderField('Country', profileData.billingCountry, 'billingCountry')}
-            </div>
-            {isEditing && (
-              <div className="flex justify-center pt-6">
-                <Button
-                  onClick={handleSave}
-                  className="bg-customGreen-200 text-white font-medium rounded-lg py-3 px-10 hover:bg-[#039855] transition-colors duration-150 border-none shadow-none"
-                >
-                  Save Changes
-                </Button>
-              </div>
-            )}
-          </SectionCard>
+              {isEditing && (
+                <div className="flex justify-center pt-6">
+                  <Button
+                    onClick={handleSave}
+                    disabled={updateProfileMutation.isPending}
+                    className="bg-customGreen-200 text-white font-medium rounded-lg py-3 px-10 hover:bg-[#039855] transition-colors duration-150 border-none shadow-none"
+                  >
+                    {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              )}
+            </SectionCard>
+          )}
         </div>
       </div>
       {/* Bottom Action Buttons */}
