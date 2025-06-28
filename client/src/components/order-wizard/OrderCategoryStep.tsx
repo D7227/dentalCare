@@ -13,33 +13,33 @@ const OrderCategoryStep = ({ onCategorySelect }: OrderCategoryStepProps) => {
       id: 'new' as const,
       icon: <Check size={20} className="text-white" />,
       title: 'New Order',
-      description: 'Place a completely new lab request',
+      description: ['Place a completely new lab', 'request'],
       gradient: 'from-emerald-500 to-teal-600',
       hoverGradient: 'hover:from-emerald-600 hover:to-teal-700',
       bgAccent: 'bg-emerald-50',
-      borderAccent: 'border-emerald-200',
+      borderAccent: 'border-customPrimery-20',
       iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600'
     },
     {
       id: 'repeat' as const,
       icon: <RotateCcw size={20} className="text-white" />,
       title: 'Repeat Order',
-      description: 'Reorder based on a previous case',
+      description: ['Reorder based on a', 'previous case'],
       gradient: 'from-blue-500 to-indigo-600',
       hoverGradient: 'hover:from-blue-600 hover:to-indigo-700',
       bgAccent: 'bg-blue-50',
-      borderAccent: 'border-blue-200',
+      borderAccent: 'border-customBlue-100',
       iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600'
     },
     {
       id: 'repair' as const,
       icon: <Wrench size={20} className="text-white" />,
       title: 'Repair',
-      description: 'Submit a case for fixing/adjustment',
+      description: ['Submit a case for', 'fixing/adjustment'],
       gradient: 'from-orange-500 to-red-500',
       hoverGradient: 'hover:from-orange-600 hover:to-red-600',
       bgAccent: 'bg-orange-50',
-      borderAccent: 'border-orange-200',
+      borderAccent: 'border-customOrange-15',
       iconBg: 'bg-gradient-to-br from-orange-500 to-red-500'
     }
   ];
@@ -53,11 +53,11 @@ const OrderCategoryStep = ({ onCategorySelect }: OrderCategoryStepProps) => {
             <Check size={16} className="text-white" />
           </div>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-20/28 font-semibold text-customBlack-100">
           What type of order would you like to place?
         </h2>
-        <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-          Choose the category that best matches your dental lab requirements
+        <p className="text-14/20 text-customGray-100 font-medium max-w-xl mx-auto !mt-0">
+          Choose the category that best matches your dental lab <br /> requirements
         </p>
       </div>
       
@@ -68,18 +68,22 @@ const OrderCategoryStep = ({ onCategorySelect }: OrderCategoryStepProps) => {
             key={category.id}
             className={`group cursor-pointer transition-all duration-300 border-2 hover:border-transparent hover:shadow-lg hover:-translate-y-1 ${category.borderAccent} overflow-hidden relative`}
             onClick={() => onCategorySelect(category.id)}
+            style={{
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              border: '1px solid rgba(11, 128, 67, 0.2)', 
+            }}
           >
             {/* Gradient overlay on hover */}
             <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
             
             <CardContent className="p-4 text-center relative z-10">
               {/* Icon Container */}
-              <div className="relative mb-4">
+              <div className="relative mb-4 mt-[38.5px]">
                 <div className={`inline-flex p-3 rounded-lg ${category.iconBg} shadow-sm group-hover:scale-105 group-hover:shadow-md transition-all duration-300`}>
                   {category.icon}
                 </div>
                 {/* Floating accent */}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-0 group-hover:scale-100"></div>
+                {/* <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-0 group-hover:scale-100"></div> */}
               </div>
               
               {/* Content */}
@@ -88,7 +92,9 @@ const OrderCategoryStep = ({ onCategorySelect }: OrderCategoryStepProps) => {
                   {category.title}
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {category.description}
+                  {Array.isArray(category.description)
+                    ? <>{category.description[0]}<br />{category.description[1]}</>
+                    : category.description}
                 </p>
                 
                 {/* Call to action */}
@@ -107,30 +113,31 @@ const OrderCategoryStep = ({ onCategorySelect }: OrderCategoryStepProps) => {
       {/* Help Section */}
       <Card className="bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
         <CardContent className="p-4">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-1.5 mb-2">
             <div className="flex-shrink-0">
               <div className="w-2 h-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-600 mt-1.5"></div>
             </div>
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-900">
+              <h4 className="text-sm font-bold text-gray-900">
                 Need help choosing the right option?
               </h4>
-              <div className="space-y-1.5 text-xs text-gray-700">
-                <p className="flex items-start gap-2">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
+              
+            </div>
+          </div>
+          <div className="space-y-1.5 text-xs text-gray-700 ml-0.5">
+                <p className="flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500 flex-shrink-0"></span>
                   <span><strong>New Order:</strong> Perfect for first-time requests or completely new dental work</span>
                 </p>
-                <p className="flex items-start gap-2">
-                  <span className="w-1 h-1 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
+                <p className="flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-blue-500 flex-shrink-0"></span>
                   <span><strong>Repeat Order:</strong> Ideal when you want to duplicate a previous successful case</span>
                 </p>
-                <p className="flex items-start gap-2">
-                  <span className="w-1 h-1 rounded-full bg-orange-500 mt-1.5 flex-shrink-0"></span>
+                <p className="flex items-center gap-2">
+                  <span className="w-1 h-1 rounded-full bg-orange-500 flex-shrink-0"></span>
                   <span><strong>Repair:</strong> Use this when existing dental work needs adjustments or fixes</span>
                 </p>
               </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

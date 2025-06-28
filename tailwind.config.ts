@@ -63,8 +63,10 @@ export default {
         },
         mainBrackground:{
           DEFAULT: "#F7FEFF",
+          100: "#E2F4F1",
         },
         customBlack: {
+          90: '#231F2090',
           100: '#231F20',
         },
         customPurple: {
@@ -76,6 +78,7 @@ export default {
           100: "#00A2B5",
         },
         customOrange: {
+          15: '#EA580C26',
           30: "#EA580C4D",
           100: "#EA580C",
         },
@@ -98,6 +101,10 @@ export default {
         },
         customGray: {
           100: '#5B6664',
+          200:'#CCDAD8'
+        },
+        customBlue: {
+          100: '#1D4ED824',
         },
       },
       fontSize: {
@@ -108,9 +115,11 @@ export default {
         '14/16': ['14px', { lineHeight: '16px' }],
         '14/20': ['14px', { lineHeight: '20px' }],
         '14/24': ['14px', { lineHeight: '24px' }],
+        '14/28': ['14px', { lineHeight: '28px' }],
         '16/18': ['16px', { lineHeight: '18px' }],
         '18/22': ['18px', { lineHeight: '22px' }],
         '20/24': ['20px', { lineHeight: '24px' }],
+        '20/28': ['20px', { lineHeight: '28px' }],
         '24/28': ['24px', { lineHeight: '28px' }],
         '30/36': ['30px', { lineHeight: '36px' }],
         '36/44': ['36px', { lineHeight: '44px' }],

@@ -48,7 +48,13 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
               caseHandledBy: value
             })}
           >
-            <SelectTrigger className="mt-1">
+            <SelectTrigger className="mt-1" 
+            style={{
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              border: '1px solid rgba(11, 128, 67, 0.2)', // 20% opacity
+              borderRadius: '0.5rem'
+            }}
+            >
               <SelectValue placeholder="Select doctor" />
             </SelectTrigger>
             <SelectContent>
@@ -65,6 +71,12 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
           <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
           <Input 
             id="consultingDoctor" 
+            style={{
+              background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              border: '1px solid rgba(11, 128, 67, 0.2)', // 20% opacity
+              borderRadius: '0.5rem'
+            }}
+
             value={formData.consultingDoctor} 
             onChange={e => setFormData({
               ...formData,

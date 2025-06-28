@@ -17,6 +17,7 @@ import WizardProgress from '@/components/order-wizard/WizardProgress';
 import { useOrderValidation } from '@/components/order-wizard/hooks/useOrderValidation';
 import { useOrderSteps } from '@/components/order-wizard/hooks/useOrderSteps';
 import { OrderCategory, FormData } from '@/components/order-wizard/types/orderTypes';
+import CustomButton from '@/components/common/customButtom';
 
 interface ToothGroup {
   groupId: string;
@@ -290,32 +291,31 @@ const PlaceOrder = () => {
   const currentStepErrors = stepValidationErrors[currentStep] || [];
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-mainBrackground">
       {/* Compact Header */}
-      <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
+      <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-mainBrackground-100">
         <CardContent className="p-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => window.history.back()} 
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+              <CustomButton
+                variant="blackAndWhite"
+                onClick={() => window.history.back()}
               >
                 <ArrowLeft size={18} />
                 Back
-              </Button>
+              </CustomButton>
               <div className="h-5 w-px bg-gray-300"></div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-20/28 font-semibold text-customBlack-100">
                   {getCurrentStepTitle()}
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-14/28 text-customGray-100">
                   {getCurrentStepDescription()}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-xs text-muted-foreground bg-gray-100 px-3 py-1.5 rounded-full font-medium">
+              <div className="text-12/16 text-customBlack-100 bg-mainBrackground px-[16px] py-[12px] font-medium border border-customGreen-100 h-[40px] rounded-[8px]">
                 Step {currentStep + 1} of {steps.length}
               </div>
               {orderCategory && (
@@ -338,7 +338,7 @@ const PlaceOrder = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Progress Steps */}
           <div className="lg:w-80 flex-shrink-0">
-            <Card className="sticky top-24 shadow-sm border-gray-200">
+            <Card className="sticky top-24 shadow-sm border border-customGray-200">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold text-gray-900">Order Progress</CardTitle>
               </CardHeader>
@@ -350,7 +350,7 @@ const PlaceOrder = () => {
 
           {/* Right Content Area */}
           <div className="flex-1 min-w-0">
-            <Card className="shadow-sm border-gray-200">
+            <Card className="shadow-sm border !border-customPrimery-200">
               <CardContent className="p-6">
                 {/* Validation Errors */}
                 {currentStepErrors.length > 0 && (

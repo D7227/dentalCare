@@ -166,7 +166,9 @@ const ToothSelector = ({
             if (fragment.length === 1) {
               // Single tooth becomes individual
               const toothNum = fragment[0];
-              const type = 'abutment';
+              // Check if it was a pontic in the group
+              const wasPontic = groupContainingTooth.pontics?.includes(toothNum);
+              const type = wasPontic ? 'pontic' : 'abutment';
               newIndividualTeeth.push({
                 toothNumber: toothNum,
                 type
@@ -238,6 +240,27 @@ const ToothSelector = ({
     setClickedTooth(null);
   };
 
+  // Handle joining tooth to existing group
+  const handleJoinGroup = (toothNumber: number, groupId: string) => {
+    console.log('Joining tooth', toothNumber, 'to group', groupId);
+    
+    const targetGroup = selectedGroups.find(g => g.groupId === groupId);
+    if (!targetGroup) return;
+    
+    // Add the tooth to the group
+    const updatedGroup = {
+      ...targetGroup,
+      teeth: [...targetGroup.teeth, toothNumber].sort((a, b) => a - b)
+    };
+    
+    // Update the groups
+    onGroupsChange(selectedGroups.map(g => g.groupId === groupId ? updatedGroup : g));
+    
+    // Close dialog
+    setShowTypeDialog(false);
+    setClickedTooth(null);
+  };
+
   // Handle creating connections between multiple teeth - STRICT ADJACENCY ENFORCED
   const handleDragConnection = (teeth: number[] | number, splitData?: any) => {
     // Special signals for group operations
@@ -255,7 +278,8 @@ const ToothSelector = ({
           // Add teeth as individuals immediately
           const newIndividualTeeth: SelectedTooth[] = [];
           group.teeth.forEach((toothNumber: number) => {
-            const type = 'abutment';
+            const wasPontic = group.pontics?.includes(toothNumber);
+            const type = wasPontic ? 'pontic' : 'abutment';
             const exists = selectedTeeth.some(tooth => tooth.toothNumber === toothNumber);
             if (!exists) {
               newIndividualTeeth.push({
@@ -287,7 +311,8 @@ const ToothSelector = ({
             if (group.teeth.length === 1) {
               // Single tooth becomes individual
               const toothNumber = group.teeth[0];
-              const type = 'abutment';
+              const wasPontic = group.pontics?.includes(toothNumber);
+              const type = wasPontic ? 'pontic' : 'abutment';
               const exists = selectedTeeth.some(tooth => tooth.toothNumber === toothNumber);
               if (!exists) {
                 newIndividualTeeth.push({
@@ -524,7 +549,16 @@ const ToothSelector = ({
       </div>
 
       {/* Tooth Type Selection Dialog */}
-      <ToothTypeDialog isOpen={showTypeDialog} onClose={() => setShowTypeDialog(false)} toothNumber={clickedTooth || 0} position={dialogPosition} onSelectType={handleToothTypeSelection} />
+      <ToothTypeDialog 
+        isOpen={showTypeDialog} 
+        onClose={() => setShowTypeDialog(false)} 
+        toothNumber={clickedTooth || 0} 
+        position={dialogPosition} 
+        onSelectType={handleToothTypeSelection}
+        selectedGroups={selectedGroups}
+        onJoinGroup={handleJoinGroup}
+        debugMode={false}
+      />
     </div>;
 };
 export default ToothSelector;
