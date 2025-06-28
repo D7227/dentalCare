@@ -120,6 +120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.createOrder(orderData);
       res.status(201).json(order);
     } catch (error) {
+      console.log("error", error);
       res.status(400).json({ error: "Invalid order data" });
     }
   });

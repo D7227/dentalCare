@@ -71,12 +71,12 @@ var patients = pgTable("patients", {
 var orders = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   clinicId: uuid("clinic_id").notNull(),
-  orderId: text("order_id").notNull(),
+  orderId: text("order_id"),
   referenceId: text("reference_id").notNull(),
-  doctorId: uuid("doctor_id").notNull(),
-  patientId: uuid("patient_id").notNull(),
+  doctorId: uuid("doctor_id"),
+  patientId: uuid("patient_id"),
   type: text("type").notNull(),
-  category: text("category").notNull(),
+  category: text("category"),
   orderType: text("order_type"),
   orderDate: timestamp("order_date").defaultNow(),
   orderStatus: uuid("order_status").notNull(),
@@ -909,6 +909,7 @@ async function registerRoutes(app2) {
       const order = await storage.createOrder(orderData);
       res.status(201).json(order);
     } catch (error) {
+      console.log("error", error);
       res.status(400).json({ error: "Invalid order data" });
     }
   });

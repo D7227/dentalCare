@@ -38,14 +38,23 @@ const ToothSelector = ({
 
   // Get tooth type
   const getToothType = useCallback((toothNumber: number): 'abutment' | 'pontic' | null => {
+    
+    // Check individual teeth first
     const selectedTooth = selectedTeeth.find(tooth => tooth.toothNumber === toothNumber);
-    if (selectedTooth) return selectedTooth.type;
+    if (selectedTooth) {
+      return selectedTooth.type;
+    }
+    
+    // Check groups
     for (const group of selectedGroups) {
       if (group.teeth.includes(toothNumber)) {
-        if (group.pontics && group.pontics.includes(toothNumber)) return 'pontic';
+        if (group.pontics && group.pontics.includes(toothNumber)) {
+          return 'pontic';
+        }
         return 'abutment';
       }
     }
+    
     return null;
   }, [selectedTeeth, selectedGroups]);
 
@@ -98,7 +107,6 @@ const ToothSelector = ({
 
   // Handle tooth click
   const handleToothClick = (toothNumber: number, event: React.MouseEvent) => {
-    if (!productSelection) return;
     const rect = (event.target as Element).getBoundingClientRect();
     const position = {
       x: rect.left + rect.width / 2,
@@ -458,115 +466,24 @@ const ToothSelector = ({
     setProductSelection(null);
     setSelectedTeeth([]);
   };
+
   return <div className="flex gap-6">
     <div className="w-1/2">
       <Card className="border shadow-sm">
         <CardContent className="p-3">
-          {/* Product Selection */}
-
-          {!productSelection && <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              Select Prescription
-            </h4>
-            <div className="space-y-3">
-              {/* Implant Option */}
-              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                <input
-                  type="radio"
-                  id="implant"
-                  name="product"
-                  value="implant"
-                  checked={productSelection === 'implant'}
-                  onChange={() => setProductSelection('implant')}
-                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
-                />
-                <label
-                  // htmlFor="implant"
-                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
-                >
-                  <div className="w-6 h-6 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
-                    <img className="w-4 h-4" src={ImpantTeeth} alt="ImplantTeeth" />
-                  </div>
-                  <span>Implant</span>
-                </label>
-              </div>
-
-              {/* Crown & Bridge Option */}
-              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                <input
-                  type="radio"
-                  id="crown-bridge"
-                  name="product"
-                  value="crown-bridge"
-                  checked={productSelection === 'crown-bridge'}
-                  onChange={() => setProductSelection('crown-bridge')}
-                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
-                />
-                <label
-                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
-                >
-                  <div className="w-6 h-6 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
-                    <img className="w-4 h-4" src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
-                  </div>
-                  <span>Crown & Bridge</span>
-                </label>
-              </div>
-            </div>
-          </div>}
-          
-          {!productSelection && <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              Select Delivery Type
-            </h4>
-            <div className="space-y-3">
-              {/* Digital */}
-              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                <input
-                  type="radio"
-                  id="delivery-digital"
-                  name="deliveryType"
-                  value="digital"
-                  checked={deliveryType === 'digital'}
-                  onChange={() => setDeliveryType('digital')}
-                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
-                />
-                <label
-                  htmlFor="delivery-digital"
-                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
-                >
-                  <span>Digital</span>
-                </label>
-              </div>
-
-              {/* Manual */}
-              <div className="flex items-center space-x-3 p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                <input
-                  type="radio"
-                  id="delivery-manual"
-                  name="deliveryType"
-                  value="manual"
-                  checked={deliveryType === 'manual'}
-                  onChange={() => setDeliveryType('manual')}
-                  className="w-4 h-4 text-[#11AB93] border-gray-300 focus:ring-[#11AB93]"
-                />
-                <label
-                  htmlFor="delivery-manual"
-                  className="text-sm font-medium cursor-pointer flex-1 flex items-center space-x-2"
-                >
-                  <span>Manual</span>
-                </label>
-              </div>
-            </div>
-          </div>}
-        
-
-
-
-          {productSelection}
-
-          {productSelection && <div className="mb-4">
-            <ToothChart selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onToothClick={handleToothClick} onDragConnection={handleDragConnection} isToothSelected={isToothSelected} getToothType={getToothType} onGroupsChange={onGroupsChange} setSelectedTeeth={setSelectedTeeth} />
-          </div>}
+          {/* Tooth Chart - Directly show since product is already selected */}
+          <div className="mb-4">
+            <ToothChart 
+              selectedGroups={selectedGroups} 
+              selectedTeeth={selectedTeeth} 
+              onToothClick={handleToothClick} 
+              onDragConnection={handleDragConnection} 
+              isToothSelected={isToothSelected} 
+              getToothType={getToothType} 
+              onGroupsChange={onGroupsChange} 
+              setSelectedTeeth={setSelectedTeeth} 
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -574,10 +491,23 @@ const ToothSelector = ({
     {/* Right side */}
     <div className="w-1/2 space-y-4">
 
-      {(selectedGroups.length > 0 || selectedTeeth.length > 0) && <Card className="border shadow-sm">
-
-      </Card>}
-      {productSelection && <Card className="border shadow-sm">
+      {(selectedGroups.length > 0 || selectedTeeth.length > 0) && (
+        <Card className="border shadow-sm">
+          <CardContent className="p-3">
+            <SelectedToothGroups 
+              selectedGroups={selectedGroups} 
+              selectedTeeth={selectedTeeth} 
+              onRemoveGroup={handleRemoveGroup} 
+              onRemoveTooth={handleRemoveTooth} 
+              onUpdateGroup={handleUpdateGroup} 
+              onUpdateTooth={handleUpdateTooth} 
+              onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])} 
+            />
+          </CardContent>
+        </Card>
+      )}
+      
+      <Card className="border shadow-sm">
         <CardContent className="p-3">
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
           <div className="space-y-2 text-xs text-gray-600">
@@ -587,7 +517,7 @@ const ToothSelector = ({
             </div>
             <div className="flex items-start gap-2">
               <span className="text-blue-500">2.</span>
-
+              <span>Drag between teeth to create groups</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-blue-500">3.</span>
@@ -623,8 +553,7 @@ const ToothSelector = ({
             </div>
           </div>
         </CardContent>
-      </Card>}
-      <SelectedToothGroups selectedGroups={selectedGroups} selectedTeeth={selectedTeeth} onRemoveGroup={handleRemoveGroup} onRemoveTooth={handleRemoveTooth} onUpdateGroup={handleUpdateGroup} onUpdateTooth={handleUpdateTooth} onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])} />
+      </Card>
     </div>
 
     {/* Tooth Type Selection Dialog */}

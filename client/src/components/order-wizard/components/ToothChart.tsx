@@ -27,6 +27,25 @@ const ToothChart = ({
   onGroupsChange,
   setSelectedTeeth
 }: ToothChartProps) => {
+  // Safety check for required props
+  if (typeof getToothType !== 'function') {
+    console.error('getToothType prop is not a function. Props received:', {
+      selectedGroups,
+      selectedTeeth,
+      onToothClick: typeof onToothClick,
+      onDragConnection: typeof onDragConnection,
+      isToothSelected: typeof isToothSelected,
+      getToothType: typeof getToothType,
+      onGroupsChange: typeof onGroupsChange,
+      setSelectedTeeth: typeof setSelectedTeeth
+    });
+    return (
+      <div className="flex justify-center items-center h-64 text-red-500">
+        Error: getToothType function is not properly initialized
+      </div>
+    );
+  }
+
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [dragLine, setDragLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
@@ -294,6 +313,11 @@ const ToothChart = ({
 
   // Get tooth fill color based on selection state
   const getToothFillColor = (toothNumber: number): string => {
+    if (typeof getToothType !== 'function') {
+      console.warn('getToothType is not a function, returning default color');
+      return 'white';
+    }
+    
     const type = getToothType(toothNumber);
     if (!type) return 'white';
 
@@ -310,6 +334,11 @@ const ToothChart = ({
 
   // Get tooth stroke color
   const getToothStrokeColor = (toothNumber: number): string => {
+    if (typeof getToothType !== 'function') {
+      console.warn('getToothType is not a function, returning default stroke color');
+      return '#000';
+    }
+    
     const type = getToothType(toothNumber);
     if (!type) return '#000';
 

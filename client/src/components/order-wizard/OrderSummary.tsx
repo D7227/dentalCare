@@ -156,11 +156,15 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <ToothChart 
+              <ToothChart
                 selectedGroups={restorationGroups}
-                tempSelection={[]}
+                selectedTeeth={[]}
                 onToothClick={() => {}} 
                 isToothSelected={() => false}
+                getToothType={() =>null}
+                onGroupsChange={() => {}}
+                setSelectedTeeth={() => {}}
+                onDragConnection={() => {}}
               />
             </CardContent>
           </Card>

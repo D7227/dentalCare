@@ -1,6 +1,4 @@
-
 import { OrderCategory, FormData } from '../types/orderTypes';
-
 export const useOrderValidation = () => {
   const validateStep = (
     currentStep: number,
@@ -8,7 +6,6 @@ export const useOrderValidation = () => {
     formData: FormData
   ): string[] => {
     const errors: string[] = [];
-
     if (orderCategory === 'new') {
       switch (currentStep) {
         case 1:
@@ -17,38 +14,42 @@ export const useOrderValidation = () => {
           if (!formData.caseHandledBy.trim()) errors.push('Case handler is required');
           break;
         case 2:
-          // Check if restoration products are added via toothGroups or restorationProducts
-          const restorationProducts = formData.restorationProducts || [];
+          // Step 2: Restoration Type - validate prescription type and order method
+          if (!formData.prescriptionType) errors.push('Please select a prescription type');
+          if (!formData.orderMethod) errors.push('Please select an order method');
+          break;
+        case 3:
+          // Step 3: Teeth Selection - validate that teeth are selected
           const toothGroups = formData.toothGroups || [];
-          
-
-          
-          if (restorationProducts.length === 0 && toothGroups.length === 0) {
+          if (toothGroups.length === 0) {
+            errors.push('Please select at least one tooth group');
+          }
+          break;
+        case 4:
+          // Step 4: Product Selection - validate that products are configured
+          const productToothGroups = formData.toothGroups || [];
+          if (productToothGroups.length === 0) {
             errors.push('At least one restoration product group is required');
-          } else if (restorationProducts.length > 0) {
-            const incompleteProducts = restorationProducts.filter((product: any) => 
-              !product.type || !product.toothGroups || product.toothGroups.length === 0 ||
-              product.toothGroups.every((group: any) => !group.teeth || group.teeth.length === 0)
-            );
-            if (incompleteProducts.length > 0) {
-              errors.push('Please complete all restoration products (type and teeth selection required)');
-            }
-          } else if (toothGroups.length > 0) {
-            // Validate tooth groups - only check for essential data
-            const incompleteGroups = toothGroups.filter((group: any) => 
-              !group.teeth || group.teeth.length === 0 || !group.material || !group.shade
+          } else {
+            // Validate tooth groups have required product details
+            const incompleteGroups = productToothGroups.filter((group: any) =>
+              !group.teeth || group.teeth.length === 0 || !group.selectedProducts || group.selectedProducts.length === 0
             );
             if (incompleteGroups.length > 0) {
-              errors.push('Please complete all tooth groups (teeth, material, and shade required)');
+              errors.push('Please complete product selection for all tooth groups');
             }
           }
           break;
-        case 3:
+        case 5:
+          // Step 5: Upload & Logistics
           if (formData.orderType === 'request-scan') {
             if (!formData.scanBooking?.areaManagerId?.trim()) errors.push('Area manager is required for scan booking');
             if (!formData.scanBooking?.scanDate?.trim()) errors.push('Scan date is required for scan booking');
             if (!formData.scanBooking?.scanTime?.trim()) errors.push('Scan time is required for scan booking');
           }
+          break;
+        case 6:
+          // Step 6: Final Details & Accessories
           const accessories = formData.accessories || [];
           if (accessories.includes('other') && (!formData.otherAccessory || formData.otherAccessory.trim() === '')) {
             errors.push('Please specify the other accessory');
@@ -56,7 +57,6 @@ export const useOrderValidation = () => {
           break;
       }
     }
-
     if (orderCategory === 'repeat') {
       switch (currentStep) {
         case 1:
@@ -75,7 +75,6 @@ export const useOrderValidation = () => {
           break;
       }
     }
-
     if (orderCategory === 'repair') {
       switch (currentStep) {
         case 1:
@@ -100,9 +99,7 @@ export const useOrderValidation = () => {
           break;
       }
     }
-
     return errors;
   };
-
   return { validateStep };
 };

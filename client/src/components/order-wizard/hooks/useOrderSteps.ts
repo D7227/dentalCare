@@ -1,6 +1,4 @@
-
 import { OrderCategory, Step } from '../types/orderTypes';
-
 export const useOrderSteps = () => {
   const getStepsForCategory = (category: OrderCategory): Step[] => {
     switch (category) {
@@ -8,9 +6,11 @@ export const useOrderSteps = () => {
         return [
           { number: 0, title: 'Category', description: 'Select order type' },
           { number: 1, title: 'Patient Details', description: 'Basic information' },
-          { number: 2, title: 'Restoration Info', description: 'Type and specifications' },
-          { number: 3, title: 'Upload & Logistics', description: 'Files and delivery' },
-          { number: 4, title: 'Review Order', description: 'Confirm and submit' }
+          { number: 2, title: 'Restoration Type', description: 'Prescription and method' },
+          { number: 3, title: 'Teeth Selection', description: 'Select teeth' },
+          { number: 4, title: 'Product Selection', description: 'Configure products' },
+          { number: 5, title: 'Upload & Logistics', description: 'Files and delivery' },
+          { number: 6, title: 'Review Order', description: 'Confirm and submit' }
         ];
       case 'repeat':
         return [
@@ -33,6 +33,5 @@ export const useOrderSteps = () => {
         return [{ number: 0, title: 'Category', description: 'Select order type' }];
     }
   };
-
   return { getStepsForCategory };
 };
