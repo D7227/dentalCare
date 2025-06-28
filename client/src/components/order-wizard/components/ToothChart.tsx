@@ -36,16 +36,160 @@ const ToothChart = ({
   const [lastHoveredDot, setLastHoveredDot] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
 
+  // --- Touch support for mobile (robust: tap = select, drag = connect) ---
+  const [touchStartInfo, setTouchStartInfo] = useState<{tooth: number|null, x: number, y: number, time: number}|null>(null);
+
+  // Helper to get SVG coordinates from clientX/clientY
+  function getSvgCoords(svg: SVGSVGElement, clientX: number, clientY: number) {
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (ctm) {
+      return pt.matrixTransform(ctm.inverse());
+    }
+    return { x: 0, y: 0 };
+  }
+
+  // Update getClientXY to use getSvgCoords
+  function getClientXY(event: React.MouseEvent | MouseEvent | React.TouchEvent | TouchEvent, svg: SVGSVGElement) {
+    if ('touches' in event && event.touches.length > 0) {
+      return getSvgCoords(svg, event.touches[0].clientX, event.touches[0].clientY);
+    } else if ('changedTouches' in event && event.changedTouches.length > 0) {
+      return getSvgCoords(svg, event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+    } else if ('clientX' in event && 'clientY' in event) {
+      return getSvgCoords(svg, event.clientX, event.clientY);
+    }
+    return null;
+  }
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!svgRef.current) return;
+    const { x, y } = getClientXY(e, svgRef.current) || { x: 0, y: 0 };
+    // Find closest dot
+    let closestTooth: number | null = null;
+    let minDistance = 24;
+    const allTeeth = [
+      ...selectedTeeth.map(t => t.toothNumber),
+      ...selectedGroups.flatMap(g => g.teeth)
+    ];
+    for (const toothNumber of allTeeth) {
+      const dotPos = getDotPosition(toothNumber);
+      const distance = Math.sqrt(Math.pow(x - dotPos.x, 2) + Math.pow(y - dotPos.y, 2));
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestTooth = toothNumber;
+      }
+    }
+    if (closestTooth !== null) {
+      setTouchStartInfo({ tooth: closestTooth, x, y, time: Date.now() });
+      // Do not start drag yet; wait for move threshold
+    } else {
+      setTouchStartInfo(null);
+    }
+  };
+
+  const TOUCH_DETECTION_RADIUS = 24; // px, for mobile drag
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!svgRef.current) return;
+    if (!isDragging || !dragStart) return;
+    e.preventDefault();
+    const { x, y } = getClientXY(e, svgRef.current) || { x: 0, y: 0 };
+    setMousePosition({ x, y });
+    const startPos = getDotPosition(dragStart);
+    setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+    // Only add to chain if dragging and not already in chain
+    let closestTooth: number | null = null;
+    let minDistance = 24;
+    const allTeeth = [
+      ...selectedTeeth.map(t => t.toothNumber),
+      ...selectedGroups.flatMap(g => g.teeth)
+    ];
+    for (const toothNumber of allTeeth) {
+      if (connectionChain.includes(toothNumber)) continue;
+      const dotPos = getDotPosition(toothNumber);
+      const distance = Math.sqrt(Math.pow(x - dotPos.x, 2) + Math.pow(y - dotPos.y, 2));
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestTooth = toothNumber;
+      }
+    }
+    if (closestTooth !== null) {
+      setConnectionChain(prev => [...prev, closestTooth]);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isDragging || !dragStart) return;
+    finishConnection();
+    setDragLine(null);
+    setIsDragging(false);
+    setDragStart(null);
+    setMousePosition(null);
+  };
+
+  // Add global touch event listeners for drag
+  useEffect(() => {
+    const handleGlobalTouchMove = (event: TouchEvent) => {
+      if (!svgRef.current) return;
+      if (isDragging || touchStartInfo) {
+        event.preventDefault();
+        const { x, y } = getClientXY(event, svgRef.current) || { x: 0, y: 0 };
+        if (touchStartInfo && !isDragging) {
+          const dx = x - touchStartInfo.x;
+          const dy = y - touchStartInfo.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist > 12) {
+            handleDotMouseDown(touchStartInfo.tooth!, event as any);
+          }
+        }
+        setMousePosition({ x, y });
+        if (isDragging && dragStart) {
+          const startPos = getDotPosition(dragStart);
+          setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+        }
+      }
+    };
+    const handleGlobalTouchEnd = (event: TouchEvent) => {
+      if (!svgRef.current) return;
+      const { x, y } = getClientXY(event, svgRef.current) || { x: 0, y: 0 };
+      if (touchStartInfo) {
+        const dx = x - touchStartInfo.x;
+        const dy = y - touchStartInfo.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dt = Date.now() - touchStartInfo.time;
+        if (dist < 10 && dt < 400) {
+          onToothClick(touchStartInfo.tooth!, event as any);
+          setTouchStartInfo(null);
+          return;
+        }
+      }
+      if (isDragging) {
+        event.preventDefault();
+        handleMouseUp(event as any);
+      }
+      setTouchStartInfo(null);
+    };
+    if (isDragging || touchStartInfo) {
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+      document.addEventListener('touchend', handleGlobalTouchEnd, { passive: false });
+    }
+    return () => {
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
+    };
+  }, [isDragging, dragStart, connectionChain, touchStartInfo]);
+
   // Add global mouse event handlers
   useEffect(() => {
     const handleGlobalMouseMove = (event: MouseEvent) => {
       if (isDragging && svgRef.current) {
-        const rect = svgRef.current.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+        const { x, y } = getClientXY(event, svgRef.current) || { x: 0, y: 0 };
         
         // Check if mouse is within SVG bounds
-        if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+        if (x >= 0 && x <= svgRef.current.getBoundingClientRect().width && y >= 0 && y <= svgRef.current.getBoundingClientRect().height) {
           setMousePosition({ x, y });
           if (dragStart) {
             const startPos = getDotPosition(dragStart);
@@ -89,7 +233,7 @@ const ToothChart = ({
 
   // STRICT adjacency check - only allows directly adjacent teeth based on FDI numbering
   const areTeethStrictlyAdjacent = (tooth1: number, tooth2: number): boolean => {
-    console.log('Chart: Checking strict adjacency between', tooth1, 'and', tooth2);
+    // console.log('Chart: Checking strict adjacency between', tooth1, 'and', tooth2);
     
     // Define arch sequences (FDI numbering)
     const upperRight = [18, 17, 16, 15, 14, 13, 12, 11];
@@ -346,27 +490,13 @@ const ToothChart = ({
   };
 
   // Handle dot mouse down (start dragging) - allow any connection
-  const handleDotMouseDown = (toothNumber: number, event: React.MouseEvent) => {
+  const handleDotMouseDown = (toothNumber: number, event: React.MouseEvent | React.TouchEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    
-    // If this tooth is already in the connection chain, finish the connection
-    if (connectionChain.length > 0 && connectionChain.includes(toothNumber)) {
-      finishConnection();
-      return;
-    }
-
-    // If starting a new connection or continuing one
-    if (connectionChain.length === 0) {
-      setConnectionChain([toothNumber]);
-      setDragStart(toothNumber);
-    } else {
-      // Remove areInSameJaw and areTeethStrictlyAdjacent checks to allow any connection
-      setConnectionChain(prev => [...prev, toothNumber]);
-    }
-    
+    // Only start connection chain on mouse down (not on select)
+    setConnectionChain([toothNumber]);
+    setDragStart(toothNumber);
     setIsDragging(true);
-    
     const dotPos = getDotPosition(toothNumber);
     setDragLine({ x1: dotPos.x, y1: dotPos.y, x2: dotPos.x, y2: dotPos.y });
   };
@@ -389,110 +519,41 @@ const ToothChart = ({
   // Handle mouse move during drag - allow any connection
   const handleMouseMove = (event: React.MouseEvent) => {
     if (!svgRef.current) return;
-
-    const rect = svgRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // Always update mouse position for suggestion line
-    setMousePosition({ x, y });
-
     if (!isDragging || !dragStart) return;
-
-    // Update drag line to follow mouse
+    event.preventDefault();
+    const { x, y } = getClientXY(event, svgRef.current) || { x: 0, y: 0 };
+    setMousePosition({ x, y });
     const startPos = getDotPosition(dragStart);
     setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
-
-    // --- Drag-to-select-on-dot logic ---
-    // Find the closest dot to the mouse position
+    // Only add to chain if dragging and not already in chain
     let closestTooth: number | null = null;
-    let minDistance = 20; // Increased threshold for better dot detection
-
-    // Only consider teeth that are not already in the chain
+    let minDistance = 18;
     const allTeeth = [
       ...selectedTeeth.map(t => t.toothNumber),
       ...selectedGroups.flatMap(g => g.teeth)
     ];
-    
     for (const toothNumber of allTeeth) {
       if (connectionChain.includes(toothNumber)) continue;
-      
       const dotPos = getDotPosition(toothNumber);
       const distance = Math.sqrt(Math.pow(x - dotPos.x, 2) + Math.pow(y - dotPos.y, 2));
-      
       if (distance < minDistance) {
         minDistance = distance;
         closestTooth = toothNumber;
       }
     }
-
-    // If hovering a new valid dot, add it to the chain
-    if (
-      closestTooth &&
-      closestTooth !== lastHoveredDot &&
-      !connectionChain.includes(closestTooth)
-    ) {
-      // If chain is empty, start new chain
-      if (connectionChain.length === 0) {
-        setConnectionChain([closestTooth]);
-        setDragStart(closestTooth);
-        setIsDragging(true);
-      } else {
-        setConnectionChain(prev => [...prev, closestTooth]);
-        setLastHoveredDot(closestTooth);
-      }
-    } else if (!closestTooth) {
-      setLastHoveredDot(null);
+    if (closestTooth !== null) {
+      setConnectionChain(prev => [...prev, closestTooth]);
     }
   };
 
   // Handle mouse up (end dragging) - allow any connection
-  const handleMouseUp = (event: React.MouseEvent | MouseEvent) => {
+  const handleMouseUp = (event: React.MouseEvent | MouseEvent | React.TouchEvent | TouchEvent) => {
     if (!isDragging || !dragStart) return;
-
-    // Find the closest dot to the mouse position
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    let mouseX: number, mouseY: number;
-    
-    if ('clientX' in event && 'clientY' in event) {
-      // Both React.MouseEvent and MouseEvent have clientX and clientY
-      mouseX = event.clientX - rect.left;
-      mouseY = event.clientY - rect.top;
-    } else {
-      return; // Invalid event
-    }
-
-    let closestTooth: number | null = null;
-    let minDistance = 30; // threshold for connection
-
-    const allTeeth = [
-      ...selectedTeeth.map(t => t.toothNumber),
-      ...selectedGroups.flatMap(g => g.teeth.map(t => t))
-    ];
-
-    for (const toothNumber of allTeeth) {
-      if (connectionChain.includes(toothNumber)) continue;
-      
-      const dotPos = getDotPosition(toothNumber);
-      const distance = Math.sqrt(Math.pow(mouseX - dotPos.x, 2) + Math.pow(mouseY - dotPos.y, 2));
-      
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestTooth = toothNumber;
-      }
-    }
-
-    if (closestTooth !== null) {
-      setConnectionChain(prev => [...prev, closestTooth!]);
-    } else {
-      // If not dropped on a valid tooth, finish the current connection
-      finishConnection();
-    }
-
+    // Only finish connection if dragging
+    finishConnection();
     setDragLine(null);
     setIsDragging(false);
+    setDragStart(null);
     setMousePosition(null);
   };
 
@@ -652,9 +713,14 @@ const ToothChart = ({
     return lines;
   };
 
+  // Responsive style helper
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+  const dotRadius = isMobile ? 4 : 6;
+  const dotHoverRadius = isMobile ? 6 : 8;
+
   return (
-    <div className="flex justify-center my-0 py-0">
-      <div className="w-full max-w-lg">
+    <div className="flex justify-center my-0 py-0 w-full px-2 md:px-0" style={{ width: '100%', maxWidth: 420, overflowX: 'auto' }}>
+      <div className="w-full" style={{ aspectRatio: '400/650', maxWidth: 400, margin: '0 auto', position: 'relative' }}>
         {/* Instruction hint */}
         {connectionChain.length === 0 && !isDragging && (
           <div className="text-center mb-2 text-sm text-gray-500">
@@ -673,13 +739,20 @@ const ToothChart = ({
           ref={svgRef}
           viewBox="0 0 400 650" 
           className={`w-full h-auto mx-0 py-0 ${isDragging ? 'cursor-grabbing' : 'cursor-default'}`}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onClick={handleSvgClick}
           style={{ 
             userSelect: 'none',
-            touchAction: 'none'
+            touchAction: 'none',
+            width: '100%',
+            height: 'auto',
+            display: 'block',
+            maxWidth: 400,
           }}
+          onMouseMove={e => { e.preventDefault(); handleMouseMove(e); }}
+          onMouseUp={handleMouseUp}
+          onClick={handleSvgClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={e => { e.preventDefault(); handleTouchMove(e); }}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Quadrant Labels */}
           <text x="50" y="12" fill="#666" textAnchor="middle" className="text-xs font-medium">(Upper Right)</text>
@@ -836,12 +909,29 @@ const ToothChart = ({
             <text x="288" y="240" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(28)}</text>
           </g>
 
-          {/* Bite Line */}
-          <line x1="80" y1="330" x2="320" y2="330" stroke="#ddd" strokeWidth="1" strokeDasharray="3,2" />
-          <rect x="170" y="317" width="60" height="16" rx="8" fill="white" stroke="#e5e5e5" strokeWidth="0.5" />
-          <text x="200" y="325" fill="#666" textAnchor="middle" dominantBaseline="middle" className="text-xs font-medium">
+          Bite Line
+          <line x1="80" y1="315" x2="320" y2="315" stroke="#ddd" strokeWidth="1" strokeDasharray="3,2" />
+          <rect x="170" y="308" width="60" height="16" rx="8" fill="white" stroke="#e5e5e5" strokeWidth="0.5" />
+          <text x="200" y="315" fill="#666" textAnchor="middle" dominantBaseline="middle" className="text-xs font-medium">
             Bite Line
           </text>
+
+          {/* Bite Line */}
+<line x1="55" y1="315" x2="360" y2="315" stroke="#231F20" strokeWidth="1" strokeDasharray="3,2" />
+<g transform="translate(200, 315)">
+  <rect x={-40} y={-12} width={80} height={24} rx={8} fill="#07AD94" />
+  <text
+    x={0}
+    y={0}
+    fill="#FFF"
+    textAnchor="middle"
+    dominantBaseline="middle"
+    className="text-xs font-medium"
+    style={{ fontSize: 12 }}
+  >
+    Bite Line
+  </text>
+</g>
 
           {/* Lower Jaw Teeth */}
           <g transform="translate(50, 340)">
@@ -996,20 +1086,21 @@ const ToothChart = ({
             const pos = getDotPosition(tooth.toothNumber);
             const isInChain = connectionChain.includes(tooth.toothNumber);
             const isHovered = lastHoveredDot === tooth.toothNumber;
-            
+            const isTouchActive = touchStartInfo && touchStartInfo.tooth === tooth.toothNumber;
             return (
               <circle
                 key={`dot-${tooth.toothNumber}`}
                 cx={pos.x}
                 cy={pos.y}
-                r={isHovered ? 8 : 6}
+                r={isTouchActive ? dotHoverRadius : (isHovered ? dotHoverRadius : dotRadius)}
                 fill={isInChain ? "#666" : "#3B82F6"}
-                stroke="white"
-                strokeWidth="2"
-                className="cursor-pointer transition-all duration-200 hover:r-8"
+                stroke={isTouchActive ? '#f59e42' : 'white'}
+                strokeWidth={isTouchActive ? 4 : 2}
+                className="cursor-pointer transition-all duration-200"
                 onMouseDown={(e) => handleDotMouseDown(tooth.toothNumber, e)}
                 style={{
-                  filter: isHovered ? 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.5))' : 'none'
+                  filter: isHovered || isTouchActive ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' : 'none',
+                  touchAction: 'none',
                 }}
               />
             );
