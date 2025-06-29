@@ -361,7 +361,7 @@ const PlaceOrder = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Progress Steps */}
           <div className="lg:w-80 flex-shrink-0">
-            <Card className="sticky top-24 shadow-sm border-gray-200">
+            <Card className="sticky top-24 shadow-sm border border-customGray-200 bg-transparent">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold text-gray-900">Order Progress</CardTitle>
               </CardHeader>
@@ -372,8 +372,8 @@ const PlaceOrder = () => {
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 min-w-0">
-            <Card className="shadow-sm border-gray-200">
+          <div className="flex-1 min-w-0 bg-transparent">
+            <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-[linear-gradient(114deg,_rgba(255,255,255,0)_0%,_rgba(11,128,67,0.1)_98.94%)]">
               <CardContent className="p-6">
                 {/* Validation Errors */}
                 {currentStepErrors.length > 0 && (
@@ -403,7 +403,7 @@ const PlaceOrder = () => {
 
               {/* Navigation Footer */}
               {orderCategory && (
-                <div className="border-t border-gray-200 p-6 bg-gray-50">
+                <div className="p-6">
                   <div className="flex items-center justify-between">
                     <Button
                       type="button"

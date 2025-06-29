@@ -12,7 +12,7 @@ interface PatientInfoCardProps {
 
 const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
   return (
-    <Card>
+    <Card className='bg-mainBrackground'>
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Patient Information</CardTitle>
       </CardHeader>
@@ -28,10 +28,6 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
                 firstName: e.target.value
               })}
               className="mt-1"
-              style={{
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)'
-              }}
-
             />
           </div>
           <div>
@@ -43,10 +39,6 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
                 ...formData,
                 lastName: e.target.value
               })}
-              style={{
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)'
-              }}
-
               className="mt-1"
             />
           </div>
@@ -62,10 +54,6 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
                 ...formData,
                 age: e.target.value
               })}
-              style={{
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)'
-              }}
-
               className="mt-1"
             />
           </div>
@@ -81,7 +69,6 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
               <SelectTrigger
                 className="mt-1"
                 style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
                   border: '1px solid rgba(11, 128, 67, 0.2)', // 20% opacity
                   borderRadius: '0.5rem' // optional for rounded look
                 }}

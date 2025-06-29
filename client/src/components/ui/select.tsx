@@ -22,6 +22,10 @@ const SelectTrigger = React.forwardRef<
       className
     )}
     {...props}
+    style={{
+      background: 'linear-gradient(114deg, rgba(255, 255, 255, 0.00) 37.13%, rgba(11, 128, 67, 0.10) 98.94%)'
+    }}
+    
   >
     {children}
     <SelectPrimitive.Icon asChild>

@@ -34,7 +34,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   }];
 
   return (
-    <Card>
+    <Card className='bg-mainBrackground'>
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Case Information</CardTitle>
       </CardHeader>

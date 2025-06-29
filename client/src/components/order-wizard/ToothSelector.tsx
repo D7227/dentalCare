@@ -7,6 +7,8 @@ import SelectedToothGroups from './components/SelectedToothGroups';
 import ToothTypeDialog from './components/ToothTypeDialog';
 import { ToothGroup } from './types/tooth';
 import { CrownBridgeTeeth, ImpantTeeth } from '@/assets/svg';
+import RadioCardGroup from '../common/RadioCardGroup';
+
 interface ToothSelectorProps {
   selectedGroups: ToothGroup[];
   onGroupsChange: (groups: ToothGroup[]) => void;
@@ -469,7 +471,7 @@ const ToothSelector = ({
 
   return <div className="flex gap-6">
     <div className="w-1/2">
-      <Card className="border shadow-sm">
+      <Card className="shadow-sm bg-[#E2F4F1]">
         <CardContent className="p-3">
           {/* Tooth Chart - Directly show since product is already selected */}
           <div className="mb-4">

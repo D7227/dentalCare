@@ -1,5 +1,3 @@
-
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -18,6 +16,7 @@ interface NewOrderFlowProps {
   currentStep: number;
   formData: any;
   setFormData: (data: any) => void;
+  onAddMoreProducts?: () => void;
 }
 
 const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps) => {
@@ -119,8 +118,6 @@ const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps)
                 ...formData,
                 toothGroups: groups
               })}
-              prescriptionType={formData.prescriptionType}
-              orderMethod={formData.orderMethod}
             />
           </CardContent>
         </Card>
