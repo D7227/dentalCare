@@ -658,7 +658,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         patientId: patient.id,
         category: orderData.category,
         type: orderData.restorationType || orderData.orderType,
-        notes: orderData.notes
+        notes: orderData.notes,
+        status: orderData.status || "pending",
       });
 
       // Create tooth groups if provided
