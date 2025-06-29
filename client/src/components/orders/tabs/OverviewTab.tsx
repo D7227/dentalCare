@@ -33,7 +33,7 @@ interface OverviewTabProps {
       occlusalStaining?: string;
       shade?: string[];
     };
-    notes?: string;
+    message?: string[];
     patient?: {
       firstName?: string;
       lastName?: string;
@@ -316,7 +316,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 text-sm text-muted-foreground">
-          {data?.notes ? data?.notes : "No additional notes provided."}
+          {data?.message && data?.message.length > 0 ? data?.message.map((item: string, idx: number) => (
+            <p key={idx}>{item}</p>
+          )) : "No additional notes provided."}
         </CardContent>
       </Card>
 

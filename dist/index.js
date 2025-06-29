@@ -74,12 +74,12 @@ var orders = pgTable("orders", {
   orderId: text("order_id"),
   referenceId: text("reference_id").notNull(),
   doctorId: uuid("doctor_id"),
-  patientId: uuid("patient_id"),
+  patientId: integer("patient_id"),
   type: text("type").notNull(),
   category: text("category"),
   orderType: text("order_type"),
   orderDate: timestamp("order_date").defaultNow(),
-  orderStatus: uuid("order_status").notNull(),
+  orderStatus: uuid("order_status"),
   orderCategory: text("order_category"),
   status: text("status").notNull().default("pending"),
   priority: text("priority").notNull().default("standard"),
@@ -434,7 +434,6 @@ var DatabaseStorage = class {
   async createOrder(insertOrder) {
     const orderData = {
       ...insertOrder,
-      id: Math.floor(Math.random() * 1e6) + 1,
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
@@ -538,7 +537,6 @@ var DatabaseStorage = class {
   async createToothGroup(insertToothGroup) {
     const toothGroupData = {
       ...insertToothGroup,
-      id: Math.floor(Math.random() * 1e6) + 1,
       teeth: Array.isArray(insertToothGroup.teeth) ? insertToothGroup.teeth : []
     };
     const [toothGroup] = await db.insert(toothGroups).values(toothGroupData).returning();

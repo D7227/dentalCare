@@ -1,4 +1,3 @@
-
 export type OrderCategory = 'new' | 'repeat' | 'repair' | null;
 
 export interface ToothGroup {
@@ -21,8 +20,12 @@ export interface FormData {
   sex: string;
   restorationType: string;
   productSelection: string;
+  prescriptionType: string;
+  orderMethod: string;
+  selectedFileType: string;
   toothGroups: ToothGroup[];
   toothNumbers: string[];
+  clinicId: string;
   abutmentType: string;
   restorationProducts: any[];
   ponticDesign: string;

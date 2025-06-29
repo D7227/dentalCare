@@ -104,9 +104,32 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
       return group; // Keep already configured groups unchanged
     });
 
+    // Build restorationProducts array by aggregating products across all configured groups
+    const productMap: Record<string, { product: string; quantity: number }> = {};
+    const accessoriesSet = new Set<string>();
+    updatedGroups.forEach((group: any) => {
+      if (group.selectedProducts && group.selectedProducts.length > 0) {
+        group.selectedProducts.forEach((product: any) => {
+          if (productMap[product.name]) {
+            productMap[product.name].quantity += product.quantity;
+          } else {
+            productMap[product.name] = {
+              product: product.name,
+              quantity: product.quantity
+            };
+          }
+          accessoriesSet.add(product.name);
+        });
+      }
+    });
+    const restorationProducts = Object.values(productMap);
+    const accessories = Array.from(accessoriesSet);
+
     setFormData({
       ...formData,
-      toothGroups: updatedGroups
+      toothGroups: updatedGroups,
+      restorationProducts,
+      accessories
     });
 
     // Reset editing state

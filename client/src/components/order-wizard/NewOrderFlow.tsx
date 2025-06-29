@@ -17,9 +17,48 @@ interface NewOrderFlowProps {
   formData: any;
   setFormData: (data: any) => void;
   onAddMoreProducts?: () => void;
+  onSaveOrder?: (orderData: any) => void;
 }
 
-const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps) => {
+// Function to create comprehensive order object
+export const createOrderObject = (formData: any, clinicId: string) => {
+  return {
+    // Order basic info
+    referenceId: `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+    type: formData.orderType || 'new',
+    category: formData.prescriptionType || formData.category || 'crown-bridge',
+    status: 'pending',
+    priority: 'standard',
+    urgency: 'standard',
+    paymentStatus: 'pending',
+    clinicId: clinicId,
+    patientFirstName: formData.firstName || '',
+    patientLastName: formData.lastName || '',
+    patientAge: formData.age ? parseInt(formData.age, 10) : null,
+    patientSex: formData.sex || '',
+    caseHandledBy: formData.caseHandledBy || '',
+    consultingDoctor: formData.consultingDoctor || '',
+    restorationType: formData.restorationType || '',
+    prescriptionType: formData.prescriptionType || '',
+    orderMethod: formData.orderMethod || '',
+    toothGroups: formData.toothGroups || [],
+    restorationProducts: formData.restoration_products || formData.restorationProducts || [],
+    files: formData.files || [],
+    notes: formData.notes || '',
+    accessories: formData.accessories || [],
+    // Pickup/Scan Information
+    pickupDate: formData.pickupDate || '',
+    pickupTime: formData.pickupTime || '',
+    pickupRemarks: formData.pickupRemarks || '',
+    scanBooking: formData.scanBooking || {},
+    
+    // Additional Details
+    selectedFileType: formData.selectedFileType || '',
+    expectedDeliveryDate: formData.expectedDeliveryDate || '',
+  };
+};
+
+const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOrderFlowProps) => {
   // Step 1: Patient & Case Information
   if (currentStep === 1) {
     return (
@@ -376,29 +415,156 @@ const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps)
 
         <AccessoryTagging formData={formData} setFormData={setFormData} />
 
-        {/* Order Summary */}
+        {/* Comprehensive Order Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Order Summary</CardTitle>
-            <CardDescription>Review your order details before submission</CardDescription>
+            <CardTitle className="text-xl font-semibold">Complete Order Summary</CardTitle>
+            <CardDescription>Review all your order details before submission</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {formData.prescriptionType && (
+          <CardContent className="space-y-6">
+            {/* Patient Information Summary */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-lg mb-3 text-blue-600">Patient Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium text-sm">Name:</Label>
+                  <p className="text-sm text-gray-600">
+                    {formData.firstName} {formData.lastName}
+                  </p>
+                </div>
+                <div>
+                  <Label className="font-medium text-sm">Age:</Label>
+                  <p className="text-sm text-gray-600">{formData.age ? formData.age : 'Not specified'}</p>
+                </div>
+                <div>
+                  <Label className="font-medium text-sm">Sex:</Label>
+                  <p className="text-sm text-gray-600">{formData.sex || 'Not specified'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Case Information Summary */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-lg mb-3 text-green-600">Case Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium text-sm">Case Handled By:</Label>
+                  <p className="text-sm text-gray-600">{formData.caseHandledBy || 'Not specified'}</p>
+                </div>
+                <div>
+                  <Label className="font-medium text-sm">Consulting Doctor:</Label>
+                  <p className="text-sm text-gray-600">{formData.consultingDoctor || 'Not specified'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Restoration Details Summary */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-lg mb-3 text-purple-600">Restoration Details</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium text-sm">Prescription Type:</Label>
+                  <p className="text-sm text-gray-600">
+                    {formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 
+                     formData.prescriptionType === 'implant' ? 'Implant' : 'Not specified'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="font-medium text-sm">Order Method:</Label>
+                  <p className="text-sm text-gray-600">
+                    {formData.orderMethod === 'digital' ? 'Digital' : 
+                     formData.orderMethod === 'manual' ? 'Manual' : 'Not specified'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Teeth and Products Summary */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-lg mb-3 text-orange-600">Teeth and Products</h4>
               <div>
-                <Label className="font-medium">Prescription Type:</Label>
-                <p className="text-sm text-gray-600">{formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 'Implant'}</p>
+                <Label className="font-medium text-sm">Selected Teeth Groups:</Label>
+                <p className="text-sm text-gray-600">
+                  {formData.toothGroups && formData.toothGroups.length > 0 
+                    ? `${formData.toothGroups.length} group(s) configured` 
+                    : 'No teeth groups selected'}
+                </p>
+              </div>
+              <div className="mt-2">
+                <Label className="font-medium text-sm">Restoration Products:</Label>
+                <p className="text-sm text-gray-600">
+                  {formData.restoration_products && formData.restoration_products.length > 0 
+                    ? `${formData.restoration_products.length} product(s) selected` 
+                    : 'No products selected'}
+                </p>
+              </div>
+            </div>
+
+            {/* Files and Accessories Summary */}
+            <div className="border-b pb-4">
+              <h4 className="font-semibold text-lg mb-3 text-red-600">Files and Accessories</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium text-sm">Uploaded Files:</Label>
+                  <p className="text-sm text-gray-600">
+                    {formData.files && formData.files.length > 0 
+                      ? `${formData.files.length} file(s) uploaded` 
+                      : 'No files uploaded'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="font-medium text-sm">Accessories:</Label>
+                  <p className="text-sm text-gray-600">
+                    {formData.accessories && formData.accessories.length > 0 
+                      ? `${formData.accessories.length} accessory(ies) selected` 
+                      : 'No accessories selected'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Pickup/Scan Information Summary */}
+            {(formData.pickupDate || formData.pickupTime || formData.scanBooking) && (
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-lg mb-3 text-indigo-600">Pickup/Scan Information</h4>
+                {formData.orderType === 'pickup-from-lab' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="font-medium text-sm">Pickup Date:</Label>
+                      <p className="text-sm text-gray-600">{formData.pickupDate || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="font-medium text-sm">Pickup Time:</Label>
+                      <p className="text-sm text-gray-600">{formData.pickupTime || 'Not specified'}</p>
+                    </div>
+                    {formData.pickupRemarks && (
+                      <div className="col-span-2">
+                        <Label className="font-medium text-sm">Pickup Remarks:</Label>
+                        <p className="text-sm text-gray-600">{formData.pickupRemarks}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {formData.orderType === 'request-scan' && formData.scanBooking && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="font-medium text-sm">Courier Name:</Label>
+                      <p className="text-sm text-gray-600">{formData.scanBooking.courierName || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <Label className="font-medium text-sm">Tracking ID:</Label>
+                      <p className="text-sm text-gray-600">{formData.scanBooking.trackingId || 'Not specified'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-            {formData.orderMethod && (
+
+            {/* Notes Summary */}
+            {formData.notes && (
               <div>
-                <Label className="font-medium">Order Method:</Label>
-                <p className="text-sm text-gray-600">{formData.orderMethod === 'digital' ? 'Digital' : 'Manual'}</p>
-              </div>
-            )}
-            {formData.toothGroups && formData.toothGroups.length > 0 && (
-              <div>
-                <Label className="font-medium">Selected Teeth Groups:</Label>
-                <p className="text-sm text-gray-600">{formData.toothGroups.length} group(s) configured</p>
+                <h4 className="font-semibold text-lg mb-3 text-gray-600">Additional Notes</h4>
+                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{formData.notes}</p>
               </div>
             )}
           </CardContent>

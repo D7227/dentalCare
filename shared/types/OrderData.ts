@@ -1,35 +1,31 @@
 export interface OrderData {
   referenceId: string;
   orderId?: string;
-  status: 'pending_approval' | 'approved' | 'in_process' | 'completed' | 'delivered' | 'rejected';
-  paymentStatus: 'paid' | 'pending_payment' | 'partial';
+  status:
+    | "pending_approval"
+    | "approved"
+    | "in_process"
+    | "completed"
+    | "delivered"
+    | "rejected";
+  paymentStatus: "paid" | "pending_payment" | "partial";
   createdAt: string;
   updatedAt: string;
-
-  patient: {
-    firstName: string;
-    lastName: string;
-    age: number;
-    sex: 'male' | 'female' | 'other';
-  };
-
-  doctor: {
-    name: string;
-    phone: string;
-    email: string;
-    clinicName: string;
-    clinicAddress: string;
-    city: string;
-    state: string;
-    pincode: string;
-  };
-
+  patientFirstName: string;
+  patientLastName: string;
+  patientAge: number;
+  patientSex: string;
+  caseHandledBy: string;
+  consultingDoctor: string;
+  prescriptionType: string;
+  orderMethod: string;
+  restorationProducts: any[];
   category: string;
   restorationType: string;
   productSelection: string;
   notes?: string;
 
-  toothGroups: any[]; // Replace with ToothGroup[] later
+  toothGroups: any[];
   accessories: string[];
   otherAccessory?: string;
   returnAccessories: boolean;
@@ -38,14 +34,14 @@ export interface OrderData {
   pickupTime?: string;
   pickupRemarks?: string;
 
-  scanBooking?: {
-    areaManagerId: string;
-    scanDate: string;
-    scanTime: string;
-    notes?: string;
-  };
+  // scanBooking?: {
+  //   areaManagerId: string;
+  //   scanDate: string;
+  //   scanTime: string;
+  //   notes?: string;
+  // };
 
-  orderType: 'new' | 'repeat' | 'repair';
+  orderType: "new" | "repeat" | "repair";
   previousOrderId?: string;
   repairType?: string;
   issueDescription?: string;

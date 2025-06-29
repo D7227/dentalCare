@@ -198,7 +198,6 @@ export class DatabaseStorage implements IStorage {
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderData = {
       ...insertOrder,
-      id: Math.floor(Math.random() * 1000000) + 1,
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories as string[] : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files as string[] : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
@@ -335,7 +334,6 @@ export class DatabaseStorage implements IStorage {
   async createToothGroup(insertToothGroup: InsertToothGroup): Promise<ToothGroup> {
     const toothGroupData = {
       ...insertToothGroup,
-      id: Math.floor(Math.random() * 1000000) + 1,
       teeth: Array.isArray(insertToothGroup.teeth) ? insertToothGroup.teeth as number[] : []
     };
     const [toothGroup] = await db.insert(toothGroups).values(toothGroupData).returning();

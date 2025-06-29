@@ -1,14 +1,13 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, X } from 'lucide-react';
-import { queryClient } from '@/lib/queryClient';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import OrderCategoryStep from '@/components/order-wizard/OrderCategoryStep';
-import NewOrderFlow from '@/components/order-wizard/NewOrderFlow';
+import NewOrderFlow, { createOrderObject } from '@/components/order-wizard/NewOrderFlow';
 import RepeatOrderFlow from '@/components/order-wizard/RepeatOrderFlow';
 import RepairOrderFlow from '@/components/order-wizard/RepairOrderFlow';
 import AccessoryTagging from '@/components/order-wizard/AccessoryTagging';
@@ -18,6 +17,8 @@ import { useOrderValidation } from '@/components/order-wizard/hooks/useOrderVali
 import { useOrderSteps } from '@/components/order-wizard/hooks/useOrderSteps';
 import { OrderCategory, FormData } from '@/components/order-wizard/types/orderTypes';
 import CustomButton from '@/components/common/customButtom';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { setUser } from '@/store/slices/authSlice';
 
 interface ToothGroup {
   groupId: string;
@@ -36,15 +37,44 @@ const PlaceOrder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepValidationErrors, setStepValidationErrors] = useState<Record<number, string[]>>({});
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
   
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
+  
+  // Get clinicId from Redux store
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const clinicId = user?.clinicId;
+  
+  // Check authentication and restore user data from localStorage on component mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          dispatch(setUser(userData));
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+          // If stored data is invalid, redirect to login
+          setLocation('/login');
+        }
+      } else {
+        // No stored user data, redirect to login
+        setLocation('/login');
+      }
+    }
+    setIsAuthChecking(false);
+  }, [isAuthenticated, dispatch, setLocation]);
   
   const [formData, setFormData] = useState<FormData>({
     category: null,
     prescriptionType: '',
     orderMethod: '',
+    selectedFileType: '',
     caseHandledBy: '',
     consultingDoctor: '',
     firstName: '',
@@ -55,6 +85,7 @@ const PlaceOrder = () => {
     productSelection: '',
     toothGroups: [],
     toothNumbers: [],
+    clinicId: '',
     abutmentType: 'joint',
     restorationProducts: [],
     ponticDesign: '',
@@ -84,6 +115,16 @@ const PlaceOrder = () => {
     returnWithTrial: false
   });
   
+  // Update clinicId when Redux data becomes available
+  useEffect(() => {
+    if (clinicId) {
+      setFormData(prev => ({
+        ...prev,
+        clinicId: clinicId
+      }));
+    }
+  }, [clinicId]);
+  
   const steps = getStepsForCategory(orderCategory);
   const maxSteps = steps.length - 1;
   
@@ -110,6 +151,13 @@ const PlaceOrder = () => {
       orderMethod: ''
     });
   };
+
+  const handleSaveOrder = (orderData: any) => {
+    // This function will be called from NewOrderFlow when user wants to save the order
+    console.log("Saving comprehensive order:", orderData);
+    // You can implement the save logic here or call the existing handleSubmit
+    handleSubmit(new Event('submit') as any);
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,42 +169,8 @@ const PlaceOrder = () => {
     console.log("Form data at submission:", JSON.stringify(formData, null, 2));
     
     try {
-      // First create the patient if needed
-      const patientResponse = await fetch('/api/patients', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          age: formData.age,
-          sex: formData.sex,
-        }),
-      });
-      
-      const patient = await patientResponse.json();
-      
-      // Then create the order
-      const orderData = {
-        orderId: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-        patientId: patient.id,
-        type: formData.orderType || 'new',
-        category: formData.prescriptionType || formData.category || 'crown-bridge',
-        status: 'pending',
-        priority: 'standard',
-        urgency: 'standard',
-        caseHandledBy: formData.caseHandledBy,
-        consultingDoctor: formData.consultingDoctor,
-        restorationType: formData.restorationType,
-        toothGroups: formData.toothGroups || [],
-        restorationProducts: formData.restorationProducts || [],
-        accessories: formData.accessories || [],
-        notes: formData.notes,
-        files: formData.files || [],
-        orderType: formData.orderType || 'new',
-        paymentStatus: 'pending',
-      };
+      // Create the order using the comprehensive order object
+      const orderData = createOrderObject(formData, user?.clinicId || '');
       
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
@@ -282,6 +296,7 @@ const PlaceOrder = () => {
           formData={formData} 
           setFormData={setFormData} 
           onAddMoreProducts={handleAddMoreProducts}
+          onSaveOrder={handleSaveOrder}
         />;
       case 'repeat':
         return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
@@ -313,6 +328,23 @@ const PlaceOrder = () => {
   
   const currentStepErrors = stepValidationErrors[currentStep] || [];
   
+  // Show loading while checking authentication
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return null; // Will redirect in useEffect
+  }
+
   return (
     <div className="min-h-screen bg-mainBrackground">
       {/* Compact Header */}
@@ -377,7 +409,7 @@ const PlaceOrder = () => {
           <div className="flex-1 min-w-0 bg-transparent">
             <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-[linear-gradient(114deg,_rgba(255,255,255,0)_0%,_rgba(11,128,67,0.1)_98.94%)]">
               <CardContent className="p-6">
-                {/* Validation Errors */}
+                {/* Validation Errors */} 
                 {currentStepErrors.length > 0 && (
                   <Card className="mb-6 border-red-200 bg-red-50">
                     <CardContent className="p-4">

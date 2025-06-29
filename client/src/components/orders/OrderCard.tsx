@@ -237,7 +237,9 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
             {/* Left side - Reference, Patient, Teeth */}
             <div className="flex-1">
               <div className="text-base text-gray-600 font-semibold mb-1">
-                {order?.patientName}
+                {((order as any).patientFirstName || (order as any).patientLastName)
+                  ? `${(order as any).patientFirstName || ''} ${(order as any).patientLastName || ''}`.trim()
+                  : order?.patientName || 'Unknown Patient'}
               </div>
               <div className="text-sm text-gray-600">
                 Teeth No :{" "}

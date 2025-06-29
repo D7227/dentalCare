@@ -161,7 +161,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const overViewData = {
     stages,
     details,
-    notes,
+    message: notes ? [notes] : [],
     patient,
     doctor,
     order,
