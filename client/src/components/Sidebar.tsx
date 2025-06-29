@@ -111,35 +111,48 @@ const Sidebar = ({
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className={`p-0 border-b border-gray-200 dark:border-gray-800 !max-h-[${LayoutConstants.NAVBAR_HEIGHT}px]`} >
-        <div className="flex items-center gap-3 pt-[8px] pb-[8px]">
-          <div className="flex items-center justify-center">
+      <div
+        className={cn(
+          "border-b border-gray-200 dark:border-gray-800 flex items-center justify-center"
+        )}
+        style={{
+          height: LayoutConstants.NAVBAR_HEIGHT,
+          minHeight: LayoutConstants.NAVBAR_HEIGHT,
+          maxHeight: LayoutConstants.NAVBAR_HEIGHT,
+          padding: 0,
+        }}
+      >
+        <div className={cn( 
+          "flex items-center gap-3 pt-[8px] pb-[8px]",
+          isCollapsed ? "justify-center" : ""
+        )}>
+          <div className={cn("flex items-center justify-center w-full", isCollapsed && "mx-auto")}> 
             <img
               src={logoImage}
               alt="ADVANCE Dental Export"
-              className="h-[60px] w-[155px] ml-[40px] mr-[40px]"
+              className={cn(
+                isCollapsed ? "h-[40px] w-[40px] mx-auto" : "h-[60px] w-[155px] ml-[40px] mr-[40px]"
+              )}
             />
           </div>
         </div>
       </div>
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className={cn("flex-1 space-y-2 transition-all duration-200", isCollapsed ? "p-1" : "p-4")}> 
         {filteredMenuItems.map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
-          return <button key={item.id} onClick={() => onSectionChange(item.id)} className={cn("w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 relative group", "hover:bg-gray-100 dark:hover:bg-gray-800", isActive && "bg-teal-500 text-white hover:bg-teal-600")} aria-label={item.label}>
-            <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-gray-600 dark:text-gray-400")} />
+          return <button key={item.id} onClick={() => onSectionChange(item.id)} className={cn(
+            "w-full flex items-center transition-all duration-200 relative group",
+            isCollapsed ? "justify-center p-0 h-12 w-12 mx-auto rounded-full" : "gap-3 px-3 py-3 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800",
+            isActive && (isCollapsed ? "bg-teal-500 text-white" : "bg-teal-500 text-white hover:bg-teal-600")
+          )} aria-label={item.label}>
+            <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-gray-600 dark:text-gray-400")}/>
             {!isCollapsed && <>
-              <span className={cn("flex-1 text-left", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>
-                {item.label}
-              </span>
-              {item.badge && <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">
-                {item.badge}
-              </span>}
+              <span className={cn("flex-1 text-left", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.label}</span>
+              {item.badge && <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">{item.badge}</span>}
             </>}
-            {isCollapsed && item.badge && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-              {item.badge}
-            </span>}
+            {isCollapsed && item.badge && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">{item.badge}</span>}
           </button>;
         })}
       </nav>
@@ -210,9 +223,15 @@ const Sidebar = ({
         </div>
       )}
       {/* User Profile Section */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-          <Avatar className="h-10 w-10 flex-shrink-0">
+      <div className={cn(
+        "border-t border-gray-200 dark:border-gray-800 transition-all duration-200",
+        isCollapsed ? "p-1" : "p-4"
+      )}>
+        <div className={cn(
+          "flex items-center gap-3 rounded-lg bg-gray-50 dark:bg-gray-800",
+          isCollapsed ? "justify-center p-2" : "p-3"
+        )}>
+          <Avatar className={cn("flex-shrink-0", isCollapsed ? "h-8 w-8" : "h-10 w-10")}> 
             <AvatarImage src="/lovable-uploads/9b05cdc2-aef7-4847-8a52-e496bc12b897.png" alt="Dr. Sarah Mitchell" />
             <AvatarFallback className="bg-blue-500 text-white font-medium">
               SM
@@ -236,7 +255,7 @@ const Sidebar = ({
             onClick={handleLogout}
             className={cn(
               "h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full flex-shrink-0",
-              isCollapsed && "h-10 w-10"
+              isCollapsed && "h-8 w-8"
             )}
           >
             <LogOut className="h-4 w-4" />
