@@ -255,8 +255,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData }: NewOrderFlowProps)
                   <Label htmlFor="pickup-from-lab">Pickup from Clinic</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="request-scan" id="request-scan" />
-                  <Label htmlFor="request-scan">Request Scan</Label>
+                  <RadioGroupItem value="send-by-courier" id="send-by-courier" />
+                  <Label htmlFor="send-by-courier">Send by Courier</Label>
                 </div>
               </RadioGroup>
             </div>

@@ -1,9 +1,15 @@
+// INFOR : This is the order table component that is used to display the orders in the order table page. in Order tab in sidebar
+
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import {
   Search,
   Plus,
   MessageCircle,
+  Eye,
+  DollarSign,
+  CreditCard,
+  Truck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +27,8 @@ import { OrderStatusBadge } from "../shared/OrderStatusBadge";
 import { useQuery } from "@tanstack/react-query";
 import CustomStatusBatch from "../common/customStatusBatch";
 import CustomStatusLabel from "../common/customStatusLabel";
+import OptionsMenu from "../common/OptionsMenu";
+import CircularProgress from "../common/CircularProgress";
 
 interface OrderTableProps {
   onViewOrder?: (order: any) => void;
@@ -37,6 +45,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
+  const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
 
   const {
     data: dbOrders = [],
@@ -253,9 +262,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     );
   });
 
-  const handleViewOrder = (order: any) => {
+  const handleViewOrder = (order: any, tab: string = "overview") => {
     setSelectedOrder(order);
-    // Don't trigger popup on dashboard - just update selection
+    setOrderDetailTab(tab);
   };
 
   const handleResubmitFromCard = (order: any) => {
@@ -474,32 +483,31 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Patient name</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Prescription</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Product</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Progress</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Category</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Message</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Actions</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Progress</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Category</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Status</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Message</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredOrders.map((order: any, index: number) => {
-                      const orderTeeth = getOrderTeeth(order.id);
-                      const toothGroups = getOrderToothGroups(order.id);
-                      console.log("order", order);
+                      const orderTeeth = getOrderTeeth(order?.id);
+                      const toothGroups = getOrderToothGroups(order?.id);
+                      // Dummy unread count for demonstration
+                      const unreadCount = 2; // Replace with real data if available
                       return (
                         <tr 
                           key={order.id}
-                          className={`border-b hover:bg-gray-50 cursor-pointer ${
-                            selectedOrder?.id === order.id ? "bg-blue-50" : ""
+                          className={`border-b hover:bg-gray-50 ${
+                            selectedOrder?.id === order?.id ? "bg-blue-50" : ""
                           }`}
-                          onClick={() => handleViewOrder(order)}
                         >
-                          <td className="p-3 text-sm">{formatDate(order.createdAt)}</td>
-                          <td className="p-3 text-sm font-medium text-blue-600">
-                            {order.orderId || order.referenceId}
+                          <td className="p-3 text-sm">{formatDate(order?.createdAt)}</td>
+                          <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview") }>
+                            {order?.orderId || order?.referenceId}
                           </td>
-                          {/* <td className="p-3 text-sm">{getPatientName(order.patientId)}</td> */}
-                          <td className="p-3 text-sm">{order.patientFirstName} {order.patientLastName}</td>
+                          <td className="p-3 text-sm">{order?.patientFirstName} {order?.patientLastName}</td>
                           <td className="p-3 text-sm">Crown & Bridge</td>
                           <td className="p-3 text-sm">
                             {orderTeeth.length > 0 ? (
@@ -518,45 +526,65 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                               "E-max 10 yr x 2"
                             )}
                           </td>
-                          <td className="p-3 text-sm">0%</td>
-                          <td className="p-3">
-                            <CustomStatusBatch label={order.category} />
+                          <td className="p-3 text-sm text-center">
+                            {/* Circular Progress UI */}
+                            <div className="flex justify-center items-center">
+                              <CircularProgress value={order?.percentage ?? 0} size={48} />
+                            </div>
                           </td>
-                          <td className="p-3">
-                            {/* <OrderStatusBadge status={order.status} /> */}
-                            <CustomStatusLabel label={order.status} status={order.status} />
+                          <td className="p-3 flex justify-center">
+                            <CustomStatusBatch label={order?.category} />
                           </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <MessageCircle size={16} className="text-gray-400" />
-                              {order.status === "rejected" && (
-                                <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-                                  4
-                                </div>
+                          <td className="p-3 text-center">
+                            <CustomStatusLabel label={order?.status} status={order?.status} rounded={true}/>
+                          </td>
+                          <td className="p-3 text-center">
+                            {/* Message Icon in rounded box with badge */}
+                            <div className="relative inline-block">
+                              <button
+                                className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewOrder(order, "chat");
+                                }}
+                              >
+                                <MessageCircle size={20} className="text-gray-500" />
+                              </button>
+                              {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 border-2 border-white shadow" style={{minWidth:'20px',height:'20px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                  {unreadCount}
+                                </span>
                               )}
                             </div>
                           </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <button 
-                                className="p-1 hover:bg-gray-200 rounded"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewOrder(order);
-                                }}
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                  <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                              </button>
-                              <button className="p-1 hover:bg-gray-200 rounded">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <circle cx="12" cy="12" r="1"/>
-                                  <circle cx="12" cy="5" r="1"/>
-                                  <circle cx="12" cy="19" r="1"/>
-                                </svg>
-                              </button>
+                          <td className="p-3 text-center">
+                            {/* Actions: OptionsMenu in rounded box */}
+                            <div className="inline-block">
+                              <OptionsMenu
+                                options={[
+                                  {
+                                    icon: <Eye size={20} />, label: "View", onClick: () => handleViewOrder(order, "overview")
+                                  },
+                                  {
+                                    icon: <DollarSign size={20} />, label: "Pricing", onClick: () => alert("Pricing clicked")
+                                  },
+                                  {
+                                    icon: <CreditCard size={20} />, label: "Pay now", onClick: () => alert("Pay now clicked")
+                                  },
+                                  {
+                                    icon: <Truck size={20} />, label: "Pickup Request", onClick: () => alert("Pickup Request clicked")
+                                  },
+                                ]}
+                                trigger={
+                                  <div className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                      <circle cx="12" cy="6" r="1" />
+                                      <circle cx="12" cy="12" r="1" />
+                                      <circle cx="12" cy="18" r="1" />
+                                    </svg>
+                                  </div>
+                                }
+                              />
                             </div>
                           </td>
                         </tr>
@@ -611,6 +639,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       onClose={() => setSelectedOrder(null)}
                       order={selectedOrder}
                       isEmbedded={false}
+                      initialTab={orderDetailTab}
                     />
                   </div>
                 </div>

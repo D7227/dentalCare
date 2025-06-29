@@ -102,7 +102,8 @@ export default {
         },
         customGray: {
           100: '#5B6664',
-          200:'#CCDAD8'
+          200:'#CCDAD8',
+          300:'#DEDDDD'
         },
         customBlue: {
           100: '#1D4ED824',

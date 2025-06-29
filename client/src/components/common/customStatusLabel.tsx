@@ -42,15 +42,27 @@ interface CustomStatusLabelProps {
     | "delivered"
     | string;
   className?: string;
+  rounded?: boolean;
 }
 
 const CustomStatusLabel: React.FC<CustomStatusLabelProps> = ({
   label,
   status,
   className = "",
+  rounded = false,
 }) => {
   const colorClass = STATUS_CLASSES[status] || STATUS_CLASSES.default;
   const Icon = STATUS_ICONS[status] || STATUS_ICONS.default;
+
+  if (rounded) {
+    return (
+      <div
+        className={`inline-flex items-center justify-center px-3 py-2 border text-12/16 rounded-full font-semibold  ${colorClass} ${className}`}
+      >
+        {label}
+      </div>
+    );
+  }
 
   return (
     <div

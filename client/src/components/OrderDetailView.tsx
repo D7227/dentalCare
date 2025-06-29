@@ -28,6 +28,7 @@ interface OrderDetailViewProps {
   onClose: () => void;
   order: any;
   isEmbedded?: boolean;
+  initialTab?: string;
 }
 
 const OrderDetailView: React.FC<OrderDetailViewProps> = ({
@@ -35,8 +36,9 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   onClose,
   order,
   isEmbedded = false,
+  initialTab = 'overview',
 }) => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const { toast } = useToast();
   const [attachments, setAttachments] = useState<{ name: string }[]>(order?.files?.map((f: string) => ({ name: f })) || []);
   const [chatId, setChatId] = useState<string | null>(null);
@@ -81,6 +83,10 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       .catch((err) => setChatError('No chat found for this order'))
       .finally(() => setChatLoading(false));
   }, [order?.orderId]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [order, initialTab]);
 
   if (!isOpen || !order) return null;
 
