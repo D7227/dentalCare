@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ProductSearch from './ProductSearch';
-import ShadeSelector from './ShadeSelector';
+import ShadeSelector, { ShadeOption } from './ShadeSelector';
 import FormField from '@/components/shared/FormField';
 import TrialSelector from './components/TrialSelector';
 import ShadeGuideSection from './components/ShadeGuideSection';
@@ -23,7 +23,7 @@ interface SelectedProduct {
 }
 
 interface ProductDetails {
-  shade: string;
+  shade: ShadeOption | null;
   occlusalStaining: string;
   ponticDesign: string;
   notes: string;
@@ -34,7 +34,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [productDetails, setProductDetails] = useState<ProductDetails>({
-    shade: '',
+    shade: null,
     occlusalStaining: 'medium',
     ponticDesign: '',
     notes: '',
@@ -63,7 +63,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   // Get teeth numbers from unconfigured groups only
   const allTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
 
-  const handleProductDetailsChange = (field: keyof ProductDetails, value: string) => {
+  const handleProductDetailsChange = (field: keyof ProductDetails, value: any) => {
     setProductDetails(prev => ({
       ...prev,
       [field]: value
@@ -83,7 +83,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
     // Don't pre-load existing configurations to allow different products for different groups
     setSelectedProducts([]);
     setProductDetails({
-      shade: '',
+      shade: null,
       occlusalStaining: 'medium',
       ponticDesign: '',
       notes: '',
@@ -92,63 +92,68 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   };
 
   const saveConfiguration = () => {
-    // Apply the same configuration to unconfigured tooth groups only
-    const updatedGroups = toothGroups.map((group: any) => {
-      if (!isGroupConfigured(group)) {
-        return {
-          ...group,
-          selectedProducts: [...selectedProducts],
-          productDetails: { ...productDetails }
-        };
-      }
-      return group; // Keep already configured groups unchanged
-    });
+    try {
+      // Apply the same configuration to unconfigured tooth groups only
+      const updatedGroups = toothGroups.map((group: any) => {
+        if (!isGroupConfigured(group)) {
+          return {
+            ...group,
+            selectedProducts: [...selectedProducts],
+            productDetails: { ...productDetails }
+          };
+        }
+        return group; // Keep already configured groups unchanged
+      });
 
-    // Build restorationProducts array by aggregating products across all configured groups
-    const productMap: Record<string, { product: string; quantity: number }> = {};
-    const accessoriesSet = new Set<string>();
-    updatedGroups.forEach((group: any) => {
-      if (group.selectedProducts && group.selectedProducts.length > 0) {
-        group.selectedProducts.forEach((product: any) => {
-          if (productMap[product.name]) {
-            productMap[product.name].quantity += product.quantity;
-          } else {
-            productMap[product.name] = {
-              product: product.name,
-              quantity: product.quantity
-            };
-          }
-          accessoriesSet.add(product.name);
-        });
-      }
-    });
-    const restorationProducts = Object.values(productMap);
-    const accessories = Array.from(accessoriesSet);
+      // Build restorationProducts array by aggregating products across all configured groups
+      const productMap: Record<string, { product: string; quantity: number }> = {};
+      const accessoriesSet = new Set<string>();
+      updatedGroups.forEach((group: any) => {
+        if (group.selectedProducts && group.selectedProducts.length > 0) {
+          group.selectedProducts.forEach((product: any) => {
+            if (productMap[product.name]) {
+              productMap[product.name].quantity += product.quantity;
+            } else {
+              productMap[product.name] = {
+                product: product.name,
+                quantity: product.quantity
+              };
+            }
+            accessoriesSet.add(product.name);
+          });
+        }
+      });
+      const restorationProducts = Object.values(productMap);
+      const accessories = Array.from(accessoriesSet);
 
-    setFormData({
-      ...formData,
-      toothGroups: updatedGroups,
-      restorationProducts,
-      accessories
-    });
+      setFormData({
+        ...formData,
+        toothGroups: updatedGroups,
+        restorationProducts,
+        accessories
+      });
 
-    // Reset editing state
-    setIsConfiguring(false);
-    setSelectedProducts([]);
-    setProductDetails({
-      shade: '',
-      occlusalStaining: 'medium',
-      ponticDesign: '',
-      notes: '',
-      selectedTrials: []
-    });
+      // Reset editing state
+      setIsConfiguring(false);
+      setSelectedProducts([]);
+      setProductDetails({
+        shade: null,
+        occlusalStaining: 'medium',
+        ponticDesign: '',
+        notes: '',
+        selectedTrials: []
+      });
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+      // Don't crash the app, just log the error
+    }
   };
 
   const cancelConfiguring = () => {
     setIsConfiguring(false);
     setSelectedProducts([]);
     setProductDetails({
-      shade: '',
+      shade: null,
       occlusalStaining: 'medium',
       ponticDesign: '',
       notes: '',
@@ -236,7 +241,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   <div>
                     <p className="font-medium text-gray-900 mb-1">Shade:</p>
                     <p className="text-gray-600 uppercase">
-                      {group.productDetails?.shade || 'Not specified'}
+                      {group.productDetails?.shade?.label || 'Not specified'}
                     </p>
                   </div>
                   <div>
@@ -355,11 +360,11 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                       {/* Additional Notes */}
                       <FormField
                         id="notes"
-                        label="Additional Notes"
+                        label="Shade Notes"
                         type="textarea"
                         value={productDetails.notes}
                         onChange={(value) => handleProductDetailsChange('notes', value)}
-                        placeholder="Any special instructions or notes..."
+                        placeholder="Any special instructions for shade..."
                         rows={3}
                       />
 
@@ -377,7 +382,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                           type="button"
                           onClick={saveConfiguration}
                           className="flex-1 bg-[#11AB93] hover:bg-[#0F9A82] text-white"
-                          disabled={!productDetails.shade || selectedProducts.length === 0}
+                          disabled={!productDetails.shade?.value || selectedProducts.length === 0}
                         >
                           Save Configuration
                         </Button>

@@ -12,6 +12,7 @@ interface ToothTypeDialogProps {
   selectedGroups: ToothGroup[];
   onJoinGroup?: (toothNumber: number, groupId: string) => void;
   debugMode?: boolean; // Add debug mode for testing
+  prescriptionType: 'implant' | 'crown-bridge';
 }
 
 const ToothTypeDialog = ({
@@ -22,7 +23,8 @@ const ToothTypeDialog = ({
   onSelectType,
   selectedGroups,
   onJoinGroup,
-  debugMode = false
+  debugMode = false,
+  prescriptionType
 }: ToothTypeDialogProps) => {
   // Check if tooth can join existing groups
   const getJoinableGroups = () => {
@@ -114,13 +116,14 @@ const ToothTypeDialog = ({
         <div className="space-y-2 flex flex-col items-center gap-1">
           <Button
             onClick={() => onSelectType('abutment')}
-            className="w-28 text-sm bg-blue-600 hover:bg-blue-700"
+            className="text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 w-full"
           >
-            Abutment
+            {prescriptionType === 'implant' ? 'Implant Tooth' : 'Abutment Tooth'}
+            {/* Abutment */}
           </Button>
           <Button
             onClick={() => onSelectType('pontic')}
-            className="w-28 text-sm bg-purple-600 hover:bg-purple-700"
+            className="text-sm bg-purple-600 hover:bg-purple-700 px-3 py-1 w-full"
           >
             Pontic
           </Button>

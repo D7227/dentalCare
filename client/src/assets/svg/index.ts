@@ -24,6 +24,9 @@ import eyeIcon from "./eye-icon.svg"
 import CrownBridgeTeeth from "./CrownBridgeTeeth.svg"
 import  ImpantTeeth from "./ImpantTeeth.svg"
 
+import AnteriorSVG from "./Anterior.svg";
+import PosteriorSVG from "./Posterior.svg";
+
 export {
   Anterior,
   Posterior,
@@ -44,5 +47,7 @@ export {
   ImpantTeeth ,
   CrownBridgeTeeth,
   teethGroup1,
-  teethGroup2
+  teethGroup2,
+  AnteriorSVG,
+  PosteriorSVG
 };

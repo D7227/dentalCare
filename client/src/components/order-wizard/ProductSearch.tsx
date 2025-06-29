@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -173,9 +172,10 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                     </div>
                     
                     <div className="flex items-center gap-3 ml-4">
-                      {/* Quantity Controls */}
+                      {/* Quantity Display */}
                       <div className="flex items-center gap-2">
-                        <Button
+                        <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
+                        {/* <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
@@ -183,11 +183,14 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                           disabled={product.quantity <= 1}
                         >
                           <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="text-sm font-medium min-w-[2ch] text-center">
-                          {product.quantity}
-                        </span>
-                        <Button
+                        </Button> */}
+                          <span className="text-sm font-semibold text-gray-700">
+                            {product.quantity}
+                          </span>
+                          <span className="text-xs text-gray-500 font-medium">
+                            Units
+                          </span>
+                          {/* <Button
                           variant="outline"
                           size="icon"
                           className="h-7 w-7"
@@ -195,7 +198,8 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                           disabled={product.quantity >= selectedTeeth.length}
                         >
                           <Plus className="h-3 w-3" />
-                        </Button>
+                        </Button> */}
+                        </div>
                       </div>
                       
                       {/* Remove Button */}

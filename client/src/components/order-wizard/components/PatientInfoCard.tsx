@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,28 @@ interface PatientInfoCardProps {
 }
 
 const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
+  const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Prevent leading zeros (e.g., "00", "01", "02", etc.)
+    if (value.length > 1 && value.startsWith('0')) {
+      return;
+    }
+    
+    // Only allow numbers
+    if (value === '' || /^\d+$/.test(value)) {
+      const numValue = parseInt(value) || 0;
+      
+      // Limit age between 1 and 150 (minimum age is 1)
+      if (numValue >= 1 && numValue <= 99) {
+        setFormData({
+          ...formData,
+          age: value
+        });
+      }
+    }
+  };
+
   return (
     <Card className='bg-mainBrackground'>
       <CardHeader>
@@ -49,12 +70,19 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
             <Label htmlFor="age">Age</Label>
             <Input
               id="age"
+              type="number"
               value={formData.age}
-              onChange={e => setFormData({
-                ...formData,
-                age: e.target.value
-              })}
-              className="mt-1"
+              onChange={handleAgeChange}
+              onKeyDown={(e) => {
+                // Prevent non-numeric keys except backspace, delete, arrow keys, etc.
+                if (!/[\d\b\Delete\ArrowLeft\ArrowRight\Tab]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+                  e.preventDefault();
+                }
+              }}
+              min="1"
+              max="150"
+              placeholder="Enter age"
+              className="mt-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
           <div>

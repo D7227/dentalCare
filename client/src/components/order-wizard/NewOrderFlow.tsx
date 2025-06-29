@@ -152,6 +152,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
           </CardHeader>
           <CardContent>
             <ToothSelector
+              prescriptionType={formData.prescriptionType}
               selectedGroups={formData.toothGroups || []}
               onGroupsChange={groups => setFormData({
                 ...formData,

@@ -10,15 +10,18 @@ import { CrownBridgeTeeth, ImpantTeeth } from '@/assets/svg';
 import RadioCardGroup from '../common/RadioCardGroup';
 
 interface ToothSelectorProps {
+  prescriptionType: 'implant' | 'crown-bridge';
   selectedGroups: ToothGroup[];
   onGroupsChange: (groups: ToothGroup[]) => void;
   onProductComplete?: () => void;
 }
 interface SelectedTooth {
+  prescriptionType: 'implant' | 'crown-bridge';
   toothNumber: number;
   type: 'abutment' | 'pontic';
 }
-const ToothSelector = ({
+const ToothSelector = ({  
+  prescriptionType,
   selectedGroups,
   onGroupsChange,
   onProductComplete
@@ -568,6 +571,7 @@ const ToothSelector = ({
       selectedGroups={selectedGroups}
       onJoinGroup={handleJoinGroup}
       debugMode={false}
+      prescriptionType={prescriptionType}
     />
   </div>;
 };
