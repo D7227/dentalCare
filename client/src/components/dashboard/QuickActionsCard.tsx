@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Calendar, Truck, Receipt, MessageSquare } from 'lucide-react';
+import { Calendar, Truck, Receipt, MessageSquare, ChartLine } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAppSelector, hasPermission } from '@/store/hooks';
@@ -31,7 +31,7 @@ const QuickActionsCard = ({ onSectionChange, onScanBooking }: QuickActionsCardPr
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <TrendingUp size={20} />
+          <ChartLine size={20} />
           Quick Actions
         </CardTitle>
       </CardHeader>

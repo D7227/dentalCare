@@ -1,3 +1,4 @@
+import { teethGroup1, teethGroup2 } from "@/assets/svg";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -150,6 +151,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
         </CardContent>
       </Card>
 
+      <Card className="rounded-lg border border-customGreen-200 shadow-sm !mt-[12px] p-4">
+        <div className="flex items-center justify-evenly">
+          <img src={teethGroup2} alt="teethGroup2" />
+          <img src={teethGroup1} alt="teethGroup1" />
+        </div>
+      </Card>
+
       <Card className="rounded-lg border border-customGreen-15 shadow-sm !mt-[12px]">
         <CardHeader className="pb-1 pt-4 px-4">
           <CardTitle className="flex items-center gap-2 text-16/18 font-semibold">
@@ -179,8 +187,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
                         isCompleted
                           ? "bg-teal-100 text-teal-600"
                           : isCurrent
-                          ? "border-2 border-teal-500 text-teal-500 bg-white"
-                          : "bg-muted text-muted-foreground"
+                            ? "border-2 border-teal-500 text-teal-500 bg-white"
+                            : "bg-muted text-muted-foreground"
                       )}
                     >
                       {isCompleted ? (

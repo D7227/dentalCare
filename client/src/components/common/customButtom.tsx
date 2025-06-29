@@ -8,13 +8,14 @@ const VARIANT_CLASSES: Record<string, string> = {
   primary: 'btn-primary px-4 py-3',
   outline: 'btn-outline px-4 py-3 border border-gray-300 text-black',
   ghost: 'btn-ghost text-gray-500 hover:bg-gray-100',
+  blackAndWhite: 'btn-black-and-white px-4 py-3 border border-gray-300 text-white bg-customBlack-100 hover:bg-customBlack-90',
   default: '',
 }
 
 interface CustomButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   leftIcon?: LucideIcon
   rightIcon?: LucideIcon
-  variant?: 'primary' | 'outline' | 'ghost' | 'default'
+  variant?: 'primary' | 'outline' | 'ghost' | 'default' | 'blackAndWhite'
   className?: string
   disabled?: boolean
   children: React.ReactNode

@@ -242,6 +242,13 @@ const DashboardLayout = () => {
     }
   };
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocation('/login');
+    }
+  }, [isAuthenticated, setLocation]);
+
   return (
     <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
       {/* Mobile Sidebar Overlay */}
@@ -272,7 +279,7 @@ const DashboardLayout = () => {
           clinicName="Smile Dental Clinic"
           onSectionChange={handleSectionChange}
         />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 bg-mainBrackground">
           {renderMainContent()}
         </main>
       </div>

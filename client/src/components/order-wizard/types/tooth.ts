@@ -1,4 +1,3 @@
-
 export interface ToothGroup {
   groupId: string;
   teeth: number[];
@@ -7,6 +6,7 @@ export interface ToothGroup {
   notes: string;
   material: string;
   shade: string;
+  pontics?: number[];
   warning?: string;
   occlusalStaining?: string;
   ponticDesign?: string;

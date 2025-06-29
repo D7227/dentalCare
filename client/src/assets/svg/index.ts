@@ -12,6 +12,8 @@ import card3 from "./card3.svg";
 import bigCard1 from "./big-card1.svg"
 import bigCard2 from "./big-card2.svg"
 import bigCard3 from "./big-card3.svg"
+import teethGroup1 from "./teeth-icon/teethGroupImage.svg"
+import teethGroup2 from "./teeth-icon/teethGroupImage2.svg"
 
 import teethProcess from './teeth-icon/teel-process.svg'
 
@@ -40,5 +42,7 @@ export {
   bigCard2,
   bigCard3,teethProcess,
   ImpantTeeth ,
-  CrownBridgeTeeth
+  CrownBridgeTeeth,
+  teethGroup1,
+  teethGroup2
 };

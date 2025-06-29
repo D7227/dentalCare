@@ -42,6 +42,8 @@ const PlaceOrder = () => {
   
   const [formData, setFormData] = useState<FormData>({
     category: null,
+    prescriptionType: '',
+    orderMethod: '',
     caseHandledBy: '',
     consultingDoctor: '',
     firstName: '',
@@ -96,6 +98,17 @@ const PlaceOrder = () => {
     setCurrentStep(1);
     setStepValidationErrors({});
   };
+
+  const handleAddMoreProducts = () => {
+    // Go back to step 2 (prescription type selection) to add another product group
+    setCurrentStep(2);
+    // Clear current prescription and order method for new selection
+    setFormData({
+      ...formData,
+      prescriptionType: '',
+      orderMethod: ''
+    });
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,17 +138,22 @@ const PlaceOrder = () => {
       
       // Then create the order
       const orderData = {
+        orderId: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
         patientId: patient.id,
-        type: formData.restorationType || 'Custom Order',
+        type: formData.orderType || 'new',
+        category: formData.prescriptionType || formData.category || 'crown-bridge',
         status: 'pending',
+        priority: 'standard',
         urgency: 'standard',
         caseHandledBy: formData.caseHandledBy,
         consultingDoctor: formData.consultingDoctor,
         restorationType: formData.restorationType,
-        restorationProducts: JSON.stringify(formData.restorationProducts || []),
-        accessories: JSON.stringify(formData.accessories || []),
+        toothGroups: formData.toothGroups || [],
+        restorationProducts: formData.restorationProducts || [],
+        accessories: formData.accessories || [],
         notes: formData.notes,
-        orderType: formData.orderType,
+        files: formData.files || [],
+        orderType: formData.orderType || 'new',
         paymentStatus: 'pending',
       };
       
@@ -258,7 +276,12 @@ const PlaceOrder = () => {
     
     switch (orderCategory) {
       case 'new':
-        return <NewOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
+        return <NewOrderFlow 
+          currentStep={currentStep} 
+          formData={formData} 
+          setFormData={setFormData} 
+          onAddMoreProducts={handleAddMoreProducts}
+        />;
       case 'repeat':
         return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
       case 'repair':

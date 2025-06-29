@@ -101,6 +101,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
         password: data.password,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       setCurrentView('list');
       resetForm();
       toast({ title: "Team member added successfully" });
@@ -120,8 +123,7 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
       if (!response.ok) throw new Error('Login failed');
       return response.json();
     },
-    onSuccess: (data) => {
-      localStorage.setItem('user', JSON.stringify(data));
+    onSuccess: () => {
     },
     onError: (error) => {
       console.error('Login error:', error);
@@ -140,6 +142,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       setCurrentView('list');
       resetForm();
       toast({ title: "Team member updated successfully" });
@@ -158,6 +163,9 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
       toast({ title: "Team member removed successfully" });
     },
     onError: () => {
@@ -179,6 +187,12 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
     { value: 'assistant_doctor', label: 'Assistant Doctor', desc: 'Limited patient access' },
     { value: 'receptionist', label: 'Receptionist', desc: 'Basic operational access' }
   ];
+
+  const [contactNumberError, setContactNumberError] = useState('');
+
+  const validateMobileNumber = (number: string) => {
+    return /^\d{10}$/.test(number);
+  };
 
   const resetForm = () => {
     setFormData({
@@ -277,8 +291,13 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
   };
 
   const handleSubmit = () => {
+    // Validate mobile number on submit
+    if (!validateMobileNumber(formData.contactNumber)) {
+      setContactNumberError('Please enter a valid 10-digit mobile number');
+      return;
+    }
     const submitData: any = { ...formData };
-    
+    console.log(submitData, "hello all team");
     // Get clinic name from Redux with better fallback handling
     let clinicName = user?.clinicName;
     if (!clinicName || clinicName.trim() === '') {
@@ -348,13 +367,17 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
   useEffect(() => {
     if (!socket) return;
     const handlePermissionsUpdated = () => {
+      // Invalidate both query patterns to update sidebar and team management
       queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+      if (user?.clinicName) {
+        queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+      }
     };
     socket.on('permissions-updated', handlePermissionsUpdated);
     return () => {
       socket.off('permissions-updated', handlePermissionsUpdated);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, user?.clinicName]);
 
   if (currentView === 'add' || currentView === 'edit') {
     return (
@@ -456,13 +479,23 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="contactNumber">Contact Number</Label>
+                    <Label htmlFor="contactNumber">Contact Number *</Label>
                     <Input
                       id="contactNumber"
                       value={formData.contactNumber}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactNumber: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData(prev => ({ ...prev, contactNumber: value }));
+                        if (contactNumberError && /^\d{10}$/.test(value)) {
+                          setContactNumberError("");
+                        }
+                      }}
                       placeholder="Enter contact number"
+                      required
                     />
+                    {contactNumberError && (
+                      <div className="text-red-600 text-xs">{contactNumberError}</div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -536,6 +569,7 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
                     disabled={
                       !formData.fullName || 
                       !formData.roleName || 
+                      !formData.contactNumber ||
                       (currentView === 'add' && !formData.password) ||
                       createMutation.isPending || 
                       updateMutation.isPending
