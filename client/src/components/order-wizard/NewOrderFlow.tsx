@@ -11,6 +11,7 @@ import AccessoryTagging from './AccessoryTagging';
 import PatientInfoCard from './components/PatientInfoCard';
 import CaseInfoCard from './components/CaseInfoCard';
 import AccessorySelection from './components/AccessorySelection';
+import SelectedTeethViewer from './components/SelectedTeethViewer';
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -58,6 +59,43 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     expectedDeliveryDate: formData.expectedDeliveryDate || '',
   };
 };
+
+// Helper to build deduplicated, prioritized group list for summary
+function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
+  // Priority: bridge > joint > individual
+  const usedTeeth = new Set<number>();
+  const summaryGroups: any[] = [];
+  // Add bridge groups first
+  toothGroups.filter(g => g.type === 'bridge').forEach(group => {
+    const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t));
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
+  // Then joint groups
+  toothGroups.filter(g => g.type === 'joint').forEach(group => {
+    const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t));
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
+  // Then individual teeth
+  const individualTeeth = selectedTeeth.filter((t: any) => !usedTeeth.has(t.toothNumber));
+  if (individualTeeth.length > 0) {
+    summaryGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual',
+      material: '',
+      shade: '',
+      notes: '',
+    });
+    individualTeeth.forEach((t: any) => usedTeeth.add(t.toothNumber));
+  }
+  return summaryGroups;
+}
 
 const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOrderFlowProps) => {
   // Step 1: Patient & Case Information
@@ -155,9 +193,11 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
             <ToothSelector
               prescriptionType={formData.prescriptionType}
               selectedGroups={formData.toothGroups || []}
-              onGroupsChange={groups => setFormData({
+              selectedTeeth={formData.selectedTeeth || []}
+              onSelectionChange={(groups, teeth) => setFormData({
                 ...formData,
-                toothGroups: groups
+                toothGroups: groups,
+                selectedTeeth: teeth
               })}
             />
           </CardContent>
@@ -391,6 +431,12 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   }
   // Step 6: Final Details & Accessories
   if (currentStep === 6) {
+    const summaryGroups = buildSummaryGroups(formData.toothGroups || [], formData.selectedTeeth || []);
+    // Debug log for developer
+    if (typeof window !== 'undefined') {
+      console.log('DEBUG: selectedTeeth in summary step:', formData.selectedTeeth);
+      console.log('DEBUG: toothGroups in summary step:', formData.toothGroups);
+    }
     return (
       <div className="space-y-6">
         <Card>
@@ -488,8 +534,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
               <div>
                 <Label className="font-medium text-sm">Selected Teeth Groups:</Label>
                 <p className="text-sm text-gray-600">
-                  {formData.toothGroups && formData.toothGroups.length > 0 
-                    ? `${formData.toothGroups.length} group(s) configured` 
+                  {summaryGroups && summaryGroups.length > 0 
+                    ? `${summaryGroups.length} group(s) configured` 
                     : 'No teeth groups selected'}
                 </p>
               </div>
@@ -500,6 +546,9 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                     ? `${formData.restoration_products.length} product(s) selected` 
                     : 'No products selected'}
                 </p>
+              </div>
+              <div className="mt-4">
+                <SelectedTeethViewer selectedTeeth={formData.selectedTeeth || []} toothGroups={summaryGroups} />
               </div>
             </div>
 

@@ -13,6 +13,60 @@ interface OrderSummaryProps {
   onEditSection?: (step: number) => void;
 }
 
+// Helper to build deduplicated, prioritized group list for summary
+function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
+  // Priority: bridge > joint > individual
+  const usedTeeth = new Set<number>();
+  const summaryGroups: any[] = [];
+  // Add bridge groups first, but only if teeth are not in selectedTeeth
+  toothGroups.filter(g => g.type === 'bridge').forEach(group => {
+    const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
+  // Then joint groups, but only if teeth are not in selectedTeeth
+  toothGroups.filter(g => g.type === 'joint').forEach(group => {
+    const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
+  // Then individual teeth
+  const individualTeeth = selectedTeeth.filter((t: any) => !usedTeeth.has(t.toothNumber));
+  if (individualTeeth.length > 0) {
+    summaryGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual',
+      material: '',
+      shade: '',
+      notes: '',
+    });
+    individualTeeth.forEach((t: any) => usedTeeth.add(t.toothNumber));
+  }
+  return summaryGroups;
+}
+
+// Helper for summary getToothType
+function getSummaryToothType(toothNumber: number, summaryGroups: any[], selectedTeeth: any[]) {
+  // Check bridge and joint groups first
+  for (const group of summaryGroups) {
+    if (group.type === 'bridge' || group.type === 'joint') {
+      if (group.teeth.includes(toothNumber)) {
+        if (group.pontics && group.pontics.includes(toothNumber)) return 'pontic';
+        return 'abutment';
+      }
+    }
+  }
+  // Then check individual
+  const ind = selectedTeeth.find((t: any) => t.toothNumber === toothNumber);
+  if (ind) return ind.type;
+  return null;
+}
+
 const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryProps) => {
   const getCategoryTitle = () => {
     switch (orderCategory) {
@@ -46,7 +100,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
   );
 
   // Group restoration data by teeth groups
-  const restorationGroups = formData.toothGroups || [];
+  const restorationGroups = buildSummaryGroups(formData.toothGroups || [], formData.selectedTeeth || []);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 print:space-y-4">
@@ -157,10 +211,10 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             <CardContent className="pt-0">
               <ToothChart
                 selectedGroups={restorationGroups}
-                selectedTeeth={[]}
+                selectedTeeth={formData.selectedTeeth || []}
                 onToothClick={() => {}} 
                 isToothSelected={() => false}
-                getToothType={() =>null}
+                getToothType={(toothNumber) => getSummaryToothType(toothNumber, restorationGroups, formData.selectedTeeth || [])}
                 onGroupsChange={() => {}}
                 setSelectedTeeth={() => {}}
                 onDragConnection={() => {}}
@@ -190,13 +244,13 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                         variant="outline" 
                         className={`text-xs px-2 py-0.5 ${
                           group.type === 'joint' ? 'border-blue-300 text-blue-700 bg-blue-50' :
-                          group.type === 'separate' ? 'border-green-300 text-green-700 bg-green-50' :
+                          group.type === 'individual' ? 'border-green-300 text-green-700 bg-green-50' :
                           group.type === 'bridge' ? 'border-amber-300 text-amber-700 bg-amber-50' :
                           'border-gray-300 text-gray-700'
                         }`}
                       >
                         {group.type === 'joint' ? 'Joint' :
-                         group.type === 'separate' ? 'Separate' :
+                         group.type === 'individual' ? 'Individual' :
                          group.type === 'bridge' ? 'Bridge' :
                          group.type}
                       </Badge>

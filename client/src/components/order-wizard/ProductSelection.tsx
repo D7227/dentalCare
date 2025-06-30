@@ -41,8 +41,27 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
     selectedTrials: []
   });
 
+  // --- BEGIN: Compose all groups including individual teeth ---
   const toothGroups = formData.toothGroups || [];
+  const selectedTeeth = formData.selectedTeeth || [];
 
+  // Find all teeth in groups (bridge/joint)
+  const groupedTeeth = new Set<number>(toothGroups.flatMap((g: any) => g.teeth || []));
+  // Find individual teeth (not in any group)
+  const individualTeeth = selectedTeeth.filter((t: any) => !groupedTeeth.has(t.toothNumber));
+  // Compose all groups: bridge/joint + individual (all individual teeth in one group)
+  let allGroups = [...toothGroups];
+  if (individualTeeth.length > 0) {
+    allGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual',
+      // Optionally add more fields if needed for config compatibility
+    });
+  }
+  // --- END: Compose all groups including individual teeth ---
+
+  // Use allGroups for display/configuration logic below
   const isGroupConfigured = (group: any) => {
     return group.selectedProducts && 
            group.selectedProducts.length > 0 && 
@@ -50,16 +69,14 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
            group.productDetails.shade;
   };
 
-  const allGroupsConfigured = toothGroups.length > 0 && toothGroups.every((group: any) => isGroupConfigured(group));
+  const allGroupsConfigured = allGroups.length > 0 && allGroups.every((group: any) => isGroupConfigured(group));
 
   // Get unconfigured groups only
-  const unconfiguredGroups = toothGroups.filter((group: any) => !isGroupConfigured(group));
-  
+  const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group));
   // Calculate total teeth count across unconfigured groups only
   const totalTeethCount = unconfiguredGroups.reduce((total: number, group: any) => {
     return total + (group.teeth?.length || 0);
   }, 0);
-
   // Get teeth numbers from unconfigured groups only
   const allTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
 
@@ -93,8 +110,8 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
   const saveConfiguration = () => {
     try {
-      // Apply the same configuration to unconfigured tooth groups only
-      const updatedGroups = toothGroups.map((group: any) => {
+      // Only update real groups in formData.toothGroups (bridge/joint)
+      const updatedGroups = (formData.toothGroups || []).map((group: any) => {
         if (!isGroupConfigured(group)) {
           return {
             ...group,
@@ -105,10 +122,10 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
         return group; // Keep already configured groups unchanged
       });
 
-      // Build restorationProducts array by aggregating products across all configured groups
+      // Build restorationProducts array by aggregating products across all configured groups (including individual teeth for display)
       const productMap: Record<string, { product: string; quantity: number }> = {};
       const accessoriesSet = new Set<string>();
-      updatedGroups.forEach((group: any) => {
+      allGroups.forEach((group: any) => {
         if (group.selectedProducts && group.selectedProducts.length > 0) {
           group.selectedProducts.forEach((product: any) => {
             if (productMap[product.name]) {
@@ -128,9 +145,10 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
       setFormData({
         ...formData,
-        toothGroups: updatedGroups,
+        toothGroups: updatedGroups, // Only real groups, never merged individual
         restorationProducts,
-        accessories
+        accessories,
+        selectedTeeth: formData.selectedTeeth // Always preserve selectedTeeth
       });
 
       // Reset editing state
@@ -185,7 +203,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
   return (
     <div className="space-y-6">
-      {toothGroups.length > 0 ? (
+      {allGroups.length > 0 ? (
         <>
           {/* Completion Status */}
           {allGroupsConfigured && (
@@ -194,7 +212,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                 <div className="flex items-center gap-2 text-green-800">
                   <CheckCircle className="w-5 h-5" />
                   <span className="font-medium">
-                    Product configuration completed for all {toothGroups.length} group{toothGroups.length > 1 ? 's' : ''}
+                    Product configuration completed for all {allGroups.length} group{allGroups.length > 1 ? 's' : ''}
                   </span>
                 </div>
                 <p className="text-sm text-green-600 mt-1">Ready to proceed to next step</p>
@@ -203,7 +221,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
           )}
 
           {/* Configured Groups Detail Cards - Compact View */}
-          {toothGroups.filter((group: any) => isGroupConfigured(group)).map((group: any, index: number) => (
+          {allGroups.filter((group: any) => isGroupConfigured(group)).map((group: any, index: number) => (
             <Card key={index} className="border border-green-200 bg-gray-50">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -231,7 +249,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                     <p className="font-medium text-gray-900 mb-1">Products:</p>
                     {group.selectedProducts?.map((product: any, pIndex: number) => (
                       <p key={pIndex} className="text-gray-600">
-                        {product.name} x {product.quantity}
+                        {product.name} x {group.teeth?.length || 0}
                       </p>
                     ))}
                   </div>
@@ -276,7 +294,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   {unconfiguredGroups.map((group: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <span className="font-medium">Group {toothGroups.indexOf(group) + 1}:</span>
+                        <span className="font-medium">Group {allGroups.indexOf(group) + 1}:</span>
                         <span className="text-gray-600 ml-2">
                           Teeth {group.teeth?.join(', ')} - {group.type}
                         </span>
@@ -453,7 +471,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
       ) : (
         <div className="text-center py-8">
           <p className="text-gray-500">
-            {toothGroups.length === 0 
+            {allGroups.length === 0 
               ? "Please complete teeth selection in the previous step" 
               : "All tooth groups are already configured"}
           </p>

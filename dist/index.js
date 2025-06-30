@@ -80,6 +80,8 @@ var orders = pgTable("orders", {
   type: text("type").notNull(),
   category: text("category"),
   orderType: text("order_type"),
+  orderMethod: text("order_method"),
+  occlusalStaining: text("occlusal_staining"),
   orderDate: timestamp("order_date").defaultNow(),
   orderStatus: uuid("order_status"),
   orderCategory: text("order_category"),
