@@ -80,6 +80,8 @@ var orders = pgTable("orders", {
   type: text("type").notNull(),
   category: text("category"),
   orderType: text("order_type"),
+  orderMethod: text("order_method"),
+  occlusalStaining: text("occlusal_staining"),
   orderDate: timestamp("order_date").defaultNow(),
   orderStatus: uuid("order_status"),
   orderCategory: text("order_category"),
@@ -87,6 +89,9 @@ var orders = pgTable("orders", {
   priority: text("priority").notNull().default("standard"),
   urgency: text("urgency").notNull().default("standard"),
   caseHandledBy: text("case_handled_by"),
+  pontic: text("pontic"),
+  trial: text("trial"),
+  shade: jsonb("shade").$type().default([]),
   consultingDoctor: text("consulting_doctor"),
   patientFirstName: text("patient_first_name"),
   patientLastName: text("patient_last_name"),
@@ -107,7 +112,9 @@ var orders = pgTable("orders", {
   totalAmount: numeric("total_amount", { precision: 10, scale: 2 }),
   paidAmount: numeric("paid_amount", { precision: 10, scale: 2 }),
   outstandingAmount: numeric("outstanding_amount", { precision: 10, scale: 2 }),
-  messages: jsonb("messages").$type().default([]),
+  shadeNotes: text("shade_notes"),
+  additionalNotes: text("additional_notes"),
+  shadeGuide: jsonb("shade_guide").$type().default([]),
   files: jsonb("files").$type().default([]),
   exportQuality: text("export_quality"),
   chatConnection: boolean("chat_connection"),
@@ -449,7 +456,14 @@ var DatabaseStorage = class {
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : []
+      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
+      shade: Array.isArray(insertOrder.shade) ? insertOrder.shade : [],
+      trial: insertOrder.trial || "",
+      pontic: insertOrder.pontic || "Ridge Lap",
+      occlusalStaining: insertOrder.occlusalStaining || "",
+      shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide : [],
+      additionalNotes: insertOrder.additionalNotes || "",
+      shadeNotes: insertOrder.shadeNotes || ""
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

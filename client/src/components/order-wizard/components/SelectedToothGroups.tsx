@@ -141,7 +141,7 @@ const SelectedToothGroups = ({
         <Card className="border border-blue-200 bg-blue-50">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm flex font-medium text-blue-800"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-4 h-4" /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-4 h-4" />} Individual Teeth</span>
+            <span className="text-sm flex font-medium text-blue-800 items-center gap-3"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-12 h-12 " /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-12 h-12 " />} Individual Teeth</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedTeeth.map(tooth => (
@@ -184,12 +184,12 @@ const SelectedToothGroups = ({
           <Card key={group.groupId} className={`border ${bgColor}`}>
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-sm font-medium ${textColor} flex items-center gap-1`}>
+              <span className={`text-sm font-medium ${textColor} flex items-center gap-3`}>
                   {
                     prescriptionType === 'implant' ? (
-                      group.type === 'joint' ? <img src={ImplantJoint} alt="Implant Joint" className="w-4 h-4" /> : <img src={ImplantBridge} alt="Implant Bridge" className="w-4 h-4" />
+                      group.type === 'joint' ? <img src={ImplantJoint} alt="Implant Joint" className="w-12 h-12" /> : <img src={ImplantBridge} alt="Implant Bridge" className="w-12 h-12" />
                     ) : (
-                      group.type === 'joint' ? <img src={CrownJoint} alt="Crown Joint" className="w-4 h-4" /> : <img src={CrownBridge} alt="Crown Bridge" className="w-4 h-4" />
+                      group.type === 'joint' ? <img src={CrownJoint} alt="Crown Joint" className="w-12 h-12 pl-2.5" /> : <img src={CrownBridge} alt="Crown Bridge" className="w-12 h-12" />
                     )
                   }{group.type === 'joint' ? 'Joint' : 'Bridge'} Group
                 </span>

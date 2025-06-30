@@ -68,7 +68,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     : undefined;
 
   useEffect(() => {
-    if (!order?.orderId) {
+    if (!order?.orderId && !order?.referenceId) {
       setChatId(null);
       return;
     }
@@ -82,7 +82,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       .then((data) => setChatId(data.id))
       .catch((err) => setChatError('No chat found for this order'))
       .finally(() => setChatLoading(false));
-  }, [order?.orderId]);
+  }, [order?.orderId, order?.referenceId]);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -194,7 +194,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="flex-1 w-full p-4 pb-6">
-  <Card className="w-full h-full max-h-[60vh] flex flex-col">
+  <Card className="w-full h-full max-h-[90vh] flex flex-col">
     <CardContent className="p-0  max-h-[70vh] flex-1 flex flex-col">
       <div className="flex-1 min-h-0 overflow-y-auto">
         {chatLoading ? (

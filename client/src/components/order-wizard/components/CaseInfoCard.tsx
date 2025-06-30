@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -59,7 +58,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
             </SelectTrigger>
             <SelectContent>
               {clinicDoctors.map(doctor => (
-                <SelectItem key={doctor.id} value={doctor.id}>
+                <SelectItem key={doctor.id} value={doctor.name}>
                   {doctor.name} ({doctor.role})
                 </SelectItem>
               ))}

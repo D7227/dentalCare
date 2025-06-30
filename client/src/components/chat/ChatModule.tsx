@@ -432,7 +432,9 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   // Handle scroll events to show/hide scroll button
@@ -710,7 +712,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       </div>
 
       {/* Messages Area - Scrollable */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
+      <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
         
         {isLoading ? (
           <div className="text-center text-muted-foreground">Loading messages...</div>
@@ -762,7 +764,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
         <div ref={messagesEndRef} />
         
         {/* Scroll to bottom button */}
-        {showScrollButton && (
+        {/* {showScrollButton && (
           <Button
             size="sm"
             onClick={scrollToBottom}
@@ -771,7 +773,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
           >
             <ChevronDown className="h-4 w-4 text-white" />
           </Button>
-        )}
+        )} */}
       </div>
 
       {/* Message Input - Fixed at bottom */}

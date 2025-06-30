@@ -205,7 +205,14 @@ export class DatabaseStorage implements IStorage {
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories as string[] : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files as string[] : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : []
+      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
+      shade: Array.isArray(insertOrder.shade) ? insertOrder.shade as string[] : [],
+      trial: insertOrder.trial || '',
+      pontic: insertOrder.pontic || 'Ridge Lap',
+      occlusalStaining: insertOrder.occlusalStaining || '',
+      shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide as string[] : [],
+      additionalNotes: insertOrder.additionalNotes || '',
+      shadeNotes: insertOrder.shadeNotes || '',
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

@@ -286,7 +286,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
           {data?.details?.trial && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Trial</p>
-              <p className="text-sm font-medium">{data?.details.trial}</p>
+              <p className="text-sm font-medium">{data?.details.trial} Trial</p>
             </div>
           )}
           {data?.details?.occlusalStaining && (

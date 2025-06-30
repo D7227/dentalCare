@@ -249,6 +249,11 @@ const DashboardLayout = () => {
     }
   }, [isAuthenticated, setLocation]);
 
+  useEffect(() => {
+    // Scroll the main content area to top when section changes
+    window.scrollTo(0, 0);
+  }, [activeSection]);
+
   return (
     <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
       {/* Mobile Sidebar Overlay */}

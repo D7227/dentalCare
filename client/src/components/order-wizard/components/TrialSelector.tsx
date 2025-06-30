@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -26,9 +25,9 @@ const TrialSelector = ({ productType, selectedTrials, onTrialsChange }: TrialSel
 
   const handleTrialChange = (trialValue: string, checked: boolean) => {
     if (checked) {
-      onTrialsChange([...selectedTrials, trialValue]);
+      onTrialsChange([trialValue]);
     } else {
-      onTrialsChange(selectedTrials.filter(trial => trial !== trialValue));
+      onTrialsChange([]);
     }
   };
 
@@ -42,7 +41,7 @@ const TrialSelector = ({ productType, selectedTrials, onTrialsChange }: TrialSel
           <div key={trial.value} className="flex items-center space-x-2">
             <Checkbox
               id={trial.value}
-              checked={selectedTrials.includes(trial.value)}
+              checked={selectedTrials[0] === trial.value}
               onCheckedChange={(checked) => handleTrialChange(trial.value, checked as boolean)}
             />
             <Label 

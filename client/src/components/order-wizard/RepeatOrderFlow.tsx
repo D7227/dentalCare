@@ -14,7 +14,7 @@ import ReviewDetailsStep from './ReviewDetailsStep';
 import AccessoryTagging from './AccessoryTagging';
 import FileUploader from '@/components/shared/FileUploader';
 
-import { ordersData } from '../../data/ordersData';
+import { useOrders } from '@/hooks/shared/useOrders';
 
 interface RepeatOrderFlowProps {
   currentStep: number;
@@ -30,20 +30,25 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
   const [warrantyStatus, setWarrantyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'expired'>('idle');
   const [warrantyInfo, setWarrantyInfo] = useState<any>(null);
 
+  // Fetch orders dynamically
+  const { data: orders = [], isLoading, isError } = useOrders();
+
   // Filter previous orders based on search criteria
   const filteredOrders = useMemo(() => {
-    return ordersData.filter(order => {
-      const matchesSearch = order.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.type.toLowerCase().includes(searchTerm.toLowerCase());
-      
+    return orders.filter(order => {
+      const patientName = `${order.patientFirstName} ${order.patientLastName}`.toLowerCase();
+      const matchesSearch =
+        patientName.includes(searchTerm.toLowerCase()) ||
+        (order.orderId || order.referenceId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.restorationType || '').toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-      
-      const matchesDate = !selectedDate || order.date === selectedDate;
-      
+
+      const matchesDate = !selectedDate || (order.createdAt && order.createdAt.split('T')[0] === selectedDate);
+
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [searchTerm, selectedStatus, selectedDate]);
+  }, [orders, searchTerm, selectedStatus, selectedDate]);
 
   // Area managers for scan booking
   const areaManagers = [
@@ -197,50 +202,27 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
           </div>
 
           {/* Orders List */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold text-foreground">
-                Previous Orders ({filteredOrders.length} found)
-              </Label>
-              {filteredOrders.length > 10 && (
-                <span className="text-xs text-gray-500">Showing top 10 results</span>
-              )}
-            </div>
-            
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading orders...</div>
+          ) : isError ? (
+            <div className="text-center py-8 text-red-500">Failed to load orders.</div>
+          ) : (
             <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-2">
               {filteredOrders.slice(0, 10).map((order) => (
                 <Card 
-                  key={order.id} 
+                  key={order.orderId || order.referenceId} 
                   className={`cursor-pointer transition-all hover:shadow-md border-2 ${
-                    formData.previousOrderId === order.id 
+                    formData.previousOrderId === (order.orderId || order.referenceId)
                       ? 'border-primary bg-primary/5' 
                       : 'border-gray-200 hover:border-primary/50'
                   }`}
                   onClick={() => {
                     setFormData({
                       ...formData,
-                      previousOrderId: order.id,
+                      previousOrderId: order.orderId || order.referenceId,
                       selectedOrder: order,
-                      restorationType: order.type.toLowerCase().replace(' ', '-'),
-                      toothGroups: order.toothNumber ? [{
-                        groupId: 'existing-1',
-                        teeth: [parseInt(order.toothNumber || '0')],
-                        type: 'separate',
-                        productType: 'crown-bridge',
-                        material: order.product || 'Zirconia Crown',
-                        shade: 'A2',
-                        notes: order.notes || '',
-                        occlusalStaining: 'medium',
-                        ponticDesign: '',
-                        products: [{
-                          id: '1',
-                          name: order.product || 'Zirconia Crown',
-                          category: 'Crown',
-                          material: order.product || 'Zirconia Crown',
-                          description: order.product || 'Zirconia Crown',
-                          quantity: 1
-                        }]
-                      }] : []
+                      restorationType: order.restorationType?.toLowerCase().replace(' ', '-') || '',
+                      toothGroups: order.toothGroups || []
                     });
                   }}
                 >
@@ -248,21 +230,26 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{order.id}</span>
+                          <span className="font-semibold text-sm">{order.orderId || order.referenceId}</span>
                           <Badge className={getStatusColor(order.status)}>
                             {order.status}
                           </Badge>
                         </div>
                         <div className="text-sm text-gray-600">
-                          <div>Patient: <span className="font-medium">{order.patient}</span></div>
-                          <div>Type: <span className="font-medium">{order.type}</span></div>
-                          <div>Date: <span className="font-medium">{order.date}</span></div>
-                          {order.toothNumber && (
-                            <div>Tooth: <span className="font-medium">#{order.toothNumber}</span></div>
+                          <div>Patient: <span className="font-medium">{order.patientFirstName} {order.patientLastName}</span></div>
+                          <div>Type: <span className="font-medium">{order.prescriptionType}</span></div>
+                          <div>Date: <span className="font-medium">{order.createdAt?.split('T')[0]}</span></div>
+                          {/* Show all selected teeth for this order */}
+                          {order.toothGroups && order.toothGroups.length > 0 && (
+                            <div>
+                              Teeth: <span className="font-medium">
+                                {order.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
-                      {formData.previousOrderId === order.id && (
+                      {formData.previousOrderId === (order.orderId || order.referenceId) && (
                         <CheckCircle className="text-primary" size={20} />
                       )}
                     </div>
@@ -277,7 +264,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Selected Order Preview */}
           {formData.previousOrderId && (
@@ -292,17 +279,26 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Patient:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.patient}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.patientFirstName} {formData.selectedOrder?.patientLastName}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Type:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.type}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.prescriptionType}</span>
                     </div>
+                    {/* Show all selected teeth for the selected order */}
+                    {formData.selectedOrder?.toothGroups && formData.selectedOrder.toothGroups.length > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-blue-700">Teeth:</span>
+                        <span className="text-sm text-blue-600">
+                          {formData.selectedOrder.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Date:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.date}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.createdAt?.split('T')[0]}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Status:</span>
@@ -310,12 +306,6 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                         {formData.selectedOrder?.status}
                       </Badge>
                     </div>
-                    {formData.selectedOrder?.toothNumber && (
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-blue-700">Tooth:</span>
-                        <span className="text-sm text-blue-600">#{formData.selectedOrder.toothNumber}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -441,7 +431,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
               </div>
               <div>
                 <Label className="text-sm font-medium text-blue-700">Patient</Label>
-                <p className="text-sm text-blue-600">{formData.selectedOrder?.patient}</p>
+                <p className="text-sm text-blue-600">{formData.selectedOrder?.patientFirstName} {formData.selectedOrder?.patientLastName}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-blue-700">Original Date</Label>

@@ -392,7 +392,7 @@ const ChatContent = () => {
                     {orders.map((order: any) => (
                       <SelectItem key={order.id} value={order.id.toString()}>
                         {/* ORD-{order.id.toString().padStart(4, '0')} - */}
-                         {order.orderId || 'Unknown Patient'}
+                         {order.orderId || order.referenceId}
                       </SelectItem>
                     ))}
                   </SelectContent>

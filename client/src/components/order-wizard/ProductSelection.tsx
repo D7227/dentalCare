@@ -23,31 +23,58 @@ interface SelectedProduct {
 }
 
 interface ProductDetails {
-  shade: ShadeOption | null;
+  shade: string[];
   occlusalStaining: string;
   ponticDesign: string;
   notes: string;
-  selectedTrials: string[];
+  trial: string;
+  shadeNotes?: string;
+  additionalNotes?: string;
+  shadeGuide?: string[];
 }
+
+const shadeOptions: ShadeOption[] = [
+  { value: 'a1', label: 'A1 - Vita Classic', family: 'Vita Classic' },
+  { value: 'a2', label: 'A2 - Vita Classic', family: 'Vita Classic' },
+  { value: 'a3', label: 'A3 - Vita Classic', family: 'Vita Classic' },
+  { value: 'a3.5', label: 'A3.5 - Vita Classic', family: 'Vita Classic' },
+  { value: 'b1', label: 'B1 - Vita Classic', family: 'Vita Classic' },
+  { value: 'b2', label: 'B2 - Vita Classic', family: 'Vita Classic' },
+  { value: 'b3', label: 'B3 - Vita Classic', family: 'Vita Classic' },
+  { value: 'c1', label: 'C1 - Vita Classic', family: 'Vita Classic' },
+  { value: 'c2', label: 'C2 - Vita Classic', family: 'Vita Classic' },
+  { value: 'd2', label: 'D2 - Vita Classic', family: 'Vita Classic' },
+  { value: '1m1', label: '1M1 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '1m2', label: '1M2 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '2l1.5', label: '2L1.5 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '2l2.5', label: '2L2.5 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '2m1', label: '2M1 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '2m2', label: '2M2 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '3m1', label: '3M1 - Vita 3D Master', family: 'Vita 3D Master' },
+  { value: '3m2', label: '3M2 - Vita 3D Master', family: 'Vita 3D Master' }
+];
 
 const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [productDetails, setProductDetails] = useState<ProductDetails>({
-    shade: null,
+    shade: [],
     occlusalStaining: 'medium',
     ponticDesign: '',
     notes: '',
-    selectedTrials: []
+    trial: '',
+    shadeNotes: '',
+    additionalNotes: '',
+    shadeGuide: []
   });
+  const [editingGroupIndex, setEditingGroupIndex] = useState<number | null>(null);
 
   const toothGroups = formData.toothGroups || [];
 
   const isGroupConfigured = (group: any) => {
     return group.selectedProducts && 
            group.selectedProducts.length > 0 && 
-           group.productDetails && 
-           group.productDetails.shade;
+           group.productDetails;
   };
 
   const allGroupsConfigured = toothGroups.length > 0 && toothGroups.every((group: any) => isGroupConfigured(group));
@@ -64,16 +91,31 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   const allTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
 
   const handleProductDetailsChange = (field: keyof ProductDetails, value: any) => {
-    setProductDetails(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setProductDetails(prev => {
+      if (field === 'shade') {
+        // Always store as array
+        return { ...prev, shade: value ? [value.label || value] : [] };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleTrialsChange = (trials: string[]) => {
     setProductDetails(prev => ({
       ...prev,
-      selectedTrials: trials
+      trial: trials && trials.length > 0 ? trials[0] : ''
+    }));
+  };
+
+  const handleShadeGuideChange = (guideShades: string[]) => {
+    setProductDetails(prev => {
+      // Merge unique shade names from dropdown and guide
+      const allShades = Array.from(new Set([...(prev.shadeGuide || []), ...guideShades]));
+      return { ...prev, shadeGuide: allShades };
+    });
+    setFormData((prev: any) => ({
+      ...prev,
+      shadeGuide: guideShades
     }));
   };
 
@@ -83,27 +125,47 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
     // Don't pre-load existing configurations to allow different products for different groups
     setSelectedProducts([]);
     setProductDetails({
-      shade: null,
+      shade: [],
       occlusalStaining: 'medium',
       ponticDesign: '',
       notes: '',
-      selectedTrials: []
+      trial: '',
+      shadeNotes: '',
+      additionalNotes: '',
+      shadeGuide: []
     });
   };
 
   const saveConfiguration = () => {
     try {
-      // Apply the same configuration to unconfigured tooth groups only
-      const updatedGroups = toothGroups.map((group: any) => {
-        if (!isGroupConfigured(group)) {
-          return {
-            ...group,
-            selectedProducts: [...selectedProducts],
-            productDetails: { ...productDetails }
-          };
-        }
-        return group; // Keep already configured groups unchanged
-      });
+      const { trial, shade, shadeNotes, additionalNotes, shadeGuide, ...productDetailsWithoutExtras } = productDetails;
+      let updatedGroups;
+
+      if (editingGroupIndex !== null) {
+        // Update only the group being edited
+        updatedGroups = toothGroups.map((group: any, idx: number) => {
+          if (idx === editingGroupIndex) {
+            return {
+              ...group,
+              selectedProducts: [...selectedProducts],
+              productDetails: { ...productDetailsWithoutExtras }
+            };
+          }
+          return group;
+        });
+      } else {
+        // Apply to all unconfigured groups (existing logic)
+        updatedGroups = toothGroups.map((group: any) => {
+          if (!isGroupConfigured(group)) {
+            return {
+              ...group,
+              selectedProducts: [...selectedProducts],
+              productDetails: { ...productDetailsWithoutExtras }
+            };
+          }
+          return group;
+        });
+      }
 
       // Build restorationProducts array by aggregating products across all configured groups
       const productMap: Record<string, { product: string; quantity: number }> = {};
@@ -130,19 +192,28 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
         ...formData,
         toothGroups: updatedGroups,
         restorationProducts,
-        accessories
+        accessories,
+        trial: productDetails.trial, // Set trial at the top level of formData
+        shade: productDetails.shade, // Set shade at the top level of formData (array of strings)
+        shadeNotes: productDetails.shadeNotes,
+        additionalNotes: productDetails.additionalNotes,
+        shadeGuide: productDetails.shadeGuide
       });
 
       // Reset editing state
       setIsConfiguring(false);
       setSelectedProducts([]);
       setProductDetails({
-        shade: null,
+        shade: [],
         occlusalStaining: 'medium',
         ponticDesign: '',
         notes: '',
-        selectedTrials: []
+        trial: '',
+        shadeNotes: '',
+        additionalNotes: '',
+        shadeGuide: []
       });
+      setEditingGroupIndex(null); // Reset editing state
     } catch (error) {
       console.error('Error saving configuration:', error);
       // Don't crash the app, just log the error
@@ -153,20 +224,20 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
     setIsConfiguring(false);
     setSelectedProducts([]);
     setProductDetails({
-      shade: null,
+      shade: [],
       occlusalStaining: 'medium',
       ponticDesign: '',
       notes: '',
-      selectedTrials: []
+      trial: '',
+      shadeNotes: '',
+      additionalNotes: '',
+      shadeGuide: []
     });
+    setEditingGroupIndex(null);
   };
 
   const addMoreProducts = () => {
-    if (formData.onAddMoreProducts) {
-      // Pass existing teeth for visual reference in tooth selector
-      const existingTeeth = allTeethNumbers;
-      formData.onAddMoreProducts(existingTeeth);
-    }
+    startConfiguring();
   };
 
   const saveRestorationInfo = () => {
@@ -213,10 +284,24 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-1 text-gray-400 hover:text-blue-600">
+                    <button type="button" className="p-1 text-gray-400 hover:text-blue-600"
+                      onClick={() => {
+                        setEditingGroupIndex(index);
+                        setIsConfiguring(true);
+                        setSelectedProducts(group.selectedProducts || []);
+                        setProductDetails({
+                          ...group.productDetails,
+                          shade: formData.shade || [],
+                          trial: formData.trial || '',
+                          shadeNotes: formData.shadeNotes || '',
+                          additionalNotes: formData.additionalNotes || '',
+                          shadeGuide: formData.shadeGuide || [],
+                        });
+                      }}
+                    >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button className="p-1 text-gray-400 hover:text-red-600">
+                    <button type="button" className="p-1 text-gray-400 hover:text-red-600">
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </button>
                   </div>
@@ -241,7 +326,9 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   <div>
                     <p className="font-medium text-gray-900 mb-1">Shade:</p>
                     <p className="text-gray-600 uppercase">
-                      {group.productDetails?.shade?.label || 'Not specified'}
+                      {Array.isArray(formData.shade) && formData.shade.length > 0
+                        ? formData.shade.join(', ')
+                        : 'Not specified'}
                     </p>
                   </div>
                   <div>
@@ -324,7 +411,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
                       {/* Shade Selection */}
                       <ShadeSelector
-                        value={productDetails.shade}
+                        value={shadeOptions.find(opt => opt.label === productDetails.shade[0]) || null}
                         onValueChange={(value) => handleProductDetailsChange('shade', value)}
                         label="Shade"
                         placeholder="Select Shade"
@@ -347,25 +434,25 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                       {/* Trial Requirements */}
                       <TrialSelector
                         productType={formData.prescriptionType === 'implant' ? 'implant' : 'crown-bridge'}
-                        selectedTrials={productDetails.selectedTrials}
+                        selectedTrials={[productDetails.trial]}
                         onTrialsChange={handleTrialsChange}
                       />
 
                       {/* Shade Guide Section */}
                       <div className="border-t pt-4">
                         <h6 className="text-sm font-medium text-gray-900 mb-3">Shade Guide</h6>
-                        <ShadeGuideSection selectedGroups={[]} />
+                        <ShadeGuideSection selectedGroups={[]} onShadeGuideChange={handleShadeGuideChange} />
                       </div>
 
                       {/* Additional Notes */}
                       <FormField
-                        id="notes"
+                        id="shadeNotes"
                         label="Shade Notes"
                         type="textarea"
-                        value={productDetails.notes}
-                        onChange={(value) => handleProductDetailsChange('notes', value)}
+                        value={productDetails.shadeNotes || ''}
+                        onChange={(value) => setProductDetails(prev => ({ ...prev, shadeNotes: value }))}
                         placeholder="Any special instructions for shade..."
-                        rows={3}
+                        rows={2}
                       />
 
                       {/* Action Buttons */}
@@ -382,7 +469,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                           type="button"
                           onClick={saveConfiguration}
                           className="flex-1 bg-[#11AB93] hover:bg-[#0F9A82] text-white"
-                          disabled={!productDetails.shade?.value || selectedProducts.length === 0}
+                          disabled={!productDetails.shade.length || selectedProducts.length === 0}
                         >
                           Save Configuration
                         </Button>
@@ -434,6 +521,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
             <Card className="border-2 border-dashed border-gray-300 hover:border-[#11AB93] transition-colors">
               <CardContent className="p-6 text-center">
                 <Button 
+                  type="button"
                   onClick={addMoreProducts}
                   variant="outline"
                   className="flex items-center gap-2 mx-auto text-[#11AB93] border-[#11AB93] hover:bg-[#11AB93] hover:text-white"

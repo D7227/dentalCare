@@ -227,7 +227,8 @@ const PlaceOrder = () => {
         title: "Order submitted successfully!",
         description: `Order #${order.id} has been sent to the lab for processing.`
       });
-      // Navigation will be handled by the parent component
+      // Redirect to dashboard after successful order placement
+      setLocation('/');
     } catch (error) {
       console.error('Order submission error:', error);
       toast({

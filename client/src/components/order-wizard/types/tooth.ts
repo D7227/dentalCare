@@ -10,6 +10,7 @@ export interface ToothGroup {
   warning?: string;
   occlusalStaining?: string;
   ponticDesign?: string;
+  trial?: string;
   selectedTrials?: string[];
   products?: Array<{
     id: string;

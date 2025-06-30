@@ -29,6 +29,7 @@ import CustomStatusBatch from "../common/customStatusBatch";
 import CustomStatusLabel from "../common/customStatusLabel";
 import OptionsMenu from "../common/OptionsMenu";
 import CircularProgress from "../common/CircularProgress";
+import { useAppSelector } from '@/store/hooks';
 
 interface OrderTableProps {
   onViewOrder?: (order: any) => void;
@@ -76,6 +77,20 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     },
     enabled: !!dbOrders && dbOrders.length > 0,
     refetchInterval: 30000,
+  });
+
+  const user = useAppSelector(state => state.auth.user);
+  const { data: chats = [] } = useQuery({
+    queryKey: ['/api/chats', user?.fullName],
+    queryFn: async () => {
+      const url = user?.fullName 
+        ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
+        : '/api/chats';
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch chats');
+      return response.json();
+    },
+    enabled: !!user?.fullName
   });
 
   const getPatientName = (patientId: number) => {
@@ -185,6 +200,11 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     setCategoryFilter("all");
     setDateFilter("all");
     setOrderTypeFilter("all");
+  };
+
+  const getUnreadCountForOrder = (orderId: string) => {
+    const chat = chats.find((chat: any) => chat.orderId === orderId);
+    return chat?.unreadCount || 0;
   };
 
   const filteredOrders = dbOrders.filter((order: any) => {
@@ -484,6 +504,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Prescription</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Product</th>
                       <th className="text-center p-3 text-sm font-medium text-gray-600">Progress</th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">Order Method</th>
                       <th className="text-center p-3 text-sm font-medium text-gray-600">Category</th>
                       <th className="text-center p-3 text-sm font-medium text-gray-600">Status</th>
                       <th className="text-center p-3 text-sm font-medium text-gray-600">Message</th>
@@ -494,8 +515,8 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                     {filteredOrders.map((order: any, index: number) => {
                       const orderTeeth = getOrderTeeth(order?.id);
                       const toothGroups = getOrderToothGroups(order?.id);
-                      // Dummy unread count for demonstration
-                      const unreadCount = 2; // Replace with real data if available
+                      // Get real unread count for this order's chat
+                      const unreadCount = getUnreadCountForOrder(order?.id);
                       return (
                         <tr 
                           key={order.id}
@@ -532,7 +553,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                               <CircularProgress value={order?.percentage ?? 0} size={48} />
                             </div>
                           </td>
-                          <td className="p-3 flex justify-center">
+                          <td className="p-3 text-center">
+                            {order?.orderMethod}
+                          </td>
+                          <td className="p-3 text-center">
                             <CustomStatusBatch label={order?.category} />
                           </td>
                           <td className="p-3 text-center">

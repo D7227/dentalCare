@@ -115,6 +115,7 @@ const ToothTypeDialog = ({
         </DialogHeader>
         <div className="space-y-2 flex flex-col items-center gap-1">
           <Button
+            type="button"
             onClick={() => onSelectType('abutment')}
             className="text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 w-full"
           >
@@ -122,6 +123,7 @@ const ToothTypeDialog = ({
             {/* Abutment */}
           </Button>
           <Button
+            type="button"
             onClick={() => onSelectType('pontic')}
             className="text-sm bg-purple-600 hover:bg-purple-700 px-3 py-1 w-full"
           >
@@ -131,6 +133,7 @@ const ToothTypeDialog = ({
           {/* Join options */}
           {finalJoinableGroups.map(({ group, direction, isAdjacent }) => (
             <Button
+              type="button"
               key={group.groupId}
               onClick={() => onJoinGroup?.(toothNumber, group.groupId)}
               className={`w-full text-sm ${

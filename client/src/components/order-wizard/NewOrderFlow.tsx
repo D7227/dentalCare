@@ -56,6 +56,13 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     // Additional Details
     selectedFileType: formData.selectedFileType || '',
     expectedDeliveryDate: formData.expectedDeliveryDate || '',
+    trial: formData.trial || '',
+    shade: formData.shade || [],
+    pontic: formData.pontic || 'Ridge Lap',
+    occlusalStaining: formData.occlusalStaining || '',
+    shadeGuide: formData.shadeGuide || [],
+    additionalNotes: formData.additionalNotes || '',
+    shadeNotes: formData.shadeNotes || '',
   };
 };
 

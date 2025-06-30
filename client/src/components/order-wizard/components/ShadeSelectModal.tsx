@@ -9,17 +9,18 @@ interface ShadeSelectModalProps {
     type: 'anterior' | 'posterior';
     shades: { part: number; value: string; label: string; family: string }[];
   }) => void;
+  defaultShades?: (ShadeOption | null)[];
 }
 
-const ShadeSelectModal: React.FC<ShadeSelectModalProps> = ({ open, onClose, toothType, onSelect }) => {
-  const [shades, setShades] = useState<(ShadeOption | null)[]>([null, null, null]);
+const ShadeSelectModal: React.FC<ShadeSelectModalProps> = ({ open, onClose, toothType, onSelect, defaultShades }) => {
+  const [shades, setShades] = useState<(ShadeOption | null)[]>(defaultShades || [null, null, null]);
 
-  // Reset shades when modal opens
+  // Reset shades when modal opens, using defaultShades if provided
   useEffect(() => {
     if (open) {
-      setShades([null, null, null]);
+      setShades(defaultShades || [null, null, null]);
     }
-  }, [open]);
+  }, [open, defaultShades]);
 
   const handleChange = (index: number, shade: ShadeOption | null) => {
     setShades(prev => {
