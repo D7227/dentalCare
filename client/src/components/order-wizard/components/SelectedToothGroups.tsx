@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { X, Edit } from 'lucide-react';
 import { ToothGroup } from '../types/tooth';
 import ToothModificationDialog from './ToothModificationDialog.tsx';
+import { CrownBridge, CrownJoint, CrownSeparate, ImplantBridge, ImplantJoint, ImplantSeparate } from '@/assets/svg/index.ts';
 
 interface SelectedTooth {
   toothNumber: number;
@@ -18,6 +19,7 @@ interface SelectedToothGroupsProps {
   onUpdateGroup?: (groupId: string, updatedGroup: ToothGroup) => void;
   onUpdateTooth?: (toothNumber: number, newType: 'abutment' | 'pontic') => void;
   onAddIndividualTooth?: (toothNumber: number, type: 'abutment' | 'pontic') => void;
+  prescriptionType?: 'implant' | 'crown_bridge';
 }
 
 const SelectedToothGroups = ({ 
@@ -27,7 +29,8 @@ const SelectedToothGroups = ({
   onRemoveTooth,
   onUpdateGroup,
   onUpdateTooth,
-  onAddIndividualTooth
+  onAddIndividualTooth,
+  prescriptionType
 }: SelectedToothGroupsProps) => {
   const [showModificationDialog, setShowModificationDialog] = useState(false);
   const [selectedToothForEdit, setSelectedToothForEdit] = useState<number | null>(null);
@@ -138,7 +141,7 @@ const SelectedToothGroups = ({
         <Card className="border border-blue-200 bg-blue-50">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-800">Individual Teeth</span>
+              <span className="text-sm flex font-medium text-blue-800"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-4 h-4" /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-4 h-4" />} Individual Teeth</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedTeeth.map(tooth => (
@@ -176,14 +179,19 @@ const SelectedToothGroups = ({
       {selectedGroups.map(group => {
         const bgColor = group.type === 'joint' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
         const textColor = group.type === 'joint' ? 'text-green-800' : 'text-orange-800';
-        const icon = group.type === 'joint' ? '🔗' : '🌉';
 
         return (
           <Card key={group.groupId} className={`border ${bgColor}`}>
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-sm font-medium ${textColor} flex items-center gap-1`}>
-                  {icon} {group.type === 'joint' ? 'Joint' : 'Bridge'} Group
+                  {
+                    prescriptionType === 'implant' ? (
+                      group.type === 'joint' ? <img src={ImplantJoint} alt="Implant Joint" className="w-4 h-4" /> : <img src={ImplantBridge} alt="Implant Bridge" className="w-4 h-4" />
+                    ) : (
+                      group.type === 'joint' ? <img src={CrownJoint} alt="Crown Joint" className="w-4 h-4" /> : <img src={CrownBridge} alt="Crown Bridge" className="w-4 h-4" />
+                    )
+                  }{group.type === 'joint' ? 'Joint' : 'Bridge'} Group
                 </span>
                 <Button
                   variant="ghost"

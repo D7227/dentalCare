@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -190,6 +189,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
               <Label className="text-sm font-medium">Filter by Date</Label>
               <Input
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
@@ -557,6 +557,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                       <Input 
                         id="pickupDate" 
                         type="date" 
+                        min={new Date().toISOString().split('T')[0]}
                         value={formData.pickupDate || ''} 
                         onChange={e => setFormData({
                           ...formData,
@@ -618,6 +619,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                       <Label htmlFor="scanDate">Scan Date *</Label>
                       <Input 
                         id="scanDate" 
+                        min={new Date().toISOString().split('T')[0]}
                         type="date" 
                         value={formData.scanBooking?.scanDate || ''} 
                         onChange={e => handleScanBookingChange('scanDate', e.target.value)} 

@@ -57,6 +57,7 @@ const ReschedulePickupModal = ({ isOpen, onClose, pickupRequestId }: RescheduleP
               id="new-date"
               type="date"
               value={newDate}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setNewDate(e.target.value)}
             />
           </div>

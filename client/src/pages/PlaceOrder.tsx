@@ -73,6 +73,7 @@ const PlaceOrder = () => {
   const [formData, setFormData] = useState<FormData>({
     category: null,
     prescriptionType: '',
+    orderType: '',
     orderMethod: '',
     selectedFileType: '',
     caseHandledBy: '',
@@ -97,7 +98,6 @@ const PlaceOrder = () => {
     returnAccessories: undefined,
     notes: '',
     files: [],
-    orderType: '',
     expectedDeliveryDate: '',
     pickupDate: '',
     pickupTime: '',
@@ -112,7 +112,8 @@ const PlaceOrder = () => {
     repairOrderId: '',
     issueDescription: '',
     repairType: '',
-    returnWithTrial: false
+    returnWithTrial: false,
+    type: 'new',
   });
   
   // Update clinicId when Redux data becomes available
@@ -148,7 +149,8 @@ const PlaceOrder = () => {
     setFormData({
       ...formData,
       prescriptionType: '',
-      orderMethod: ''
+      type:'new',
+      orderType: ''
     });
   };
 

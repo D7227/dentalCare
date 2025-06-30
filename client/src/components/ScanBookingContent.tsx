@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Calendar, Clock, MapPin, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -91,7 +90,7 @@ const ScanBookingContent = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -101,7 +100,7 @@ const ScanBookingContent = () => {
       </div>
 
       {/* Booking Form */}
-      <Card className="card clinical-shadow max-w-4xl">
+      <Card className="card clinical-shadow w-full">
         <CardHeader className="card-header">
           <CardTitle className="card-title flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -109,15 +108,30 @@ const ScanBookingContent = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="card-content">
-          <form onSubmit={handleSubmit} className="form-stack">
-            <div className="form-grid">
-              <div className="form-field">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Scan Date */}
+              <div>
+                <Label htmlFor="scan-date" className="form-label">
+                  Scan Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="scan-date"
+                  type="date"
+                  className="input-field"
+                  value={selectedDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+              </div>
+              {/* Scanning Agent */}
+              <div>
                 <Label htmlFor="area-manager" className="form-label">
-                  Area Manager <span className="text-red-500">*</span>
+                  Scanning Agent <span className="text-red-500">*</span>
                 </Label>
                 <Select>
                   <SelectTrigger className="input-field">
-                    <SelectValue placeholder="Select area manager" />
+                    <SelectValue placeholder="Select Scanning Agent" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manager1">John Smith</SelectItem>
@@ -126,21 +140,8 @@ const ScanBookingContent = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="form-field">
-                <Label htmlFor="scan-date" className="form-label">
-                  Scan Date <span className="text-red-500">*</span>
-                </Label>
-                <Input 
-                  id="scan-date"
-                  type="date" 
-                  className="input-field"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                />
-              </div>
-
-              <div className="form-field">
+              {/* Time Slot */}
+              <div>
                 <Label htmlFor="time-slot" className="form-label">
                   Time Slot <span className="text-red-500">*</span>
                 </Label>
@@ -158,13 +159,30 @@ const ScanBookingContent = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Scan Type */}
+              <div>
+                <Label htmlFor="scan-type" className="form-label">
+                  Scan Type <span className="text-red-500">*</span>
+                </Label>
+                <Select>
+                  <SelectTrigger className="input-field">
+                    <SelectValue placeholder="Select Scan type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full-arch">Full Arch</SelectItem>
+                    <SelectItem value="impression">Impression</SelectItem>
+                    <SelectItem value="bite-registration">Bite Registration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="form-field">
+            {/* Notes */}
+            <div>
               <Label htmlFor="notes" className="form-label">
                 Notes (Optional)
               </Label>
-              <Textarea 
+              <Textarea
                 id="notes"
                 placeholder="Any special scan requirements..."
                 className="input-field resize-none"
@@ -174,12 +192,12 @@ const ScanBookingContent = () => {
               />
             </div>
 
-            {/* Information Box */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+            {/* Info Box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-900 mb-2">
                 Scan Appointment Details:
               </h3>
-              <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
+              <ul className="space-y-1 text-sm text-blue-800">
                 <li className="flex items-center gap-2">
                   <User className="h-4 w-4" />
                   Our technician will visit your clinic at the scheduled time
@@ -195,9 +213,13 @@ const ScanBookingContent = () => {
               </ul>
             </div>
 
-            <div className="flex justify-end pt-4">
+            {/* Buttons */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
               <Button type="submit" className="btn-primary">
-                Book Scan Appointment
+                Submit
               </Button>
             </div>
           </form>

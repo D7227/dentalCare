@@ -12,6 +12,7 @@ export interface ToothGroup {
 
 export interface FormData {
   category: OrderCategory;
+  type: string;
   caseHandledBy: string;
   consultingDoctor: string;
   firstName: string;
@@ -21,7 +22,8 @@ export interface FormData {
   restorationType: string;
   productSelection: string;
   prescriptionType: string;
-  orderMethod: string;
+  orderType: string;
+  orderMethod?: string;
   selectedFileType: string;
   toothGroups: ToothGroup[];
   toothNumbers: string[];
@@ -37,7 +39,6 @@ export interface FormData {
   returnAccessories: boolean | undefined;
   notes: string;
   files: File[];
-  orderType: string;
   expectedDeliveryDate: string;
   pickupDate: string;
   pickupTime: string;

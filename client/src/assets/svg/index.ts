@@ -19,7 +19,14 @@ import teethProcess from './teeth-icon/teel-process.svg'
 
 import tooth from "./tooth.svg";
 
-import eyeIcon from "./eye-icon.svg"
+import eyeIcon from "./eye-icon.svg";
+import CrownBridge from "./teeth-group-icon/crown-bridge.svg";
+import CrownJoint from "./teeth-group-icon/crowns-joint.svg";
+import CrownSeparate from "./teeth-group-icon/Seperate-crown.svg";
+
+import ImplantBridge from "./teeth-group-icon/implant-bridge.svg";
+import ImplantJoint from "./teeth-group-icon/implant_joint.svg";
+import ImplantSeparate from "./teeth-group-icon/Seperated-implant.svg";
 
 import CrownBridgeTeeth from "./CrownBridgeTeeth.svg"
 import  ImpantTeeth from "./ImpantTeeth.svg"
@@ -49,5 +56,11 @@ export {
   teethGroup1,
   teethGroup2,
   AnteriorSVG,
-  PosteriorSVG
+  PosteriorSVG,
+  CrownBridge,
+  CrownJoint,
+  CrownSeparate,
+  ImplantBridge,
+  ImplantJoint,
+  ImplantSeparate,
 };

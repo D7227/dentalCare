@@ -25,8 +25,8 @@ export const createOrderObject = (formData: any, clinicId: string) => {
   return {
     // Order basic info
     referenceId: `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-    type: formData.orderType || 'new',
-    category: formData.prescriptionType || formData.category || 'crown-bridge',
+    type: formData.prescriptionType || formData.category || 'crown-bridge',
+    category:'new',
     status: 'pending',
     priority: 'standard',
     urgency: 'standard',
@@ -40,6 +40,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     consultingDoctor: formData.consultingDoctor || '',
     restorationType: formData.restorationType || '',
     prescriptionType: formData.prescriptionType || '',
+    orderType: formData.orderType || '',
     orderMethod: formData.orderMethod || '',
     toothGroups: formData.toothGroups || [],
     restorationProducts: formData.restoration_products || formData.restorationProducts || [],
@@ -308,6 +309,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                     id="pickupDate"
                     type="date"
                     value={formData.pickupDate}
+                    min={new Date().toISOString().split('T')[0]}
                     onChange={e => setFormData({
                       ...formData,
                       pickupDate: e.target.value

@@ -99,6 +99,7 @@ const PickupRequestModal = ({ isOpen, onClose }: PickupRequestModalProps) => {
               id="preferred-date"
               type="date"
               value={preferredDate}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setPreferredDate(e.target.value)}
               placeholder="dd-mm-yyyy"
             />

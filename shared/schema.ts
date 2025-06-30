@@ -59,6 +59,8 @@ export const orders = pgTable("orders", {
   type: text("type").notNull(),
   category: text("category"),
   orderType: text("order_type"),
+  orderMethod: text("order_method"),
+  occlusalStaining: text("occlusal_staining"),
   orderDate: timestamp("order_date").defaultNow(),
   orderStatus: uuid("order_status"),
   orderCategory: text("order_category"),
@@ -99,6 +101,13 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  material: text("material").notNull(),
+  description: text("description"),
+});
 
 export const lifecycleStages = pgTable("lifecycle_stages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -348,6 +357,10 @@ export const insertClinicSchema = createInsertSchema(clinic).omit({
   updatedAt: true,
 });
 
+export const insertProductSchema = createInsertSchema(products).omit({
+  id: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -381,3 +394,6 @@ export type TeamMember = typeof teamMembers.$inferSelect;
 
 export type InsertClinic = z.infer<typeof insertClinicSchema>;
 export type Clinic = typeof clinic.$inferSelect;
+
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = typeof products.$inferSelect;

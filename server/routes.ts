@@ -159,6 +159,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Products API
+  app.get("/api/products", async (req, res) => {
+    try {
+      const products = await storage.getProducts();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
   // Tooth Groups API
   app.post("/api/tooth-groups", async (req, res) => {
     try {

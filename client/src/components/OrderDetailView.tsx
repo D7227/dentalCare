@@ -133,7 +133,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const details = {
     restorationType: order.restorationType,
     teethGroup: order.teethNo,
-    productSelection: order.restorationProducts?.map((p: any) => ({ name: p.product, count: order.quantity })) || [],
+    productSelection: order.restorationProducts?.map((p: any) => ({ name: p.product, count: p.quantity })) || [],
     accessories: order.accessories?.map((a: string) => ({ name: a, count: null })) || [],
     pontic: order.pontic || "-",
     trial: order.trial || "-",

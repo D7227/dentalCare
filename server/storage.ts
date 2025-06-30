@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  users, patients, orders, toothGroups, scanBookings, pickupRequests, bills, chats, messages, teamMembers, clinic, role,
+  users, patients, orders, toothGroups, scanBookings, pickupRequests, bills, chats, messages, teamMembers, clinic, role, products,
   type InsertUser, type User,
   type InsertPatient, type Patient,
   type InsertOrder, type Order,
@@ -12,6 +12,7 @@ import {
   type InsertMessage, type Message,
   type InsertTeamMember, type TeamMember,
   type InsertClinic, type Clinic,
+  type InsertProduct, type Product,
   lifecycleStages
 } from "../shared/schema";
 import { eq, asc, desc } from "drizzle-orm";
@@ -133,6 +134,9 @@ export interface IStorage {
   // Role methods
   getRoleById(roleId: string): Promise<{ id: string, name: string } | undefined>;
   getRoleByName(roleName: string): Promise<{ id: string, name: string } | undefined>;
+
+  // Product methods
+  getProducts(): Promise<Product[]>;
 
   // New method
   removeMemberFromAllChats(fullName: string): Promise<void>;
@@ -678,6 +682,10 @@ export class DatabaseStorage implements IStorage {
   async getRoleByName(roleName: string): Promise<{ id: string, name: string } | undefined> {
     const [roleData] = await db.select().from(role).where(eq(role.name, roleName));
     return roleData;
+  }
+
+  async getProducts(): Promise<Product[]> {
+    return await db.select().from(products);
   }
 
   async getLifecycleStages(): Promise<any[]> {

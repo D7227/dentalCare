@@ -29,6 +29,7 @@ __export(schema_exports, {
   insertOrderSchema: () => insertOrderSchema,
   insertPatientSchema: () => insertPatientSchema,
   insertPickupRequestSchema: () => insertPickupRequestSchema,
+  insertProductSchema: () => insertProductSchema,
   insertScanBookingSchema: () => insertScanBookingSchema,
   insertTeamMemberSchema: () => insertTeamMemberSchema,
   insertToothGroupSchema: () => insertToothGroupSchema,
@@ -42,6 +43,7 @@ __export(schema_exports, {
   patientsRelations: () => patientsRelations,
   pickupRequests: () => pickupRequests,
   pickupRequestsRelations: () => pickupRequestsRelations,
+  products: () => products,
   role: () => role,
   scanBookings: () => scanBookings,
   scanBookingsRelations: () => scanBookingsRelations,
@@ -116,6 +118,13 @@ var orders = pgTable("orders", {
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
+});
+var products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  material: text("material").notNull(),
+  description: text("description")
 });
 var lifecycleStages = pgTable("lifecycle_stages", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -333,6 +342,9 @@ var insertClinicSchema = createInsertSchema(clinic).omit({
   id: true,
   createdAt: true,
   updatedAt: true
+});
+var insertProductSchema = createInsertSchema(products).omit({
+  id: true
 });
 
 // server/db.ts
@@ -792,6 +804,9 @@ var DatabaseStorage = class {
     const [roleData] = await db.select().from(role).where(eq(role.name, roleName));
     return roleData;
   }
+  async getProducts() {
+    return await db.select().from(products);
+  }
   async getLifecycleStages() {
     return await db.select().from(lifecycleStages).orderBy(lifecycleStages.createdAt);
   }
@@ -938,6 +953,14 @@ async function registerRoutes(app2) {
       res.status(201).json(patient);
     } catch (error) {
       res.status(400).json({ error: "Invalid patient data" });
+    }
+  });
+  app2.get("/api/products", async (req, res) => {
+    try {
+      const products2 = await storage.getProducts();
+      res.json(products2);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch products" });
     }
   });
   app2.post("/api/tooth-groups", async (req, res) => {
@@ -1350,7 +1373,8 @@ async function registerRoutes(app2) {
         patientId: patient.id,
         category: orderData.category,
         type: orderData.restorationType || orderData.orderType,
-        notes: orderData.notes
+        notes: orderData.notes,
+        status: orderData.status || "pending"
       });
       if (orderData.toothGroups && orderData.toothGroups.length > 0) {
         for (const group of orderData.toothGroups) {

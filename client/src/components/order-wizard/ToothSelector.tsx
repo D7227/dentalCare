@@ -506,7 +506,8 @@ const ToothSelector = ({
               onRemoveTooth={handleRemoveTooth} 
               onUpdateGroup={handleUpdateGroup} 
               onUpdateTooth={handleUpdateTooth} 
-              onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])} 
+              onAddIndividualTooth={(toothNumber, type) => setSelectedTeeth(prev => [...prev, { toothNumber, type }])}
+              prescriptionType={prescriptionType} 
             />
           </CardContent>
         </Card>

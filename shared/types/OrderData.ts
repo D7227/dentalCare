@@ -18,7 +18,7 @@ export interface OrderData {
   caseHandledBy: string;
   consultingDoctor: string;
   prescriptionType: string;
-  orderMethod: string;
+  orderType: string;
   restorationProducts: any[];
   category: string;
   restorationType: string;

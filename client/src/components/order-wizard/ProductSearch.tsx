@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,21 +18,6 @@ interface SelectedProduct extends Product {
   quantity: number;
 }
 
-const dummyProducts: Product[] = [
-  { id: '1', name: 'Zirconia Crown', category: 'Crown', material: 'Zirconia', description: 'High-strength zirconia crown for posterior teeth' },
-  { id: '2', name: 'E-max Crown', category: 'Crown', material: 'Lithium Disilicate', description: 'Esthetic lithium disilicate crown for anterior teeth' },
-  { id: '3', name: 'PFM Crown', category: 'Crown', material: 'Porcelain Fused to Metal', description: 'Traditional porcelain fused to metal crown' },
-  { id: '4', name: 'Zirconia Bridge 3-Unit', category: 'Bridge', material: 'Zirconia', description: '3-unit zirconia bridge for multiple tooth replacement' },
-  { id: '5', name: 'E-max Veneer', category: 'Veneer', material: 'Lithium Disilicate', description: 'Ultra-thin esthetic veneer for smile enhancement' },
-  { id: '6', name: 'Composite Veneer', category: 'Veneer', material: 'Composite Resin', description: 'Direct composite veneer for minor corrections' },
-  { id: '7', name: 'Titanium Implant Crown', category: 'Implant', material: 'Titanium/Zirconia', description: 'Implant-supported crown with titanium abutment' },
-  { id: '8', name: 'All-on-4 Prosthesis', category: 'Implant', material: 'Acrylic/Titanium', description: 'Full arch prosthesis supported by 4 implants' },
-  { id: '9', name: 'Partial Denture', category: 'Prosthetics', material: 'Acrylic/Metal', description: 'Removable partial denture with metal framework' },
-  { id: '10', name: 'Complete Denture', category: 'Prosthetics', material: 'Acrylic', description: 'Complete upper or lower denture' },
-  { id: '11', name: 'Night Guard', category: 'Appliance', material: 'Acrylic', description: 'Custom night guard for bruxism protection' },
-  { id: '12', name: 'Sports Guard', category: 'Appliance', material: 'EVA', description: 'Custom sports mouthguard for athletic protection' }
-];
-
 interface ProductSearchProps {
   selectedProducts?: SelectedProduct[];
   onProductsChange: (products: SelectedProduct[]) => void;
@@ -43,7 +28,40 @@ interface ProductSearchProps {
 const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth = [], restorationType }: ProductSearchProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/products');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch products: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setProducts(data);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch products');
+        toast({
+          title: "Error",
+          description: "Failed to load products. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [toast]);
 
   // Calculate quantity based on restoration type
   const calculateQuantity = () => {
@@ -54,15 +72,15 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
   };
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm) return dummyProducts;
+    if (!searchTerm) return products;
     
-    return dummyProducts.filter(product =>
+    return products.filter(product =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchTerm]);
+  }, [searchTerm, products]);
 
   const handleProductSelect = (product: Product) => {
     // Check if product is already added
@@ -116,11 +134,12 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
         <Label className="text-sm font-medium mb-2 block">Product list *</Label>
         <div className="relative">
           <Input
-            placeholder="Search and add products"
+            placeholder={loading ? "Loading products..." : "Search and add products"}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
             onFocus={() => setIsDropdownOpen(searchTerm.length > 0 || true)}
             className="pl-8"
+            disabled={loading}
           />
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
@@ -129,7 +148,15 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
         {isDropdownOpen && (
           <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto shadow-lg">
             <CardContent className="p-0">
-              {filteredProducts.length > 0 ? (
+              {loading ? (
+                <div className="p-3 text-sm text-gray-500 text-center">
+                  Loading products...
+                </div>
+              ) : error ? (
+                <div className="p-3 text-sm text-red-500 text-center">
+                  {error}
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
                   <div
                     key={product.id}
@@ -140,12 +167,14 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                     <div className="text-xs text-gray-600 mt-1">
                       {product.category} • {product.material}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{product.description}</div>
+                    {product.description && (
+                      <div className="text-xs text-gray-500 mt-1">{product.description}</div>
+                    )}
                   </div>
                 ))
               ) : (
                 <div className="p-3 text-sm text-gray-500 text-center">
-                  No products found
+                  {searchTerm ? 'No products found' : 'No products available'}
                 </div>
               )}
             </CardContent>
