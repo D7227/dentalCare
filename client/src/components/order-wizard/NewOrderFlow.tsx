@@ -48,6 +48,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     files: formData.files || [],
     notes: formData.notes || '',
     accessories: formData.accessories || [],
+    selectedTeeth: formData.selectedTeeth || [],
     // Pickup/Scan Information
     pickupDate: formData.pickupDate || '',
     pickupTime: formData.pickupTime || '',

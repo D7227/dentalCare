@@ -205,7 +205,8 @@ export class DatabaseStorage implements IStorage {
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories as string[] : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files as string[] : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : []
+      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

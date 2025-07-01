@@ -98,6 +98,7 @@ var orders = pgTable("orders", {
   toothGroups: jsonb("tooth_groups").$type().default([]),
   restorationProducts: jsonb("restoration_products").$type().default([]),
   accessories: jsonb("accessories").$type().default([]),
+  selectedTeeth: jsonb("selected_teeth").$type().default([]),
   location: text("location"),
   prescriptionType: text("prescription_type"),
   productName: text("product_name"),
@@ -451,7 +452,8 @@ var DatabaseStorage = class {
       accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : []
+      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

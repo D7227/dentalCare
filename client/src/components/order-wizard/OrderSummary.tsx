@@ -210,7 +210,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardHeader>
             <CardContent className="pt-0">
               <ToothChart
-                selectedGroups={restorationGroups}
+                selectedGroups={formData.toothGroups || []}
                 selectedTeeth={formData.selectedTeeth || []}
                 onToothClick={() => {}} 
                 isToothSelected={() => false}

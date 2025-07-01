@@ -63,10 +63,24 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
   // Use allGroups for display/configuration logic below
   const isGroupConfigured = (group: any) => {
-    return group.selectedProducts && 
-           group.selectedProducts.length > 0 && 
-           group.productDetails && 
-           group.productDetails.shade;
+    if (group.groupId === 'individual-group') {
+      // For individual teeth group, check if all individual teeth are configured
+      const individualTeeth = group.teeth || [];
+      return individualTeeth.every((toothNumber: number) => {
+        const tooth = (formData.selectedTeeth || []).find((t: any) => t.toothNumber === toothNumber);
+        return tooth && 
+               tooth.selectedProducts && 
+               tooth.selectedProducts.length > 0 && 
+               tooth.productDetails && 
+               tooth.productDetails.shade;
+      });
+    } else {
+      // For regular groups (bridge/joint)
+      return group.selectedProducts && 
+             group.selectedProducts.length > 0 && 
+             group.productDetails && 
+             group.productDetails.shade;
+    }
   };
 
   const allGroupsConfigured = allGroups.length > 0 && allGroups.every((group: any) => isGroupConfigured(group));
@@ -110,7 +124,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
   const saveConfiguration = () => {
     try {
-      // Only update real groups in formData.toothGroups (bridge/joint)
+      // Update real groups in formData.toothGroups (bridge/joint)
       const updatedGroups = (formData.toothGroups || []).map((group: any) => {
         if (!isGroupConfigured(group)) {
           return {
@@ -122,11 +136,31 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
         return group; // Keep already configured groups unchanged
       });
 
+      // Handle individual teeth configuration
+      const updatedSelectedTeeth = [...(formData.selectedTeeth || [])];
+      const individualTeethGroup = allGroups.find((group: any) => group.groupId === 'individual-group');
+      
+      if (individualTeethGroup && !isGroupConfigured(individualTeethGroup)) {
+        // Update individual teeth with product configuration
+        individualTeethGroup.teeth.forEach((toothNumber: number) => {
+          const toothIndex = updatedSelectedTeeth.findIndex((t: any) => t.toothNumber === toothNumber);
+          if (toothIndex !== -1) {
+            updatedSelectedTeeth[toothIndex] = {
+              ...updatedSelectedTeeth[toothIndex],
+              selectedProducts: [...selectedProducts],
+              productDetails: { ...productDetails }
+            };
+          }
+        });
+      }
+
       // Build restorationProducts array by aggregating products across all configured groups (including individual teeth for display)
       const productMap: Record<string, { product: string; quantity: number }> = {};
       const accessoriesSet = new Set<string>();
+      
+      // Process regular groups
       allGroups.forEach((group: any) => {
-        if (group.selectedProducts && group.selectedProducts.length > 0) {
+        if (group.groupId !== 'individual-group' && group.selectedProducts && group.selectedProducts.length > 0) {
           group.selectedProducts.forEach((product: any) => {
             if (productMap[product.name]) {
               productMap[product.name].quantity += product.quantity;
@@ -140,15 +174,36 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
           });
         }
       });
+      
+      // Process individual teeth
+      const individualGroup = allGroups.find((group: any) => group.groupId === 'individual-group');
+      if (individualGroup) {
+        individualGroup.teeth.forEach((toothNumber: number) => {
+          const tooth = updatedSelectedTeeth.find((t: any) => t.toothNumber === toothNumber);
+          if (tooth && tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+            tooth.selectedProducts.forEach((product: any) => {
+              if (productMap[product.name]) {
+                productMap[product.name].quantity += product.quantity;
+              } else {
+                productMap[product.name] = {
+                  product: product.name,
+                  quantity: product.quantity
+                };
+              }
+              accessoriesSet.add(product.name);
+            });
+          }
+        });
+      }
       const restorationProducts = Object.values(productMap);
       const accessories = Array.from(accessoriesSet);
 
       setFormData({
         ...formData,
-        toothGroups: updatedGroups, // Only real groups, never merged individual
+        toothGroups: updatedGroups,
         restorationProducts,
         accessories,
-        selectedTeeth: formData.selectedTeeth // Always preserve selectedTeeth
+        selectedTeeth: updatedSelectedTeeth
       });
 
       // Reset editing state
@@ -221,66 +276,108 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
           )}
 
           {/* Configured Groups Detail Cards - Compact View */}
-          {allGroups.filter((group: any) => isGroupConfigured(group)).map((group: any, index: number) => (
-            <Card key={index} className="border border-green-200 bg-gray-50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                      {formData.prescriptionType === 'crown-bridge' ? 'Crown & Bridge' : 'Implant'}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="p-1 text-gray-400 hover:text-blue-600">
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button className="p-1 text-gray-400 hover:text-red-600">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    </button>
-                  </div>
-                </div>
+          {allGroups.filter((group: any) => isGroupConfigured(group)).map((group: any, index: number) => {
+            // Get products and details for display
+            let displayProducts: any[] = [];
+            let displayDetails: any = {};
+            
+            if (group.groupId === 'individual-group') {
+              // For individual teeth, aggregate products from all teeth in the group
+              const productMap: Record<string, { product: any; count: number }> = {};
+              const detailsMap: Record<string, any> = {};
+              
+              group.teeth.forEach((toothNumber: number) => {
+                const tooth = (formData.selectedTeeth || []).find((t: any) => t.toothNumber === toothNumber);
+                if (tooth && tooth.selectedProducts) {
+                  tooth.selectedProducts.forEach((product: any) => {
+                    if (productMap[product.name]) {
+                      productMap[product.name].count += 1;
+                    } else {
+                      productMap[product.name] = { product, count: 1 };
+                    }
+                  });
+                  // Use the first tooth's details for display (they should be the same)
+                  if (tooth.productDetails && Object.keys(detailsMap).length === 0) {
+                    detailsMap.shade = tooth.productDetails.shade;
+                    detailsMap.occlusalStaining = tooth.productDetails.occlusalStaining;
+                    detailsMap.notes = tooth.productDetails.notes;
+                  }
+                }
+              });
+              
+              displayProducts = Object.values(productMap).map(({ product, count }) => ({
+                ...product,
+                quantity: count
+              }));
+              displayDetails = detailsMap;
+            } else {
+              // For regular groups, use group data directly
+              displayProducts = group.selectedProducts || [];
+              displayDetails = group.productDetails || {};
+            }
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Teeth:</p>
-                    <p className="text-gray-600">{group.teeth?.join(', ')}</p>
+            return (
+              <Card key={index} className="border border-green-200 bg-gray-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                        {group.groupId === 'individual-group' ? 'Individual Teeth' : 
+                         (formData.prescriptionType === 'crown-bridge' ? 'Crown & Bridge' : 'Implant')}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="p-1 text-gray-400 hover:text-blue-600">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button className="p-1 text-gray-400 hover:text-red-600">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Products:</p>
-                    {group.selectedProducts?.map((product: any, pIndex: number) => (
-                      <p key={pIndex} className="text-gray-600">
-                        {product.name} x {group.teeth?.length || 0}
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                      <p className="text-gray-600">{group.teeth?.join(', ')}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Products:</p>
+                      {displayProducts.map((product: any, pIndex: number) => (
+                        <p key={pIndex} className="text-gray-600">
+                          {product.name} x {group.teeth?.length || 0}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Shade:</p>
+                      <p className="text-gray-600 uppercase">
+                        {displayDetails.shade?.label || 'Not specified'}
                       </p>
-                    ))}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
+                      <p className="text-gray-600 capitalize">
+                        {displayDetails.occlusalStaining || 'Not specified'}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Shade:</p>
-                    <p className="text-gray-600 uppercase">
-                      {group.productDetails?.shade?.label || 'Not specified'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
-                    <p className="text-gray-600 capitalize">
-                      {group.productDetails?.occlusalStaining || 'Not specified'}
-                    </p>
-                  </div>
-                </div>
-
-                {group.productDetails?.notes && (
-                  <div className="mt-3 text-sm">
-                    <p className="font-medium text-gray-900 mb-1">Notes:</p>
-                    <p className="text-gray-600 italic text-xs leading-relaxed">
-                      {group.productDetails.notes}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  {displayDetails.notes && (
+                    <div className="mt-3 text-sm">
+                      <p className="font-medium text-gray-900 mb-1">Notes:</p>
+                      <p className="text-gray-600 italic text-xs leading-relaxed">
+                        {displayDetails.notes}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
 
           {/* Tooth Groups Summary for unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
