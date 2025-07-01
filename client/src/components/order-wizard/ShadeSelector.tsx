@@ -84,7 +84,7 @@ const ShadeSelector = ({
           onValueChange(found);
         }}
       >
-        <SelectTrigger className="h-12 border focus:border-primary transition-colors">
+        <SelectTrigger className="h-[40px] border focus:border-primary transition-colors">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent className="bg-white z-50 max-h-72 overflow-y-auto">

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useEffect, useState, useRef } from 'react';
 import ToothSelector from './ToothSelector';
 import ProductSelection from './ProductSelection';
 import FileUploader from '@/components/shared/FileUploader';
@@ -12,6 +13,8 @@ import PatientInfoCard from './components/PatientInfoCard';
 import CaseInfoCard from './components/CaseInfoCard';
 import AccessorySelection from './components/AccessorySelection';
 import SelectedTeethViewer from './components/SelectedTeethViewer';
+import { Camera } from 'lucide-react';
+import Webcam from 'react-webcam';
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -27,7 +30,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     // Order basic info
     referenceId: `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
     type: formData.prescriptionType || formData.category || 'crown-bridge',
-    category:'new',
+    category: formData.category || 'new',
     status: 'pending',
     priority: 'standard',
     urgency: 'standard',
@@ -54,9 +57,12 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     pickupTime: formData.pickupTime || '',
     pickupRemarks: formData.pickupRemarks || '',
     scanBooking: formData.scanBooking || {},
-    
+    implantPhoto: formData.implantPhoto || '',
+    implantCompany: formData.implantCompany || '',
+    implantRemark: formData.implantRemark || '',
     // Additional Details
     selectedFileType: formData.selectedFileType || '',
+    selectedCompany: formData.selectedCompany || '',
     expectedDeliveryDate: formData.expectedDeliveryDate || '',
     trial: formData.trial || '',
     shade: formData.shade || [],
@@ -105,7 +111,182 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
   return summaryGroups;
 }
 
+function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [imgSrc, setImgSrc] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const webcamRef = useRef<Webcam>(null);
+
+  // Detect if device is mobile
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Use environment camera for mobile, user camera for desktop
+  const videoConstraints = isMobile
+    ? { facingMode: { ideal: 'environment' } }
+    : { facingMode: 'user' };
+
+  const handleDivClick = () => {
+    if (isMobile) {
+      fileInputRef.current?.click();
+    } else {
+      setShowModal(true);
+      setCameraError(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onPhoto) {
+      onPhoto(file);
+    }
+  };
+
+  const capture = () => {
+    const imageSrc = webcamRef.current?.getScreenshot();
+    setImgSrc(imageSrc || null);
+  };
+
+  const handleConfirm = () => {
+    if (imgSrc) {
+      fetch(imgSrc)
+        .then(res => res.arrayBuffer())
+        .then(buf => {
+          const file = new File([buf], 'captured-photo.png', { type: 'image/png' });
+          onPhoto(file);
+          setShowModal(false);
+          setImgSrc(null);
+        });
+    }
+  };
+
+  const handleRetake = () => {
+    setImgSrc(null);
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+    setImgSrc(null);
+    setCameraError(null);
+  };
+
+  return (
+    <>
+      <div
+        className="border-2 border-dashed border-teal-400 rounded-xl flex flex-col items-center justify-center py-12 cursor-pointer hover:bg-teal-50 transition"
+        onClick={handleDivClick}
+      >
+        <Camera size={64} className="text-gray-400 mb-4" />
+        <span className="text-xl font-semibold text-teal-600 underline">Take Your Photo</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+      {/* Modal for webcam capture */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 flex flex-col items-center">
+            {cameraError ? (
+              <>
+                <div className="text-red-600 font-semibold mb-4">{cameraError}</div>
+                <button
+                  type="button"
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold"
+                  onClick={handleClose}
+                >
+                  Close
+                </button>
+              </>
+            ) : !imgSrc ? (
+              <>
+                <Webcam
+                  audio={false}
+                  ref={webcamRef}
+                  screenshotFormat="image/png"
+                  videoConstraints={videoConstraints}
+                  className="rounded-lg mb-4 w-80 h-60 object-cover"
+                  onUserMediaError={err => {
+                    setCameraError('Attach Camera');
+                  }}
+                />
+                <button
+                  type="button"
+                  className="bg-teal-600 text-white px-4 py-2 rounded font-semibold mb-2"
+                  onClick={capture}
+                >
+                  Capture
+                </button>
+                <button
+                  type="button"
+                  className="text-gray-500 underline text-sm"
+                  onClick={handleClose}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <img src={imgSrc} alt="Captured" className="rounded-lg mb-4 w-80 h-60 object-cover" />
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    className="bg-teal-600 text-white px-4 py-2 rounded font-semibold"
+                    onClick={handleConfirm}
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold"
+                    onClick={handleRetake}
+                  >
+                    Retake
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOrderFlowProps) => {
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [companiesError, setCompaniesError] = useState<string | null>(null);
+
+  // Fetch companies from API
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      setLoadingCompanies(true);
+      setCompaniesError(null);
+      try {
+        const response = await fetch('/api/companies');
+        if (response.ok) {
+          const data = await response.json();
+          setCompanies(data);
+        } else {
+          console.error('Failed to fetch companies');
+          setCompaniesError('Failed to load companies');
+        }
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        setCompaniesError('Error loading companies');
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
   // Step 1: Patient & Case Information
   if (currentStep === 1) {
     return (
@@ -120,21 +301,21 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   if (currentStep === 2) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className='border-none p-0'>
+          <CardHeader className='p-0'>
             <CardTitle className="text-xl font-semibold">Restoration Type</CardTitle>
             <CardDescription>Select the type of prescription and order method</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 p-0">
             {/* Select Prescription */}
-            <div>
+            <Card className='p-4 mt-4'>
               <Label className="text-base font-medium">Select Prescription</Label>
               <RadioGroup
                 value={formData.prescriptionType}
                 onValueChange={value => setFormData({
                   ...formData,
                   prescriptionType: value
-                })}
+                })} 
                 className="mt-3"
               >
                 <div className="flex items-center space-x-2">
@@ -146,10 +327,10 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                   <Label htmlFor="crown-bridge" className="font-normal">Crown and Bridge</Label>
                 </div>
               </RadioGroup>
-            </div>
+            </Card>
 
             {/* Order Method */}
-            <div>
+            <Card className='p-4 mt-4'>
               <Label className="text-base font-medium">Order Method</Label>
               <RadioGroup
                 value={formData.orderMethod}
@@ -168,7 +349,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                   <Label htmlFor="manual" className="font-normal">Manual</Label>
                 </div>
               </RadioGroup>
-            </div>
+            </Card>
 
             {/* Show selection summary */}
             {(formData.prescriptionType || formData.orderMethod) && (
@@ -192,12 +373,12 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   if (currentStep === 3) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className='border-none p-0'>
+          <CardHeader className='p-0'>
             <CardTitle className="text-xl font-semibold">Teeth Selection</CardTitle>
             <CardDescription>Select the teeth for your restoration</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className='p-0 mt-4'>
             <ToothSelector
               prescriptionType={formData.prescriptionType}
               selectedGroups={formData.toothGroups || []}
@@ -218,14 +399,14 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   if (currentStep === 4) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
+        <Card className='border-none p-0'>
+          {/* <CardHeader className='p-0'>
             <CardTitle className="text-xl font-semibold">Product Selection</CardTitle>
             <CardDescription>Configure products and restoration details for your selected teeth</CardDescription>
-          </CardHeader>
-          <CardContent>
+          </CardHeader> */}
+          <div className='p-0 mt-4'>
             <ProductSelection formData={formData} setFormData={setFormData} />
-          </CardContent>
+          </div>
         </Card>
       </div>
     );
@@ -233,8 +414,90 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
 
   // Step 5: Upload Files & Impression Handling
   if (currentStep === 5) {
+    const handlePhoto = (file: File) => {
+      setFormData({
+        ...formData,
+        implantPhoto: file,
+        capturedPhoto: file,
+      });
+    };
     return (
-      <div className="space-y-6">
+      <div className="space-y-1">
+        <Card>
+
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Implant System</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div>
+              <Label className="text-base font-medium">Select Company</Label>
+              <Select
+                value={formData.implantCompany || ''}
+                onValueChange={value => setFormData({
+                  ...formData,
+                  implantCompany: value
+                })}
+                disabled={loadingCompanies}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder={loadingCompanies ? "Loading companies..." : "Choose a company"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{company.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  {companies.length === 0 && !loadingCompanies && !companiesError && (
+                    <SelectItem value="" disabled>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-500">No companies available</span>
+                      </div>
+                    </SelectItem>
+                  )}
+                  {companiesError && (
+                    <SelectItem value="" disabled>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-red-500">{companiesError}</span>
+                      </div>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='space-y-3'>
+              <Label className="text-base font-medium">Capture Photos</Label>
+
+              <CameraCapture onPhoto={handlePhoto} />
+              {formData.capturedPhoto && (
+                <div className="flex flex-col items-center ">
+                  <span className="text-sm text-gray-600 mb-2">Captured Photo Preview:</span>
+                  <img
+                    src={URL.createObjectURL(formData.capturedPhoto)}
+                    alt="Captured"
+                    className="rounded-lg border w-48 h-36 object-cover"
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <Label className="text-base font-medium">Remark</Label>
+              <Textarea
+                id="implantRemark"
+                value={formData.implantRemark || ''}
+                onChange={e => setFormData({
+                  ...formData,
+                  implantRemark: e.target.value
+                })}
+                className="mt-3"
+                rows={3}
+                placeholder="Enter any implant-related remarks here..."
+              />
+            </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Upload Files</CardTitle>
@@ -300,10 +563,10 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                             ['.jpg', '.jpeg', '.png', '.pdf', '.stl', '.ply', '.dcm', '.dicom']
                   }
                   label={`Upload ${formData.selectedFileType === 'scan' ? 'Scan Files' :
-                      formData.selectedFileType === 'xray-photo' ? 'X-ray / Shade Photos' :
-                        formData.selectedFileType === 'pdf' ? 'PDF Documents' :
-                          formData.selectedFileType === 'dicom' ? 'DICOM Files' :
-                            'Files'
+                    formData.selectedFileType === 'xray-photo' ? 'X-ray / Shade Photos' :
+                      formData.selectedFileType === 'pdf' ? 'PDF Documents' :
+                        formData.selectedFileType === 'dicom' ? 'DICOM Files' :
+                          'Files'
                     }`}
                   description={
                     formData.selectedFileType === 'scan' ? 'Upload PLY or STL scan files' :
@@ -522,15 +785,15 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 <div>
                   <Label className="font-medium text-sm">Prescription Type:</Label>
                   <p className="text-sm text-gray-600">
-                    {formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 
-                     formData.prescriptionType === 'implant' ? 'Implant' : 'Not specified'}
+                    {formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' :
+                      formData.prescriptionType === 'implant' ? 'Implant' : 'Not specified'}
                   </p>
                 </div>
                 <div>
                   <Label className="font-medium text-sm">Order Method:</Label>
                   <p className="text-sm text-gray-600">
-                    {formData.orderMethod === 'digital' ? 'Digital' : 
-                     formData.orderMethod === 'manual' ? 'Manual' : 'Not specified'}
+                    {formData.orderMethod === 'digital' ? 'Digital' :
+                      formData.orderMethod === 'manual' ? 'Manual' : 'Not specified'}
                   </p>
                 </div>
               </div>
@@ -542,16 +805,16 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
               <div>
                 <Label className="font-medium text-sm">Selected Teeth Groups:</Label>
                 <p className="text-sm text-gray-600">
-                  {summaryGroups && summaryGroups.length > 0 
-                    ? `${summaryGroups.length} group(s) configured` 
+                  {summaryGroups && summaryGroups.length > 0
+                    ? `${summaryGroups.length} group(s) configured`
                     : 'No teeth groups selected'}
                 </p>
               </div>
               <div className="mt-2">
                 <Label className="font-medium text-sm">Restoration Products:</Label>
                 <p className="text-sm text-gray-600">
-                  {formData.restoration_products && formData.restoration_products.length > 0 
-                    ? `${formData.restoration_products.length} product(s) selected` 
+                  {formData.restoration_products && formData.restoration_products.length > 0
+                    ? `${formData.restoration_products.length} product(s) selected`
                     : 'No products selected'}
                 </p>
               </div>
@@ -567,16 +830,16 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 <div>
                   <Label className="font-medium text-sm">Uploaded Files:</Label>
                   <p className="text-sm text-gray-600">
-                    {formData.files && formData.files.length > 0 
-                      ? `${formData.files.length} file(s) uploaded` 
+                    {formData.files && formData.files.length > 0
+                      ? `${formData.files.length} file(s) uploaded`
                       : 'No files uploaded'}
                   </p>
                 </div>
                 <div>
                   <Label className="font-medium text-sm">Accessories:</Label>
                   <p className="text-sm text-gray-600">
-                    {formData.accessories && formData.accessories.length > 0 
-                      ? `${formData.accessories.length} accessory(ies) selected` 
+                    {formData.accessories && formData.accessories.length > 0
+                      ? `${formData.accessories.length} accessory(ies) selected`
                       : 'No accessories selected'}
                   </p>
                 </div>

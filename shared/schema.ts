@@ -101,11 +101,20 @@ export const orders = pgTable("orders", {
   unreadMessages: integer("unread_messages"),
   rejectionReason: text("rejection_reason"),
   rejectedBy: text("rejected_by"),
+  implantPhoto: text("implant_capture"),
+  implantCompany: text("implant_company"),
+  implantRemark: text("implant_remark_note"),
   rejectedDate: timestamp("rejected_date"),
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const companies = pgTable("companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name"),
+});
+
 
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -367,6 +376,10 @@ export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
 });
 
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -403,3 +416,6 @@ export type Clinic = typeof clinic.$inferSelect;
 
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Product = typeof products.$inferSelect;
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;

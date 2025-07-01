@@ -134,8 +134,6 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
     order?.paymentStatus === "paid" || order?.statusLabel === "delivered";
   const isRejected =
     order?.statusLabel === "rejected" || order?.paymentStatus === "rejected";
-
-    console.log("order thi is s af  ", order);
   return (
     <Card
       className={cn(

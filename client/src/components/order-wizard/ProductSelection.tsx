@@ -460,8 +460,8 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
             // Aggregate occlusalStaining
             const occlusalStainings = Array.from(new Set(individualTeeth.map((t: any) => t.productDetails?.occlusalStaining || '').filter(Boolean)));
             return (
-              <Card className="border border-green-200 bg-gray-50">
-                <CardContent className="p-4">
+              <div className="border border-green-200 bg-gray-50">
+                <div className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
@@ -529,30 +529,39 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                       </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })()}
 
           {/* Tooth Groups Summary for unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Pending Configuration</CardTitle>
+            <Card className="border-none p-0">
+              <CardHeader className="pb-3 p-0">
+                <CardTitle className="text-lg">Product Selection</CardTitle>
                 <CardDescription>Groups waiting to be configured</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="p-0 mt-2">
+                <div className="space-y-3 flex flex-wrap gap-2">
                   {unconfiguredGroups.map((group: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <span className="font-medium">Group {allGroups.indexOf(group) + 1}:</span>
-                        <span className="text-gray-600 ml-2">
-                          Teeth {group.teeth?.join(', ')} - {group.type}
-                        </span>
-                      </div>
-                      <span className="text-orange-600 text-sm">Pending</span>
+                    // <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    //   <div>
+                    //     <span className="font-medium">Group {allGroups.indexOf(group) + 1}:</span>
+                    //     <span className="text-gray-600 ml-2">s
+                    //       Teeth {group.teeth?.join(', ')} - {group.type}
+                    //     </span>
+                    //   </div>
+                    //   <span className="text-orange-600 text-sm">Pending</span>
+                    // </div>
+                    <div key={index} className="flex items-center justify-between py-3 px-5 bg-gray-50 rounded-lg w-fit capitalize">
+                    <div>
+                      <span className="font-medium">{group.type}:</span>
+                      <span className="text-gray-600 ml-2">
+                        {group.teeth?.join(', ')}
+                      </span>
                     </div>
+                    {/* <span className="text-orange-600 text-sm">Pending</span> */}
+                  </div>
                   ))}
                 </div>
               </CardContent>
@@ -561,8 +570,8 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
           {/* Single Product Configuration Box - Only show if there are unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-3">
+            <Card className="border-none p-0">
+               {/* <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center justify-between">
                   <span>Product Configuration</span>
                   {allGroupsConfigured && (
@@ -573,11 +582,11 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   Configure products for {unconfiguredGroups.length} tooth group{unconfiguredGroups.length > 1 ? 's' : ''} 
                   ({totalTeethCount} teeth total: {allTeethNumbers.join(', ')})
                 </CardDescription>
-              </CardHeader>
-              <CardContent>
-              {isConfiguring ? (
+              </CardHeader> */}
+              <CardContent className="p-0">
+              {/* {isConfiguring ? ( */}
                 <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-gray-900">Configure Products</h4>
+                  {/* <h4 className="text-sm font-semibold text-gray-900">Configure Products</h4> */}
 
                   {/* Product Selection */}
                   <ProductSearch
@@ -590,7 +599,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   {/* Product Details Form */}
                   {selectedProducts.length > 0 && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
-                      <h5 className="text-sm font-medium text-gray-900">Product Details</h5>
+                      <h5 className="text-sm font-medium text-gray-900">Shade Details</h5>
 
                       {/* Shade Selection */}
                       <ShadeSelector
@@ -614,13 +623,6 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                         ]}
                       />
 
-                      {/* Trial Requirements */}
-                      <TrialSelector
-                        productType={formData.prescriptionType === 'implant' ? 'implant' : 'crown-bridge'}
-                        selectedTrials={[productDetails.trial]}
-                        onTrialsChange={handleTrialsChange}
-                      />
-
                       {/* Shade Guide Section */}
                       <div className="border-t pt-4">
                         <h6 className="text-sm font-medium text-gray-900 mb-3">Shade Guide</h6>
@@ -636,6 +638,13 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                         onChange={(value) => setProductDetails(prev => ({ ...prev, shadeNotes: value }))}
                         placeholder="Any special instructions for shade..."
                         rows={2}
+                      />
+
+                      {/* Trial Requirements */}
+                      <TrialSelector
+                        productType={formData.prescriptionType === 'implant' ? 'implant' : 'crown-bridge'}
+                        selectedTrials={[productDetails.trial]}
+                        onTrialsChange={handleTrialsChange}
                       />
 
                       {/* Action Buttons */}
@@ -660,7 +669,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                     </div>
                   )}
                 </div>
-              ) : (
+              {/* ) : (
                 <div className="space-y-3">
                   {allGroupsConfigured ? (
                     <div className="space-y-3">
@@ -694,7 +703,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                     </div>
                   )}
                 </div>
-              )}
+              )} */}
             </CardContent>
           </Card>
           )}

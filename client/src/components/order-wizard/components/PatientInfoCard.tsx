@@ -33,7 +33,7 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
   };
 
   return (
-    <Card className='bg-mainBrackground'>
+    <Card className='bg-white'>
       <CardHeader>
         <CardTitle className="text-xl font-semibold">Patient Information</CardTitle>
       </CardHeader>

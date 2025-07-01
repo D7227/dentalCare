@@ -33,9 +33,9 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   }];
 
   return (
-    <Card className='bg-mainBrackground'>
+    <Card className='bg-white'>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Case Information</CardTitle>
+        <CardTitle className="text-xl font-semibold">Clinic Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -49,8 +49,8 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
           >
             <SelectTrigger className="mt-1" 
             style={{
-              background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              border: '1px solid rgba(11, 128, 67, 0.2)', // 20% opacity
+              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              // border: '1px solid #CCDAD8',
               borderRadius: '0.5rem'
             }}
             >
@@ -71,8 +71,8 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
           <Input 
             id="consultingDoctor" 
             style={{
-              background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              border: '1px solid rgba(11, 128, 67, 0.2)', // 20% opacity
+              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              // border: '1px solid #CCDAD8',
               borderRadius: '0.5rem'
             }}
 

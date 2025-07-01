@@ -54,13 +54,13 @@ const TrialSelector = ({ productType, selectedTrials, onTrialsChange }: TrialSel
         ))}
       </div>
       
-      {selectedTrials.length > 0 && (
+      {/* {selectedTrials.length > 0 && (
         <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
           <strong>Selected Trials:</strong> {selectedTrials.map(trial => 
             currentTrials.find(t => t.value === trial)?.label
           ).join(', ')}
         </div>
-      )}
+      )} */}
     </div>
   );
 };

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 // Types
 interface RoundedIconButtonProps {
   label: 'new' | 'repeat' | 'repair';
+  variant?: 'outline' | 'fill'
   onClick?: () => void;
   className?: string;
 }
@@ -34,26 +35,47 @@ const getButtonMap = (label: string) => {
 };
 
 const CustomStatusBatch: React.FC<RoundedIconButtonProps> = ({
-  label ='new',
+  label = 'new',
+  variant = 'fill',
   onClick,
   className = '',
 }) => {
   const config = getButtonMap(label);
 
   if (!config) return null;
-   const { icon: Icon, text } = config;
+  const { icon: Icon, text } = config;
 
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] bg-teal-50 text-[#07AD94] font-medium text-base hover:bg-teal-100 transition-all duration-200 border-1 border-[#6B21A80D]',
-        className
-      )}
-    >
-      <Icon size={12} />
-      <span className='text-12/16'>{text}</span>
-    </button>
+    <>
+      {variant === 'outline' ? (
+        <button
+          onClick={onClick}
+          className={
+            cn(
+              'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] text-customGreen-200 font-medium text-base border border-customGreen-200',
+              className
+            )
+          }
+        >
+          <Icon size={12} />
+          <span className='text-12/16'>{text}</span>
+        </button >
+      )
+
+        :
+        (
+          <button
+            onClick={onClick}
+            className={cn(
+              'flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] bg-teal-50 text-customGreen-200 font-medium text-base hover:bg-teal-100 transition-all duration-200 border-1 border-[#6B21A80D]',
+              className
+            )}
+          >
+            <Icon size={12} />
+            <span className='text-12/16'>{text}</span>
+          </button>)
+      }
+    </>
   );
 };
 

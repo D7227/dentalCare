@@ -250,7 +250,7 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
       )}
 
       {/* Quantity Calculation Info */}
-      {restorationType && selectedTeeth.length > 0 && (
+      {/* {restorationType && selectedTeeth.length > 0 && (
         <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
           <strong>Quantity Logic:</strong> {selectedTeeth.length} units based on {selectedTeeth.length} selected teeth: {selectedTeeth.join(', ')}
           {restorationType !== 'separate' && (
@@ -259,14 +259,14 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
             </div>
           )}
         </div>
-      )}
+      )} */}
 
       {/* Validation Message */}
-      {selectedProducts.length === 0 && (
+      {/* {selectedProducts.length === 0 && (
         <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded border">
           Please add at least one product to continue.
         </div>
-      )}
+      )} */}
     </div>
   );
 };

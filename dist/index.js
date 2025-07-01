@@ -22,9 +22,11 @@ __export(schema_exports, {
   chats: () => chats,
   chatsRelations: () => chatsRelations,
   clinic: () => clinic,
+  companies: () => companies,
   insertBillSchema: () => insertBillSchema,
   insertChatSchema: () => insertChatSchema,
   insertClinicSchema: () => insertClinicSchema,
+  insertCompanySchema: () => insertCompanySchema,
   insertMessageSchema: () => insertMessageSchema,
   insertOrderSchema: () => insertOrderSchema,
   insertPatientSchema: () => insertPatientSchema,
@@ -122,10 +124,17 @@ var orders = pgTable("orders", {
   unreadMessages: integer("unread_messages"),
   rejectionReason: text("rejection_reason"),
   rejectedBy: text("rejected_by"),
+  implantPhoto: text("implant_capture"),
+  implantCompany: text("implant_company"),
+  implantRemark: text("implant_remark_note"),
   rejectedDate: timestamp("rejected_date"),
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
+});
+var companies = pgTable("companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name")
 });
 var products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -354,6 +363,9 @@ var insertClinicSchema = createInsertSchema(clinic).omit({
 var insertProductSchema = createInsertSchema(products).omit({
   id: true
 });
+var insertCompanySchema = createInsertSchema(companies).omit({
+  id: true
+});
 
 // server/db.ts
 import dotenv from "dotenv";
@@ -454,7 +466,6 @@ var DatabaseStorage = class {
   async createOrder(insertOrder) {
     const orderData = {
       ...insertOrder,
-      accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
       restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
@@ -465,7 +476,10 @@ var DatabaseStorage = class {
       shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide : [],
       additionalNotes: insertOrder.additionalNotes || "",
       shadeNotes: insertOrder.shadeNotes || "",
-      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
+      implantPhoto: insertOrder.implantPhoto || "",
+      implantCompany: insertOrder.implantCompany || "",
+      implantRemark: insertOrder.implantRemark || ""
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;
@@ -738,6 +752,16 @@ var DatabaseStorage = class {
         age: "28",
         sex: "female"
       });
+      await db.insert(companies).values([
+        { name: "Nobel Biocare" },
+        { name: "Straumann" },
+        { name: "Dentsply Sirona" },
+        { name: "Zimmer Biomet" },
+        { name: "BioHorizons" },
+        { name: "MegaGen" },
+        { name: "Osstem" },
+        { name: "Neodent" }
+      ]);
       console.log("Basic sample data created successfully");
     } catch (error) {
       console.error("Error creating sample data:", error);
@@ -829,6 +853,22 @@ var DatabaseStorage = class {
   async getChatByOrderId(orderId) {
     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
     return chat;
+  }
+  // Company methods implementation
+  async getCompanies() {
+    return await db.select().from(companies);
+  }
+  async getCompanyById(id) {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+  async getCompanyNameById(id) {
+    const [company] = await db.select({ name: companies.name }).from(companies).where(eq(companies.id, id));
+    return company?.name || void 0;
+  }
+  async createCompany(company) {
+    const [newCompany] = await db.insert(companies).values(company).returning();
+    return newCompany;
   }
 };
 var storage = new DatabaseStorage();
@@ -977,6 +1017,45 @@ async function registerRoutes(app2) {
       res.json(products2);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+  app2.get("/api/companies", async (req, res) => {
+    try {
+      const companies2 = await storage.getCompanies();
+      res.json(companies2);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+  app2.get("/api/companies/:id", async (req, res) => {
+    try {
+      const company = await storage.getCompanyById(req.params.id);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company" });
+    }
+  });
+  app2.get("/api/companies/:id/name", async (req, res) => {
+    try {
+      const companyName = await storage.getCompanyNameById(req.params.id);
+      if (!companyName) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      res.json({ name: companyName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company name" });
+    }
+  });
+  app2.post("/api/companies", async (req, res) => {
+    try {
+      const companyData = { name: req.body.name };
+      const company = await storage.createCompany(companyData);
+      res.status(201).json(company);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid company data" });
     }
   });
   app2.post("/api/tooth-groups", async (req, res) => {

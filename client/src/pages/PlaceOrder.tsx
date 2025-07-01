@@ -38,6 +38,7 @@ const PlaceOrder = () => {
   const [stepValidationErrors, setStepValidationErrors] = useState<Record<number, string[]>>({});
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
@@ -102,6 +103,9 @@ const PlaceOrder = () => {
     pickupDate: '',
     pickupTime: '',
     pickupRemarks: '',
+    implantPhoto: '',
+    implantCompany: '',
+    implantRemark: '',
     scanBooking: {
       areaManagerId: '',
       scanDate: '',
@@ -114,6 +118,7 @@ const PlaceOrder = () => {
     repairType: '',
     returnWithTrial: false,
     type: 'new',
+    selectedTeeth: [],
   });
   
   // Update clinicId when Redux data becomes available
@@ -171,6 +176,44 @@ const PlaceOrder = () => {
     console.log("Form data at submission:", JSON.stringify(formData, null, 2));
     
     try {
+      if(orderCategory === 'repeat'){
+        // Call update order API
+        if (!selectedOrderId) {
+          toast({
+            title: "Update Error",
+            description: "No order ID found for update.",
+            variant: "destructive"
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        formData.firstName = formData.patientFirstName;
+        formData.lastName = formData.patientLastName;
+        formData.age = formData.patientAge;
+        formData.sex = formData.patientSex;
+        formData.category = 'repeat';
+        const orderData = createOrderObject(formData, user?.clinicId || '');
+        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+        });
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update order');
+        }
+        const updatedOrder = await updateResponse.json();
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        toast({
+          title: "Order updated successfully!",
+          description: `Order #${updatedOrder.id} has been updated.`,
+        });
+        setLocation('/');
+        setIsSubmitting(false);
+        return;
+      }
+      formData.accessories = [];
       // Create the order using the comprehensive order object
       const orderData = createOrderObject(formData, user?.clinicId || '');
       
@@ -302,7 +345,7 @@ const PlaceOrder = () => {
           onSaveOrder={handleSaveOrder}
         />;
       case 'repeat':
-        return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
+        return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
       case 'repair':
         return <RepairOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
       default:
@@ -398,7 +441,7 @@ const PlaceOrder = () => {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Progress Steps */}
           <div className="lg:w-80 flex-shrink-0">
-            <Card className="sticky top-24 shadow-sm border border-customGray-200 bg-transparent">
+            <Card className="sticky top-24 shadow-sm border border-customGray-200 bg-white">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold text-gray-900">Order Progress</CardTitle>
               </CardHeader>
@@ -410,7 +453,7 @@ const PlaceOrder = () => {
 
           {/* Right Content Area */}
           <div className="flex-1 min-w-0 bg-transparent">
-            <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-[linear-gradient(114deg,_rgba(255,255,255,0)_0%,_rgba(11,128,67,0.1)_98.94%)]">
+            <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-white">
               <CardContent className="p-6">
                 {/* Validation Errors */} 
                 {currentStepErrors.length > 0 && (

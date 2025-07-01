@@ -90,9 +90,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
     <Button
       type="button"
       variant="ghost"
-      size="sm"
       onClick={onClick}
-      className="text-primary hover:bg-primary/10 print:hidden h-8 px-2"
+      className="text-primary hover:bg-primary/10 print:hidden h-8 px-2 max-w-min"
     >
       <Edit2 size={12} className="mr-1" />
       Edit
@@ -277,6 +276,30 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               )}
             </CardContent>
           </Card>
+        <div className="space-y-4 print:space-y-3">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3 print:pb-2 flex">
+            <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-gray-900">Product Details</CardTitle>
+                <EditButton onClick={() => onEditSection?.(2)} label="Product" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2 print:space-y-1">
+              {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 ? (
+                <div className="space-y-1">
+                  {formData.restorationProducts.map((product: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-900">{product.product}</span>
+                      <span className="text-gray-600">x {product.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">No products selected</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  users, patients, orders, toothGroups, scanBookings, pickupRequests, bills, chats, messages, teamMembers, clinic, role, products,
+  users, patients, orders, toothGroups, scanBookings, pickupRequests, bills, chats, messages, teamMembers, clinic, role, products, companies,
   type InsertUser, type User,
   type InsertPatient, type Patient,
   type InsertOrder, type Order,
@@ -13,6 +13,7 @@ import {
   type InsertTeamMember, type TeamMember,
   type InsertClinic, type Clinic,
   type InsertProduct, type Product,
+  type InsertCompany, type Company,
   lifecycleStages
 } from "../shared/schema";
 import { eq, asc, desc } from "drizzle-orm";
@@ -138,6 +139,12 @@ export interface IStorage {
   // Product methods
   getProducts(): Promise<Product[]>;
 
+  // Company methods
+  getCompanies(): Promise<Company[]>;
+  getCompanyById(id: string): Promise<Company | undefined>;
+  getCompanyNameById(id: string): Promise<string | undefined>;
+  createCompany(company: InsertCompany): Promise<Company>;
+
   // New method
   removeMemberFromAllChats(fullName: string): Promise<void>;
 
@@ -202,7 +209,6 @@ export class DatabaseStorage implements IStorage {
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderData = {
       ...insertOrder,
-      accessories: Array.isArray(insertOrder.accessories) ? insertOrder.accessories as string[] : [],
       files: Array.isArray(insertOrder.files) ? insertOrder.files as string[] : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
       restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
@@ -213,7 +219,10 @@ export class DatabaseStorage implements IStorage {
       shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide as string[] : [],
       additionalNotes: insertOrder.additionalNotes || '',
       shadeNotes: insertOrder.shadeNotes || '',
-      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
+      implantPhoto: insertOrder.implantPhoto || '',
+      implantCompany: insertOrder.implantCompany || '',
+      implantRemark: insertOrder.implantRemark || '',
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;
@@ -581,6 +590,18 @@ export class DatabaseStorage implements IStorage {
         age: "28", 
         sex: "female" 
       });
+
+      // Create sample companies
+      await db.insert(companies).values([
+        { name: "Nobel Biocare" },
+        { name: "Straumann" },
+        { name: "Dentsply Sirona" },
+        { name: "Zimmer Biomet" },
+        { name: "BioHorizons" },
+        { name: "MegaGen" },
+        { name: "Osstem" },
+        { name: "Neodent" }
+      ]);
       
       console.log("Basic sample data created successfully");
     } catch (error) {
@@ -703,6 +724,26 @@ export class DatabaseStorage implements IStorage {
   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
     return chat;
+  }
+
+  // Company methods implementation
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(companies);
+  }
+
+  async getCompanyById(id: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company;
+  }
+
+  async getCompanyNameById(id: string): Promise<string | undefined> {
+    const [company] = await db.select({ name: companies.name }).from(companies).where(eq(companies.id, id));
+    return company?.name || undefined;
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const [newCompany] = await db.insert(companies).values(company).returning();
+    return newCompany;
   }
 }
 

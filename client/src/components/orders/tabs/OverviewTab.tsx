@@ -145,12 +145,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
             <p className="text-xs text-muted-foreground mb-1">Consulting Doctor:</p>
             <p className="text-sm font-medium leading-tight">{data?.doctor?.consultingDoctor || "-"}</p>
           </div>
-          <div className="col-span-2">
+          {/* <div className="col-span-2">
             <p className="text-xs text-muted-foreground mb-1">Location:</p>
             <p className="text-sm font-medium leading-tight">
               {data?.doctor?.location || "-"}
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
 

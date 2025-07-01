@@ -169,6 +169,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Companies API
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await storage.getCompanies();
+      res.json(companies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  app.get("/api/companies/:id", async (req, res) => {
+    try {
+      const company = await storage.getCompanyById(req.params.id);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company" });
+    }
+  });
+
+  app.get("/api/companies/:id/name", async (req, res) => {
+    try {
+      const companyName = await storage.getCompanyNameById(req.params.id);
+      if (!companyName) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      res.json({ name: companyName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company name" });
+    }
+  });
+
+  app.post("/api/companies", async (req, res) => {
+    try {
+      const companyData = { name: req.body.name };
+      const company = await storage.createCompany(companyData);
+      res.status(201).json(company);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid company data" });
+    }
+  });
+
   // Tooth Groups API
   app.post("/api/tooth-groups", async (req, res) => {
     try {

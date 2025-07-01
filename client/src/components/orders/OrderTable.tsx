@@ -83,7 +83,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const { data: chats = [] } = useQuery({
     queryKey: ['/api/chats', user?.fullName],
     queryFn: async () => {
-      const url = user?.fullName 
+      const url = user?.fullName
         ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
         : '/api/chats';
       const response = await fetch(url);
@@ -312,19 +312,8 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setLocation("/place-order")}
-            className="flex items-center gap-2"
-          >
-            <Plus size={16} />
-            New Order
-          </Button>
-        </div>
-      </div>
-
-      <Card>
-        {/* Search Bar and Filters */}
-        <div className="p-4 pb-2 space-y-3">
+                  {/* Search Bar and Filters */}
+        <div className="space-y-3">
           <div className="flex gap-3 items-center">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -332,14 +321,14 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-8 text-sm"
+                className="pl-10 h-[40px] text-sm"
               />
             </div>
 
             <div className="flex flex-wrap gap-2">
               {/* Patient Filter */}
               <Select value={patientFilter} onValueChange={setPatientFilter}>
-                <SelectTrigger className="h-8 text-xs w-36">
+                <SelectTrigger className="h-[40px] text-xs w-36">
                   <SelectValue placeholder="Patient" />
                 </SelectTrigger>
                 <SelectContent>
@@ -354,7 +343,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
               {/* Payment Status Filter */}
               <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="h-8 text-xs w-32">
+                <SelectTrigger className="h-[40px] text-xs w-32">
                   <SelectValue placeholder="Payment" />
                 </SelectTrigger>
                 <SelectContent>
@@ -370,7 +359,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 value={orderTypeFilter}
                 onValueChange={setOrderTypeFilter}
               >
-                <SelectTrigger className="h-8 text-xs w-28">
+                <SelectTrigger className="h-[40px] text-xs w-28">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,7 +372,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
               {/* Date Filter */}
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="h-8 text-xs w-28">
+                <SelectTrigger className="h-[40px] text-xs w-28">
                   <SelectValue placeholder="Date" />
                 </SelectTrigger>
                 <SelectContent>
@@ -397,7 +386,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
               {/* Category/Status Filter */}
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-8 text-xs w-32">
+                <SelectTrigger className="h-[40px] text-xs w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -419,85 +408,96 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
             dateFilter !== "all" ||
             orderTypeFilter !== "all" ||
             searchTerm !== "") && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {searchTerm && (
-                <Badge variant="secondary" className="text-xs">
-                  Search: {searchTerm}
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {patientFilter !== "all" && (
-                <Badge variant="secondary" className="text-xs">
-                  Patient: {patientFilter}
-                  <button
-                    onClick={() => setPatientFilter("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {paymentFilter !== "all" && (
-                <Badge variant="secondary" className="text-xs">
-                  Payment: {paymentFilter}
-                  <button
-                    onClick={() => setPaymentFilter("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {orderTypeFilter !== "all" && (
-                <Badge variant="secondary" className="text-xs">
-                  Type: {orderTypeFilter}
-                  <button
-                    onClick={() => setOrderTypeFilter("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {dateFilter !== "all" && (
-                <Badge variant="secondary" className="text-xs">
-                  Date: {dateFilter}
-                  <button
-                    onClick={() => setDateFilter("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              {categoryFilter !== "all" && (
-                <Badge variant="secondary" className="text-xs">
-                  Category: {categoryFilter}
-                  <button
-                    onClick={() => setCategoryFilter("all")}
-                    className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-            </div>
-          )}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {searchTerm && (
+                  <Badge variant="secondary" className="text-xs">
+                    Search: {searchTerm}
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {patientFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Patient: {patientFilter}
+                    <button
+                      onClick={() => setPatientFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {paymentFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Payment: {paymentFilter}
+                    <button
+                      onClick={() => setPaymentFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {orderTypeFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Type: {orderTypeFilter}
+                    <button
+                      onClick={() => setOrderTypeFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {dateFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Date: {dateFilter}
+                    <button
+                      onClick={() => setDateFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {categoryFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Category: {categoryFilter}
+                    <button
+                      onClick={() => setCategoryFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+              </div>
+            )}
         </div>
 
-        <CardContent className="p-2">
+          <Button
+            onClick={() => setLocation("/place-order")}
+            className="flex items-center gap-2"
+          >
+            <Plus size={16} />
+            New Order
+          </Button>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
           <div className="space-y-4">
             {/* Orders Table */}
             <div className="mt-1">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b bg-gray-50">
+                    <tr className="border-b bg-gray-50 rounded-t-[10px]">
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Order Date</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-600">ID</th>
                       <th className="text-left p-3 text-sm font-medium text-gray-600">Patient name</th>
@@ -518,33 +518,30 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       // Get real unread count for this order's chat
                       const unreadCount = getUnreadCountForOrder(order?.id);
                       return (
-                        <tr 
+                        <tr
                           key={order.id}
-                          className={`border-b hover:bg-gray-50 ${
-                            selectedOrder?.id === order?.id ? "bg-blue-50" : ""
-                          }`}
+                          className={`border-b hover:bg-gray-50 ${selectedOrder?.id === order?.id ? "bg-blue-50" : ""
+                            }`}
                         >
                           <td className="p-3 text-sm">{formatDate(order?.createdAt)}</td>
-                          <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview") }>
+                          <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview")}>
                             {order?.orderId || order?.referenceId}
                           </td>
                           <td className="p-3 text-sm">{order?.patientFirstName} {order?.patientLastName}</td>
                           <td className="p-3 text-sm">Crown & Bridge</td>
                           <td className="p-3 text-sm">
-                            {orderTeeth.length > 0 ? (
+                            {orderTeeth.length > 0 && (
                               <div>
                                 <div className="font-medium">
-                                  {orderTeeth.length > 2 
+                                  {orderTeeth.length > 2
                                     ? `E-max 10 yr x ${orderTeeth.length}`
                                     : `E-max 10 yr x ${orderTeeth.length}`
                                   }
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                {/* <div className="text-xs text-gray-500">
                                   USD / Export Quality
-                                </div>
+                                </div> */}
                               </div>
-                            ) : (
-                              "E-max 10 yr x 2"
                             )}
                           </td>
                           <td className="p-3 text-sm text-center">
@@ -556,11 +553,11 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                           <td className="p-3 text-center">
                             {order?.orderMethod}
                           </td>
-                          <td className="p-3 text-center">
-                            <CustomStatusBatch label={order?.category} />
+                          <td className="p-3 text-center ">
+                            <CustomStatusBatch label={order?.category} variant='outline' className='m-auto' />
                           </td>
                           <td className="p-3 text-center">
-                            <CustomStatusLabel label={order?.status} status={order?.status} rounded={true}/>
+                            <CustomStatusLabel label={order?.status} status={order?.status} rounded={true} />
                           </td>
                           <td className="p-3 text-center">
                             {/* Message Icon in rounded box with badge */}
@@ -575,7 +572,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                                 <MessageCircle size={20} className="text-gray-500" />
                               </button>
                               {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 border-2 border-white shadow" style={{minWidth:'20px',height:'20px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 border-2 border-white shadow" style={{ minWidth: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   {unreadCount}
                                 </span>
                               )}
@@ -616,7 +613,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                     })}
                   </tbody>
                 </table>
-                
+
                 {filteredOrders.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
