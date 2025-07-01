@@ -245,6 +245,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                 Teeth No :{" "}
                 <span className="text-gray-900 font-medium">
                   {order?.teethNo}
+                  , {(Array.isArray((order as any).selectedTeeth) ? (order as any).selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : '')}
                 </span>
               </div>
               {/* Dates */}

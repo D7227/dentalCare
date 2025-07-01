@@ -32,6 +32,7 @@ interface OverviewTabProps {
       trial?: string;
       occlusalStaining?: string;
       shade?: string[];
+      selectedTeeth?: any[];
     };
     message?: string[];
     patient?: {
@@ -51,7 +52,9 @@ interface OverviewTabProps {
   onRemoveFile: (index: number) => void;
 }
 
+
 const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFile }) => {
+  console.log(data?.details?.selectedTeeth)
   return (
     <>
       <Card className="rounded-lg border border-customPurple-30 shadow-sm">
@@ -245,7 +248,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
           {data?.details?.teethGroup && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Teeth (Group 1):</p>
-              <p className="text-sm font-medium">{data?.details.teethGroup}</p>
+              <p className="text-sm font-medium">{data?.details.teethGroup} 
+                , {(Array.isArray(data?.details?.selectedTeeth) ? data?.details?.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : '')}
+              </p>
             </div>
           )}
           {(data?.details?.productSelection?.length ?? 0) > 0 && (

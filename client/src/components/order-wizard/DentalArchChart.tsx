@@ -3,7 +3,7 @@ import React from 'react';
 interface ToothGroup {
   groupId: string;
   teeth: number[];
-  type: 'separate' | 'joint' | 'bridge';
+  type: 'individual' | 'joint' | 'bridge';
   productType: 'implant' | 'crown-bridge';
   notes: string;
   material: string;
@@ -27,28 +27,40 @@ interface DentalArchChartProps {
   onToothClick?: (toothNumber: number) => void;
 }
 
-const DentalArchChart = ({ toothGroups, className = '', onToothClick }: DentalArchChartProps) => {
-  // Create map of selected teeth
-  const selectedTeethMap = new Map();
+// Helper: assign each tooth to the highest-priority group (bridge > joint > individual)
+function getToothGroupMap(toothGroups: ToothGroup[]) {
+  const toothMap = new Map<number, { type: 'individual' | 'joint' | 'bridge'; material: string; shade: string; notes: string }>();
+  // Priority: bridge > joint > individual
+  const priority = { bridge: 3, joint: 2, individual: 1 };
   toothGroups.forEach(group => {
     group.teeth.forEach(tooth => {
-      selectedTeethMap.set(tooth, {
-        type: group.type,
-        material: group.material,
-        shade: group.shade,
-        notes: group.notes
-      });
+      const existing = toothMap.get(tooth);
+      const groupType = group.type as 'individual' | 'joint' | 'bridge';
+      if (!existing || priority[groupType] > priority[existing.type]) {
+        toothMap.set(tooth, {
+          type: groupType,
+          material: group.material,
+          shade: group.shade,
+          notes: group.notes
+        });
+      }
     });
   });
+  return toothMap;
+}
+
+const DentalArchChart = ({ toothGroups, className = '', onToothClick }: DentalArchChartProps) => {
+  // Use deduplicated, prioritized tooth map
+  const selectedTeethMap = getToothGroupMap(toothGroups);
 
   const getToothColor = (toothNumber: number) => {
     if (!selectedTeethMap.has(toothNumber)) {
       return '#f3f4f6'; // Gray for unselected
     }
-    
     const toothInfo = selectedTeethMap.get(toothNumber);
+    if (!toothInfo) return '#f3f4f6';
     switch (toothInfo.type) {
-      case 'separate': return '#10b981'; // Green
+      case 'individual': return '#10b981'; // Green
       case 'joint': return '#3b82f6'; // Blue
       case 'bridge': return '#f59e0b'; // Orange
       default: return '#6b7280'; // Gray
@@ -155,7 +167,7 @@ const DentalArchChart = ({ toothGroups, className = '', onToothClick }: DentalAr
           <span className="text-sm font-medium text-gray-700">Legend:</span>
           <div className="flex items-center space-x-1">
             <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-            <span className="text-gray-600">Separate</span>
+            <span className="text-gray-600">Individual</span>
           </div>
           <div className="flex items-center space-x-1">
             <div className="w-4 h-4 bg-blue-500 rounded-full"></div>

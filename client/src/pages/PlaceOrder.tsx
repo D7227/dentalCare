@@ -296,7 +296,7 @@ const PlaceOrder = () => {
       case 'new':
         return <NewOrderFlow 
           currentStep={currentStep} 
-          formData={formData} 
+          formData={formData}
           setFormData={setFormData} 
           onAddMoreProducts={handleAddMoreProducts}
           onSaveOrder={handleSaveOrder}

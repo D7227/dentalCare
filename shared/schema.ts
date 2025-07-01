@@ -80,6 +80,7 @@ export const orders = pgTable("orders", {
   toothGroups: jsonb("tooth_groups").$type<any[]>().default([]),
   restorationProducts: jsonb("restoration_products").$type<any[]>().default([]),
   accessories: jsonb("accessories").$type<string[]>().default([]),
+  selectedTeeth: jsonb("selected_teeth").$type<any[]>().default([]),
   location: text("location"),
   prescriptionType: text("prescription_type"),
   productName: text("product_name"),

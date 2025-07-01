@@ -213,6 +213,7 @@ export class DatabaseStorage implements IStorage {
       shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide as string[] : [],
       additionalNotes: insertOrder.additionalNotes || '',
       shadeNotes: insertOrder.shadeNotes || '',
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

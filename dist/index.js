@@ -101,6 +101,7 @@ var orders = pgTable("orders", {
   toothGroups: jsonb("tooth_groups").$type().default([]),
   restorationProducts: jsonb("restoration_products").$type().default([]),
   accessories: jsonb("accessories").$type().default([]),
+  selectedTeeth: jsonb("selected_teeth").$type().default([]),
   location: text("location"),
   prescriptionType: text("prescription_type"),
   productName: text("product_name"),
@@ -463,7 +464,8 @@ var DatabaseStorage = class {
       occlusalStaining: insertOrder.occlusalStaining || "",
       shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide : [],
       additionalNotes: insertOrder.additionalNotes || "",
-      shadeNotes: insertOrder.shadeNotes || ""
+      shadeNotes: insertOrder.shadeNotes || "",
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : []
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

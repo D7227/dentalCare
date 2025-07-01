@@ -70,23 +70,45 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   const [editingGroupIndex, setEditingGroupIndex] = useState<number | null>(null);
 
   const toothGroups = formData.toothGroups || [];
+  const selectedTeeth = formData.selectedTeeth || [];
 
+  // Find all teeth in groups (bridge/joint)
+  const groupedTeeth = new Set<number>(toothGroups.flatMap((g: any) => g.teeth || []));
+  // Find individual teeth (not in any group)
+  const individualTeeth = formData.selectedTeeth.filter((t: any) => !groupedTeeth.has(t.toothNumber));
+  // Compose all groups: bridge/joint + individual (all individual teeth in one group)
+  let allGroups = [...toothGroups];
+  if (individualTeeth.length > 0) {
+    allGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual',
+      selectedProducts: individualTeeth[0]?.selectedProducts || [],
+      productDetails: individualTeeth[0]?.productDetails || {},
+    });
+  }
+  // --- END: Compose all groups including individual teeth as a single group ---
+
+  // Use allGroups for display/configuration logic below
   const isGroupConfigured = (group: any) => {
+    if (group.groupId === 'individual-group') {
+      // Check if all individual teeth have products configured
+      const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => group.teeth.includes(t.toothNumber));
+      return individualTeeth.length > 0 && individualTeeth.every((t: any) => t.selectedProducts && t.selectedProducts.length > 0);
+    }
     return group.selectedProducts && 
            group.selectedProducts.length > 0 && 
            group.productDetails;
   };
 
-  const allGroupsConfigured = toothGroups.length > 0 && toothGroups.every((group: any) => isGroupConfigured(group));
+  const allGroupsConfigured = allGroups.length > 0 && allGroups.every((group: any) => isGroupConfigured(group));
 
   // Get unconfigured groups only
-  const unconfiguredGroups = toothGroups.filter((group: any) => !isGroupConfigured(group));
-  
+  const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group));
   // Calculate total teeth count across unconfigured groups only
   const totalTeethCount = unconfiguredGroups.reduce((total: number, group: any) => {
     return total + (group.teeth?.length || 0);
   }, 0);
-
   // Get teeth numbers from unconfigured groups only
   const allTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
 
@@ -139,46 +161,97 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   const saveConfiguration = () => {
     try {
       const { trial, shade, shadeNotes, additionalNotes, shadeGuide, ...productDetailsWithoutExtras } = productDetails;
-      let updatedGroups;
+      let updatedGroups = [...toothGroups];
+      let updatedSelectedTeeth = [...formData.selectedTeeth];
 
       if (editingGroupIndex !== null) {
-        // Update only the group being edited
-        updatedGroups = toothGroups.map((group: any, idx: number) => {
-          if (idx === editingGroupIndex) {
-            return {
-              ...group,
-              selectedProducts: [...selectedProducts],
-              productDetails: { ...productDetailsWithoutExtras }
-            };
-          }
-          return group;
-        });
+        const group = allGroups[editingGroupIndex];
+        if (group.groupId === 'individual-group') {
+          // Update all individual teeth
+          const individualToothNumbers = group.teeth;
+          updatedSelectedTeeth = updatedSelectedTeeth.map((t: any) =>
+            individualToothNumbers.includes(t.toothNumber)
+              ? {
+                  ...t,
+                  selectedProducts: [...selectedProducts],
+                  productDetails: { ...productDetailsWithoutExtras, shade: productDetails.shade[0] || '' },
+                }
+              : t
+          );
+        } else {
+          // Update only the group being edited
+          updatedGroups = updatedGroups.map((group: any, idx: number) => {
+            if (idx === editingGroupIndex) {
+              return {
+                ...group,
+                selectedProducts: [...selectedProducts],
+                productDetails: { ...productDetailsWithoutExtras },
+              };
+            }
+            return group;
+          });
+        }
       } else {
         // Apply to all unconfigured groups (existing logic)
-        updatedGroups = toothGroups.map((group: any) => {
+        updatedGroups = updatedGroups.map((group: any) => {
           if (!isGroupConfigured(group)) {
             return {
               ...group,
               selectedProducts: [...selectedProducts],
-              productDetails: { ...productDetailsWithoutExtras }
+              productDetails: { ...productDetailsWithoutExtras },
             };
           }
           return group;
         });
+        // Apply to all unconfigured individual teeth
+        const individualGroup = allGroups.find((g: any) => g.groupId === 'individual-group');
+        if (individualGroup) {
+          updatedSelectedTeeth = updatedSelectedTeeth.map((t: any) => {
+            if (!t.selectedProducts || t.selectedProducts.length === 0) {
+              if (individualGroup.teeth.includes(t.toothNumber)) {
+                return {
+                  ...t,
+                  selectedProducts: [...selectedProducts],
+                  productDetails: { ...productDetailsWithoutExtras, shade: productDetails.shade[0] || '' },
+                };
+              }
+            }
+            return t;
+          });
+        }
       }
 
-      // Build restorationProducts array by aggregating products across all configured groups
+      // Build restorationProducts array by aggregating products across all configured groups and individual teeth
       const productMap: Record<string, { product: string; quantity: number }> = {};
       const accessoriesSet = new Set<string>();
+      // Process regular groups
       updatedGroups.forEach((group: any) => {
         if (group.selectedProducts && group.selectedProducts.length > 0) {
           group.selectedProducts.forEach((product: any) => {
+            // For group, quantity is number of teeth in the group
             if (productMap[product.name]) {
-              productMap[product.name].quantity += product.quantity;
+              productMap[product.name].quantity += group.teeth?.length || 0;
             } else {
               productMap[product.name] = {
                 product: product.name,
-                quantity: product.quantity
+                quantity: group.teeth?.length || 0,
+              };
+            }
+            accessoriesSet.add(product.name);
+          });
+        }
+      });
+      // Process individual teeth
+      updatedSelectedTeeth.forEach((t: any) => {
+        if (t.selectedProducts && t.selectedProducts.length > 0) {
+          t.selectedProducts.forEach((product: any) => {
+            // For individual teeth, increment by 1 for each tooth that has the product
+            if (productMap[product.name]) {
+              productMap[product.name].quantity += 1;
+            } else {
+              productMap[product.name] = {
+                product: product.name,
+                quantity: 1,
               };
             }
             accessoriesSet.add(product.name);
@@ -191,13 +264,14 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
       setFormData({
         ...formData,
         toothGroups: updatedGroups,
+        selectedTeeth: updatedSelectedTeeth,
         restorationProducts,
         accessories,
         trial: productDetails.trial, // Set trial at the top level of formData
         shade: productDetails.shade, // Set shade at the top level of formData (array of strings)
         shadeNotes: productDetails.shadeNotes,
         additionalNotes: productDetails.additionalNotes,
-        shadeGuide: productDetails.shadeGuide
+        shadeGuide: productDetails.shadeGuide,
       });
 
       // Reset editing state
@@ -211,7 +285,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
         trial: '',
         shadeNotes: '',
         additionalNotes: '',
-        shadeGuide: []
+        shadeGuide: [],
       });
       setEditingGroupIndex(null); // Reset editing state
     } catch (error) {
@@ -256,7 +330,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
   return (
     <div className="space-y-6">
-      {toothGroups.length > 0 ? (
+      {allGroups.length > 0 ? (
         <>
           {/* Completion Status */}
           {allGroupsConfigured && (
@@ -265,7 +339,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                 <div className="flex items-center gap-2 text-green-800">
                   <CheckCircle className="w-5 h-5" />
                   <span className="font-medium">
-                    Product configuration completed for all {toothGroups.length} group{toothGroups.length > 1 ? 's' : ''}
+                    Product configuration completed for all {allGroups.length} group{allGroups.length > 1 ? 's' : ''}
                   </span>
                 </div>
                 <p className="text-sm text-green-600 mt-1">Ready to proceed to next step</p>
@@ -307,20 +381,20 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Teeth:</p>
-                    <p className="text-gray-600">{group.teeth?.join(', ')}</p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                      <p className="text-gray-600">{group.teeth?.join(', ')}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Products:</p>
+                      {group.selectedProducts.map((product: any, pIndex: number) => (
+                        <p key={pIndex} className="text-gray-600">
+                          {product.name} x {group.teeth?.length || 0}
+                        </p>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Products:</p>
-                    {group.selectedProducts?.map((product: any, pIndex: number) => (
-                      <p key={pIndex} className="text-gray-600">
-                        {product.name} x {product.quantity}
-                      </p>
-                    ))}
-                  </div>
-                </div>
 
                 <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
                   <div>
@@ -351,6 +425,115 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
             </Card>
           ))}
 
+          {/* Configured Individual Group Card */}
+          {((): JSX.Element | null => {
+            const individualGroup = allGroups.find((g: any) => g.groupId === 'individual-group');
+            if (!individualGroup) return null;
+            // Aggregate selectedTeeth for this group
+            const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => individualGroup.teeth.includes(t.toothNumber));
+            // Only show if at least one individual tooth is configured
+            const atLeastOneConfigured = individualTeeth.some((t: any) => t.selectedProducts && t.selectedProducts.length > 0);
+            if (!atLeastOneConfigured) return null;
+            // Aggregate products: count how many individual teeth have each product, and collect shades
+            const productInfoMap: Record<string, { count: number; shades: Set<string> }> = {};
+            individualTeeth.forEach((t: any) => {
+              (t.selectedProducts || []).forEach((p: any) => {
+                if (!productInfoMap[p.name]) {
+                  productInfoMap[p.name] = { count: 0, shades: new Set() };
+                }
+                productInfoMap[p.name].count += 1;
+                const shade = t.productDetails?.shade || '';
+                if (shade) productInfoMap[p.name].shades.add(shade);
+              });
+            });
+            // Aggregate overall shade for the group
+            const allShades = individualTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean);
+            let groupShadeLabel = 'Not specified';
+            if (allShades.length > 0) {
+              const uniqueShades = Array.from(new Set(allShades));
+              if (uniqueShades.length === 1) {
+                groupShadeLabel = uniqueShades[0];
+              } else {
+                groupShadeLabel = 'Multiple';
+              }
+            }
+            // Aggregate occlusalStaining
+            const occlusalStainings = Array.from(new Set(individualTeeth.map((t: any) => t.productDetails?.occlusalStaining || '').filter(Boolean)));
+            return (
+              <Card className="border border-green-200 bg-gray-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                        {formData.prescriptionType === 'crown-bridge' ? 'Crown & Bridge' : 'Implant'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" className="p-1 text-gray-400 hover:text-blue-600"
+                        onClick={() => {
+                          // Find the index of the individual-group in allGroups
+                          const idx = allGroups.findIndex((g: any) => g.groupId === 'individual-group');
+                          setEditingGroupIndex(idx);
+                          setIsConfiguring(true);
+                          setSelectedProducts(individualTeeth[0]?.selectedProducts || []);
+                          setProductDetails({
+                            ...individualTeeth[0]?.productDetails,
+                            shade: formData.shade || [],
+                            trial: formData.trial || '',
+                            shadeNotes: formData.shadeNotes || '',
+                            additionalNotes: formData.additionalNotes || '',
+                            shadeGuide: formData.shadeGuide || [],
+                          });
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" className="p-1 text-gray-400 hover:text-red-600">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                      <p className="text-gray-600">{individualGroup.teeth?.join(', ')}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Products:</p>
+                      {Object.entries(productInfoMap).map(([name, info], i) => {
+                        let shadeLabel = 'Not specified';
+                        if (info.shades.size === 1) {
+                          shadeLabel = Array.from(info.shades)[0];
+                        } else if (info.shades.size > 1) {
+                          shadeLabel = 'Multiple';
+                        }
+                        return (
+                          <p key={i} className="text-gray-600">
+                            {name} x {info.count}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Shade:</p>
+                      <p className="text-gray-600 uppercase">
+                        {groupShadeLabel}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
+                      <p className="text-gray-600 capitalize">
+                        {occlusalStainings.length === 1 ? occlusalStainings[0] : occlusalStainings.length > 1 ? 'Multiple' : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Tooth Groups Summary for unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
             <Card className="border shadow-sm">
@@ -363,7 +546,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                   {unconfiguredGroups.map((group: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <span className="font-medium">Group {toothGroups.indexOf(group) + 1}:</span>
+                        <span className="font-medium">Group {allGroups.indexOf(group) + 1}:</span>
                         <span className="text-gray-600 ml-2">
                           Teeth {group.teeth?.join(', ')} - {group.type}
                         </span>
