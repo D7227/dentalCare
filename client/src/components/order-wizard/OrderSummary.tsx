@@ -204,7 +204,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
 
 
         {/* Right: Stacked Info Cards */}
-        <div className="flex-3 space-y-4 print:space-y-3">
+        <div className="flex-1 space-y-4 print:space-y-3">
           {/* Case Details */}
           <Card className="shadow-sm p-3">
             <CardHeader className="print:pb-2 p-0 pb-3">

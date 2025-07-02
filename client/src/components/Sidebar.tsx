@@ -9,6 +9,9 @@ import { useClinicMembers } from '@/hooks/useClinicMembers';
 import LoadingSpinner from './shared/LoadingSpinner';
 import { useAppSelector } from '@/store/hooks';
 import LayoutConstants from '@/utils/staticValue';
+import { useLocation } from 'wouter';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/store/slices/authSlice';
 
 export interface SidebarProps {
   isCollapsed: boolean;
@@ -29,6 +32,10 @@ const Sidebar = ({
 
   // Get current user from Redux
   const currentUser = useAppSelector(state => state.auth.user);
+
+  // Add setLocation for navigation
+  const [, setLocation] = useLocation();
+  const dispatch = useDispatch();
 
   const menuItems = [
     {
@@ -84,7 +91,8 @@ const Sidebar = ({
   };
 
   const handleLogout = () => {
-    // Handle logout logic here
+    dispatch(logout());
+    setLocation('/login');
   };
 
   // Only show menu items if user has permission, except for always-allowed items
