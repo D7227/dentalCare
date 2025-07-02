@@ -36,17 +36,18 @@ const TrialSelector = ({ productType, selectedTrials, onTrialsChange }: TrialSel
   return (
     <div className="space-y-3">
       <Label className="text-sm font-medium">Trial Requirements</Label>
-      <div className="space-y-2">
+      <div className="flex flex-wrap gap-3">
         {currentTrials.map((trial) => (
-          <div key={trial.value} className="flex items-center space-x-2">
+          <div key={trial.value} className=" items-center flex justify-center content-center gap-1">
             <Checkbox
+            className='inline'
               id={trial.value}
               checked={selectedTrials[0] === trial.value}
               onCheckedChange={(checked) => handleTrialChange(trial.value, checked as boolean)}
             />
             <Label 
               htmlFor={trial.value} 
-              className="text-sm font-normal cursor-pointer"
+              className="text-sm font-normal cursor-pointer inline"
             >
               {trial.label}
             </Label>

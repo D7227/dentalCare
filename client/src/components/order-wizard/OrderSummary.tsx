@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore } from 'lucide-react';
+import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore, Wrench, FileText } from 'lucide-react';
 import { OrderCategory } from './types/orderTypes';
 import ToothChart from './components/ToothChart';
 import { DoctorInfo } from '../shared/DoctorInfo';
@@ -19,7 +19,7 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
   // Priority: bridge > joint > individual
   const usedTeeth = new Set<number>();
   const summaryGroups: any[] = [];
-  
+
   // Add bridge groups first, but only if teeth are not in selectedTeeth
   toothGroups.filter(g => g.type === 'bridge').forEach(group => {
     const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
@@ -121,12 +121,12 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
       const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => group.teeth.includes(t.toothNumber));
       return individualTeeth.length > 0 && individualTeeth.every((t: any) => t.selectedProducts && t.selectedProducts.length > 0);
     }
-    return group.selectedProducts && 
-           group.selectedProducts.length > 0 && 
-           group.productDetails;
+    return group.selectedProducts &&
+      group.selectedProducts.length > 0 &&
+      group.productDetails;
   };
 
-  const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group)); 
+  const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group));
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
       {/* Header */}
@@ -134,14 +134,11 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
         <div className="text-center w-full">
           <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
         </div>
-        <Button type="button" variant="outline" className="ml-auto flex items-center gap-2 h-9 px-4 text-sm font-medium">
-          <Plus size={16} /> New Order
-        </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 print:grid-cols-2 print:gap-4">
+      <div className="flex gap-3">
         {/* Left: Tooth Chart with Quadrant Labels */}
         <div className="space-y-4 print:space-y-3">
-          <Card className="border-2 border-dashed border-green-300 bg-green-50">
+          <Card className="border-2 border-dashed border-green-300 bg-green-50 w-[350px]">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-green-700">
@@ -173,14 +170,44 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               />
             </CardContent>
           </Card>
+          {/* Accessories */}
+          <Card className="shadow-sm w-[350px] p-3">
+            <CardHeader className=" print:pb-2 p-0 pb-3">
+              <div className="flex items-center justify-between">
+                <div className='flex items-center gap-2'>
+                  <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
+                    <Wrench className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold text-gray-900">Accessories</CardTitle>
+                </div>
+                <div className='h-8 w-8 text-center border border-[#DEDDDD] rounded-sm flex items-center justify-center'>
+                  <Edit2 size={12} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
+              {formData.accessories ? (
+                <div className="space-y-1">
+                  {Object.entries(formData.accessories).map(([key, value]: [string, any]) => (
+                    <div key={key} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 text-base">{value}</span>
+                      <span className="text-gray-900 capitalize text-base">{key.replace(/_/g, ' ')}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 italic">No accessories selected</div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
 
         {/* Right: Stacked Info Cards */}
-        <div className="space-y-4 print:space-y-3">
+        <div className="flex-3 space-y-4 print:space-y-3">
           {/* Case Details */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 print:pb-2">
+          <Card className="shadow-sm p-3">
+            <CardHeader className="print:pb-2 p-0 pb-3">
               <div className="flex items-center justify-between">
                 <div className='flex items-center gap-2'>
                   <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
@@ -193,7 +220,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 space-y-2 print:space-y-1">
+            <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className='flex-1'>
                   <div className="text-xs text-gray-500">Consulting Doctor</div>
@@ -207,22 +234,22 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className='flex-1'>
                   <div className="text-xs text-gray-500">Patient Name</div>
-                  <div className="font-medium text-gray-900">{formData.firstName} {formData.lastName || '-'}</div>
+                  <div className="font-medium text-gray-900">{formData.firstName || formData.patientFirstName} {formData.lastName || formData.patientLastName || '-'}</div>
                 </div>
                 <div className='flex-1'>
                   <div className="text-xs text-gray-500">Age</div>
-                  <div className="font-medium text-gray-900">{formData.age || '-'}</div>
+                  <div className="font-medium text-gray-900">{formData.age || formData.patientAge || '-'}</div>
                 </div>
                 <div className='flex-1'>
                   <div className="text-xs text-gray-500">Gender</div>
-                  <div className="font-medium text-gray-900">{formData.sex || '-'}</div>
+                  <div className="font-medium text-gray-900">{formData.sex || formData.patientSex || '-'}</div>
                 </div>
               </div>
             </CardContent>
           </Card>
           {/* Restoration & Treatment Details */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 print:pb-2">
+          <Card className="shadow-sm p-3">
+            <CardHeader className="pb-3 print:pb-2 mb-4 p-0">
               <div className="flex items-center justify-between">
                 <div className='flex items-center gap-2'>
                   <div className="p-2 border bg-[#0B804326] text-[#0B8043] h-[32px] w-[32px] rounded-[6px]">
@@ -232,93 +259,82 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 space-y-2 print:space-y-1">
+            <CardContent className="space-y-2 print:space-y-1 p-0">
               <div className="text-xs text-gray-500">Type of Restoration</div>
-              <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
-                {formData.category === "implant" ? (
-                  <img src={ImpantTeeth} alt="CrownBridgeTeeth" />
-                ) : (
-                  <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
-                )}
+              <div className='flex items-center gap-2'>
+                <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
+                  {formData.category === "implant" ? (
+                    <img src={ImpantTeeth} alt="CrownBridgeTeeth" />
+                  ) : (
+                    <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
+                  )}
+                </div>
+                <div className='font-medium text-gray-900'>{formData.restorationType || 'Crown'}</div>
               </div>
-              <div className="text-xs text-gray-500">Teeth</div>
-              {unconfiguredGroups.length > 0 && (
-           
+              <div className="text-xs text-gray-500 mt-4 mb-1">Teeth</div>
+              {allGroups.length > 0 && (
                 <div className="flex flex-wrap gap-2 items-center">
-                  {unconfiguredGroups.map((group: any, index: number) => (
-                    <div key={index} className={`flex border h-min px-3 py-2 items-center text-white ${group.type === 'individual' ? 'bg-[#1D4ED8] border-[#4574F9]' : group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]'} rounded-lg w-fit capitalize`}>
-                    <div>
-                      <span className="font-medium text-[10px]">{group.type}:</span>
-                      <span className=" ml-2 text-[10px]"> 
-                        {group.teeth?.join(', ')}
-                      </span>
-                    </div>
-                    {/* <span className="text-orange-600 text-sm">Pending</span> */}
-                  </div>
-                  ))}
+                  {allGroups.map((group: any, index: number) => {
+                    return (
+                      <div key={index} className={`flex border h-fit items-center px-3 py-2 text-white ${group.type === 'individual' ? 'bg-[#1D4ED8] border-[#4574F9]' : group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]'} rounded-lg w-fit`}>
+                        <span className="text-xs text-[10px]">{group.type}:</span>
+                        <span className=" ml-2 text-[10px]">
+                          {group.teeth?.join(', ')}
+                        </span>
+                        {/* <span className="text-orange-600 text-sm">Pending</span> */}
+                      </div>
+                    );
+                  })}
                 </div>
-          )}
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div>
-                  <div className="text-xs text-gray-500">Type of Restoration</div>
-                  <div className="font-medium text-gray-900">{formData.restorationType || 'Crown'}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500">Product</div>
-                  <div className="font-medium text-gray-900">
+              )}
+              <div className="flex flex-wrap mt-4">
+                <div className='flex-1 gap-2'>
+                  <div className="text-[12px] text-gray-500">Product Selection</div>
+                  <div className="font-medium text-gray-900 text-xs">
                     {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 ? (
                       formData.restorationProducts.map((product: any, idx: number) => (
                         <span key={idx}>{product.product}{idx < formData.restorationProducts.length - 1 ? ', ' : ''}</span>
                       ))
-                    ) : '—'}
+                    ) : '-'}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xs text-gray-500">Shade</div>
-                  <div className="font-medium text-gray-900">{formData.shade || '—'}</div>
+                <div className='flex-1 gap-2'>
+                  <div className="text-[12px] text-gray-500">Pontic</div>
+                  <div className="font-medium text-gray-900 text-xs">{formData.pontic || '-'}</div>
                 </div>
               </div>
-              {/* Restoration Groups */}
-              {restorationGroups.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {restorationGroups.map((group: any, index: number) => (
-                    <div key={group.groupId || index} className="border-l-3 border-primary pl-3 space-y-1">
-                      <span className="text-xs text-gray-700">Teeth {group.teeth.join(', ')}
-                        <Badge
-                          variant="outline"
-                          className={`ml-2 text-xs px-2 py-0.5 ${group.type === 'joint' ? 'border-blue-300 text-blue-700 bg-blue-50' :
-                            group.type === 'individual' ? 'border-green-300 text-green-700 bg-green-50' :
-                              group.type === 'bridge' ? 'border-amber-300 text-amber-700 bg-amber-50' :
-                                'border-gray-300 text-gray-700'
-                            }`}
-                        >
-                          {group.type.charAt(0).toUpperCase() + group.type.slice(1)}
-                        </Badge>
-                      </span>
-                      {group.material && (
-                        <div className="text-xs text-gray-600">Material: <span className="font-medium">{group.material}</span></div>
-                      )}
-                      {group.shade && (
-                        <div className="text-xs text-gray-600">Shade: <span className="font-medium">{group.shade}</span></div>
-                      )}
-                      {group.notes && (
-                        <div className="text-xs text-gray-500 italic">{group.notes}</div>
-                      )}
-                    </div>
-                  ))}
+              <div className='flex flex-wrap mt-4'>
+                <div className='flex-1 gap-2'>
+                  <div className="text-[12px] text-gray-500">Trial</div>
+                  <div className="font-medium text-gray-900 text-xs">{formData.trial || '-'} Trial</div>
                 </div>
-              )}
+                <div className='flex-1 gap-2'>
+                  <div className="text-[12px] text-gray-500">Occlusal Staining</div>
+                  <div className="font-medium text-gray-900 text-xs">{formData.occlusalStaining || '-'}</div>
+                </div>
+              </div>
+              <div className='mt-4'>
+                <div className="text-[12px] text-gray-500">Shade</div>
+                <div className="font-medium text-gray-900 text-xs">{formData.shade || '—'}</div>
+              </div>
             </CardContent>
           </Card>
           {/* File Upload Summary */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 print:pb-2">
+          <Card className="shadow-sm p-3">
+            <CardHeader className=" print:pb-2 p-0 pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-gray-900">File Upload Summary</CardTitle>
-                <EditButton onClick={() => onEditSection?.(4)} label="Files" />
+                <div className='flex items-center gap-2'>
+                  <div className="p-2 border bg-[#A1620726] text-[#A16207] border-[#A16207] h-[32px] w-[32px] rounded-[6px]">
+                    <FileText  className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold text-gray-900">File Upload Summary</CardTitle>
+                </div>
+                <div className='h-8 w-8 text-center border border-[#DEDDDD] rounded-sm flex items-center justify-center'>
+                  <Edit2 size={12} />
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0 space-y-2 print:space-y-1">
+            <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
               {formData.files?.length > 0 ? (
                 <div className="space-y-1">
                   {formData.files.map((file: any, idx: number) => (
@@ -333,67 +349,38 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               )}
             </CardContent>
           </Card>
-          {/* Accessories */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 print:pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-gray-900">Accessories</CardTitle>
-                <EditButton onClick={() => onEditSection?.(3)} label="Accessories" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-2 print:space-y-1">
-              {formData.accessories ? (
-                <div className="space-y-1">
-                  {Object.entries(formData.accessories).map(([key, value]: [string, any]) => (
-                    <div key={key} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 capitalize">{key.replace(/_/g, ' ')}</span>
-                      <span className="text-gray-600">x {value}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 italic">No accessories selected</div>
-              )}
-            </CardContent>
-          </Card>
-          {/* Additional Notes */}
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3 print:pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
-                <EditButton onClick={() => onEditSection?.(5)} label="Notes" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded text-xs min-h-[40px]">
-                {formData.notes || <span className="italic text-gray-400">No additional notes</span>}
-              </div>
-            </CardContent>
-          </Card>
-          {/* Confirmation/Info Box */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 print:p-3 print:bg-transparent print:border-gray-300">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 print:h-4 print:w-4" />
-              <div>
-                <p className="text-emerald-800 font-medium text-sm print:text-xs">
-                  Please review all details carefully before submitting your {orderCategory} request.
-                </p>
-                <p className="text-emerald-700 text-xs mt-1 print:hidden">
-                  Once submitted, the lab will begin processing your order according to the specified requirements.
-                </p>
-              </div>
-            </div>
-          </div>
+
+
+
         </div>
       </div>
-      {/* Footer Buttons */}
-      <div className="flex justify-between mt-8">
-        <Button type="button" variant="outline" onClick={() => onEditSection?.(0)}>
-          Previous
-        </Button>
-        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          Submit New Order
-        </Button>
+      {/* Confirmation/Info Box */}
+      {/* Additional Notes */}
+      <Card className="shadow-sm mb-3 p-3">
+        <CardHeader className="pb-3 print:pb-2 p-0">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
+            <EditButton onClick={() => onEditSection?.(5)} label="Notes" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded min-h-[40px]">
+            {formData.notes || <span className="italic text-gray-400">No additional notes</span>}
+          </div>
+        </CardContent>
+      </Card>
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 print:p-3 print:bg-transparent print:border-gray-300">
+        <div className="flex items-start gap-3">
+          <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 print:h-4 print:w-4" />
+          <div>
+            <p className="text-emerald-800 font-medium text-sm print:text-xs">
+              Please review all details carefully before submitting your {orderCategory} request.
+            </p>
+            <p className="text-emerald-700 text-xs mt-1 print:hidden">
+              Once submitted, the lab will begin processing your order according to the specified requirements.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
