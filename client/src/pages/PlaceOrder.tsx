@@ -106,6 +106,11 @@ const PlaceOrder = () => {
     implantPhoto: '',
     implantCompany: '',
     implantRemark: '',
+    issueCategory: '',
+    trialApproval: false,
+    reapirInstructions: '',
+    repairType: '',
+    issueDescription: '',
     scanBooking: {
       areaManagerId: '',
       scanDate: '',
@@ -114,8 +119,6 @@ const PlaceOrder = () => {
     },
     previousOrderId: '',
     repairOrderId: '',
-    issueDescription: '',
-    repairType: '',
     returnWithTrial: false,
     type: 'new',
     selectedTeeth: [],
@@ -176,6 +179,34 @@ const PlaceOrder = () => {
     console.log("Form data at submission:", JSON.stringify(formData, null, 2));
     
     try {
+      if(orderCategory === 'repair'){
+        formData.category = 'repair';
+        formData.firstName = formData.patientFirstName;
+        formData.lastName = formData.patientLastName;
+        formData.age = formData.patientAge;
+        formData.sex = formData.patientSex;
+        const orderData = createOrderObject(formData, user?.clinicId || '');
+        console.log("Order data:", orderData);
+        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(orderData),
+        });
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update order');
+        }
+        const updatedOrder = await updateResponse.json();
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        toast({
+          title: "Order updated successfully!",
+          description: `Order #${updatedOrder.id} has been updated.`,
+        });
+        setLocation('/');
+        setIsSubmitting(false);
+       return;
+      }
       if(orderCategory === 'repeat'){
         // Call update order API
         if (!selectedOrderId) {
@@ -347,7 +378,7 @@ const PlaceOrder = () => {
       case 'repeat':
         return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
       case 'repair':
-        return <RepairOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} />;
+        return <RepairOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
       default:
         return null;
     }
@@ -392,7 +423,7 @@ const PlaceOrder = () => {
   }
 
   return (
-    <div className="min-h-screen bg-mainBrackground">
+    <div className="min-h-screen bg-[#EFF9F7]">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
       <div className='max-w-7xl mx-auto'>

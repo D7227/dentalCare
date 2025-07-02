@@ -128,6 +128,11 @@ var orders = pgTable("orders", {
   implantCompany: text("implant_company"),
   implantRemark: text("implant_remark_note"),
   rejectedDate: timestamp("rejected_date"),
+  issueDescription: text("issue_description"),
+  issueCategory: text("issue_category"),
+  repairType: text("repair_type"),
+  trialApproval: boolean("trial_approval"),
+  reapirInstructions: text("repair_instructions"),
   dueDate: timestamp("due_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -479,7 +484,12 @@ var DatabaseStorage = class {
       selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
       implantPhoto: insertOrder.implantPhoto || "",
       implantCompany: insertOrder.implantCompany || "",
-      implantRemark: insertOrder.implantRemark || ""
+      implantRemark: insertOrder.implantRemark || "",
+      issueDescription: insertOrder.issueDescription || "",
+      issueCategory: insertOrder.issueCategory || "",
+      repairType: insertOrder.repairType || "",
+      trialApproval: insertOrder.trialApproval || false,
+      reapirInstructions: insertOrder.reapirInstructions || ""
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

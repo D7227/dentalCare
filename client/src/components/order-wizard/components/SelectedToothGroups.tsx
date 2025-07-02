@@ -138,35 +138,37 @@ const SelectedToothGroups = ({
 
       {/* Individual Teeth */}
       {selectedTeeth.length > 0 && (
-        <Card className="border border-blue-200 bg-blue-50">
+        <Card className="border border-[#1D4ED8] bg-[#4574F9]">
           <CardContent className="p-3">
-            <div className="flex items-center justify-between mb-2">
-            <span className="text-sm flex font-medium text-blue-800 items-center gap-3"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-12 h-12 " /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-12 h-12 " />} Individual Teeth</span>
+            <div className="flex items-center justify-between mb-3">
+            <span className="text-sm flex font-medium text-white items-center gap-3"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-12 h-12 " /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-12 h-12 " />} Individual Teeth</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedTeeth.map(tooth => (
                 <div
                   key={tooth.toothNumber}
-                  className="flex items-center gap-1 px-2 py-1 bg-white rounded-full border border-blue-200"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-white border border-blue-200"
                 >
                   <span className="text-xs font-medium">
-                    {tooth.toothNumber} ({tooth.type === 'abutment' ? 'A' : 'P'})
+                    {tooth.toothNumber} {tooth.type === 'abutment' ? '(A)' : '(P)'}
                   </span>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditTooth(tooth.toothNumber)}
-                    className="h-4 w-4 p-0 hover:bg-blue-100 mr-1"
+                    className="h-3 w-3 p-0 hover:bg-blue-100"
                   >
-                    <Edit size={8} />
+                    <Edit size={14} />
                   </Button>
                   <Button
                     variant="ghost"
+                    type="button"
                     size="sm"
                     onClick={() => onRemoveTooth(tooth.toothNumber)}
-                    className="h-4 w-4 p-0 hover:bg-red-100"
+                    className="h-3 w-3 p-0 hover:bg-red-100"
                   >
-                    <X size={10} />
+                    <X size={14} />
                   </Button>
                 </div>
               ))}
@@ -177,14 +179,13 @@ const SelectedToothGroups = ({
 
       {/* Groups */}
       {selectedGroups.map(group => {
-        const bgColor = group.type === 'joint' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200';
-        const textColor = group.type === 'joint' ? 'text-green-800' : 'text-orange-800';
+        const bgColor = group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]';
 
         return (
           <Card key={group.groupId} className={`border ${bgColor}`}>
             <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-medium ${textColor} flex items-center gap-3`}>
+              <div className="flex items-center justify-between mb-3">
+              <span className={`text-sm font-medium text-white flex items-center gap-3`}>
                   {
                     prescriptionType === 'implant' ? (
                       group.type === 'joint' ? <img src={ImplantJoint} alt="Implant Joint" className="w-12 h-12" /> : <img src={ImplantBridge} alt="Implant Bridge" className="w-12 h-12" />
@@ -194,10 +195,11 @@ const SelectedToothGroups = ({
                   }{group.type === 'joint' ? 'Joint' : 'Bridge'} Group
                 </span>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => onRemoveGroup(group.groupId)}
-                  className="h-6 w-6 p-0 hover:bg-red-100"
+                  className="h-6 w-6 p-0 text-white"
                 >
                   <X size={12} />
                 </Button>
@@ -210,18 +212,19 @@ const SelectedToothGroups = ({
                       key={toothNumber}
                       className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                         isPontic 
-                          ? 'bg-purple-100 text-purple-800' 
-                          : 'bg-white border border-gray-200'
+                          ? 'bg-[#231F20] text-white' 
+                          : 'bg-white'
                       }`}
                     >
                       <span>{toothNumber} {isPontic ? '(P)' : '(A)'}</span>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditTooth(toothNumber, group)}
                         className="h-3 w-3 p-0 hover:bg-gray-100 mr-1"
                       >
-                        <Edit size={8} />
+                        <Edit size={14} />
                       </Button>
                     </div>
                   );

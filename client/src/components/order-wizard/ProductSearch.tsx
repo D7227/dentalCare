@@ -203,7 +203,7 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                     <div className="flex items-center gap-3 ml-4">
                       {/* Quantity Display */}
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-md border border-gray-200">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-[#231F20] rounded-md border">
                         {/* <Button
                           variant="outline"
                           size="icon"
@@ -213,10 +213,10 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
                         >
                           <Minus className="h-3 w-3" />
                         </Button> */}
-                          <span className="text-sm font-semibold text-gray-700">
+                          <span className="text-sm font-semibold text-[#07AD94]">
                             {product.quantity}
                           </span>
-                          <span className="text-xs text-gray-500 font-medium">
+                          <span className="text-xs text-[#FFFFFF] font-medium">
                             Units
                           </span>
                           {/* <Button

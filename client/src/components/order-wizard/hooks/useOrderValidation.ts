@@ -21,7 +21,7 @@ export const useOrderValidation = () => {
         case 3:
           // Step 3: Teeth Selection - validate that teeth are selected
           const toothGroups = formData.toothGroups || [];
-          if (toothGroups.length === 0) {
+          if (toothGroups.length === 0 && formData.selectedTeeth.length === 0) {
             errors.push('Please select at least one tooth group');
           }
           break;

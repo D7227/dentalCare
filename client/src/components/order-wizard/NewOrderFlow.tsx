@@ -39,6 +39,11 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     patientFirstName: formData.firstName || '',
     patientLastName: formData.lastName || '',
     patientAge: formData.age ? parseInt(formData.age, 10) : null,
+    issueDescription: formData.issueDescription || '',
+    issueCategory: formData.issueCategory || '',
+    repairType: formData.repairType || '',
+    trialApproval: formData.trialApproval || false,
+    reapirInstructions: formData.reapirInstructions || '',
     patientSex: formData.sex || '',
     caseHandledBy: formData.caseHandledBy || '',
     consultingDoctor: formData.consultingDoctor || '',
@@ -177,7 +182,7 @@ function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
         onClick={handleDivClick}
       >
         <Camera size={64} className="text-gray-400 mb-4" />
-        <span className="text-xl font-semibold text-teal-600 underline">Take Your Photo</span>
+        <span className="text-base font-semibold text-teal-600 underline">Take Your Photo</span>
         <input
           ref={fileInputRef}
           type="file"
@@ -353,7 +358,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
 
             {/* Show selection summary */}
             {(formData.prescriptionType || formData.orderMethod) && (
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 bg-[#EFF9F7] rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Selection Summary</h4>
                 {formData.prescriptionType && (
                   <p className="text-sm text-gray-600">Prescription: <span className="font-medium">{formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 'Implant'}</span></p>
@@ -423,8 +428,9 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
     };
     return (
       <div className="space-y-1">
-        <Card>
-
+        {
+          formData.prescriptionType === 'implant' && (
+            <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Implant System</CardTitle>
           </CardHeader>
@@ -492,12 +498,14 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                   implantRemark: e.target.value
                 })}
                 className="mt-3"
-                rows={3}
+                rows={1}
                 placeholder="Enter any implant-related remarks here..."
               />
             </div>
           </CardContent>
         </Card>
+          )
+        }
         <Card>
           <CardHeader>
             <CardTitle className="text-xl font-semibold">Upload Files</CardTitle>
@@ -514,7 +522,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                   selectedFileType: value
                 })}
               >
-                <SelectTrigger className="mt-3">
+                <SelectTrigger className="mt-3 text-start">
                   <SelectValue placeholder="Choose file type to upload" />
                 </SelectTrigger>
                 <SelectContent>

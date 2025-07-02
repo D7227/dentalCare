@@ -223,6 +223,11 @@ export class DatabaseStorage implements IStorage {
       implantPhoto: insertOrder.implantPhoto || '',
       implantCompany: insertOrder.implantCompany || '',
       implantRemark: insertOrder.implantRemark || '',
+      issueDescription: insertOrder.issueDescription || '',
+      issueCategory: insertOrder.issueCategory || '',
+      repairType: insertOrder.repairType || '',
+      trialApproval: insertOrder.trialApproval || false,
+      reapirInstructions: insertOrder.reapirInstructions || '',
     };
     const [order] = await db.insert(orders).values(orderData).returning();
     return order;

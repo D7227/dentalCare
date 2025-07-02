@@ -542,7 +542,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                 <CardDescription>Groups waiting to be configured</CardDescription>
               </CardHeader>
               <CardContent className="p-0 mt-2">
-                <div className="space-y-3 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {unconfiguredGroups.map((group: any, index: number) => (
                     // <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     //   <div>
@@ -553,10 +553,10 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                     //   </div>
                     //   <span className="text-orange-600 text-sm">Pending</span>
                     // </div>
-                    <div key={index} className="flex items-center justify-between py-3 px-5 bg-gray-50 rounded-lg w-fit capitalize">
+                    <div key={index} className={`flex border h-10 py-3 px-5 items-center text-white ${group.type === 'individual' ? 'bg-[#1D4ED8] border-[#4574F9]' : group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]'} rounded-lg w-fit capitalize`}>
                     <div>
                       <span className="font-medium">{group.type}:</span>
-                      <span className="text-gray-600 ml-2">
+                      <span className=" ml-2"> 
                         {group.teeth?.join(', ')}
                       </span>
                     </div>
@@ -598,7 +598,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
 
                   {/* Product Details Form */}
                   {selectedProducts.length > 0 && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+                    <div className="mt-4 p-4 bg-[#EFF9F7] rounded-lg space-y-4">
                       <h5 className="text-sm font-medium text-gray-900">Shade Details</h5>
 
                       {/* Shade Selection */}
@@ -648,19 +648,19 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                       />
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 justify-end">
                         <Button 
                           type="button"
                           onClick={cancelConfiguring}
                           variant="outline"
-                          className="flex-1"
+                          className="w-min"
                         >
                           Cancel
                         </Button>
                         <Button 
                           type="button"
                           onClick={saveConfiguration}
-                          className="flex-1 bg-[#11AB93] hover:bg-[#0F9A82] text-white"
+                          className="bg-[#11AB93] hover:bg-[#0F9A82] text-white w-min px-4 py-3"
                           disabled={!productDetails.shade.length || selectedProducts.length === 0}
                         >
                           Save Configuration
