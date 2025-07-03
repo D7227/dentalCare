@@ -135,10 +135,10 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
           <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
         </div>
       </div>
-      <div className="flex gap-3">
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         {/* Left: Tooth Chart with Quadrant Labels */}
-        <div className="space-y-4 print:space-y-3">
-          <Card className="border-2 border-dashed border-green-300 bg-green-50 w-[350px]">
+        <div className="space-y-4 print:space-y-3 w-full md:w-[350px] flex-shrink-0">
+          <Card className="border-2 border-dashed border-green-300 bg-green-50 w-full md:w-[350px]">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-green-700">
@@ -171,7 +171,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardContent>
           </Card>
           {/* Accessories */}
-          <Card className="shadow-sm w-[350px] p-3">
+          <Card className="shadow-sm w-full md:w-[350px] p-3">
             <CardHeader className=" print:pb-2 p-0 pb-3">
               <div className="flex items-center justify-between">
                 <div className='flex items-center gap-2'>
@@ -202,9 +202,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
           </Card>
         </div>
 
-
         {/* Right: Stacked Info Cards */}
-        <div className="flex-1 space-y-4 print:space-y-3">
+        <div className="flex-1 space-y-4 print:space-y-3 w-full">
           {/* Case Details */}
           <Card className="shadow-sm p-3">
             <CardHeader className="print:pb-2 p-0 pb-3">
@@ -222,25 +221,25 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardHeader>
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
               <div className="flex flex-wrap gap-4 text-sm">
-                <div className='flex-1'>
+                <div className='flex-1 min-w-[120px]'>
                   <div className="text-xs text-gray-500">Consulting Doctor</div>
                   <div className="font-medium text-gray-900">{formData.consultingDoctor || '-'}</div>
                 </div>
-                <div className='flex-1'>
+                <div className='flex-1 min-w-[120px]'>
                   <div className="text-xs text-gray-500">Case Handled By</div>
                   <div className="font-medium text-gray-900">{formData.caseHandledBy || '-'}</div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-4 text-sm">
-                <div className='flex-1'>
+                <div className='flex-1 min-w-[120px]'>
                   <div className="text-xs text-gray-500">Patient Name</div>
                   <div className="font-medium text-gray-900">{formData.firstName || formData.patientFirstName} {formData.lastName || formData.patientLastName || '-'}</div>
                 </div>
-                <div className='flex-1'>
+                <div className='flex-1 min-w-[120px]'>
                   <div className="text-xs text-gray-500">Age</div>
                   <div className="font-medium text-gray-900">{formData.age || formData.patientAge || '-'}</div>
                 </div>
-                <div className='flex-1'>
+                <div className='flex-1 min-w-[120px]'>
                   <div className="text-xs text-gray-500">Gender</div>
                   <div className="font-medium text-gray-900">{formData.sex || formData.patientSex || '-'}</div>
                 </div>
@@ -288,7 +287,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 </div>
               )}
               <div className="flex flex-wrap mt-4">
-                <div className='flex-1 gap-2'>
+                <div className='flex-1 gap-2 min-w-[120px]'>
                   <div className="text-[12px] text-gray-500">Product Selection</div>
                   <div className="font-medium text-gray-900 text-xs">
                     {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 ? (
@@ -298,17 +297,17 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     ) : '-'}
                   </div>
                 </div>
-                <div className='flex-1 gap-2'>
+                <div className='flex-1 gap-2 min-w-[120px]'>
                   <div className="text-[12px] text-gray-500">Pontic</div>
                   <div className="font-medium text-gray-900 text-xs">{formData.pontic || '-'}</div>
                 </div>
               </div>
               <div className='flex flex-wrap mt-4'>
-                <div className='flex-1 gap-2'>
+                <div className='flex-1 gap-2 min-w-[120px]'>
                   <div className="text-[12px] text-gray-500">Trial</div>
                   <div className="font-medium text-gray-900 text-xs">{formData.trial || '-'} Trial</div>
                 </div>
-                <div className='flex-1 gap-2'>
+                <div className='flex-1 gap-2 min-w-[120px]'>
                   <div className="text-[12px] text-gray-500">Occlusal Staining</div>
                   <div className="font-medium text-gray-900 text-xs">{formData.occlusalStaining || '-'}</div>
                 </div>
@@ -349,9 +348,6 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               )}
             </CardContent>
           </Card>
-
-
-
         </div>
       </div>
       {/* Confirmation/Info Box */}

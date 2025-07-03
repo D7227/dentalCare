@@ -15,6 +15,7 @@ import AccessorySelection from './components/AccessorySelection';
 import SelectedTeethViewer from './components/SelectedTeethViewer';
 import { Camera } from 'lucide-react';
 import Webcam from 'react-webcam';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -266,6 +267,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [companiesError, setCompaniesError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Fetch companies from API
   useEffect(() => {
@@ -295,7 +298,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   // Step 1: Patient & Case Information
   if (currentStep === 1) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <PatientInfoCard formData={formData} setFormData={setFormData} />
         <CaseInfoCard formData={formData} setFormData={setFormData} />
       </div>
@@ -305,15 +308,15 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   // Step 2: Restoration Type Selection
   if (currentStep === 2) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Card className='border-none p-0'>
           <CardHeader className='p-0'>
-            <CardTitle className="text-xl font-semibold">Restoration Type</CardTitle>
-            <CardDescription>Select the type of prescription and order method</CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Restoration Type</CardTitle>
+            <CardDescription className="text-xs sm:text-base">Select the type of prescription and order method</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 p-0">
+          <CardContent className="space-y-4 sm:space-y-6 p-0">
             {/* Select Prescription */}
-            <Card className='p-4 mt-4'>
+            <Card className='p-3 sm:p-4 mt-4'>
               <Label className="text-base font-medium">Select Prescription</Label>
               <RadioGroup
                 value={formData.prescriptionType}
@@ -323,19 +326,21 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })} 
                 className="mt-3"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="implant" id="implant" />
-                  <Label htmlFor="implant" className="font-normal">Implant</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="crown-bridge" id="crown-bridge" />
-                  <Label htmlFor="crown-bridge" className="font-normal">Crown and Bridge</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="implant" id="implant" />
+                    <Label htmlFor="implant" className="font-normal">Implant</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="crown-bridge" id="crown-bridge" />
+                    <Label htmlFor="crown-bridge" className="font-normal">Crown and Bridge</Label>
+                  </div>
                 </div>
               </RadioGroup>
             </Card>
 
             {/* Order Method */}
-            <Card className='p-4 mt-4'>
+            <Card className='p-3 sm:p-4 mt-4'>
               <Label className="text-base font-medium">Order Method</Label>
               <RadioGroup
                 value={formData.orderMethod}
@@ -345,26 +350,28 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })}
                 className="mt-3"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="digital" id="digital" />
-                  <Label htmlFor="digital" className="font-normal">Digital</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="manual" id="manual" />
-                  <Label htmlFor="manual" className="font-normal">Manual</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="digital" id="digital" />
+                    <Label htmlFor="digital" className="font-normal">Digital</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="manual" id="manual" />
+                    <Label htmlFor="manual" className="font-normal">Manual</Label>
+                  </div>
                 </div>
               </RadioGroup>
             </Card>
 
             {/* Show selection summary */}
             {(formData.prescriptionType || formData.orderMethod) && (
-              <div className="p-4 bg-[#EFF9F7] rounded-lg">
+              <div className="p-3 sm:p-4 bg-[#EFF9F7] rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">Selection Summary</h4>
                 {formData.prescriptionType && (
-                  <p className="text-sm text-gray-600">Prescription: <span className="font-medium">{formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 'Implant'}</span></p>
+                  <p className="text-xs sm:text-sm text-gray-600">Prescription: <span className="font-medium">{formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' : 'Implant'}</span></p>
                 )}
                 {formData.orderMethod && (
-                  <p className="text-sm text-gray-600">Method: <span className="font-medium">{formData.orderMethod === 'digital' ? 'Digital' : 'Manual'}</span></p>
+                  <p className="text-xs sm:text-sm text-gray-600">Method: <span className="font-medium">{formData.orderMethod === 'digital' ? 'Digital' : 'Manual'}</span></p>
                 )}
               </div>
             )}
@@ -376,26 +383,57 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
 
   // Step 3: Teeth Selection
   if (currentStep === 3) {
+    if (isMobile) {
+      return (
+        <div className="flex flex-col gap-4">
+          <Card className="border-none p-0">
+            <CardHeader className="p-0">
+              <CardTitle className="text-lg font-semibold">Teeth Selection</CardTitle>
+              <CardDescription className="text-xs">Select the teeth for your restoration</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 mt-4">
+              <ToothSelector
+                prescriptionType={formData.prescriptionType}
+                selectedGroups={formData.toothGroups || []}
+                selectedTeeth={formData.selectedTeeth || []}
+                onSelectionChange={(groups, teeth) => setFormData({
+                  ...formData,
+                  toothGroups: groups,
+                  selectedTeeth: teeth
+                })}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+    // Desktop: side-by-side layout
     return (
-      <div className="space-y-6">
-        <Card className='border-none p-0'>
-          <CardHeader className='p-0'>
-            <CardTitle className="text-xl font-semibold">Teeth Selection</CardTitle>
-            <CardDescription>Select the teeth for your restoration</CardDescription>
-          </CardHeader>
-          <CardContent className='p-0 mt-4'>
-            <ToothSelector
-              prescriptionType={formData.prescriptionType}
-              selectedGroups={formData.toothGroups || []}
-              selectedTeeth={formData.selectedTeeth || []}
-              onSelectionChange={(groups, teeth) => setFormData({
-                ...formData,
-                toothGroups: groups,
-                selectedTeeth: teeth
-              })}
-            />
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div>
+          <Card className="border-none p-0">
+            <CardHeader className="p-0">
+              <CardTitle className="text-lg sm:text-xl font-semibold">Teeth Selection</CardTitle>
+              <CardDescription className="text-xs sm:text-base">Select the teeth for your restoration</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 mt-4">
+              <ToothSelector
+                prescriptionType={formData.prescriptionType}
+                selectedGroups={formData.toothGroups || []}
+                selectedTeeth={formData.selectedTeeth || []}
+                onSelectionChange={(groups, teeth) => setFormData({
+                  ...formData,
+                  toothGroups: groups,
+                  selectedTeeth: teeth
+                })}
+              />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="flex flex-col gap-4">
+          {instructionsPanel}
+          {summaryPanel}
+        </div>
       </div>
     );
   }
@@ -403,12 +441,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
   // Step 4: Product Selection & Details
   if (currentStep === 4) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Card className='border-none p-0'>
-          {/* <CardHeader className='p-0'>
-            <CardTitle className="text-xl font-semibold">Product Selection</CardTitle>
-            <CardDescription>Configure products and restoration details for your selected teeth</CardDescription>
-          </CardHeader> */}
           <div className='p-0 mt-4'>
             <ProductSelection formData={formData} setFormData={setFormData} />
           </div>
@@ -427,14 +461,14 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
       });
     };
     return (
-      <div className="space-y-1">
+      <div className="space-y-2 sm:space-y-4">
         {
           formData.prescriptionType === 'implant' && (
             <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Implant System</CardTitle>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Implant System</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             <div>
               <Label className="text-base font-medium">Select Company</Label>
               <Select
@@ -473,17 +507,17 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 </SelectContent>
               </Select>
             </div>
-            <div className='space-y-3'>
+            <div className='space-y-2 sm:space-y-3'>
               <Label className="text-base font-medium">Capture Photos</Label>
 
               <CameraCapture onPhoto={handlePhoto} />
               {formData.capturedPhoto && (
                 <div className="flex flex-col items-center ">
-                  <span className="text-sm text-gray-600 mb-2">Captured Photo Preview:</span>
+                  <span className="text-xs sm:text-sm text-gray-600 mb-2">Captured Photo Preview:</span>
                   <img
                     src={URL.createObjectURL(formData.capturedPhoto)}
                     alt="Captured"
-                    className="rounded-lg border w-48 h-36 object-cover"
+                    className="rounded-lg border w-36 sm:w-48 h-28 sm:h-36 object-cover"
                   />
                 </div>
               )}
@@ -508,10 +542,10 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
         }
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Upload Files</CardTitle>
-            <CardDescription>Select file type and upload supporting files</CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Upload Files</CardTitle>
+            <CardDescription className="text-xs sm:text-base">Select file type and upload supporting files</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {/* File Type Selection */}
             <div>
               <Label className="text-base font-medium">Select File Type</Label>
@@ -555,7 +589,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
             </div>
             {/* File Upload - Only show when file type is selected */}
             {formData.selectedFileType && (
-              <div className="border-t pt-6">
+              <div className="border-t pt-4 sm:pt-6">
                 <FileUploader
                   files={formData.files || []}
                   onFilesChange={files => setFormData({
@@ -588,18 +622,18 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
             )}
             {/* Show instruction when no file type selected */}
             {!formData.selectedFileType && (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">Please select a file type above to begin uploading</p>
+              <div className="text-center py-6 sm:py-8 text-gray-500">
+                <p className="text-xs sm:text-sm">Please select a file type above to begin uploading</p>
               </div>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Impression Handling</CardTitle>
-            <CardDescription>Select how you want to handle impressions</CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Impression Handling</CardTitle>
+            <CardDescription className="text-xs sm:text-base">Select how you want to handle impressions</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             <div>
               <Label>Handling Type</Label>
               <RadioGroup
@@ -610,18 +644,20 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })}
                 className="mt-2"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pickup-from-lab" id="pickup-from-lab" />
-                  <Label htmlFor="pickup-from-lab">Pickup from Clinic</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="send-by-courier" id="send-by-courier" />
-                  <Label htmlFor="send-by-courier">Send by Courier</Label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="pickup-from-lab" id="pickup-from-lab" />
+                    <Label htmlFor="pickup-from-lab">Pickup from Clinic</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="send-by-courier" id="send-by-courier" />
+                    <Label htmlFor="send-by-courier">Send by Courier</Label>
+                  </div>
                 </div>
               </RadioGroup>
             </div>
             {formData.orderType === 'pickup-from-lab' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div>
                   <Label htmlFor="pickupDate">Pickup Date</Label>
                   <Input
@@ -665,7 +701,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
               </div>
             )}
             {formData.orderType === 'request-scan' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
                 <div>
                   <Label htmlFor="courierName">Courier Name</Label>
                   <Input
@@ -717,11 +753,11 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
       console.log('DEBUG: toothGroups in summary step:', formData.toothGroups);
     }
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Additional Notes</CardTitle>
-            <CardDescription>Add any special instructions or notes</CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Additional Notes</CardTitle>
+            <CardDescription className="text-xs sm:text-base">Add any special instructions or notes</CardDescription>
           </CardHeader>
           <CardContent>
             <div>
@@ -746,60 +782,60 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
         {/* Comprehensive Order Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Complete Order Summary</CardTitle>
-            <CardDescription>Review all your order details before submission</CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold">Complete Order Summary</CardTitle>
+            <CardDescription className="text-xs sm:text-base">Review all your order details before submission</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {/* Patient Information Summary */}
             <div className="border-b pb-4">
-              <h4 className="font-semibold text-lg mb-3 text-blue-600">Patient Information</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-blue-600">Patient Information</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="font-medium text-sm">Name:</Label>
-                  <p className="text-sm text-gray-600">
+                  <Label className="font-medium text-xs sm:text-sm">Name:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {formData.firstName} {formData.lastName}
                   </p>
                 </div>
                 <div>
-                  <Label className="font-medium text-sm">Age:</Label>
-                  <p className="text-sm text-gray-600">{formData.age ? formData.age : 'Not specified'}</p>
+                  <Label className="font-medium text-xs sm:text-sm">Age:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">{formData.age ? formData.age : 'Not specified'}</p>
                 </div>
                 <div>
-                  <Label className="font-medium text-sm">Sex:</Label>
-                  <p className="text-sm text-gray-600">{formData.sex || 'Not specified'}</p>
+                  <Label className="font-medium text-xs sm:text-sm">Sex:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">{formData.sex || 'Not specified'}</p>
                 </div>
               </div>
             </div>
 
             {/* Case Information Summary */}
             <div className="border-b pb-4">
-              <h4 className="font-semibold text-lg mb-3 text-green-600">Case Information</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-green-600">Case Information</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="font-medium text-sm">Case Handled By:</Label>
-                  <p className="text-sm text-gray-600">{formData.caseHandledBy || 'Not specified'}</p>
+                  <Label className="font-medium text-xs sm:text-sm">Case Handled By:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">{formData.caseHandledBy || 'Not specified'}</p>
                 </div>
                 <div>
-                  <Label className="font-medium text-sm">Consulting Doctor:</Label>
-                  <p className="text-sm text-gray-600">{formData.consultingDoctor || 'Not specified'}</p>
+                  <Label className="font-medium text-xs sm:text-sm">Consulting Doctor:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">{formData.consultingDoctor || 'Not specified'}</p>
                 </div>
               </div>
             </div>
 
             {/* Restoration Details Summary */}
             <div className="border-b pb-4">
-              <h4 className="font-semibold text-lg mb-3 text-purple-600">Restoration Details</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-purple-600">Restoration Details</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="font-medium text-sm">Prescription Type:</Label>
-                  <p className="text-sm text-gray-600">
+                  <Label className="font-medium text-xs sm:text-sm">Prescription Type:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {formData.prescriptionType === 'crown-bridge' ? 'Crown and Bridge' :
                       formData.prescriptionType === 'implant' ? 'Implant' : 'Not specified'}
                   </p>
                 </div>
                 <div>
-                  <Label className="font-medium text-sm">Order Method:</Label>
-                  <p className="text-sm text-gray-600">
+                  <Label className="font-medium text-xs sm:text-sm">Order Method:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {formData.orderMethod === 'digital' ? 'Digital' :
                       formData.orderMethod === 'manual' ? 'Manual' : 'Not specified'}
                   </p>
@@ -809,18 +845,18 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
 
             {/* Teeth and Products Summary */}
             <div className="border-b pb-4">
-              <h4 className="font-semibold text-lg mb-3 text-orange-600">Teeth and Products</h4>
+              <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-orange-600">Teeth and Products</h4>
               <div>
-                <Label className="font-medium text-sm">Selected Teeth Groups:</Label>
-                <p className="text-sm text-gray-600">
+                <Label className="font-medium text-xs sm:text-sm">Selected Teeth Groups:</Label>
+                <p className="text-xs sm:text-sm text-gray-600">
                   {summaryGroups && summaryGroups.length > 0
                     ? `${summaryGroups.length} group(s) configured`
                     : 'No teeth groups selected'}
                 </p>
               </div>
               <div className="mt-2">
-                <Label className="font-medium text-sm">Restoration Products:</Label>
-                <p className="text-sm text-gray-600">
+                <Label className="font-medium text-xs sm:text-sm">Restoration Products:</Label>
+                <p className="text-xs sm:text-sm text-gray-600">
                   {formData.restoration_products && formData.restoration_products.length > 0
                     ? `${formData.restoration_products.length} product(s) selected`
                     : 'No products selected'}
@@ -833,19 +869,19 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
 
             {/* Files and Accessories Summary */}
             <div className="border-b pb-4">
-              <h4 className="font-semibold text-lg mb-3 text-red-600">Files and Accessories</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-red-600">Files and Accessories</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <Label className="font-medium text-sm">Uploaded Files:</Label>
-                  <p className="text-sm text-gray-600">
+                  <Label className="font-medium text-xs sm:text-sm">Uploaded Files:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {formData.files && formData.files.length > 0
                       ? `${formData.files.length} file(s) uploaded`
                       : 'No files uploaded'}
                   </p>
                 </div>
                 <div>
-                  <Label className="font-medium text-sm">Accessories:</Label>
-                  <p className="text-sm text-gray-600">
+                  <Label className="font-medium text-xs sm:text-sm">Accessories:</Label>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {formData.accessories && formData.accessories.length > 0
                       ? `${formData.accessories.length} accessory(ies) selected`
                       : 'No accessories selected'}
@@ -857,34 +893,34 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
             {/* Pickup/Scan Information Summary */}
             {(formData.pickupDate || formData.pickupTime || formData.scanBooking) && (
               <div className="border-b pb-4">
-                <h4 className="font-semibold text-lg mb-3 text-indigo-600">Pickup/Scan Information</h4>
+                <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">Pickup/Scan Information</h4>
                 {formData.orderType === 'pickup-from-lab' && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label className="font-medium text-sm">Pickup Date:</Label>
-                      <p className="text-sm text-gray-600">{formData.pickupDate || 'Not specified'}</p>
+                      <Label className="font-medium text-xs sm:text-sm">Pickup Date:</Label>
+                      <p className="text-xs sm:text-sm text-gray-600">{formData.pickupDate || 'Not specified'}</p>
                     </div>
                     <div>
-                      <Label className="font-medium text-sm">Pickup Time:</Label>
-                      <p className="text-sm text-gray-600">{formData.pickupTime || 'Not specified'}</p>
+                      <Label className="font-medium text-xs sm:text-sm">Pickup Time:</Label>
+                      <p className="text-xs sm:text-sm text-gray-600">{formData.pickupTime || 'Not specified'}</p>
                     </div>
                     {formData.pickupRemarks && (
-                      <div className="col-span-2">
-                        <Label className="font-medium text-sm">Pickup Remarks:</Label>
-                        <p className="text-sm text-gray-600">{formData.pickupRemarks}</p>
+                      <div className="col-span-1 sm:col-span-2">
+                        <Label className="font-medium text-xs sm:text-sm">Pickup Remarks:</Label>
+                        <p className="text-xs sm:text-sm text-gray-600">{formData.pickupRemarks}</p>
                       </div>
                     )}
                   </div>
                 )}
                 {formData.orderType === 'request-scan' && formData.scanBooking && (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <Label className="font-medium text-sm">Courier Name:</Label>
-                      <p className="text-sm text-gray-600">{formData.scanBooking.courierName || 'Not specified'}</p>
+                      <Label className="font-medium text-xs sm:text-sm">Courier Name:</Label>
+                      <p className="text-xs sm:text-sm text-gray-600">{formData.scanBooking.courierName || 'Not specified'}</p>
                     </div>
                     <div>
-                      <Label className="font-medium text-sm">Tracking ID:</Label>
-                      <p className="text-sm text-gray-600">{formData.scanBooking.trackingId || 'Not specified'}</p>
+                      <Label className="font-medium text-xs sm:text-sm">Tracking ID:</Label>
+                      <p className="text-xs sm:text-sm text-gray-600">{formData.scanBooking.trackingId || 'Not specified'}</p>
                     </div>
                   </div>
                 )}
@@ -894,8 +930,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
             {/* Notes Summary */}
             {formData.notes && (
               <div>
-                <h4 className="font-semibold text-lg mb-3 text-gray-600">Additional Notes</h4>
-                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{formData.notes}</p>
+                <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-gray-600">Additional Notes</h4>
+                <p className="text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{formData.notes}</p>
               </div>
             )}
           </CardContent>

@@ -412,104 +412,106 @@ const ToothSelector = ({
     updateSelection(localSelectedGroups, localSelectedTeeth);
   };
 
-  return <div className="flex gap-6">
-    <div className="w-1/2">
-      <Card className="shadow-sm bg-[#E2F4F1]">
-        <CardContent className="p-3">
-          <div className="mb-4">
-            <ToothChart 
-              selectedGroups={localSelectedGroups} 
-              selectedTeeth={localSelectedTeeth} 
-              onToothClick={handleToothClick} 
-              onDragConnection={handleDragConnection} 
-              isToothSelected={isToothSelected} 
-              getToothType={getToothType} 
-              onGroupsChange={groups => updateSelection(groups, localSelectedTeeth)} 
-              setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <div className="w-1/2 space-y-4">
-      {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && (
-        <Card className="border shadow-sm">
+  return (
+    <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+      <div className="w-full md:w-1/2">
+        <Card className="shadow-sm bg-[#E2F4F1]">
           <CardContent className="p-3">
-            <SelectedToothGroups 
-              selectedGroups={localSelectedGroups} 
-              selectedTeeth={localSelectedTeeth} 
-              onRemoveGroup={handleRemoveGroup} 
-              onRemoveTooth={handleRemoveTooth} 
-              onUpdateGroup={handleUpdateGroup} 
-              onUpdateTooth={handleUpdateTooth} 
-              onAddIndividualTooth={(toothNumber, type) => updateSelection(localSelectedGroups, localSelectedTeeth.concat({ toothNumber, type, prescriptionType }))}
-              prescriptionType={prescriptionType} 
-            />
+            <div className="mb-4">
+              <ToothChart 
+                selectedGroups={localSelectedGroups} 
+                selectedTeeth={localSelectedTeeth} 
+                onToothClick={handleToothClick} 
+                onDragConnection={handleDragConnection} 
+                isToothSelected={isToothSelected} 
+                getToothType={getToothType} 
+                onGroupsChange={groups => updateSelection(groups, localSelectedTeeth)} 
+                setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
+              />
+            </div>
           </CardContent>
         </Card>
-      )}
-      
-      <Card className="border shadow-sm">
-        <CardContent className="p-3">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
-          <div className="space-y-2 text-xs text-gray-600">
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500">1.</span>
-              <span>Click any tooth to select as Abutment or Pontic</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500">2.</span>
-              <span>Drag between teeth to create groups</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500">3.</span>
-              <span>Groups with pontics become Bridges, without pontics become Joints</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500">4.</span>
-              <span>Double-click connector lines to split groups</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-blue-500">5.</span>
-              <span>⚠️ Connections that skip teeth are blocked for clinical accuracy</span>
-            </div>
-          </div>
+      </div>
 
-          <h4 className="text-sm font-semibold text-gray-900 mb-3 mt-4">Visual Legend</h4>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded"></div>
-              <span>Abutment (Individual)</span>
+      <div className="w-full md:w-1/2 space-y-4 mt-4 md:mt-0">
+        {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && (
+          <Card className="border shadow-sm">
+            <CardContent className="p-3">
+              <SelectedToothGroups 
+                selectedGroups={localSelectedGroups} 
+                selectedTeeth={localSelectedTeeth} 
+                onRemoveGroup={handleRemoveGroup} 
+                onRemoveTooth={handleRemoveTooth} 
+                onUpdateGroup={handleUpdateGroup} 
+                onUpdateTooth={handleUpdateTooth} 
+                onAddIndividualTooth={(toothNumber, type) => updateSelection(localSelectedGroups, localSelectedTeeth.concat({ toothNumber, type, prescriptionType }))}
+                prescriptionType={prescriptionType === 'crown-bridge' ? 'crown_bridge' : prescriptionType} 
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        <Card className="border shadow-sm">
+          <CardContent className="p-3">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
+            <div className="space-y-2 text-xs text-gray-600">
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500">1.</span>
+                <span>Click any tooth to select as Abutment or Pontic</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500">2.</span>
+                <span>Drag between teeth to create groups</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500">3.</span>
+                <span>Groups with pontics become Bridges, without pontics become Joints</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500">4.</span>
+                <span>Double-click connector lines to split groups</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500">5.</span>
+                <span>⚠️ Connections that skip teeth are blocked for clinical accuracy</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded"></div>
-              <span>Joint Group</span>
+
+            <h4 className="text-sm font-semibold text-gray-900 mb-3 mt-4">Visual Legend</h4>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                <span>Abutment (Individual)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span>Joint Group</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                <span>Bridge Group</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                <span>Pontic</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span>Bridge Group</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-purple-500 rounded"></div>
-              <span>Pontic</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      <ToothTypeDialog
+        isOpen={showTypeDialog}
+        onClose={() => setShowTypeDialog(false)}
+        toothNumber={clickedTooth || 0}
+        position={dialogPosition}
+        onSelectType={handleToothTypeSelection}
+        selectedGroups={localSelectedGroups}
+        onJoinGroup={handleJoinGroup}
+        debugMode={false}
+        prescriptionType={prescriptionType}
+      />
     </div>
-
-    <ToothTypeDialog
-      isOpen={showTypeDialog}
-      onClose={() => setShowTypeDialog(false)}
-      toothNumber={clickedTooth || 0}
-      position={dialogPosition}
-      onSelectType={handleToothTypeSelection}
-      selectedGroups={localSelectedGroups}
-      onJoinGroup={handleJoinGroup}
-      debugMode={false}
-      prescriptionType={prescriptionType}
-    />
-  </div>;
+  );
 };
 export default ToothSelector;

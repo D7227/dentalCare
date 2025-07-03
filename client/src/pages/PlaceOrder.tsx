@@ -19,6 +19,7 @@ import { OrderCategory, FormData } from '@/components/order-wizard/types/orderTy
 import CustomButton from '@/components/common/customButtom';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setUser } from '@/store/slices/authSlice';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ToothGroup {
   groupId: string;
@@ -42,6 +43,7 @@ const PlaceOrder = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
+  const isMobile = useIsMobile();
   
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
@@ -103,14 +105,6 @@ const PlaceOrder = () => {
     pickupDate: '',
     pickupTime: '',
     pickupRemarks: '',
-    implantPhoto: '',
-    implantCompany: '',
-    implantRemark: '',
-    issueCategory: '',
-    trialApproval: false,
-    reapirInstructions: '',
-    repairType: '',
-    issueDescription: '',
     scanBooking: {
       areaManagerId: '',
       scanDate: '',
@@ -119,9 +113,10 @@ const PlaceOrder = () => {
     },
     previousOrderId: '',
     repairOrderId: '',
+    repairType: '',
+    issueDescription: '',
     returnWithTrial: false,
     type: 'new',
-    selectedTeeth: [],
   });
   
   // Update clinicId when Redux data becomes available
@@ -181,10 +176,7 @@ const PlaceOrder = () => {
     try {
       if(orderCategory === 'repair'){
         formData.category = 'repair';
-        formData.firstName = formData.patientFirstName;
-        formData.lastName = formData.patientLastName;
-        formData.age = formData.patientAge;
-        formData.sex = formData.patientSex;
+        // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         const orderData = createOrderObject(formData, user?.clinicId || '');
         console.log("Order data:", orderData);
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
@@ -218,10 +210,7 @@ const PlaceOrder = () => {
           setIsSubmitting(false);
           return;
         }
-        formData.firstName = formData.patientFirstName;
-        formData.lastName = formData.patientLastName;
-        formData.age = formData.patientAge;
-        formData.sex = formData.patientSex;
+        // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         formData.category = 'repeat';
         const orderData = createOrderObject(formData, user?.clinicId || '');
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
@@ -426,55 +415,33 @@ const PlaceOrder = () => {
     <div className="min-h-screen bg-[#EFF9F7]">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
-      <div className='max-w-7xl mx-auto'>
-        <CardContent className="p-4">
-          <div className=" flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <CustomButton 
-                variant="blackAndWhite" 
-                onClick={() => window.history.back()} 
-              >
-                <ArrowLeft size={18} />
-                Back
-              </CustomButton>
-              <div className="h-5 w-px bg-gray-300"></div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+        <div className='max-w-7xl mx-auto'>
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 justify-between ">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                   {getCurrentStepTitle()}
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  {getCurrentStepDescription()}
-                </p>
+                <div className="text-customBlack-100 text-12/16 bg-mainBrackground px-3 sm:px-4 py-2 sm:py-3 rounded-[8px] font-medium border border-customGreen-100 h-[36px] sm:h-[40px] flex items-center justify-center">
+                  Step {currentStep + 1} of {steps.length}
+                </div>
               </div>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                {getCurrentStepDescription()}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-customBlack-100 text-12/16 bg-mainBrackground px-4 py-3 rounded-[8px] font-medium border border-customGreen-100 h-[40px]">
-                Step {currentStep + 1} of {steps.length}
-              </div>
-              {orderCategory && (
-                <Button
-                  variant="outline"
-                  onClick={handleCancelOrder}
-                  className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                >
-                  <X size={16} />
-                  Cancel Order
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </div>
+          </CardContent>
+        </div>
       </Card>
 
       {/* Main Layout */}
-      <div className="max-w-7xl mx-auto p-4 lg:py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:py-6">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {/* Left Sidebar - Progress Steps */}
-          <div className="lg:w-80 flex-shrink-0">
-            <Card className="sticky top-24 shadow-sm border border-customGray-200 bg-white">
+          <div className="lg:w-80 flex-shrink-0 order-2 lg:order-1">
+            <Card className="lg:sticky lg:top-24 shadow-sm border border-customGray-200 bg-white">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-900">Order Progress</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Order Progress</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
                 <WizardProgress steps={steps} currentStep={currentStep} />
@@ -483,20 +450,20 @@ const PlaceOrder = () => {
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 min-w-0 bg-transparent">
+          <div className="flex-1 min-w-0 bg-transparent order-1 lg:order-2">
             <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-white">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 {/* Validation Errors */} 
                 {currentStepErrors.length > 0 && (
-                  <Card className="mb-6 border-red-200 bg-red-50">
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2 text-sm">
+                  <Card className="mb-4 sm:mb-6 border-red-200 bg-red-50">
+                    <CardContent className="p-3 sm:p-4">
+                      <h4 className="font-semibold text-red-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
                         <span className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-xs font-bold">!</span>
                         Please fix the following errors:
                       </h4>
-                      <ul className="space-y-2">
+                      <ul className="space-y-1 sm:space-y-2">
                         {currentStepErrors.map((error, index) => (
-                          <li key={index} className="text-sm text-red-700 flex items-center gap-2">
+                          <li key={index} className="text-xs sm:text-sm text-red-700 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
                             {error}
                           </li>
@@ -514,25 +481,25 @@ const PlaceOrder = () => {
 
               {/* Navigation Footer */}
               {orderCategory && (
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={prevStep}
                       disabled={isSubmitting}
-                      className="flex items-center gap-2 px-4 py-2"
+                      className="flex items-center justify-center gap-2 px-4 py-2 order-2 sm:order-1"
                     >
                       <ChevronLeft size={16} />
                       {currentStep === 1 ? 'Change Category' : 'Previous'}
                     </Button>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
                       {currentStep < maxSteps ? (
                         <Button
                           type="button"
                           onClick={nextStep}
-                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-6 py-2"
+                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
                           disabled={isSubmitting}
                         >
                           Continue
@@ -542,7 +509,7 @@ const PlaceOrder = () => {
                         <Button
                           type="submit"
                           onClick={handleSubmit}
-                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-6 py-2"
+                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? (
@@ -566,7 +533,7 @@ const PlaceOrder = () => {
 
       {/* Cancel Order Confirmation Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-gray-900">
               Cancel Order
@@ -575,17 +542,17 @@ const PlaceOrder = () => {
               Are you sure you want to cancel this order? All unsaved changes will be lost.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-end gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-6">
             <Button
               variant="outline"
               onClick={() => setShowCancelModal(false)}
-              className="px-4 py-2"
+              className="px-4 py-2 order-2 sm:order-1"
             >
               No, Continue
             </Button>
             <Button
               onClick={confirmCancelOrder}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white order-1 sm:order-2"
             >
               Yes, Cancel
             </Button>
