@@ -662,12 +662,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateClinic(id: string, updates: Partial<InsertClinic>): Promise<Clinic | undefined> {
-    const [clinic] = await db
-      .update(clinic)
-      .set(updates)
-      .where(eq(clinic.id, id))
-      .returning();
-    return clinic;
+  //   const [updatedClinic] = await db
+  //     .update(clinic)
+  //     .set(updates)
+  //     .where(eq(clinic.id, id))
+  //     .returning();
+  //   return updatedClinic;
+const [updatedClinic] = await db.update(clinic).set(updates).where(eq(clinic.id, id)).returning();
+
+console.log("updatedClinic==>",updatedClinic);
+return updatedClinic;
+
   }
 
   async getClinicByName(clinicName: string): Promise<Clinic | undefined> {
