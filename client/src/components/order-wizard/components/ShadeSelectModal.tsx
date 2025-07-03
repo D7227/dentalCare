@@ -69,12 +69,14 @@ const ShadeSelectModal: React.FC<ShadeSelectModalProps> = ({ open, onClose, toot
         ))}
         <div className="flex gap-2 mt-4">
           <button
+            type="button"
             onClick={onClose}
             className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             className="flex-1 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!hasAtLeastOneShade}

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore, Wrench, FileText } from 'lucide-react';
+import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore, Wrench, FileText, Edit } from 'lucide-react';
 import { OrderCategory } from './types/orderTypes';
 import ToothChart from './components/ToothChart';
 import { DoctorInfo } from '../shared/DoctorInfo';
@@ -359,11 +359,16 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
       <Card className="shadow-sm mb-3 p-3">
         <CardHeader className="pb-3 print:pb-2 p-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
+            <div className='flex items-center gap-2'>
+              <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
+                <Edit2  className="h-4 w-4" />
+              </div>
+              <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded min-h-[40px]">
+          <div className="text-sm text-gray-600 p-2 rounded min-h-[40px] mt-4">
             {formData.notes || <span className="italic text-gray-400">No additional notes</span>}
           </div>
         </CardContent>

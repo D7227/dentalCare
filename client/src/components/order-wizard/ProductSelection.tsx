@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ProductSearch from './ProductSearch';
@@ -8,6 +8,7 @@ import TrialSelector from './components/TrialSelector';
 import ShadeGuideSection from './components/ShadeGuideSection';
 import { CheckCircle, Plus, Pencil } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductSelectionProps {
   formData: any;
@@ -70,6 +71,7 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
     shadeGuide: []
   });
   const [editingGroupIndex, setEditingGroupIndex] = useState<number | null>(null);
+  const { toast } = useToast();
 
   const toothGroups = formData.toothGroups || [];
   const selectedTeeth = formData.selectedTeeth || [];
@@ -115,6 +117,21 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
   }, 0);
   // Get teeth numbers from unconfigured groups only
   const allTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
+
+  let editingTeethNumbers: number[] = [];
+  if (isConfiguring) {
+    if (editingGroupIndex !== null) {
+      // Editing a specific group
+      const group = allGroups[editingGroupIndex];
+      editingTeethNumbers = group?.teeth || [];
+    } else {
+      // Editing all groups of a type
+      editingTeethNumbers = allGroups.flatMap((g: any) => g.teeth || []);
+    }
+  } else {
+    // Default to unconfigured groups
+    editingTeethNumbers = unconfiguredGroups.flatMap((group: any) => group.teeth || []);
+  }
 
   const handleProductDetailsChange = (field: keyof ProductDetails, value: any) => {
     setProductDetails(prev => {
@@ -197,9 +214,10 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
           });
         }
       } else {
-        // Apply to all unconfigured groups (existing logic)
+        // Update all groups of the same type as the first group being edited
+        const typeToEdit = formData.prescriptionType;
         updatedGroups = updatedGroups.map((group: any) => {
-          if (!isGroupConfigured(group)) {
+          if ((group.prescriptionType || formData.prescriptionType) === typeToEdit) {
             return {
               ...group,
               selectedProducts: [...selectedProducts],
@@ -282,7 +300,7 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
 
       // Reset editing state
       setIsConfiguring(false);
-      setSelectedProducts([]);
+      setSelectedProducts([selectedProducts[selectedProducts.length - 1]]);
       setProductDetails({
         shade: [],
         occlusalStaining: 'medium',
@@ -338,7 +356,14 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
     });
   };
 
-
+  useEffect(() => {
+    if (!isConfiguring && unconfiguredGroups.length > 0) {
+      console.log('unconfiguredGroups', unconfiguredGroups);
+      startConfiguring();
+    }
+    // Optionally, add dependencies if you want to trigger on step change
+    // eslint-disable-next-line
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -382,12 +407,12 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
                       <button type="button" className="p-1 text-gray-400 hover:text-blue-600"
                         onClick={() => {
                           setEditingGroupIndex(null); // null means edit all
-                          setIsConfiguring(true);
-                          // Use the first group's products/details as a base
-                          const firstGroup = groups[0];
-                          setSelectedProducts(firstGroup.selectedProducts || []);
+                          setIsConfiguring(!isConfiguring);
+                          // Aggregate all products from all groups of this type
+                          const allProducts = groups.flatMap(g => g.selectedProducts || []);
+                          setSelectedProducts(allProducts);
                           setProductDetails({
-                            ...firstGroup.productDetails,
+                            ...groups[0].productDetails,
                             shade: formData.shade || [],
                             trial: formData.trial || '',
                             shadeNotes: formData.shadeNotes || '',
@@ -398,7 +423,15 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-                      <button type="button" className="p-1 text-gray-400 hover:text-red-600">
+                      <button type="button" className="p-1 text-gray-400 hover:text-green-600"
+                        onClick={() => {
+                          toast({
+                            title: 'Group already configured',
+                            description: 'This group has already been configured. You can edit it using the pencil icon.'
+                          });
+                        }}
+                        aria-label="Group already configured"
+                      >
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       </button>
                     </div>
@@ -444,10 +477,9 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
                       <p className="font-medium text-gray-900 mb-1">Shade:</p>
                       <p className="text-gray-600 uppercase">
                         {/* Show all unique shades for this type */}
-                        {(() => {
-                          const shades = Array.from(new Set(groups.flatMap((g: any) => g.productDetails?.shade ? [g.productDetails.shade] : [])));
-                          return shades.length > 0 ? shades.join(', ') : 'Not specified';
-                        })()}
+                        {Array.isArray(formData.shade) && formData.shade.length > 0
+                        ? formData.shade.join(', ')
+                        : 'Not specified'}
                         {/* Display shadeGuide values in column */}
                         {formData.shadeGuide?.length > 0 && (
                           <div className="flex flex-col mt-1">
@@ -528,20 +560,8 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
           )}
 
           {/* Single Product Configuration Box - Only show if there are unconfigured groups */}
-          {unconfiguredGroups.length > 0 && (
+          {isConfiguring && (
             <Card className="border-none p-0">
-               {/* <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span>Product Configuration</span>
-                  {allGroupsConfigured && (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  Configure products for {unconfiguredGroups.length} tooth group{unconfiguredGroups.length > 1 ? 's' : ''} 
-                  ({totalTeethCount} teeth total: {allTeethNumbers.join(', ')})
-                </CardDescription>
-              </CardHeader> */}
               <CardContent className="p-0">
               {/* {isConfiguring ? ( */}
                 <div className="space-y-4">
@@ -551,7 +571,7 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
                   <ProductSearch
                     selectedProducts={selectedProducts}
                     onProductsChange={setSelectedProducts}
-                    selectedTeeth={allTeethNumbers}
+                    selectedTeeth={editingTeethNumbers}
                     restorationType="separate"
                   />
 
@@ -645,41 +665,6 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
                     </div>
                   )}
                 </div>
-              {/* ) : (
-                <div className="space-y-3">
-                  {allGroupsConfigured ? (
-                    <div className="space-y-3">
-                      <div className="text-center py-4">
-                        <div className="text-green-600 font-medium mb-2">
-                          ✓ All tooth groups configured successfully
-                        </div>
-                        <p className="text-sm text-gray-600 mb-4">
-                          Each tooth group has been configured with products and details.
-                        </p>
-                        <Button 
-                          onClick={startConfiguring}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-2"
-                        >
-                          <Pencil className="w-4 h-4" />
-                          Configure Additional Products
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-gray-500 mb-3">Configure products for all tooth groups</p>
-                      <Button 
-                        onClick={startConfiguring}
-                        className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
-                      >
-                        Configure Products
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )} */}
             </CardContent>
           </Card>
           )}

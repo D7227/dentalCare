@@ -94,11 +94,10 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
       return;
     }
 
-    // Add new product with calculated quantity
+    // Add new product with calculated quantity, replacing any previous selection
     const calculatedQuantity = calculateQuantity();
     const newProduct: SelectedProduct = { ...product, quantity: calculatedQuantity };
-    onProductsChange([...selectedProducts, newProduct]);
-    
+    onProductsChange([newProduct]); // Only allow one product at a time
     // Clear search
     setSearchTerm('');
     setIsDropdownOpen(false);
@@ -185,66 +184,46 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
       {/* Selected Products */}
       {selectedProducts.length > 0 && (
         <div className="space-y-3">
-          <Label className="text-sm font-medium">Selected Products ({selectedProducts.length})</Label>
+          <Label className="text-sm font-medium">Selected Product</Label>
           <div className="space-y-2">
-            {selectedProducts.map((product) => (
-              <Card key={product.id} className="border border-gray-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm text-gray-900 truncate">
-                        {product.name}
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        {product.category} • {product.material}
-                      </div>
+            {/* Only show the first selected product */}
+            <Card key={selectedProducts[0].id} className="border border-gray-200">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-gray-900 truncate">
+                      {selectedProducts[0].name}
                     </div>
-                    
-                    <div className="flex items-center gap-3 ml-4">
-                      {/* Quantity Display */}
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1 bg-[#231F20] rounded-md border">
-                        {/* <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleQuantityChange(product.id, product.quantity - 1)}
-                          disabled={product.quantity <= 1}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button> */}
-                          <span className="text-sm font-semibold text-[#07AD94]">
-                            {product.quantity}
-                          </span>
-                          <span className="text-xs text-[#FFFFFF] font-medium">
-                            Units
-                          </span>
-                          {/* <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleQuantityChange(product.id, product.quantity + 1)}
-                          disabled={product.quantity >= selectedTeeth.length}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button> */}
-                        </div>
-                      </div>
-                      
-                      {/* Remove Button */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleRemoveProduct(product.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {selectedProducts[0].category} • {selectedProducts[0].material}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="flex items-center gap-3 ml-4">
+                    {/* Quantity Display */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-[#231F20] rounded-md border">
+                        <span className="text-sm font-semibold text-[#07AD94]">
+                          {selectedProducts[0].quantity}
+                        </span>
+                        <span className="text-xs text-[#FFFFFF] font-medium">
+                          Units
+                        </span>
+                      </div>
+                    </div>
+                    {/* Remove Button */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => onProductsChange([])}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
