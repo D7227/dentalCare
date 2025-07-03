@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface ProductSelectionProps {
   formData: any;
   setFormData: (data: any) => void;
+  onAddMoreProducts?: () => void;
 }
 
 interface SelectedProduct {
@@ -55,7 +56,7 @@ const shadeOptions: ShadeOption[] = [
   { value: '3m2', label: '3M2 - Vita 3D Master', family: 'Vita 3D Master' }
 ];
 
-const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
+const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductSelectionProps) => {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
   const [productDetails, setProductDetails] = useState<ProductDetails>({
@@ -87,6 +88,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
       type: 'individual',
       selectedProducts: individualTeeth[0]?.selectedProducts || [],
       productDetails: individualTeeth[0]?.productDetails || {},
+      prescriptionType: formData.prescriptionType
     });
   }
   // --- END: Compose all groups including individual teeth as a single group ---
@@ -188,6 +190,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
                 ...group,
                 selectedProducts: [...selectedProducts],
                 productDetails: { ...productDetailsWithoutExtras },
+                prescriptionType: formData.prescriptionType
               };
             }
             return group;
@@ -201,6 +204,7 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
               ...group,
               selectedProducts: [...selectedProducts],
               productDetails: { ...productDetailsWithoutExtras },
+              prescriptionType: formData.prescriptionType
             };
           }
           return group;
@@ -313,7 +317,11 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
   };
 
   const addMoreProducts = () => {
-    startConfiguring();
+    if (onAddMoreProducts) {
+      onAddMoreProducts();
+    } else {
+      startConfiguring();
+    }
   };
 
   const saveRestorationInfo = () => {
@@ -351,127 +359,138 @@ const ProductSelection = ({ formData, setFormData }: ProductSelectionProps) => {
             </Card>
           )}
 
-          {/* Configured Groups Detail Cards - Single Summary Card */}
+          {/* Configured Groups Detail Cards - Grouped by prescriptionType */}
           {allGroupsConfigured && (
-            <Card className="border border-green-200 bg-gray-50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                      {formData.prescriptionType === 'crown-bridge' ? 'Crown & Bridge' : 'Implant'}
-                    </span>
+            (Object.entries(
+              allGroups.reduce((acc: any, group: any) => {
+                const type = group.prescriptionType || formData.prescriptionType;
+                if (!acc[type]) acc[type] = [];
+                acc[type].push(group);
+                return acc;
+              }, {})
+            ) as [string, any[]][]).map(([type, groups], idx) => (
+              <Card key={type} className="border border-green-200 bg-gray-50 mb-4">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 ${type === 'implant' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'} text-xs rounded-full font-medium`}>
+                        {type === 'implant' ? 'Implant' : 'Crown & Bridge'}
+                      </span>
+                    </div>
+                    {/* Edit button for all groups at once (per type) */}
+                    <div className="flex gap-2">
+                      <button type="button" className="p-1 text-gray-400 hover:text-blue-600"
+                        onClick={() => {
+                          setEditingGroupIndex(null); // null means edit all
+                          setIsConfiguring(true);
+                          // Use the first group's products/details as a base
+                          const firstGroup = groups[0];
+                          setSelectedProducts(firstGroup.selectedProducts || []);
+                          setProductDetails({
+                            ...firstGroup.productDetails,
+                            shade: formData.shade || [],
+                            trial: formData.trial || '',
+                            shadeNotes: formData.shadeNotes || '',
+                            additionalNotes: formData.additionalNotes || '',
+                            shadeGuide: formData.shadeGuide || [],
+                          });
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button type="button" className="p-1 text-gray-400 hover:text-red-600">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                      </button>
+                    </div>
                   </div>
-                  {/* Edit button for all groups at once */}
-                  <div className="flex gap-2">
-                    <button type="button" className="p-1 text-gray-400 hover:text-blue-600"
-                      onClick={() => {
-                        setEditingGroupIndex(null); // null means edit all
-                        setIsConfiguring(true);
-                        // For edit all, just use the first group's products/details as a base
-                        const firstGroup = allGroups[0];
-                        setSelectedProducts(firstGroup.selectedProducts || []);
-                        setProductDetails({
-                          ...firstGroup.productDetails,
-                          shade: formData.shade || [],
-                          trial: formData.trial || '',
-                          shadeNotes: formData.shadeNotes || '',
-                          additionalNotes: formData.additionalNotes || '',
-                          shadeGuide: formData.shadeGuide || [],
-                        });
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button type="button" className="p-1 text-gray-400 hover:text-red-600">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Teeth:</p>
-                    <p className="text-gray-600">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                      <p className="text-gray-600">
+                        {(() => {
+                          // Group teeth numbers by group type
+                          const typeMap: Record<string, number[]> = {};
+                          groups.forEach((g: any) => {
+                            const gtype = g.type || 'individual';
+                            if (!typeMap[gtype]) typeMap[gtype] = [];
+                            typeMap[gtype].push(...(g.teeth || []));
+                          });
+                          return Object.entries(typeMap).map(([gtype, teeth]) => (
+                            <div key={gtype}>
+                              <span className="capitalize">{gtype}:</span> {teeth.join(', ')}
+                            </div>
+                          ));
+                        })()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Products:</p>
                       {(() => {
-                        // Group teeth numbers by type
-                        const typeMap: Record<string, number[]> = {};
-                        allGroups.forEach((g: any) => {
-                          const type = g.type || 'individual';
-                          if (!typeMap[type]) typeMap[type] = [];
-                          typeMap[type].push(...(g.teeth || []));
+                        // Aggregate all products across groups of this type
+                        const productMap: Record<string, number> = {};
+                        groups.forEach((group: any) => {
+                          (group.selectedProducts || []).forEach((product: any) => {
+                            productMap[product.name] = (productMap[product.name] || 0) + (group.teeth?.length || 0);
+                          });
                         });
-                        return Object.entries(typeMap).map(([type, teeth]) => (
-                          <div key={type}>
-                            <span className="capitalize">{type}:</span> {teeth.join(', ')}
-                          </div>
+                        return Object.entries(productMap).map(([name, count], i) => (
+                          <p key={i} className="text-gray-600">{name} x {count}</p>
                         ));
                       })()}
-                    </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Products:</p>
-                    {(() => {
-                      // Aggregate all products across groups
-                      const productMap: Record<string, number> = {};
-                      allGroups.forEach((group: any) => {
-                        (group.selectedProducts || []).forEach((product: any) => {
-                          productMap[product.name] = (productMap[product.name] || 0) + (group.teeth?.length || 0);
-                        });
-                      });
-                      return Object.entries(productMap).map(([name, count], i) => (
-                        <p key={i} className="text-gray-600">{name} x {count}</p>
-                      ));
-                    })()}
+                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Shade:</p>
+                      <p className="text-gray-600 uppercase">
+                        {/* Show all unique shades for this type */}
+                        {(() => {
+                          const shades = Array.from(new Set(groups.flatMap((g: any) => g.productDetails?.shade ? [g.productDetails.shade] : [])));
+                          return shades.length > 0 ? shades.join(', ') : 'Not specified';
+                        })()}
+                        {/* Display shadeGuide values in column */}
+                        {formData.shadeGuide?.length > 0 && (
+                          <div className="flex flex-col mt-1">
+                            {formData.shadeGuide.map((shade: any) => (
+                              <span key={shade} className="text-gray-600 capitalize">
+                                {shade}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
+                      <p className="text-gray-600 capitalize">
+                        {/* Show all unique occlusalStaining values across groups of this type */}
+                        {(() => {
+                          const stainings = Array.from(new Set(groups.map((g: any) => g.productDetails?.occlusalStaining || '').filter(Boolean)));
+                          if (stainings.length === 1) return stainings[0];
+                          if (stainings.length > 1) return 'Multiple';
+                          return 'Not specified';
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Shade:</p>
-                    <p className="text-gray-600 uppercase">
-                      {Array.isArray(formData.shade) && formData.shade.length > 0
-                        ? formData.shade.join(', ')
-                        : 'Not specified'}
-                      {/* Display shadeGuide values in column */}
-                      {formData.shadeGuide?.length > 0 && (
-                        <div className="flex flex-col mt-1">
-                          {formData.shadeGuide.map((shade: any) => (
-                            <span key={shade} className="text-gray-600 capitalize">
-                              {shade}
-                            </span>
-                          ))}
+                  {/* Notes: show all notes concatenated if present */}
+                  {(() => {
+                    const notes = groups.map((g: any) => g.productDetails?.notes).filter(Boolean);
+                    if (notes.length > 0) {
+                      return (
+                        <div className="mt-3 text-sm">
+                          <p className="font-medium text-gray-900 mb-1">Notes:</p>
+                          <p className="text-gray-600 italic text-xs leading-relaxed">
+                            {notes.join(' | ')}
+                          </p>
                         </div>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
-                    <p className="text-gray-600 capitalize">
-                      {/* Show all unique occlusalStaining values across groups */}
-                      {(() => {
-                        const stainings = Array.from(new Set(allGroups.map((g: any) => g.productDetails?.occlusalStaining || '').filter(Boolean)));
-                        if (stainings.length === 1) return stainings[0];
-                        if (stainings.length > 1) return 'Multiple';
-                        return 'Not specified';
-                      })()}
-                    </p>
-                  </div>
-                </div>
-                {/* Notes: show all notes concatenated if present */}
-                {(() => {
-                  const notes = allGroups.map((g: any) => g.productDetails?.notes).filter(Boolean);
-                  if (notes.length > 0) {
-                    return (
-                      <div className="mt-3 text-sm">
-                        <p className="font-medium text-gray-900 mb-1">Notes:</p>
-                        <p className="text-gray-600 italic text-xs leading-relaxed">
-                          {notes.join(' | ')}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </CardContent>
-            </Card>
+                      );
+                    }
+                    return null;
+                  })()}
+                </CardContent>
+              </Card>
+            ))
           )}
 
           {/* Tooth Groups Summary for unconfigured groups */}

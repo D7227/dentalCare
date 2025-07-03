@@ -127,6 +127,12 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
   };
 
   const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group));
+
+  const uniqueTypes = Array.from(new Set((formData.toothGroups || []).map((g: any) => g.prescriptionType)));
+  const typeLabel = uniqueTypes.length > 1
+    ? uniqueTypes.map(t => t === 'implant' ? 'Implant' : 'Crown & Bridge').join(', ')
+    : (uniqueTypes[0] === 'implant' ? 'Implant' : 'Crown & Bridge');
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
       {/* Header */}
@@ -142,9 +148,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-green-700">
-                  Adding: {formData.restorationType ?
-                    formData.restorationType.charAt(0).toUpperCase() + formData.restorationType.slice(1) :
-                    'Crown'} & Bridge
+                  Adding: {typeLabel}
                 </CardTitle>
                 <Button
                   type="button"
@@ -268,7 +272,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
                   )}
                 </div>
-                <div className='font-medium text-gray-900'>{formData.restorationType || 'Crown'}</div>
+                <div className='font-medium text-gray-900'>{typeLabel}</div>
               </div>
               <div className="text-xs text-gray-500 mt-4 mb-1">Teeth</div>
               {allGroups.length > 0 && (
@@ -338,7 +342,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 <div className="space-y-1">
                   {formData.files.map((file: any, idx: number) => (
                     <div key={idx} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900">{file.name}</span>
+                      <span className="text-gray-900 truncate max-w-[160px] block">{file.fileName}</span>
                       <span className="text-gray-600">{(file.size / (1024 * 1024)).toFixed(2)} Mb</span>
                     </div>
                   ))}
@@ -356,7 +360,6 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
         <CardHeader className="pb-3 print:pb-2 p-0">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
-            <EditButton onClick={() => onEditSection?.(5)} label="Notes" />
           </div>
         </CardHeader>
         <CardContent className="p-0">

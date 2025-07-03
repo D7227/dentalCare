@@ -231,7 +231,7 @@ function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
   );
 }
 
-const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOrderFlowProps) => {
+const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, onSaveOrder }: NewOrderFlowProps) => {
   const [companies, setCompanies] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   const [companiesError, setCompaniesError] = useState<string | null>(null);
@@ -406,7 +406,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
       <div className="space-y-4 sm:space-y-6">
         <Card className='border-none p-0'>
           <div className='p-0 mt-4'>
-            <ProductSelection formData={formData} setFormData={setFormData} />
+            <ProductSelection formData={formData} setFormData={setFormData} onAddMoreProducts={typeof onAddMoreProducts === 'function' ? onAddMoreProducts : undefined} />
           </div>
         </Card>
       </div>
@@ -606,7 +606,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })}
                 className="mt-2"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                <div className="flex flex-col items-start gap-2">
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="pickup-from-lab" id="pickup-from-lab" />
                     <Label htmlFor="pickup-from-lab">Pickup from Clinic</Label>
