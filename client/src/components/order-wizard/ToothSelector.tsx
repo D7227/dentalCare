@@ -413,30 +413,31 @@ const ToothSelector = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-      <div className="w-full md:w-1/2">
+    <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full">
+      <div className="w-full md:w-1/2 min-w-0">
         <Card className="shadow-sm bg-[#E2F4F1]">
-          <CardContent className="p-3">
-            <div className="mb-4">
-              <ToothChart 
-                selectedGroups={localSelectedGroups} 
-                selectedTeeth={localSelectedTeeth} 
-                onToothClick={handleToothClick} 
-                onDragConnection={handleDragConnection} 
-                isToothSelected={isToothSelected} 
-                getToothType={getToothType} 
-                onGroupsChange={groups => updateSelection(groups, localSelectedTeeth)} 
-                setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
-              />
+          <CardContent className="p-2 sm:p-3">
+            <div className="mb-4 overflow-x-auto">
+              <div className="min-w-[320px] sm:min-w-0">
+                <ToothChart 
+                  selectedGroups={localSelectedGroups} 
+                  selectedTeeth={localSelectedTeeth} 
+                  onToothClick={handleToothClick} 
+                  onDragConnection={handleDragConnection} 
+                  isToothSelected={isToothSelected} 
+                  getToothType={getToothType} 
+                  onGroupsChange={groups => updateSelection(groups, localSelectedTeeth)} 
+                  setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
-
       <div className="w-full md:w-1/2 space-y-4 mt-4 md:mt-0">
         {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && (
           <Card className="border shadow-sm">
-            <CardContent className="p-3">
+            <CardContent className="p-2 sm:p-3">
               <SelectedToothGroups 
                 selectedGroups={localSelectedGroups} 
                 selectedTeeth={localSelectedTeeth} 
@@ -450,10 +451,9 @@ const ToothSelector = ({
             </CardContent>
           </Card>
         )}
-        
         <Card className="border shadow-sm">
-          <CardContent className="p-3">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Instructions</h4>
+          <CardContent className="p-2 sm:p-3">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Instructions</h4>
             <div className="space-y-2 text-xs text-gray-600">
               <div className="flex items-start gap-2">
                 <span className="text-blue-500">1.</span>
@@ -476,8 +476,7 @@ const ToothSelector = ({
                 <span>⚠️ Connections that skip teeth are blocked for clinical accuracy</span>
               </div>
             </div>
-
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 mt-4">Visual Legend</h4>
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3 mt-3 sm:mt-4">Visual Legend</h4>
             <div className="space-y-2 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-blue-500 rounded"></div>
@@ -499,7 +498,6 @@ const ToothSelector = ({
           </CardContent>
         </Card>
       </div>
-
       <ToothTypeDialog
         isOpen={showTypeDialog}
         onClose={() => setShowTypeDialog(false)}

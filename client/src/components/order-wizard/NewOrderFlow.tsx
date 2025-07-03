@@ -195,18 +195,12 @@ function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
       </div>
       {/* Modal for webcam capture */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg p-6 flex flex-col items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-4 sm:p-6 flex flex-col items-center w-full max-w-xs sm:max-w-md mx-2 my-8">
             {cameraError ? (
               <>
-                <div className="text-red-600 font-semibold mb-4">{cameraError}</div>
-                <button
-                  type="button"
-                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold"
-                  onClick={handleClose}
-                >
-                  Close
-                </button>
+                <div className="text-red-600 font-semibold mb-4 text-center text-sm sm:text-base">{cameraError}</div>
+              <button type="button" className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold w-full" onClick={handleClose}>Close</button>
               </>
             ) : !imgSrc ? (
               <>
@@ -215,44 +209,18 @@ function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
                   ref={webcamRef}
                   screenshotFormat="image/png"
                   videoConstraints={videoConstraints}
-                  className="rounded-lg mb-4 w-80 h-60 object-cover"
-                  onUserMediaError={err => {
-                    setCameraError('Attach Camera');
-                  }}
+                  className="rounded-lg mb-4 w-full max-w-xs h-48 sm:w-80 sm:h-60 object-cover"
+                  onUserMediaError={err => { setCameraError('Attach Camera'); }}
                 />
-                <button
-                  type="button"
-                  className="bg-teal-600 text-white px-4 py-2 rounded font-semibold mb-2"
-                  onClick={capture}
-                >
-                  Capture
-                </button>
-                <button
-                  type="button"
-                  className="text-gray-500 underline text-sm"
-                  onClick={handleClose}
-                >
-                  Cancel
-                </button>
+                <button type="button" className="bg-teal-600 text-white px-4 py-2 rounded font-semibold mb-2 w-full" onClick={capture}>Capture</button>
+                <button type="button" className="text-gray-500 underline text-sm w-full" onClick={handleClose}>Cancel</button>
               </>
             ) : (
               <>
-                <img src={imgSrc} alt="Captured" className="rounded-lg mb-4 w-80 h-60 object-cover" />
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    className="bg-teal-600 text-white px-4 py-2 rounded font-semibold"
-                    onClick={handleConfirm}
-                  >
-                    Confirm
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold"
-                    onClick={handleRetake}
-                  >
-                    Retake
-                  </button>
+                <img src={imgSrc} alt="Captured" className="rounded-lg mb-4 w-full max-w-xs h-48 sm:w-80 sm:h-60 object-cover" />
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
+                  <button type="button" className="bg-teal-600 text-white px-4 py-2 rounded font-semibold w-full" onClick={handleConfirm}>Confirm</button>
+                  <button type="button" className="bg-gray-300 text-gray-800 px-4 py-2 rounded font-semibold w-full" onClick={handleRetake}>Retake</button>
                 </div>
               </>
             )}
@@ -326,7 +294,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })} 
                 className="mt-3"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                <div className="flex flex-col gap-2 sm:gap-4 items-start ">
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="implant" id="implant" />
                     <Label htmlFor="implant" className="font-normal">Implant</Label>
@@ -350,7 +318,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
                 })}
                 className="mt-3"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:space-x-2">
+                <div className="flex flex-col gap-2 sm:gap-4 items-start ">
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="digital" id="digital" />
                     <Label htmlFor="digital" className="font-normal">Digital</Label>
@@ -409,8 +377,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
     }
     // Desktop: side-by-side layout
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6">
           <Card className="border-none p-0">
             <CardHeader className="p-0">
               <CardTitle className="text-lg sm:text-xl font-semibold">Teeth Selection</CardTitle>
@@ -429,11 +396,6 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onSaveOrder }: NewOr
               />
             </CardContent>
           </Card>
-        </div>
-        <div className="flex flex-col gap-4">
-          {instructionsPanel}
-          {summaryPanel}
-        </div>
       </div>
     );
   }

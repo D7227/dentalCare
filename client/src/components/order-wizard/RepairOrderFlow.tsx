@@ -32,13 +32,13 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
 
   if (currentStep === 1) {
     return (
-      <Card>
+      <Card className="w-full max-w-full">
         <CardHeader>
-          <CardTitle className="text-primary">Select Order to Repair</CardTitle>
+          <CardTitle className="text-primary text-base sm:text-lg">Select Order to Repair</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-2 sm:p-4">
           <div>
-            <Label htmlFor="repairOrderId">Order to Repair</Label>
+            <Label htmlFor="repairOrderId" className="text-xs sm:text-sm">Order to Repair</Label>
             <Select onValueChange={(value) => {
               const selectedOrder = allOrders.find(order => order.referenceId === value);
               setFormData({
@@ -54,26 +54,25 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
               });
               setSelectedOrderId(selectedOrder?.id);
             }}>
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 text-xs sm:text-sm">
                 <SelectValue placeholder="Select order to repair" />
               </SelectTrigger>
               <SelectContent>
                 {allOrders.map((order) => (
-                  <SelectItem key={order.referenceId} value={order.referenceId}>
+                  <SelectItem key={order.referenceId} value={order.referenceId} className="text-xs sm:text-sm">
                     {order.referenceId} - {order.patientFirstName} {order.patientLastName} ({order.prescriptionType}) - {order.status}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
           {formData.repairOrderId && (
-            <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
-              <h4 className="font-medium text-warning-foreground mb-2 flex items-center gap-2">
+            <div className="p-2 sm:p-4 bg-warning/10 border border-warning/20 rounded-lg">
+              <h4 className="font-medium text-warning-foreground mb-2 flex items-center gap-2 text-xs sm:text-sm">
                 <AlertTriangle size={16} />
                 Order Details
               </h4>
-              <div className="text-sm space-y-1">
+              <div className="text-xs sm:text-sm space-y-1">
                 <p><span className="font-medium">Order ID:</span> {formData.repairOrderId}</p>
                 <p><span className="font-medium">Type:</span> {formData.prescriptionType}</p>
                 <p><span className="font-medium">Status:</span> 
@@ -82,8 +81,7 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
               </div>
             </div>
           )}
-
-          <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+          <div className="p-2 sm:p-4 bg-success/10 border border-success/20 rounded-lg">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="checkWarranty"
@@ -91,7 +89,7 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                 onCheckedChange={(checked) => setFormData({...formData, checkWarranty: checked})}
               />
               <div className="grid gap-1.5 leading-none">
-                <Label htmlFor="checkWarranty" className="flex items-center gap-2 text-sm font-medium">
+                <Label htmlFor="checkWarranty" className="flex items-center gap-2 text-xs sm:text-sm font-medium">
                   <Shield size={16} className="text-success" />
                   Check Warranty Eligibility
                 </Label>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ToothGroup } from '../types/tooth';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ToothTypeDialogProps {
   isOpen: boolean;
@@ -26,6 +27,8 @@ const ToothTypeDialog = ({
   debugMode = false,
   prescriptionType
 }: ToothTypeDialogProps) => {
+  const isMobile = useIsMobile();
+
   // Check if tooth can join existing groups
   const getJoinableGroups = () => {
     const joinableGroups: { group: ToothGroup; direction: 'upper' | 'lower'; isAdjacent: boolean }[] = [];
@@ -101,12 +104,21 @@ const ToothTypeDialog = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
         className="w-min p-4"
-        style={{
-          position: 'fixed',
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          transform: 'translate(-50%, -50%)',
-        }}
+        style={
+          isMobile
+            ? {
+                position: 'fixed',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+              }
+            : {
+                position: 'fixed',
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                transform: 'translate(-50%, -50%)',
+              }
+        }
       >
         <DialogHeader>
           <DialogTitle className="text-sm">

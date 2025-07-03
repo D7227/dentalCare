@@ -151,35 +151,34 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
 
   if (currentStep === 1) {
     return (
-      <Card className="border-l-4 border-l-primary">
+      <Card className="border-l-4 border-l-primary w-full max-w-full">
         <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-          <CardTitle className="text-primary flex items-center gap-2">
+          <CardTitle className="text-primary flex items-center gap-2 text-base sm:text-lg">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-bold text-primary">1</span>
             </div>
             Select Previous Order
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 p-6">
+        <CardContent className="space-y-6 p-4 sm:p-6">
           {/* Search and Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Search Orders</Label>
+              <Label className="text-xs sm:text-sm font-medium">Search Orders</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
                   placeholder="Search by order ID, patient, or type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
-
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Filter by Status</Label>
+              <Label className="text-xs sm:text-sm font-medium">Filter by Status</Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,18 +189,17 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Filter by Date</Label>
+              <Label className="text-xs sm:text-sm font-medium">Filter by Date</Label>
               <Input
                 type="date"
                 min={new Date().toISOString().split('T')[0]}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-xs sm:text-sm"
               />
             </div>
           </div>
-
           {/* Orders List */}
           {isLoading ? (
             <div className="text-center py-8 text-gray-500">Loading orders...</div>
@@ -212,7 +210,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
               {filteredOrders.slice(0, 10).map((order) => (
                 <Card
                   key={order.orderId || order.referenceId}
-                  className={`cursor-pointer transition-all hover:shadow-md border-2 ${formData.previousOrderId === (order.orderId || order.referenceId)
+                  className={`cursor-pointer transition-all hover:shadow-md border-2 w-full ${formData.previousOrderId === (order.orderId || order.referenceId)
                       ? 'border-primary bg-primary/5'
                       : 'border-gray-200 hover:border-primary/50'
                     }`}
@@ -233,16 +231,16 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                     setSelectedOrderId(order?.id);
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+                  <CardContent className="p-2 sm:p-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-0">
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{order.orderId || order.referenceId}</span>
+                          <span className="font-semibold text-xs sm:text-sm">{order.orderId || order.referenceId}</span>
                           <Badge className={getStatusColor(order.status)}>
                             {order.status}
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs sm:text-sm text-gray-600">
                           <div>Patient: <span className="font-medium">{order.patientFirstName} {order.patientLastName}</span></div>
                           <div>Type: <span className="font-medium">{order.prescriptionType}</span></div>
                           <div>Date: <span className="font-medium">{order.createdAt?.split('T')[0]}</span></div>
@@ -266,7 +264,6 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                   </CardContent>
                 </Card>
               ))}
-
               {filteredOrders.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <AlertCircle className="mx-auto mb-2" size={24} />
