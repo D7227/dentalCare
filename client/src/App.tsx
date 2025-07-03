@@ -272,13 +272,13 @@ const DashboardLayout = () => {
           onSectionChange={handleSectionChange}
           unreadMessagesCount={unreadMessagesCount}
           permissions={user?.permissions || []}
+          onToggleCollapse={handleToggleSidebar}
         />
       </div>
 
       {/* Main Content */}
       <div className={`flex-1 flex flex-col min-w-0 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'} transition-all duration-300`}>
         <Header
-          onToggleSidebar={handleToggleSidebar}
           onMobileMenuToggle={handleMobileMenuToggle}
           doctorName="Dr. Sarah Mitchell"
           clinicName="Smile Dental Clinic"

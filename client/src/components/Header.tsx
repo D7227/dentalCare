@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Menu, Bell, MessageCircle, Search, RefreshCw, Eye } from 'lucide-react';
+import { Menu, Bell, MessageCircle, RefreshCw, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,14 +14,13 @@ import {
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
-  onToggleSidebar: () => void;
   doctorName: string;
   clinicName: string;
   onSectionChange?: (section: string) => void;
   onMobileMenuToggle?: () => void;
 }
 
-const Header = ({ onToggleSidebar, doctorName, clinicName, onSectionChange, onMobileMenuToggle }: HeaderProps) => {
+const Header = ({ doctorName, clinicName, onSectionChange, onMobileMenuToggle }: HeaderProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications] = useState([
     {
@@ -73,25 +71,15 @@ const Header = ({ onToggleSidebar, doctorName, clinicName, onSectionChange, onMo
     <header className="bg-background border-b border-border px-4 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Mobile Menu Button - Only visible on mobile */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={onMobileMenuToggle}
           className="lg:hidden btn-ghost hover-lift focus-ring"
         >
           <Menu size={20} />
         </Button>
 
-        {/* Desktop Sidebar Toggle - Only visible on desktop */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onToggleSidebar}
-          className="hidden lg:flex btn-ghost hover-lift focus-ring"
-        >
-          <Menu size={20} />
-        </Button>
-        
         {/* Search Bar - Responsive */}
         {/* <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
@@ -103,22 +91,22 @@ const Header = ({ onToggleSidebar, doctorName, clinicName, onSectionChange, onMo
           />
         </form> */}
       </div>
-      
+
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Theme Toggle - Hidden on small screens */}
         <div className="hidden sm:block">
           <ThemeToggle />
         </div>
-        
+
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="relative btn-ghost hover-lift focus-ring">
               <Bell size={20} />
               {unreadCount > 0 && (
-      <Badge className="badge-error absolute -top-1.5 -right-1.5 text-[10px] w-4 h-4 p-0 flex items-center justify-center rounded-full">
-        {unreadCount}
-      </Badge>
+                <Badge className="badge-error absolute -top-1.5 -right-1.5 text-[10px] w-4 h-4 p-0 flex items-center justify-center rounded-full">
+                  {unreadCount}
+                </Badge>
 
               )}
             </Button>
@@ -132,7 +120,7 @@ const Header = ({ onToggleSidebar, doctorName, clinicName, onSectionChange, onMo
                 </p>
               )}
             </div>
-            
+
             {notifications.map((notification) => (
               <DropdownMenuItem key={notification.id} className="flex-col items-start p-4 cursor-pointer hover:bg-accent/50">
                 {notification.type === 'rejection' ? (
@@ -189,31 +177,31 @@ const Header = ({ onToggleSidebar, doctorName, clinicName, onSectionChange, onMo
                 )}
               </DropdownMenuItem>
             ))}
-            
+
             {notifications.length === 0 && (
               <div className="px-4 py-8 text-center text-muted-foreground">
                 <Bell size={24} className="mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No notifications</p>
               </div>
             )}
-            
+
             <DropdownMenuSeparator />
             <DropdownMenuItem className="justify-center text-primary hover:text-primary cursor-pointer">
               View all notifications
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         {/* Chat Button */}
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="btn-ghost hover:bg-muted hover:text-foreground transition"
           onClick={handleChatClick}
         >
           <MessageCircle size={20} />
         </Button>
-        
+
         {/* User Profile - Responsive */}
         <div className="flex items-center gap-3">
           {/* Larger, well-padded avatar */}
