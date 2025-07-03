@@ -417,34 +417,49 @@ const PlaceOrder = () => {
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
         <div className='max-w-7xl mx-auto'>
           <CardContent className="p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center justify-between">
               <div className='flex items-center gap-3'>
-              {
-                !isMobile && (
-                  <>
-                  <CustomButton
-                    variant="blackAndWhite"
-                    onClick={() => window.history.back()}
-                  >
-                    <ArrowLeft size={18} />
-                    Back
-                  </CustomButton>
-                  <div className="h-5 w-px bg-gray-300"></div>
-                  </>
-                )
-              }
-              <div className="flex items-center gap-3 justify-between ">
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
-                  {getCurrentStepTitle()}
-                </h1>
-                <div className="text-customBlack-100 text-12/16 bg-mainBrackground px-3 sm:px-4 py-2 sm:py-3 rounded-[8px] font-medium border border-customGreen-100 h-[36px] sm:h-[40px] flex items-center justify-center">
-                  Step {currentStep + 1} of {steps.length}
+                {
+                  !isMobile && (
+                    <>
+                      <CustomButton
+                        variant="blackAndWhite"
+                        onClick={() => window.history.back()}
+                      >
+                        <ArrowLeft size={18} />
+                        Back
+                      </CustomButton>
+                      <div className="h-5 w-px bg-gray-300"></div>
+                    </>
+                  )
+                }
+                <div className="flex items-center gap-3 justify-between ">
+                  <div>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+                      {getCurrentStepTitle()}
+                    </h1>
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                      {getCurrentStepDescription()}
+                    </p>
+                  </div>
                 </div>
               </div>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {getCurrentStepDescription()}
-              </p>
+                <div className='flex items-center gap-3'>
+                  <div className="text-customBlack-100 text-12/16 bg-mainBrackground px-3 sm:px-4 py-2 sm:py-3 rounded-[8px] font-medium border border-customGreen-100 h-[36px] sm:h-[40px] flex items-center justify-center">
+                    Step {currentStep + 1} of {steps.length}
+                  </div>
+                  {orderCategory && !isMobile && (
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelOrder}
+                      className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                    >
+                      <X size={16} />
+                      Cancel Order
+                    </Button>
+                  )}
+                </div>
+
             </div>
           </CardContent>
         </div>
