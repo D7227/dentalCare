@@ -184,6 +184,10 @@ const PlaceOrder = () => {
     try {
       if (orderCategory === 'repair') {
         formData.category = 'repair';
+        formData.firstName = formData.patientFirstName;
+        formData.lastName = formData.patientLastName;
+        formData.age = formData.patientAge;
+        formData.sex = formData.patientSex;
         // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         const orderData = createOrderObject(formData, user?.clinicId || '');
         console.log("Order data:", orderData);
@@ -220,6 +224,10 @@ const PlaceOrder = () => {
         }
         // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         formData.category = 'repeat';
+        formData.firstName = formData.patientFirstName;
+        formData.lastName = formData.patientLastName;
+        formData.age = formData.patientAge;
+        formData.sex = formData.patientSex;
         const orderData = createOrderObject(formData, user?.clinicId || '');
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
           method: 'PUT',

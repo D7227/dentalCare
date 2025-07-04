@@ -168,6 +168,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     order,
   };
 
+
   const content = (
     <div className="h-full flex flex-col">
       <Tabs

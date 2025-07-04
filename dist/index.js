@@ -57,6 +57,7 @@ __export(schema_exports, {
 });
 import { pgTable, text, integer, boolean, timestamp, jsonb, uuid, numeric, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 import { relations } from "drizzle-orm";
 var users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -178,11 +179,20 @@ var clinic = pgTable("clinic", {
   phone: text("phone"),
   clinicName: text("clinic_name"),
   clinicLicenseNumber: text("clinic_license_number"),
-  clinicAddress: text("clinic_address"),
-  billingInfo: text("billing_info"),
+  clinicAddressLine1: text("clinic_address_line1"),
+  clinicAddressLine2: text("clinic_address_line2"),
+  clinicCity: text("clinic_city"),
+  clinicState: text("clinic_state"),
+  clinicPincode: text("clinic_pincode"),
+  clinicCountry: text("clinic_country"),
   gstNumber: text("gst_number"),
   panNumber: text("pan_number"),
-  address: text("address"),
+  billingAddressLine1: text("billing_address_line1"),
+  billingAddressLine2: text("billing_address_line2"),
+  billingCity: text("billing_city"),
+  billingState: text("billing_state"),
+  billingPincode: text("billing_pincode"),
+  billingCountry: text("billing_country"),
   password: text("password").notNull(),
   roleId: uuid("role_id").notNull(),
   permissions: jsonb("permissions").$type().default([]),
@@ -360,10 +370,30 @@ var insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
   joinDate: true,
   lastLogin: true
 });
-var insertClinicSchema = createInsertSchema(clinic).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
+var insertClinicSchema = z.object({
+  firstname: z.string(),
+  lastname: z.string(),
+  email: z.string().email(),
+  phone: z.string(),
+  clinicName: z.string(),
+  clinicLicenseNumber: z.string(),
+  gstNumber: z.string(),
+  panNumber: z.string(),
+  password: z.string(),
+  roleId: z.string(),
+  permissions: z.array(z.string()),
+  clinicAddressLine1: z.string().optional(),
+  clinicAddressLine2: z.string().optional(),
+  clinicCity: z.string().optional(),
+  clinicState: z.string().optional(),
+  clinicPincode: z.string().optional(),
+  clinicCountry: z.string().optional(),
+  billingAddressLine1: z.string().optional(),
+  billingAddressLine2: z.string().optional(),
+  billingCity: z.string().optional(),
+  billingState: z.string().optional(),
+  billingPincode: z.string().optional(),
+  billingCountry: z.string().optional()
 });
 var insertProductSchema = createInsertSchema(products).omit({
   id: true
@@ -401,28 +431,28 @@ var db = drizzle(pool, { schema: schema_exports });
 
 // server/storage.ts
 import { eq, asc } from "drizzle-orm";
-import { z } from "zod";
-var teamMemberInsertSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  email: z.string().email("Invalid email format").optional(),
-  contactNumber: z.string().optional(),
-  profilePicture: z.string().optional(),
-  role: z.string().min(1, "Role is required"),
-  permissions: z.array(z.string()).default([]),
-  status: z.string().default("active"),
-  password: z.string().optional(),
-  clinicName: z.string().optional()
+import { z as z2 } from "zod";
+var teamMemberInsertSchema = z2.object({
+  fullName: z2.string().min(1, "Full name is required"),
+  email: z2.string().email("Invalid email format").optional(),
+  contactNumber: z2.string().optional(),
+  profilePicture: z2.string().optional(),
+  role: z2.string().min(1, "Role is required"),
+  permissions: z2.array(z2.string()).default([]),
+  status: z2.string().default("active"),
+  password: z2.string().optional(),
+  clinicName: z2.string().optional()
 });
-var teamMemberUpdateSchema = z.object({
-  fullName: z.string().min(1, "Full name is required").optional(),
-  email: z.string().email("Invalid email format").optional(),
-  contactNumber: z.string().optional(),
-  profilePicture: z.string().optional(),
-  role: z.string().min(1, "Role is required").optional(),
-  permissions: z.array(z.string()).optional(),
-  status: z.string().optional(),
-  password: z.string().optional(),
-  clinicName: z.string().optional()
+var teamMemberUpdateSchema = z2.object({
+  fullName: z2.string().min(1, "Full name is required").optional(),
+  email: z2.string().email("Invalid email format").optional(),
+  contactNumber: z2.string().optional(),
+  profilePicture: z2.string().optional(),
+  role: z2.string().min(1, "Role is required").optional(),
+  permissions: z2.array(z2.string()).optional(),
+  status: z2.string().optional(),
+  password: z2.string().optional(),
+  clinicName: z2.string().optional()
 });
 var DatabaseStorage = class {
   async getUser(id) {
@@ -839,8 +869,9 @@ var DatabaseStorage = class {
     return await db.select().from(clinic);
   }
   async updateClinic(id, updates) {
-    const [clinic2] = await db.update(clinic2).set(updates).where(eq(clinic2.id, id)).returning();
-    return clinic2;
+    const [updatedClinic] = await db.update(clinic).set(updates).where(eq(clinic.id, id)).returning();
+    console.log("updatedClinic==>", updatedClinic);
+    return updatedClinic;
   }
   async getClinicByName(clinicName) {
     const [clinicData] = await db.select().from(clinic).where(eq(clinic.clinicName, clinicName));
@@ -886,6 +917,36 @@ var storage = new DatabaseStorage();
 // server/routes.ts
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+var clinicFieldMap = {
+  first_name: "firstname",
+  last_name: "lastname",
+  clinic_name: "clinicName",
+  license_number: "clinicLicenseNumber",
+  clinic_address_line1: "clinicAddressLine1",
+  clinic_address_line2: "clinicAddressLine2",
+  clinic_city: "clinicCity",
+  clinic_state: "clinicState",
+  clinic_pincode: "clinicPincode",
+  clinic_country: "clinicCountry",
+  gst_number: "gstNumber",
+  pan_number: "panNumber",
+  billing_address_line1: "billingAddressLine1",
+  billing_address_line2: "billingAddressLine2",
+  billing_city: "billingCity",
+  billing_state: "billingState",
+  billing_pincode: "billingPincode",
+  billing_country: "billingCountry"
+  // Add more fields as needed
+};
+function mapClinicFields(obj) {
+  const mapped = {};
+  for (const key in obj) {
+    if (clinicFieldMap[key]) {
+      mapped[clinicFieldMap[key]] = obj[key];
+    }
+  }
+  return mapped;
+}
 async function registerRoutes(app2) {
   passport.use(
     new LocalStrategy(
@@ -1728,8 +1789,10 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-  app2.get("/api/clinics/:id/name", async (req, res) => {
+  app2.get("/api/clinics/:id", async (req, res) => {
+    console.log("clinic name by id", req.params.id);
     try {
+      console.log("clinic name by id", req.params.id);
       const { id } = req.params;
       const clinic2 = await storage.getClinic(id);
       if (!clinic2) {
@@ -1794,10 +1857,10 @@ async function registerRoutes(app2) {
         let billingInfo = {};
         try {
           if (clinic2.clinicAddress) {
-            clinicAddress = JSON.parse(clinic2);
+            clinicAddress = JSON.parse(clinic2.clinicAddress);
           }
         } catch (e) {
-          clinicAddress = { address: clinic2 || "" };
+          clinicAddress = { address: clinic2.clinicAddress || "" };
         }
         try {
           if (clinic2.billingInfo) {
@@ -1815,8 +1878,18 @@ async function registerRoutes(app2) {
           phone: clinic2.phone,
           clinicName: clinic2.clinicName,
           licenseNumber: clinic2.clinicLicenseNumber,
-          clinicAddress: clinic2.clinicAddress || "",
-          billingAddress: clinic2.billingInfo || "",
+          clinicAddressLine1: clinic2.clinicAddressLine1 || "",
+          clinicAddressLine2: clinic2.clinicAddressLine2 || "",
+          clinicCity: clinic2.clinicCity || "",
+          clinicState: clinic2.clinicState || "",
+          clinicPincode: clinic2.clinicPincode || "",
+          clinicCountry: clinic2.clinicCountry || "",
+          billingAddressLine1: clinic2.billingAddressLine1 || "",
+          billingAddressLine2: clinic2.billingAddressLine2 || "",
+          billingCity: clinic2.billingCity || "",
+          billingState: clinic2.billingState || "",
+          billingPincode: clinic2.billingPincode || "",
+          billingCountry: clinic2.billingCountry || "",
           gstNumber: clinic2.gstNumber || "",
           panNumber: clinic2.panNumber || "",
           roleName,
@@ -1874,6 +1947,22 @@ async function registerRoutes(app2) {
     } catch (error) {
       console.error("Error fetching user data:", error);
       res.status(500).json({ error: "Failed to fetch user data" });
+    }
+  });
+  app2.put("/api/clinic/:id", async (req, res) => {
+    try {
+      console.log("clinic update endpoint", req.params.id);
+      console.log("clinic update body", req.body);
+      const updates = mapClinicFields(req.body);
+      console.log("updates==>", updates);
+      const clinic2 = await storage.updateClinic(req.params.id, updates);
+      if (!clinic2) {
+        return res.status(404).json({ error: "Clinic not found" });
+      }
+      res.json(clinic2);
+    } catch (error) {
+      console.log("clinic update error", error);
+      res.status(400).json({ error: "Invalid clinic update data", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
   const httpServer2 = createServer(app2);

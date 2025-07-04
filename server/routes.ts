@@ -5,6 +5,39 @@ import { insertOrderSchema, insertPatientSchema, insertToothGroupSchema, insertT
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 
+// Mapping from incoming snake_case keys to Drizzle schema field names
+const clinicFieldMap: { [key: string]: string } = {
+  first_name: 'firstname',
+  last_name: 'lastname',
+  clinic_name: 'clinicName',
+  license_number: 'clinicLicenseNumber',
+  clinic_address_line1: 'clinicAddressLine1',
+  clinic_address_line2: 'clinicAddressLine2',
+  clinic_city: 'clinicCity',
+  clinic_state: 'clinicState',
+  clinic_pincode: 'clinicPincode',
+  clinic_country: 'clinicCountry',
+  gst_number: 'gstNumber',
+  pan_number: 'panNumber',
+  billing_address_line1: 'billingAddressLine1',
+  billing_address_line2: 'billingAddressLine2',
+  billing_city: 'billingCity',
+  billing_state: 'billingState',
+  billing_pincode: 'billingPincode',
+  billing_country: 'billingCountry',
+  // Add more fields as needed
+};
+
+function mapClinicFields(obj: Record<string, any>): Record<string, any> {
+  const mapped: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (clinicFieldMap[key]) {
+      mapped[clinicFieldMap[key]] = obj[key];
+    }
+  }
+  return mapped;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Passport configuration
   passport.use(
@@ -1002,8 +1035,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get clinic name by clinic id
-  app.get("/api/clinics/:id/name", async (req, res) => {
+  app.get("/api/clinics/:id", async (req, res) => {
+    console.log("clinic name by id",req.params.id)
     try {
+      console.log("clinic name by id",req.params.id)
       const { id } = req.params;
       const clinic = await storage.getClinic(id);
       if (!clinic) {
@@ -1083,10 +1118,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           if (clinic.clinicAddress) {
-            clinicAddress = JSON.parse(clinic);
+            clinicAddress = JSON.parse(clinic.clinicAddress);
           }
         } catch (e) {
-          clinicAddress = { address: clinic || '' };
+          clinicAddress = { address: clinic.clinicAddress || '' };
         }
         
         try {
@@ -1107,8 +1142,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           phone: clinic.phone,
           clinicName: clinic.clinicName,
           licenseNumber: clinic.clinicLicenseNumber,
-          clinicAddress: clinic.clinicAddress || '',
-          billingAddress: clinic.billingInfo || '',
+          clinicAddressLine1: clinic.clinicAddressLine1 || '',
+          clinicAddressLine2: clinic.clinicAddressLine2 || '',
+          clinicCity: clinic.clinicCity || '',
+          clinicState: clinic.clinicState || '',
+          clinicPincode: clinic.clinicPincode || '',
+          clinicCountry: clinic.clinicCountry || '',
+          billingAddressLine1: clinic.billingAddressLine1 || '',
+          billingAddressLine2: clinic.billingAddressLine2 || '',
+          billingCity: clinic.billingCity || '',
+          billingState: clinic.billingState || '',
+          billingPincode: clinic.billingPincode || '',
+          billingCountry: clinic.billingCountry || '',
           gstNumber: clinic.gstNumber || '',
           panNumber: clinic.panNumber || '',
           roleName: roleName,
@@ -1175,6 +1220,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching user data:', error);
       res.status(500).json({ error: 'Failed to fetch user data' });
+    }
+  });
+
+  // Update clinic profile endpoint
+  app.put("/api/clinic/:id", async (req, res) => {
+    try {
+      console.log("clinic update endpoint", req.params.id);
+      console.log("clinic update body", req.body); // Log incoming update data
+      const updates = mapClinicFields(req.body);
+      console.log("updates==>", updates);
+      const clinic = await storage.updateClinic(req.params.id, updates);
+      if (!clinic) {
+        return res.status(404).json({ error: "Clinic not found" });
+      }
+      res.json(clinic);
+    } catch (error) {
+      console.log("clinic update error", error);
+      res.status(400).json({ error: "Invalid clinic update data", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

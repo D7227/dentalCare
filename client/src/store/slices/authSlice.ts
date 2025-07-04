@@ -10,6 +10,21 @@ interface UserData {
   roleName: string;
   userType?: string;
   clinicId?: string;
+  clinicAddressLine1?: string;
+  clinicAddressLine2?: string;
+  clinicCity?: string;
+  clinicState?: string;
+  clinicPincode?: string;
+  clinicCountry?: string;
+  billingAddressLine1?: string;
+  billingAddressLine2?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingPincode?: string;
+  billingCountry?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  email?: string;
 }
 
 interface AuthState {
@@ -94,6 +109,21 @@ export const findUserByMobile = createAsyncThunk(
           roleName: teamMember.roleName || '',
           userType: 'teamMember',
           clinicId: teamMember.clinicId || '',
+          clinicAddressLine1: teamMember.clinicAddressLine1 || '',
+          clinicAddressLine2: teamMember.clinicAddressLine2 || '',
+          clinicCity: teamMember.clinicCity || '',
+          clinicState: teamMember.clinicState || '',
+          clinicPincode: teamMember.clinicPincode || '',
+          clinicCountry: teamMember.clinicCountry || '',
+          billingAddressLine1: teamMember.billingAddressLine1 || '',
+          billingAddressLine2: teamMember.billingAddressLine2 || '',
+          billingCity: teamMember.billingCity || '',
+          billingState: teamMember.billingState || '',
+          billingPincode: teamMember.billingPincode || '',
+          billingCountry: teamMember.billingCountry || '',
+          gstNumber: teamMember.gstNumber || '',
+          panNumber: teamMember.panNumber || '',
+          email: teamMember.email || '',
         };
       }
     } catch (error) {
@@ -117,6 +147,21 @@ export const findUserByMobile = createAsyncThunk(
           roleName: clinic.roleName || '',
           userType: 'clinic',
           clinicId: clinic.id || '',
+          clinicAddressLine1: clinic.clinicAddressLine1 || '',
+          clinicAddressLine2: clinic.clinicAddressLine2 || '',
+          clinicCity: clinic.clinicCity || '',
+          clinicState: clinic.clinicState || '',
+          clinicPincode: clinic.clinicPincode || '',
+          clinicCountry: clinic.clinicCountry || '',
+          billingAddressLine1: clinic.billingAddressLine1 || '',
+          billingAddressLine2: clinic.billingAddressLine2 || '',
+          billingCity: clinic.billingCity || '',
+          billingState: clinic.billingState || '',
+          billingPincode: clinic.billingPincode || '',
+          billingCountry: clinic.billingCountry || '',
+          gstNumber: clinic.gstNumber || '',
+          panNumber: clinic.panNumber || '',
+          email: clinic.email || '',
         };
       }
     } catch (error) {
@@ -129,32 +174,57 @@ export const findUserByMobile = createAsyncThunk(
 // Async thunk for clinic registration
 export const registerClinic = createAsyncThunk(
   'auth/registerClinic',
-  async (clinicData: any) => {
-    const response = await fetch('/api/clinic/register', {
+  async (clinicsData: any) => {
+    // const response = await fetch('/api/clinic/register', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify(clinicsData),
+    // });
+
+    const response = await fetch('http://localhost:5000/api/clinic/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(clinicData),
+      body: JSON.stringify(clinicsData),
     });
-    if (!response.ok) {
+    if (!response.ok){
       const errorData = await response.json();
       throw new Error(errorData.error || 'Registration failed');
     }
     const result = await response.json();
-    if (!result.clinic.roleName && result.clinic.roleId) {
-      result.clinic.roleName = await fetchRoleNameById(result.clinic.roleId);
+    const clinics = result.clinics || result.clinic || result; // fallback for different backend responses
+    if (!clinics.roleName && clinics.roleId) {
+      clinics.roleName = await fetchRoleNameById(clinics.roleId);
     }
     return {
-      id: result.clinic.id,
-      fullName: `${result.clinic.firstname} ${result.clinic.lastname}`,
-      permissions: result.clinic.permissions || [],
-      contactNumber: clinicData.phone || '',
-      roleId: '2411f233-1e48-43ae-9af9-6d5ce0569278',
-      clinicName: result.clinic.clinicName || '',
-      roleName: result.clinic.roleName || '',
+      id: clinics.id,
+      fullName: `${clinics.firstname} ${clinics.lastname}`,
+      permissions: clinics.permissions || [],
+      contactNumber: clinics.phone || '',
+      roleId: clinics.roleId || '2411f233-1e48-43ae-9af9-6d5ce0569278',
+      clinicName: clinics.clinicName || '',
+      roleName: clinics.roleName || '',
       userType: 'clinic',
-      clinicId: result.clinic.id || '',
+      clinicId: clinics.id || '',
+      clinicAddressLine1: clinics.clinicAddressLine1 || '',
+      clinicAddressLine2: clinics.clinicAddressLine2 || '',
+      clinicCity: clinics.clinicCity || '',
+      clinicState: clinics.clinicState || '',
+      clinicPincode: clinics.clinicPincode || '',
+      clinicCountry: clinics.clinicCountry || '',
+      billingAddressLine1: clinics.billingAddressLine1 || '',
+      billingAddressLine2: clinics.billingAddressLine2 || '',
+      billingCity: clinics.billingCity || '',
+      billingState: clinics.billingState || '',
+      billingPincode: clinics.billingPincode || '',
+      billingCountry: clinics.billingCountry || '',
+      gstNumber: clinics.gstNumber || '',
+      panNumber: clinics.panNumber || '',
+      email: clinics.email || '',
+      address: clinics.address || '',
     };
   }
 );
@@ -188,6 +258,21 @@ export const loginClinic = createAsyncThunk(
       roleName: clinic.roleName || '',
       userType: 'clinic',
       clinicId: clinic.id || '',
+      clinicAddressLine1: clinic.clinicAddressLine1 || '',
+      clinicAddressLine2: clinic.clinicAddressLine2 || '',
+      clinicCity: clinic.clinicCity || '',
+      clinicState: clinic.clinicState || '',
+      clinicPincode: clinic.clinicPincode || '',
+      clinicCountry: clinic.clinicCountry || '',
+      billingAddressLine1: clinic.billingAddressLine1 || '',
+      billingAddressLine2: clinic.billingAddressLine2 || '',
+      billingCity: clinic.billingCity || '',
+      billingState: clinic.billingState || '',
+      billingPincode: clinic.billingPincode || '',
+      billingCountry: clinic.billingCountry || '',
+      gstNumber: clinic.gstNumber || '',
+      panNumber: clinic.panNumber || '',
+      email: clinic.email || '',
     };
   }
 );

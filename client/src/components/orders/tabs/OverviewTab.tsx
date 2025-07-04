@@ -54,7 +54,41 @@ interface OverviewTabProps {
 
 
 const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFile }) => {
-  console.log(data?.details?.selectedTeeth)
+  console.log("order attachments", attachments)
+  console.log(data)
+  const groupedTeeth = new Set<number>(data?.order?.toothGroups.flatMap((g: any) => g.teeth || []));
+  const individualTeeth = (data?.order?.selectedTeeth || []).map((t: any) => ({
+    ...t,
+    selectedProducts: t.selectedProducts || [],
+    productDetails: t.productDetails || {},
+  })).filter((t: any) => !groupedTeeth.has(t.toothNumber));
+
+  let allGroups = [...(data?.order?.toothGroups || [])];
+
+  if (individualTeeth.length > 0) {
+    allGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual',
+      selectedProducts: individualTeeth[0]?.selectedProducts || [],
+      productDetails: individualTeeth[0]?.productDetails || {},
+      prescriptionType: data?.order?.prescriptionType
+    });
+  }
+
+  const isGroupConfigured = (group: any) => {
+    if (group.groupId === 'individual-group') {
+      // Check if all individual teeth have products configured
+      const individualTeeth = (data?.order?.selectedTeeth || []).filter((t: any) => group.teeth.includes(t.toothNumber));
+      return individualTeeth.length > 0 && individualTeeth.every((t: any) => t.selectedProducts && t.selectedProducts.length > 0);
+    }
+    return group.selectedProducts &&
+      group.selectedProducts.length > 0 &&
+      group.productDetails;
+  };
+
+  const allGroupsConfigured = data?.order?.toothGroups.length > 0 && data?.order?.toothGroups.every((group: any) => isGroupConfigured(group));
+
   return (
     <>
       <Card className="rounded-lg border border-customPurple-30 shadow-sm">
@@ -245,11 +279,60 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
               </p>
             </div>
           )}
-          {data?.details?.teethGroup && (
+          {data?.order?.toothGroups && data?.order?.toothGroups.length > 0 && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Teeth (Group 1):</p>
-              <p className="text-sm font-medium">{data?.details.teethGroup} 
-                , {(Array.isArray(data?.details?.selectedTeeth) ? data?.details?.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : '')}
+              <p className="text-sm font-medium">
+                {/* {Array.isArray(data?.details?.toothGroups) && data.details.toothGroups.length > 0 ? (
+                  (() => {
+                    const typeMap: Record<string, number[]> = {};
+                    data.details.toothGroups.forEach((g: any) => {
+                      const gtype = g?.type || 'individual';
+                      if (!typeMap[gtype]) typeMap[gtype] = [];
+                      typeMap[gtype].push(...(g?.teeth || []));
+                    });
+                    return Object.entries(typeMap).map(([gtype, teeth]) => (
+                      <div key={gtype}>
+                        <span className="capitalize">{gtype}:</span>{' '}
+                        {teeth.length > 0 ? teeth.join(', ') : 'None'}
+                      </div>
+                    ));
+                  })()
+                ) : (
+                  <span>No teeth selected</span>
+                )} */}
+                {
+                  allGroupsConfigured && (
+                    (Object.entries(
+                      allGroups.reduce((acc: any, group: any) => {
+                        const type = group.prescriptionType || data?.order?.prescriptionType;
+                        if (!acc[type]) acc[type] = [];
+                        acc[type].push(group);
+                        return acc;
+                      }, {})
+                    ) as [string, any[]][]).map(([type, groups], idx) => {
+                      return (
+                        <>
+                          {(() => {
+                            // Group teeth numbers by group type
+                            const typeMap: Record<string, number[]> = {};
+                            groups.forEach((g: any) => {
+                              const gtype = g.type || 'individual';
+                              if (!typeMap[gtype]) typeMap[gtype] = [];
+                              typeMap[gtype].push(...(g.teeth || []));
+                            });
+                            return Object.entries(typeMap).map(([gtype, teeth]) => (
+                              <div key={gtype}>
+                                <span className="capitalize">{gtype}:</span> {teeth.join(', ')}
+                              </div>
+                            ));
+                          })()}
+                        </>
+                      )
+                    })
+
+                  )
+                }
               </p>
             </div>
           )}
@@ -344,14 +427,20 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
             </>
           ) : (
             <ul className="w-full space-y-2">
-              {attachments.map((file: { name: string }, index: number) => (
+              {attachments.map((file: any, index: number) => (
                 <li
                   key={index}
                   className="flex items-center justify-between px-3 py-2 rounded-md bg-white border text-sm"
                 >
                   <div className="flex items-center gap-2 text-teal-700">
                     <FileText className="w-4 h-4" />
-                    {file.name}
+                    {file.name.url ? (
+                      <a href={file.name.url} target="_blank" rel="noopener noreferrer">
+                        {file.name.fileName || file.name}
+                      </a>
+                    ) : (
+                      file.name.fileName || file.name
+                    )}
                   </div>
                   <Button
                     size="icon"
