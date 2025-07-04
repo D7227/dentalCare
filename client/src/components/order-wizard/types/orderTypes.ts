@@ -54,6 +54,7 @@ export interface FormData {
   issueDescription: string;
   repairType: string;
   returnWithTrial: boolean;
+  teethEditedByUser?: boolean;
 }
 
 export interface Step {

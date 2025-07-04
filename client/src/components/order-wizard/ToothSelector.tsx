@@ -13,7 +13,7 @@ interface ToothSelectorProps {
   prescriptionType: 'implant' | 'crown-bridge';
   selectedGroups: ToothGroup[];
   selectedTeeth: SelectedTooth[];
-  onGroupsChange?: (groups: ToothGroup[]) => void;
+  onGroupsChange?: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onSelectionChange: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onProductComplete?: () => void;
 }
@@ -21,6 +21,8 @@ interface SelectedTooth {
   prescriptionType: 'implant' | 'crown-bridge';
   toothNumber: number;
   type: 'abutment' | 'pontic';
+  selectedProducts?: any[];
+  productDetails?: any;
 }
 const ToothSelector = ({  
   prescriptionType,
@@ -41,6 +43,12 @@ const ToothSelector = ({
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<'digital' | 'manual' | null>(null);
 
+  console.log('selectedTeeth', selectedTeeth);
+  console.log('selectedGroups', selectedGroups);
+  console.log('onGroupsChange', onGroupsChange);
+  console.log('onSelectionChange', onSelectionChange);
+  console.log('onProductComplete', onProductComplete);
+
   useEffect(() => {
     setLocalSelectedTeeth(selectedTeeth || []);
   }, [selectedTeeth]);
@@ -52,7 +60,7 @@ const ToothSelector = ({
     setLocalSelectedGroups(groups);
     setLocalSelectedTeeth(teeth);
     onSelectionChange(groups, teeth);
-    if (onGroupsChange) onGroupsChange(groups);
+    if (onGroupsChange) onGroupsChange(groups, teeth);
   };
 
   const isToothSelected = useCallback((toothNumber: number) => {
@@ -235,7 +243,9 @@ const ToothSelector = ({
     updateSelection(localSelectedGroups, localSelectedTeeth.concat({
       toothNumber: clickedTooth,
       type,
-      prescriptionType
+      prescriptionType,
+      selectedProducts: [],
+      productDetails: {},
     }));
     setShowTypeDialog(false);
     setClickedTooth(null);

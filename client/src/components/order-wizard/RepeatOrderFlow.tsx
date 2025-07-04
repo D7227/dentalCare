@@ -13,15 +13,17 @@ import AccessoryTagging from './AccessoryTagging';
 import FileUploader from '@/components/shared/FileUploader';
 
 import { useOrders } from '@/hooks/shared/useOrders';
+import ProductSelection from './ProductSelection';
 
 interface RepeatOrderFlowProps {
   currentStep: number;
   formData: any;
   setFormData: (data: any) => void;
   setSelectedOrderId: (order: string) => void;
+  onAddMoreProducts?: () => void;
 }
 
-const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderId }: RepeatOrderFlowProps) => {
+const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderId, onAddMoreProducts }: RepeatOrderFlowProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
@@ -149,6 +151,16 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
     }
   };
 
+  // Helper to check if teeth are selected
+  const hasSelectedTeeth = (
+    (formData.toothGroups && formData.toothGroups.length > 0 && formData.toothGroups.some((g: any) => g.teeth && g.teeth.length > 0)) ||
+    (formData.selectedTeeth && formData.selectedTeeth.length > 0)
+  );
+  // Only show ProductSelection if user has edited teeth
+  const showProductSelection = currentStep === 3 && hasSelectedTeeth && formData.teethEditedByUser;
+  // Only show Upload & Logistics if user has edited teeth and is on step 4, or if user hasn't selected teeth and is on step 3 (to allow skipping)
+  const showUploadAndLogistics = (currentStep === 4 && hasSelectedTeeth && formData.teethEditedByUser) || (currentStep === 3 && (!hasSelectedTeeth || !formData.teethEditedByUser));
+
   if (currentStep === 1) {
     return (
       <Card className="border-l-4 border-l-primary w-full max-w-full">
@@ -225,10 +237,10 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                       selectedOrder: order,
                       restorationType: order.restorationType?.toLowerCase().replace(' ', '-') || '',
                       toothGroups: order.toothGroups || [],
-                      selectedTeeth: order.selectedTeeth || [],
                       accessories: order.accessories || [],
+                      teethEditedByUser: false,
                     });
-                    setSelectedOrderId(order?.id);
+                    setSelectedOrderId(order?.id || '');
                   }}
                 >
                   <CardContent className="p-2 sm:p-4">
@@ -249,9 +261,6 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                             <div>
                               Teeth: <span className="font-medium">
                                 {order.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
-                                {order.selectedTeeth && order.selectedTeeth.length > 0 && (
-                                  <span className="text-gray-500">, {order.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ')}</span>
-                                )}
                               </span>
                             </div>
                           )}
@@ -297,8 +306,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-blue-700">Teeth:</span>
                         <span className="text-sm text-blue-600">
-                          {formData.selectedOrder.toothGroups.map((g: any) => g.teeth).flat().join(', ')} 
-                          , {formData?.selectedOrder.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ')}
+                          {formData.selectedOrder.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
                         </span>
                       </div>
                     )}
@@ -416,6 +424,8 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
     );
   }
 
+  console.log('formData', formData)
+
   if (currentStep === 2) {
     return (
       <Card className="border-l-4 border-l-primary">
@@ -469,16 +479,14 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
 
           <ToothSelector
             selectedGroups={formData.toothGroups || []}
-            selectedTeeth={formData?.selectedOrder.selectedTeeth || []}
+            selectedTeeth={formData?.selectedTeeth || []}
             prescriptionType={formData.prescriptionType}
             onSelectionChange={(groups, teeth) => setFormData({
               ...formData,
               toothGroups: groups,
-              selectedTeeth: teeth
-            })}
-            onGroupsChange={(groups) => setFormData({
-              ...formData,
-              toothGroups: groups
+              selectedTeeth: teeth,
+              teethEditedByUser: true,
+              teethToConfigure: teeth,
             })}
           />
         </CardContent>
@@ -486,7 +494,19 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderI
     );
   }
 
-  if (currentStep === 3) {
+  if (showProductSelection) {
+    return (
+        <div className="space-y-4 sm:space-y-6">
+        <Card className='border-none p-0'>
+          <div className='p-0 mt-4'>
+            <ProductSelection formData={formData} setFormData={setFormData} onAddMoreProducts={onAddMoreProducts} />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (showUploadAndLogistics) {
     return (
       <div className="space-y-6">
         {/* File Upload Section */}

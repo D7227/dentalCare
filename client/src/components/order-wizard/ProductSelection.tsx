@@ -80,8 +80,13 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
   // Find all teeth in groups (bridge/joint)
   const groupedTeeth = new Set<number>(toothGroups.flatMap((g: any) => g.teeth || []));
   // Find individual teeth (not in any group)
-  const individualTeeth = formData.selectedTeeth.filter((t: any) => !groupedTeeth.has(t.toothNumber));
-  // Compose all groups: bridge/joint + individual (all individual teeth in one group)
+  // --- Ensure every individual tooth has selectedProducts and productDetails ---
+  const individualTeeth = (formData.selectedTeeth || []).map((t: any) => ({
+    ...t,
+    selectedProducts: t.selectedProducts || [],
+    productDetails: t.productDetails || {},
+  })).filter((t: any) => !groupedTeeth.has(t.toothNumber));
+
   let allGroups = [...toothGroups];
   if (individualTeeth.length > 0) {
     allGroups.push({

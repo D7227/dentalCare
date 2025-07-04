@@ -1,6 +1,6 @@
 import { OrderCategory, Step } from '../types/orderTypes';
 export const useOrderSteps = () => {
-  const getStepsForCategory = (category: OrderCategory): Step[] => {
+  const getStepsForCategory = (category: OrderCategory, hasSelectedTeeth: boolean = false): Step[] => {
     switch (category) {
       case 'new':
         return [
@@ -12,14 +12,22 @@ export const useOrderSteps = () => {
           { number: 5, title: 'Upload & Logistics', description: 'Files and delivery' },
           { number: 6, title: 'Review Order', description: 'Confirm and submit' }
         ];
-      case 'repeat':
-        return [
+      case 'repeat': {
+        const baseSteps: Step[] = [
           { number: 0, title: 'Category', description: 'Select order type' },
           { number: 1, title: 'Select Order', description: 'Choose previous order' },
           { number: 2, title: 'Review Details', description: 'Edit if needed' },
-          { number: 3, title: 'Upload & Logistics', description: 'Files and delivery' },
-          { number: 4, title: 'Review Order', description: 'Confirm and submit' }
         ];
+        if (hasSelectedTeeth) {
+          baseSteps.push({ number: 3, title: 'Product Selection', description: 'Configure products' });
+          baseSteps.push({ number: 4, title: 'Upload & Logistics', description: 'Files and delivery' });
+          baseSteps.push({ number: 5, title: 'Review Order', description: 'Confirm and submit' });
+        } else {
+          baseSteps.push({ number: 3, title: 'Upload & Logistics', description: 'Files and delivery' });
+          baseSteps.push({ number: 4, title: 'Review Order', description: 'Confirm and submit' });
+        }
+        return baseSteps;
+      }
       case 'repair':
         return [
           { number: 0, title: 'Category', description: 'Select order type' },

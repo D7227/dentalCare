@@ -117,6 +117,7 @@ const PlaceOrder = () => {
     issueDescription: '',
     returnWithTrial: false,
     type: 'new',
+    teethEditedByUser: false,
   });
 
   // Update clinicId when Redux data becomes available
@@ -129,7 +130,14 @@ const PlaceOrder = () => {
     }
   }, [clinicId]);
 
-  const steps = getStepsForCategory(orderCategory);
+  const getHasSelectedTeeth = () => {
+    if (orderCategory !== 'repeat') return false;
+    return formData.teethEditedByUser === true;
+  };
+
+  const hasSelectedTeeth = getHasSelectedTeeth();
+  console.log("hasSelectedTeeth--", hasSelectedTeeth)
+  const steps = getStepsForCategory(orderCategory, hasSelectedTeeth);
   const maxSteps = steps.length - 1;
 
   const validateCurrentStep = (): boolean => {
@@ -337,6 +345,11 @@ const PlaceOrder = () => {
       description: "Your order has been cancelled and unsaved changes were discarded.",
     });
   };
+
+  useEffect(()=>{
+    console.log('orderCategory', orderCategory)
+    console.log('formData', formData)
+  },[formData,orderCategory])
 
   const renderStepContent = () => {
     if (currentStep === 0) {
