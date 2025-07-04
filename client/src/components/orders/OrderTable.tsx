@@ -304,181 +304,181 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   return (
     <div className="space-y-2">
       {/* Page Header */}
+      {/* <div>
+        <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+        <p className="text-muted-foreground">
+          View and manage all your dental lab orders
+        </p>
+      </div> */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-          <p className="text-muted-foreground">
-            View and manage all your dental lab orders
-          </p>
-        </div>
         <div className="flex items-center gap-3">
-                  {/* Search Bar and Filters */}
-        <div className="space-y-3">
-          <div className="flex gap-3 items-center">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search orders..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-[40px] text-sm"
-              />
+          <div className="space-y-3">
+            <div className="flex gap-3 items-center">
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-[40px] text-sm"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {/* Patient Filter */}
+                <Select value={patientFilter} onValueChange={setPatientFilter}>
+                  <SelectTrigger className="h-[40px] text-xs w-36">
+                    <SelectValue placeholder="Patient" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Patients</SelectItem>
+                    {uniquePatients.map((patient) => (
+                      <SelectItem key={patient} value={patient}>
+                        {patient}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Payment Status Filter */}
+                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                  <SelectTrigger className="h-[40px] text-xs w-32">
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payments</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending_payment">Pending</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Order Type Filter */}
+                <Select
+                  value={orderTypeFilter}
+                  onValueChange={setOrderTypeFilter}
+                >
+                  <SelectTrigger className="h-[40px] text-xs w-28">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="new">New Order</SelectItem>
+                    <SelectItem value="repair">Repair Order</SelectItem>
+                    <SelectItem value="repeat">Repeat Order</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Date Filter */}
+                <Select value={dateFilter} onValueChange={setDateFilter}>
+                  <SelectTrigger className="h-[40px] text-xs w-28">
+                    <SelectValue placeholder="Date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Dates</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="week">This Week</SelectItem>
+                    <SelectItem value="month">This Month</SelectItem>
+                    <SelectItem value="quarter">Last 3 Months</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Category/Status Filter */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-[40px] text-xs w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="trial_ready">Trial Ready</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {/* Patient Filter */}
-              <Select value={patientFilter} onValueChange={setPatientFilter}>
-                <SelectTrigger className="h-[40px] text-xs w-36">
-                  <SelectValue placeholder="Patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Patients</SelectItem>
-                  {uniquePatients.map((patient) => (
-                    <SelectItem key={patient} value={patient}>
-                      {patient}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Payment Status Filter */}
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger className="h-[40px] text-xs w-32">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending_payment">Pending</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Order Type Filter */}
-              <Select
-                value={orderTypeFilter}
-                onValueChange={setOrderTypeFilter}
-              >
-                <SelectTrigger className="h-[40px] text-xs w-28">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="new">New Order</SelectItem>
-                  <SelectItem value="repair">Repair Order</SelectItem>
-                  <SelectItem value="repeat">Repeat Order</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Date Filter */}
-              <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger className="h-[40px] text-xs w-28">
-                  <SelectValue placeholder="Date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Dates</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">Last 3 Months</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Category/Status Filter */}
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="h-[40px] text-xs w-32">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="trial_ready">Trial Ready</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Active Filters Display */}
+            {(patientFilter !== "all" ||
+              paymentFilter !== "all" ||
+              categoryFilter !== "all" ||
+              dateFilter !== "all" ||
+              orderTypeFilter !== "all" ||
+              searchTerm !== "") && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {searchTerm && (
+                    <Badge variant="secondary" className="text-xs">
+                      Search: {searchTerm}
+                      <button
+                        onClick={() => setSearchTerm("")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {patientFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Patient: {patientFilter}
+                      <button
+                        onClick={() => setPatientFilter("all")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {paymentFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Payment: {paymentFilter}
+                      <button
+                        onClick={() => setPaymentFilter("all")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {orderTypeFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Type: {orderTypeFilter}
+                      <button
+                        onClick={() => setOrderTypeFilter("all")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {dateFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Date: {dateFilter}
+                      <button
+                        onClick={() => setDateFilter("all")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                  {categoryFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">
+                      Category: {categoryFilter}
+                      <button
+                        onClick={() => setCategoryFilter("all")}
+                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  )}
+                </div>
+              )}
           </div>
 
-          {/* Active Filters Display */}
-          {(patientFilter !== "all" ||
-            paymentFilter !== "all" ||
-            categoryFilter !== "all" ||
-            dateFilter !== "all" ||
-            orderTypeFilter !== "all" ||
-            searchTerm !== "") && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {searchTerm && (
-                  <Badge variant="secondary" className="text-xs">
-                    Search: {searchTerm}
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {patientFilter !== "all" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Patient: {patientFilter}
-                    <button
-                      onClick={() => setPatientFilter("all")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {paymentFilter !== "all" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Payment: {paymentFilter}
-                    <button
-                      onClick={() => setPaymentFilter("all")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {orderTypeFilter !== "all" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Type: {orderTypeFilter}
-                    <button
-                      onClick={() => setOrderTypeFilter("all")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {dateFilter !== "all" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Date: {dateFilter}
-                    <button
-                      onClick={() => setDateFilter("all")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-                {categoryFilter !== "all" && (
-                  <Badge variant="secondary" className="text-xs">
-                    Category: {categoryFilter}
-                    <button
-                      onClick={() => setCategoryFilter("all")}
-                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                )}
-              </div>
-            )}
         </div>
-
           <Button
             onClick={() => setLocation("/place-order")}
             className="flex items-center gap-2"
@@ -486,7 +486,6 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
             <Plus size={16} />
             New Order
           </Button>
-        </div>
       </div>
 
       <Card>

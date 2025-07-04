@@ -92,12 +92,12 @@ const ScanBookingContent = () => {
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Request New Scan</h1>
           <p className="text-muted-foreground">Schedule a scan appointment for your patients</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Booking Form */}
       <Card className="card clinical-shadow w-full">

@@ -321,14 +321,19 @@ const ChatContent = () => {
     }
   }, [getSocket, queryClient, toast, user, selectedChat]);
 
+  // Check if a chat already exists for a given orderId
+  const orderHasChat = (orderId: string) => {
+    return chats.some((chat: ChatItem) => chat.orderId?.toString() === orderId.toString());
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Messages</h1>
-          <p className="text-muted-foreground">Communicate with your team and discuss orders</p>
-          {user && (
+        {/* <div> */}
+          {/* <h1 className="text-3xl font-bold text-foreground">Messages</h1>
+          <p className="text-muted-foreground">Communicate with your team and discuss orders</p> */}
+          {/* {user && (
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="outline" className="text-xs">
                 Logged in as: {user.fullName}
@@ -342,9 +347,22 @@ const ChatContent = () => {
                 </Badge>
               )}
             </div>
-          )}
-        </div>
-        <Dialog open={newChatModal} onOpenChange={setNewChatModal}>
+          )} */}
+        {/* </div> */}
+        
+      </div>
+
+      {/* Chat Tabs */}
+      <div className='flex gap-4'>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">All Chats</TabsTrigger>
+          <TabsTrigger value="master">Master</TabsTrigger>
+          <TabsTrigger value="order">Orders</TabsTrigger>
+          <TabsTrigger value="archived">Archived</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      <Dialog open={newChatModal} onOpenChange={setNewChatModal}>
           {
             isMainDoctor && (
                <DialogTrigger asChild>
@@ -389,20 +407,29 @@ const ChatContent = () => {
                     <SelectValue placeholder="Choose an order" />
                   </SelectTrigger>
                   <SelectContent>
-                    {orders.map((order: any) => (
-                      <SelectItem key={order.id} value={order.id.toString()}>
-                        {/* ORD-{order.id.toString().padStart(4, '0')} - */}
-                         {order.orderId || order.referenceId}
-                      </SelectItem>
-                    ))}
+                    {orders.map((order: any) => {
+                      const disabled = orderHasChat(order.id);
+                      return (
+                        <SelectItem key={order.id} value={order.id.toString()} disabled={disabled}>
+                          {/* ORD-{order.id.toString().padStart(4, '0')} - */}
+                          {order.orderId || order.referenceId}
+                          {disabled && ' (Chat Exists)'}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Show warning if selected order already has a chat */}
+              {selectedOrder && orderHasChat(selectedOrder) && (
+                <div className="text-destructive text-sm">A chat already exists for this order.</div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button 
                   onClick={handleCreateChat}
-                  disabled={createChatMutation.isPending}
+                  disabled={createChatMutation.isPending || (selectedOrder && orderHasChat(selectedOrder))}
                   className="flex-1"
                 >
                   {createChatMutation.isPending ? 'Creating...' : 'Create Chat'}
@@ -419,16 +446,6 @@ const ChatContent = () => {
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* Chat Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All Chats</TabsTrigger>
-          <TabsTrigger value="master">Master</TabsTrigger>
-          <TabsTrigger value="order">Orders</TabsTrigger>
-          <TabsTrigger value="archived">Archived</TabsTrigger>
-        </TabsList>
-      </Tabs>
 
       <div className="h-[calc(100vh-200px)] flex flex-col md:flex-row bg-background rounded-lg overflow-hidden border border-border min-h-[400px]">
         {/* Left Sidebar - Chat List */}

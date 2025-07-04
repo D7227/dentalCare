@@ -364,8 +364,8 @@ const ProfileContent: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+          {/* <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+          <p className="text-muted-foreground">Manage your account settings and preferences</p> */}
         </div>
         {/* Edit/Cancel Button */}
         <button

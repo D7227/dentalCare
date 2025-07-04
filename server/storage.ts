@@ -151,6 +151,12 @@ export interface IStorage {
   getLifecycleStages(): Promise<any[]>;
 
   getChatByOrderId(orderId: string): Promise<Chat | undefined>;
+
+  // Hard delete all messages for a chat
+  deleteMessagesByChat(chatId: string): Promise<void>;
+
+  // Hard delete a chat and its messages
+  deleteChat(chatId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -754,6 +760,17 @@ return updatedClinic;
   async createCompany(company: InsertCompany): Promise<Company> {
     const [newCompany] = await db.insert(companies).values(company).returning();
     return newCompany;
+  }
+
+  // Hard delete all messages for a chat
+  async deleteMessagesByChat(chatId: string): Promise<void> {
+    await db.delete(messages).where(eq(messages.chatId, chatId));
+  }
+
+  // Hard delete a chat and its messages
+  async deleteChat(chatId: string): Promise<void> {
+    await this.deleteMessagesByChat(chatId);
+    await db.delete(chats).where(eq(chats.id, chatId));
   }
 }
 

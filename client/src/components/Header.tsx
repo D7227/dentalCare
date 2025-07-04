@@ -18,9 +18,10 @@ interface HeaderProps {
   clinicName: string;
   onSectionChange?: (section: string) => void;
   onMobileMenuToggle?: () => void;
+  title?: string;
 }
 
-const Header = ({ doctorName, clinicName, onSectionChange, onMobileMenuToggle }: HeaderProps) => {
+const Header = ({ doctorName, clinicName, onSectionChange, onMobileMenuToggle, title }: HeaderProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [notifications] = useState([
     {
@@ -79,7 +80,10 @@ const Header = ({ doctorName, clinicName, onSectionChange, onMobileMenuToggle }:
         >
           <Menu size={20} />
         </Button>
-
+        {/* Title (if provided) */}
+        {title && (
+          <h2 className="text-xl font-semibold ml-4">{title}</h2>
+        )}
         {/* Search Bar - Responsive */}
         {/* <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />

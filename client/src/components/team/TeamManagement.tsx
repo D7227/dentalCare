@@ -107,8 +107,8 @@ const TeamManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
-          <p className="text-muted-foreground">Manage your team members and their permissions</p>
+          {/* <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
+          <p className="text-muted-foreground">Manage your team members and their permissions</p> */}
         </div>
         {user?.roleName === 'main_doctor' && (
           <Button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>

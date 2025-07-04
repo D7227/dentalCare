@@ -139,12 +139,12 @@ const BillingContent = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="page-header">
+      {/* <div className="page-header">
         <div className="page-header-content">
           <h1 className="page-title">Billing & Payments</h1>
           <p className="page-subtitle">Manage your invoices and payment history</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Billing Page Stats */}
       <BillingPageStatsCard />

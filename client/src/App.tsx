@@ -254,6 +254,16 @@ const DashboardLayout = () => {
     window.scrollTo(0, 0);
   }, [activeSection]);
 
+  const sectionTitleMap: Record<string, string> = {
+    orders: 'All orders',
+    appointments: 'Scan Booking',
+    pickup: 'Pickup Requests',
+    billing: 'Billing & Payments',
+    messages: 'Messages',
+    'my-team': 'Team Management',
+    profile: 'Profile',
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
       {/* Mobile Sidebar Overlay */}
@@ -283,6 +293,7 @@ const DashboardLayout = () => {
           doctorName="Dr. Sarah Mitchell"
           clinicName="Smile Dental Clinic"
           onSectionChange={handleSectionChange}
+          title={sectionTitleMap[activeSection] || 'Dashboard'}
         />
         <main className="flex-1 p-6 bg-mainBrackground">
           {renderMainContent()}

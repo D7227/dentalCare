@@ -911,6 +911,15 @@ var DatabaseStorage = class {
     const [newCompany] = await db.insert(companies).values(company).returning();
     return newCompany;
   }
+  // Hard delete all messages for a chat
+  async deleteMessagesByChat(chatId) {
+    await db.delete(messages).where(eq(messages.chatId, chatId));
+  }
+  // Hard delete a chat and its messages
+  async deleteChat(chatId) {
+    await this.deleteMessagesByChat(chatId);
+    await db.delete(chats).where(eq(chats.id, chatId));
+  }
 };
 var storage = new DatabaseStorage();
 
@@ -1470,10 +1479,7 @@ async function registerRoutes(app2) {
       if (!chat) {
         return res.status(404).json({ error: "Chat not found" });
       }
-      const messages2 = await storage.getMessagesByChat(chatId);
-      for (const message of messages2) {
-      }
-      await storage.updateChat(chatId, { isActive: false });
+      await storage.deleteChat(chatId);
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete chat" });

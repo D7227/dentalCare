@@ -649,18 +649,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Chat not found" });
       }
 
-      // Only allow deletion of chats created by the current user (not order-wise chats)
-      // if (chat.orderId) {
-      //   return res.status(403).json({ error: "Cannot delete order-wise chats" });
-      // }
-
-      // Delete messages first, then chat
-      const messages = await storage.getMessagesByChat(chatId);
-      for (const message of messages) {
-        // Delete messages (implement deleteMessage in storage if needed)
-      }
-      
-      await storage.updateChat(chatId, { isActive: false });
+      // Hard delete chat and its messages
+      await storage.deleteChat(chatId);
       res.status(200).json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete chat" });
