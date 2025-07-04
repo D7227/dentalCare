@@ -81,6 +81,17 @@ const ProfileContent: React.FC = () => {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<ClinicData>) => {
       if (!user?.id) throw new Error('User ID not available');
+      const memberpayload = {}
+      if (data.userType !== 'clinic') {
+        memberpayload.clinicName = data.clinicName?.trim();
+        memberpayload.contactNumber = data.phone?.trim();
+        memberpayload.roleName = data.roleName?.trim();
+        memberpayload.permissions = data.permissions;
+        memberpayload.profilePicture = data.profilePicture?.trim();
+        memberpayload.email = data.email?.trim();
+        memberpayload.fullName = data.firstName?.trim() + " " + data.lastName?.trim();
+      }
+      // console.log("memberpayload", memberpayload);
       const endpoint = data.userType === 'clinic'
         ? `/api/clinic/${user.id}`
         : `/api/team-members/${user.id}`;
@@ -88,7 +99,7 @@ const ProfileContent: React.FC = () => {
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(toSnakeCase(data)),
+        body: data.userType === 'clinic' ? JSON.stringify(data) : JSON.stringify(memberpayload),
       });
       if (!response.ok) throw new Error('Failed to update profile');
       return response.json();
@@ -107,6 +118,30 @@ const ProfileContent: React.FC = () => {
       });
     },
   });
+
+  // const updateMutation = useMutation({
+  //   mutationFn: async ({ id, data }: { id: string; data: any }) => {
+  //     const response = await fetch(`/api/team-members/${id}`, {
+  //       method: 'PUT',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify(data)
+  //     });
+  //     if (!response.ok) throw new Error('Failed to update team member');
+  //     return response.json();
+  //   },
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries({ queryKey: ['/api/team-members'] });
+  //     if (user?.clinicName) {
+  //       queryClient.invalidateQueries({ queryKey: ['/api/team-members?clinicName=', user.clinicName] });
+  //     }
+  //     setCurrentView('list');
+  //     resetForm();
+  //     toast({ title: "Team member updated successfully" });
+  //   },
+  //   onError: () => {
+  //     toast({ title: "Failed to update team member", variant: "destructive" });
+  //   }
+  // });
 
   const validateGST = (gst: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
   const validatePAN = (pan: string) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
