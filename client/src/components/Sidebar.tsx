@@ -7,11 +7,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import logoImage from '@/assets/logo.png';
 import { useClinicMembers } from '@/hooks/useClinicMembers';
 import LoadingSpinner from './shared/LoadingSpinner';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import LayoutConstants from '@/utils/staticValue';
 import { useLocation } from 'wouter';
-import { useDispatch } from 'react-redux';
 import { logout } from '@/store/slices/authSlice';
+import { clearReduxPersist } from '@/store/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 export interface SidebarProps {
   isCollapsed: boolean;
@@ -37,7 +39,9 @@ const Sidebar = ({
 
   // Add setLocation for navigation
   const [, setLocation] = useLocation();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const menuItems = [
     {
@@ -93,7 +97,22 @@ const Sidebar = ({
   };
 
   const handleLogout = () => {
+    // Clear all Redux data
     dispatch(logout());
+    
+    // Clear Redux persist data
+    clearReduxPersist();
+    
+    // Clear all React Query cache
+    queryClient.clear();
+    
+    // Show success toast
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out and redirected to login.",
+    });
+    
+    // Redirect to login page
     setLocation('/login');
   };
 

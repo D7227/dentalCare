@@ -3,9 +3,12 @@ import { Pen, LogOut, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GradientInput from '@/components/ui/gradient-input';
 import { Label } from '@/components/ui/label';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { logout } from '@/store/slices/authSlice';
+import { clearReduxPersist } from '@/store/utils';
+import { useLocation } from 'wouter';
 
 // SectionCard helper for section layout
 interface SectionCardProps {
@@ -49,6 +52,8 @@ const ProfileContent: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
+  const [location, setLocation] = useLocation();
 
   // Fetch user data from API using user ID
   console.log("user in ProfileContent", user); // DEBUG LOG
@@ -315,6 +320,26 @@ const ProfileContent: React.FC = () => {
     );
   };
 
+  const handleLogout = () => {
+    // Clear all Redux data
+    dispatch(logout());
+    
+    // Clear Redux persist data
+    clearReduxPersist();
+    
+    // Clear all React Query cache
+    queryClient.clear();
+    
+    // Show success toast
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out and redirected to login.",
+    });
+    
+    // Redirect to login page
+    setLocation('/login');
+  };
+
   if (isLoading || !editProfileData) {
     return (
       <div className="mx-auto">
@@ -548,6 +573,7 @@ const ProfileContent: React.FC = () => {
           <Button
             variant="default"
             className="w-full sm:w-48 bg-customGreen-200 text-white font-medium rounded-lg py-3 px-6 hover:bg-[#039855] transition-colors duration-150 border-none"
+            onClick={handleLogout}
           >
             Log Out
             <LogOut className="w-4 h-4 mr-2" />

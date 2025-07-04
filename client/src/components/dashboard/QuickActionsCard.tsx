@@ -21,10 +21,30 @@ const QuickActionsCard = ({ onSectionChange, onScanBooking }: QuickActionsCardPr
   };
 
   const quickActions = [
-    { id: 'appointments', label: 'Book Scan', icon: Calendar },
-    { id: 'pickup', label: 'Request Pickup', icon: Truck },
-    { id: 'billing', label: 'View Bills', icon: Receipt },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { 
+      id: 'appointments', 
+      label: 'Book Scan', 
+      icon: Calendar,
+      permission: 'scan_booking'
+    },
+    { 
+      id: 'pickup', 
+      label: 'Request Pickup', 
+      icon: Truck,
+      permission: 'pickup_requests'
+    },
+    { 
+      id: 'billing', 
+      label: 'View Bills', 
+      icon: Receipt,
+      permission: 'billing'
+    },
+    { 
+      id: 'messages', 
+      label: 'Messages', 
+      icon: MessageSquare,
+      permission: 'chat'
+    },
   ];
 
   return (
@@ -39,9 +59,8 @@ const QuickActionsCard = ({ onSectionChange, onScanBooking }: QuickActionsCardPr
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action) => {
             const Icon = action.icon;
-            const permissionName = `quick_action:${action.id}`;
-            const isMainDoctor = user?.roleName === 'main_doctor';
-            const isDisabled = !isMainDoctor && !hasPermission(user, permissionName);
+            const hasAccess = hasPermission(user, action.permission);
+            
             return (
               <Button 
                 key={action.id}
@@ -49,8 +68,8 @@ const QuickActionsCard = ({ onSectionChange, onScanBooking }: QuickActionsCardPr
                 className="h-20 flex flex-col items-center justify-center hover-lift focus-ring"
                 onClick={() => handleQuickAction(action.id)}
                 aria-label={action.label}
-                disabled={isDisabled}
-                title={isDisabled ? 'You do not have permission to perform this action' : ''}
+                disabled={!hasAccess}
+                title={!hasAccess ? 'You do not have permission to perform this action' : ''}
               >
                 <Icon className="mb-2" size={20} />
                 <span className="text-sm">{action.label}</span>
