@@ -10,6 +10,21 @@ interface PatientInfoCardProps {
 }
 
 const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
+  // Utility function to capitalize first letter of each word
+  const capitalizeWords = (text: string): string => {
+    return text
+      .toUpperCase();
+  };
+
+  // Handle name field changes with automatic capitalization
+  const handleNameChange = (field: 'firstName' | 'lastName', value: string) => {
+    const capitalizedValue = capitalizeWords(value);
+    setFormData({
+      ...formData,
+      [field]: capitalizedValue
+    });
+  };
+
   const handleAgeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     
@@ -44,11 +59,9 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
             <Input
               id="firstName"
               value={formData.firstName}
-              onChange={e => setFormData({
-                ...formData,
-                firstName: e.target.value
-              })}
+              onChange={e => handleNameChange('firstName', e.target.value)}
               className="mt-1"
+              placeholder="Enter first name"
             />
           </div>
           <div className='w-full'>
@@ -56,11 +69,9 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
             <Input
               id="lastName"
               value={formData.lastName}
-              onChange={e => setFormData({
-                ...formData,
-                lastName: e.target.value
-              })}
+              onChange={e => handleNameChange('lastName', e.target.value)}
               className="mt-1"
+              placeholder="Enter last name"
             />
           </div>
         </div>
