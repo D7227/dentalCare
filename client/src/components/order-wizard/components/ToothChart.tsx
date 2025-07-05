@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/tooth';
 
 interface SelectedTooth {
   toothNumber: number;
@@ -7,13 +7,13 @@ interface SelectedTooth {
 }
 
 interface ToothChartProps {
-  selectedGroups: ToothGroup[];
+  selectedGroups: LegacyToothGroup[];
   selectedTeeth: SelectedTooth[];
   onToothClick: (toothNumber: number, event: React.MouseEvent) => void;
   onDragConnection: (teeth: number[] | number, splitData?: any) => void;
   isToothSelected: (toothNumber: number) => boolean;
   getToothType: (toothNumber: number) => 'abutment' | 'pontic' | null;
-  onGroupsChange: (groups: ToothGroup[]) => void;
+  onGroupsChange: (groups: LegacyToothGroup[]) => void;
   setSelectedTeeth: React.Dispatch<React.SetStateAction<SelectedTooth[]>>;
 }
 
@@ -441,7 +441,7 @@ const ToothChart = ({
   };
 
   // Handle double-click on connection lines to split groups - with strict adjacency validation
-  const handleLineDoubleClick = (group: ToothGroup, tooth1: number, tooth2: number, event: React.MouseEvent) => {
+  const handleLineDoubleClick = (group: LegacyToothGroup, tooth1: number, tooth2: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     
@@ -489,7 +489,7 @@ const ToothChart = ({
     console.log('Splitting group into:', group1Teeth, 'and', group2Teeth);
     
     // Create two new groups
-    const group1: ToothGroup = {
+    const group1: LegacyToothGroup = {
       groupId: `group-${Date.now()}-1`,
       teeth: group1Teeth,
       type: group.type,
@@ -500,7 +500,7 @@ const ToothChart = ({
       productType: group.productType || 'implant',
     };
 
-    const group2: ToothGroup = {
+    const group2: LegacyToothGroup = {
       groupId: `group-${Date.now()}-2`,
       teeth: group2Teeth,
       type: group.type,
