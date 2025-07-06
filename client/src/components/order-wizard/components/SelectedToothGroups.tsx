@@ -132,7 +132,7 @@ const SelectedToothGroups = ({
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+     <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
         📋 Selected Teeth
       </h4>
 
@@ -217,7 +217,7 @@ const SelectedToothGroups = ({
                       }`}
                     >
                       <span>{toothNumber} {isPontic ? '(P)' : '(A)'}</span>
-                      <Button
+                      {/* <Button
                         type="button"
                         variant="ghost"
                         size="sm"
@@ -225,7 +225,7 @@ const SelectedToothGroups = ({
                         className="h-3 w-3 p-0 hover:bg-gray-100 mr-1"
                       >
                         <Edit size={14} />
-                      </Button>
+                      </Button> */}
                     </div>
                   );
                 })}

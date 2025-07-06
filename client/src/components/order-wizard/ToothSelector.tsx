@@ -207,8 +207,8 @@ const ToothSelector = ({
         return;
       } else {
         // For abutment teeth, directly unselect
-        handleToothDeselection(toothNumber);
-        return;
+      handleToothDeselection(toothNumber);
+      return;
       }
     }
 
@@ -251,14 +251,81 @@ const ToothSelector = ({
             localSelectedTeeth
           );
         } else {
-          const updatedGroup: ToothGroup = {
-            ...groupContainingTooth,
-            teethDetails: updatedTeethDetails
-          };
-          updateSelection(
-            localSelectedGroups.map(g => g === groupContainingTooth ? updatedGroup : g),
-            localSelectedTeeth
-          );
+          // Check if any pontics remain in the group
+          const flatTeeth = updatedTeethDetails.flat();
+          const hasPontics = flatTeeth.some(t => t.type === 'pontic');
+          if (hasPontics) {
+            const updatedGroup: ToothGroup = {
+              ...groupContainingTooth,
+              groupType: 'bridge',
+              teethDetails: updatedTeethDetails
+            };
+            updateSelection(
+              localSelectedGroups.map(g => g === groupContainingTooth ? updatedGroup : g),
+              localSelectedTeeth
+            );
+          } else {
+            // No pontics remain: split into contiguous abutment fragments
+            // 1. Get all abutment teeth in order
+            const abutmentTeeth = flatTeeth.filter(t => t.type === 'abutment').map(t => t.teethNumber);
+            // 2. Find contiguous fragments
+            const upperArch = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+            const lowerArch = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+            const isUpper = abutmentTeeth.every(t => upperArch.includes(t));
+            const isLower = abutmentTeeth.every(t => lowerArch.includes(t));
+            const arch = isUpper ? upperArch : isLower ? lowerArch : null;
+            const sortedTeeth = arch
+              ? abutmentTeeth.slice().sort((a, b) => arch.indexOf(a) - arch.indexOf(b))
+              : abutmentTeeth.slice().sort((a, b) => a - b);
+            const fragments: number[][] = [];
+            let currentFragment = sortedTeeth.length ? [sortedTeeth[0]] : [];
+            for (let i = 1; i < sortedTeeth.length; i++) {
+              const currentTooth = sortedTeeth[i];
+              const previousTooth = sortedTeeth[i - 1];
+              if (areTeethStrictlyAdjacent(previousTooth, currentTooth)) {
+                currentFragment.push(currentTooth);
+              } else {
+                fragments.push(currentFragment);
+                currentFragment = [currentTooth];
+              }
+            }
+            if (currentFragment.length) fragments.push(currentFragment);
+            // 3. Build new groups/individuals
+            const newGroups = localSelectedGroups.filter(g => g !== groupContainingTooth);
+            let newIndividualTeeth = [...localSelectedTeeth];
+            fragments.forEach(fragment => {
+              if (fragment.length === 1) {
+                // Add as individual abutment
+                const toothNum = fragment[0];
+                newIndividualTeeth.push({
+                  toothNumber: toothNum,
+                  type: 'abutment',
+            prescriptionType
+                });
+              } else if (fragment.length > 1) {
+                // Add as joint group
+                const fragmentTeethDetails: ToothDetail[] = fragment.map(toothNum => {
+                  const toothDetail = flatTeeth.find(t => t.teethNumber === toothNum);
+                  return toothDetail || {
+                    teethNumber: toothNum,
+                    productName: 'gold',
+                    productQuantity: 1,
+                    shadeDetails: '',
+                    occlusalStaining: '',
+                    shadeGuide: [],
+                    shadeNotes: '',
+                    trialRequirements: '',
+                    type: 'abutment'
+                  };
+                });
+                newGroups.push({
+                  groupType: 'joint',
+                  teethDetails: [fragmentTeethDetails]
+                });
+              }
+            });
+            updateSelection(newGroups, newIndividualTeeth);
+          }
         }
         return;
       }
@@ -285,35 +352,35 @@ const ToothSelector = ({
               prescriptionType
             })
           );
-        } else {
+      } else {
           if (validateTeethSequence(remainingTeeth)) {
             const updatedTeethDetails = groupContainingTooth.teethDetails.map(group =>
               group.filter(tooth => tooth.teethNumber !== toothNumber)
             ).filter(group => group.length > 0);
             const updatedGroup: ToothGroup = {
-              ...groupContainingTooth,
+            ...groupContainingTooth,
               teethDetails: updatedTeethDetails
-            };
+          };
             updateSelection(
               localSelectedGroups.map(g => g === groupContainingTooth ? updatedGroup : g),
               localSelectedTeeth.filter(t => t.toothNumber !== toothNumber)
             );
-          } else {
+        } else {
             const fragments = findValidAdjacentFragments(remainingTeeth);
             const remainingGroups = localSelectedGroups.filter(g => g !== groupContainingTooth);
-            const newGroups = [...remainingGroups];
+          const newGroups = [...remainingGroups];
             const newIndividualTeeth = [...localSelectedTeeth.filter(t => t.toothNumber !== toothNumber)];
-            fragments.forEach((fragment, index) => {
-              if (fragment.length === 1) {
-                const toothNum = fragment[0];
+          fragments.forEach((fragment, index) => {
+            if (fragment.length === 1) {
+              const toothNum = fragment[0];
                 const toothDetail = groupContainingTooth.teethDetails.flat().find(t => t.teethNumber === toothNum);
                 const type = toothDetail?.type || 'abutment';
-                newIndividualTeeth.push({
-                  toothNumber: toothNum,
-                  type,
-                  prescriptionType
-                });
-              } else {
+              newIndividualTeeth.push({
+                toothNumber: toothNum,
+                type,
+                prescriptionType
+              });
+            } else {
                 const fragmentTeethDetails: ToothDetail[] = fragment.map(toothNum => {
                   const toothDetail = groupContainingTooth.teethDetails.flat().find(t => t.teethNumber === toothNum);
                   return toothDetail || {
@@ -329,14 +396,14 @@ const ToothSelector = ({
                   };
                 });
                 const hasPontics = fragmentTeethDetails.some(tooth => tooth.type === 'pontic');
-                const newGroup: ToothGroup = {
+              const newGroup: ToothGroup = {
                   groupType: hasPontics ? 'bridge' : 'joint',
                   teethDetails: [fragmentTeethDetails],
-                };
-                newGroups.push(newGroup);
-              }
-            });
-            updateSelection(newGroups, newIndividualTeeth);
+              };
+              newGroups.push(newGroup);
+            }
+          });
+          updateSelection(newGroups, newIndividualTeeth);
           }
         }
       }
@@ -412,8 +479,12 @@ const ToothSelector = ({
         const updatedTeethDetails = groupContainingTooth.teethDetails.map((arr, idx) =>
           idx === lastGroupIdx ? updatedGroupArr : arr
         );
+        // Check if any pontics remain in the group after addition
+        const flatTeeth = updatedTeethDetails.flat();
+        const hasPontics = flatTeeth.some(t => t.type === 'pontic');
         const updatedGroup: ToothGroup = {
           ...groupContainingTooth,
+          groupType: hasPontics ? 'bridge' : 'joint',
           teethDetails: updatedTeethDetails
         };
         updateSelection(
@@ -577,11 +648,11 @@ const ToothSelector = ({
               const toothNumber = group.teeth[0];
               const wasPontic = group.pontics?.includes(toothNumber);
               const type = wasPontic ? 'pontic' : 'abutment';
-              newIndividualTeeth.push({
-                toothNumber,
-                type,
-                prescriptionType
-              });
+                newIndividualTeeth.push({
+                  toothNumber,
+                  type,
+                  prescriptionType
+                });
             } else {
               // Build ToothDetail[] in the order of group.teeth
               const fragmentTeethDetails: ToothDetail[] = group.teeth.map(toothNumber => {
@@ -613,24 +684,92 @@ const ToothSelector = ({
     }
     
     if (Array.isArray(teeth) && teeth.length > 1) {
+      console.log('Drag connection received:', teeth);
+      
       // Find involved groups and individual teeth
       const involvedGroups = localSelectedGroups.filter(group =>
         group.teethDetails.flat().some(tooth => teeth.includes(tooth.teethNumber))
       );
-      // If all teeth are already in a single group, just merge the new tooth into that group
+      
+      console.log('Involved groups:', involvedGroups);
+      
+      // Check if we're trying to merge into an existing group
       if (involvedGroups.length === 1) {
-        const group = involvedGroups[0];
-        // Get all teeth in the group in order
-        const groupTeeth = group.teethDetails.flat().map(t => t.teethNumber);
-        // If the new teeth array is a superset of the group, merge in the new teeth in the order provided
-        const missingTeeth = teeth.filter(t => !groupTeeth.includes(t));
-        if (missingTeeth.length > 0) {
-          // Build new group in the order of the teeth array, preserving type if already present
-          const newTeethDetails: ToothDetail[] = teeth.map(toothNumber => {
-            const existing = group.teethDetails.flat().find(t => t.teethNumber === toothNumber);
-            if (existing) return existing;
-            // Otherwise, use type from individual teeth if present
-            const individual = localSelectedTeeth.find(t => t.toothNumber === toothNumber);
+        const existingGroup = involvedGroups[0];
+        const existingGroupTeeth = existingGroup.teethDetails.flat().map(t => t.teethNumber);
+        const newTeeth = teeth.filter(t => !existingGroupTeeth.includes(t));
+        
+        console.log('Existing group teeth:', existingGroupTeeth);
+        console.log('New teeth to add:', newTeeth);
+        
+        if (newTeeth.length > 0) {
+          // We're adding new teeth to an existing group
+          // Build the complete sequence by combining existing and new teeth
+          let completeSequence: number[] = [];
+          
+          // Start with existing group teeth in their current order
+          completeSequence = [...existingGroupTeeth];
+          
+          // Add new teeth in the order they were dragged
+          newTeeth.forEach(toothNumber => {
+            // Find the best position to insert based on adjacency
+            let insertIndex = -1;
+            
+            // Check if we can insert at the beginning
+            if (completeSequence.length > 0 && areTeethStrictlyAdjacent(toothNumber, completeSequence[0])) {
+              insertIndex = 0;
+            } else {
+              // Check for insertion in the middle or end
+              for (let i = 0; i < completeSequence.length; i++) {
+                if (areTeethStrictlyAdjacent(toothNumber, completeSequence[i])) {
+                  // Insert after this tooth
+                  insertIndex = i + 1;
+                  break;
+                }
+              }
+            }
+            
+            if (insertIndex === -1) {
+              // If no adjacency found, append to the end
+              completeSequence.push(toothNumber);
+            } else {
+              completeSequence.splice(insertIndex, 0, toothNumber);
+            }
+          });
+          
+          console.log('Complete sequence:', completeSequence);
+          
+          // Validate the complete sequence
+          if (!validateTeethSequence(completeSequence)) {
+            console.log('Invalid sequence after merging');
+            return;
+          }
+          
+          // Build the new teeth details in the complete sequence order
+          const newTeethDetails: ToothDetail[] = completeSequence.map(toothNumber => {
+            // First check if it exists in the existing group
+            const existingTooth = existingGroup.teethDetails.flat().find(t => t.teethNumber === toothNumber);
+            if (existingTooth) {
+              return existingTooth;
+            }
+            
+            // Check if it exists in individual teeth
+            const individualTooth = localSelectedTeeth.find(t => t.toothNumber === toothNumber);
+            if (individualTooth) {
+              return {
+                teethNumber: toothNumber,
+                productName: 'gold',
+                productQuantity: 1,
+                shadeDetails: '',
+                occlusalStaining: '',
+                shadeGuide: [],
+                shadeNotes: '',
+                trialRequirements: '',
+                type: individualTooth.type
+              };
+            }
+            
+            // New tooth, default to abutment
             return {
               teethNumber: toothNumber,
               productName: 'gold',
@@ -640,23 +779,151 @@ const ToothSelector = ({
               shadeGuide: [],
               shadeNotes: '',
               trialRequirements: '',
-              type: individual ? individual.type : 'abutment'
+              type: 'abutment'
             };
           });
-          const groupType = newTeethDetails.some(t => t.type === 'pontic') ? 'bridge' : 'joint';
+          
+          const hasPontics = newTeethDetails.some(t => t.type === 'pontic');
+          const groupType = hasPontics ? 'bridge' : 'joint';
+          
           const updatedGroup: ToothGroup = {
-            ...group,
+            ...existingGroup,
             groupType,
             teethDetails: [newTeethDetails]
           };
-          // Remove the group and any individual teeth now in the group
-          const remainingGroups = localSelectedGroups.filter(g => g !== group);
-          const remainingIndividualTeeth = localSelectedTeeth.filter(t => !teeth.includes(t.toothNumber));
+          
+          // Remove the old group and any individual teeth now in the group
+          const remainingGroups = localSelectedGroups.filter(g => g !== existingGroup);
+          const remainingIndividualTeeth = localSelectedTeeth.filter(t => !completeSequence.includes(t.toothNumber));
+          
           updateSelection([...remainingGroups, updatedGroup], remainingIndividualTeeth);
+          return;
         }
-        // If no missing teeth, do nothing (already in group)
+        // If no new teeth, do nothing (already in group)
         return;
       }
+      
+      // Handle case where teeth span multiple groups or are all individual
+      // First, check if we're trying to connect to an existing group from outside
+      if (involvedGroups.length === 0 && teeth.length === 2) {
+        // This might be connecting an individual tooth to an existing group
+        const [tooth1, tooth2] = teeth;
+        const group1 = localSelectedGroups.find(g => g.teethDetails.flat().some(t => t.teethNumber === tooth1));
+        const group2 = localSelectedGroups.find(g => g.teethDetails.flat().some(t => t.teethNumber === tooth2));
+        
+        if (group1 && !group2) {
+          // tooth1 is in a group, tooth2 is individual - merge tooth2 into group1
+          const existingGroupTeeth = group1.teethDetails.flat().map(t => t.teethNumber);
+          if (areTeethStrictlyAdjacent(tooth1, tooth2)) {
+            // Find the best position to insert tooth2
+            let insertIndex = -1;
+            if (areTeethStrictlyAdjacent(tooth2, existingGroupTeeth[0])) {
+              insertIndex = 0;
+            } else {
+              for (let i = 0; i < existingGroupTeeth.length; i++) {
+                if (areTeethStrictlyAdjacent(tooth2, existingGroupTeeth[i])) {
+                  insertIndex = i + 1;
+                  break;
+                }
+              }
+            }
+            
+            if (insertIndex !== -1) {
+              const newSequence = [...existingGroupTeeth];
+              newSequence.splice(insertIndex, 0, tooth2);
+              
+              if (validateTeethSequence(newSequence)) {
+                const individualTooth = localSelectedTeeth.find(t => t.toothNumber === tooth2);
+                const newToothDetail: ToothDetail = {
+                  teethNumber: tooth2,
+                  productName: 'gold',
+                  productQuantity: 1,
+                  shadeDetails: '',
+                  occlusalStaining: '',
+                  shadeGuide: [],
+                  shadeNotes: '',
+                  trialRequirements: '',
+                  type: individualTooth ? individualTooth.type : 'abutment'
+                };
+                
+                const newTeethDetails: ToothDetail[] = newSequence.map(toothNumber => {
+                  const existing = group1.teethDetails.flat().find(t => t.teethNumber === toothNumber);
+                  return existing || newToothDetail;
+                });
+                
+                const hasPontics = newTeethDetails.some(t => t.type === 'pontic');
+                const updatedGroup: ToothGroup = {
+                  ...group1,
+                  groupType: hasPontics ? 'bridge' : 'joint',
+                  teethDetails: [newTeethDetails]
+                };
+                
+                const remainingGroups = localSelectedGroups.filter(g => g !== group1);
+                const remainingIndividualTeeth = localSelectedTeeth.filter(t => t.toothNumber !== tooth2);
+                
+                updateSelection([...remainingGroups, updatedGroup], remainingIndividualTeeth);
+                return;
+              }
+            }
+          }
+        } else if (!group1 && group2) {
+          // tooth2 is in a group, tooth1 is individual - merge tooth1 into group2
+          const existingGroupTeeth = group2.teethDetails.flat().map(t => t.teethNumber);
+          if (areTeethStrictlyAdjacent(tooth1, tooth2)) {
+            // Find the best position to insert tooth1
+            let insertIndex = -1;
+            if (areTeethStrictlyAdjacent(tooth1, existingGroupTeeth[0])) {
+              insertIndex = 0;
+            } else {
+              for (let i = 0; i < existingGroupTeeth.length; i++) {
+                if (areTeethStrictlyAdjacent(tooth1, existingGroupTeeth[i])) {
+                  insertIndex = i + 1;
+                  break;
+                }
+              }
+            }
+            
+            if (insertIndex !== -1) {
+              const newSequence = [...existingGroupTeeth];
+              newSequence.splice(insertIndex, 0, tooth1);
+              
+              if (validateTeethSequence(newSequence)) {
+                const individualTooth = localSelectedTeeth.find(t => t.toothNumber === tooth1);
+                const newToothDetail: ToothDetail = {
+                  teethNumber: tooth1,
+                  productName: 'gold',
+                  productQuantity: 1,
+                  shadeDetails: '',
+                  occlusalStaining: '',
+                  shadeGuide: [],
+                  shadeNotes: '',
+                  trialRequirements: '',
+                  type: individualTooth ? individualTooth.type : 'abutment'
+                };
+                
+                const newTeethDetails: ToothDetail[] = newSequence.map(toothNumber => {
+                  const existing = group2.teethDetails.flat().find(t => t.teethNumber === toothNumber);
+                  return existing || newToothDetail;
+                });
+                
+                const hasPontics = newTeethDetails.some(t => t.type === 'pontic');
+                const updatedGroup: ToothGroup = {
+                  ...group2,
+                  groupType: hasPontics ? 'bridge' : 'joint',
+                  teethDetails: [newTeethDetails]
+                };
+                
+                const remainingGroups = localSelectedGroups.filter(g => g !== group2);
+                const remainingIndividualTeeth = localSelectedTeeth.filter(t => t.toothNumber !== tooth1);
+                
+                updateSelection([...remainingGroups, updatedGroup], remainingIndividualTeeth);
+                return;
+              }
+            }
+          }
+        }
+      }
+      
       // Build the connectedTeethData array in the order of the drag/select
       const connectedTeethData: ToothDetail[] = teeth.map(toothNumber => {
         // Check if tooth exists in individual teeth
@@ -695,32 +962,28 @@ const ToothSelector = ({
           };
         }
       });
-      // Validate adjacency (optional: you can keep this logic if needed)
-      const validateTeethSequence = (teeth: number[]): boolean => {
-        if (teeth.length < 2) return true;
-        for (let i = 0; i < teeth.length - 1; i++) {
-          if (!areTeethStrictlyAdjacent(teeth[i], teeth[i + 1])) {
-            return false;
-          }
-        }
-        return true;
-      };
+      
+      // Validate adjacency
       if (!validateTeethSequence(teeth)) {
         console.log('Connection rejected: final sequence would create non-adjacent connections');
         return;
       }
+      
       // Determine group type
       const pontics = connectedTeethData.filter(tooth => tooth.type === 'pontic').map(tooth => tooth.teethNumber);
       const groupType = pontics.length > 0 ? 'bridge' : 'joint';
+      
       // Create new group in the order of selection
       const newGroup: ToothGroup = {
         groupType,
         teethDetails: [connectedTeethData]
       };
+      
       // Remove involved groups and individual teeth
       const allTeethInConnection = new Set(teeth);
       const remainingGroups = localSelectedGroups.filter(g => !involvedGroups.includes(g));
       const remainingIndividualTeeth = localSelectedTeeth.filter(t => !allTeethInConnection.has(t.toothNumber));
+      
       updateSelection([...remainingGroups, newGroup], remainingIndividualTeeth);
     }
   };
@@ -806,7 +1069,7 @@ const ToothSelector = ({
         </Card>
       </div>
       <div className="w-full md:w-1/2 space-y-4 mt-4 md:mt-0">
-        {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && ( 
+        {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && (
           <Card className="border shadow-sm">
             <CardContent className="p-2 sm:p-3">
               <SelectedToothGroups 

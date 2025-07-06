@@ -119,6 +119,7 @@ const ToothChart = ({
     setMousePosition({ x, y });
     const startPos = getDotPosition(dragStart);
     setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+    
     // Only add to chain if dragging and not already in chain
     let closestTooth: number | null = null;
     let minDistance = 24;
@@ -126,6 +127,7 @@ const ToothChart = ({
       ...selectedTeeth.map(t => t.toothNumber),
       ...selectedGroups.flatMap(g => g.teeth)
     ];
+    
     for (const toothNumber of allTeeth) {
       if (connectionChain.includes(toothNumber)) continue;
       const dotPos = getDotPosition(toothNumber);
@@ -135,8 +137,18 @@ const ToothChart = ({
         closestTooth = toothNumber;
       }
     }
+    
     if (closestTooth !== null) {
-      setConnectionChain(prev => [...prev, closestTooth]);
+      // More flexible: allow adding if adjacent to any tooth in the chain
+      const lastToothInChain = connectionChain[connectionChain.length - 1];
+      if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+        setConnectionChain(prev => [...prev, closestTooth!]);
+      } else if (connectionChain.length === 1) {
+        // If this is the first connection, allow it if adjacent to the start tooth
+        if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+          setConnectionChain(prev => [...prev, closestTooth!]);
+        }
+      }
     }
   };
 
@@ -168,6 +180,37 @@ const ToothChart = ({
         if (isDragging && dragStart) {
           const startPos = getDotPosition(dragStart);
           setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+          
+          // Add adjacency validation for touch drag
+          let closestTooth: number | null = null;
+          let minDistance = 24;
+          const allTeeth = [
+            ...selectedTeeth.map(t => t.toothNumber),
+            ...selectedGroups.flatMap(g => g.teeth)
+          ];
+          
+          for (const toothNumber of allTeeth) {
+            if (connectionChain.includes(toothNumber)) continue;
+            const dotPos = getDotPosition(toothNumber);
+            const distance = Math.sqrt(Math.pow(x - dotPos.x, 2) + Math.pow(y - dotPos.y, 2));
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestTooth = toothNumber;
+            }
+          }
+          
+          if (closestTooth !== null) {
+            // More flexible: allow adding if adjacent to any tooth in the chain
+            const lastToothInChain = connectionChain[connectionChain.length - 1];
+            if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+              setConnectionChain(prev => [...prev, closestTooth!]);
+            } else if (connectionChain.length === 1) {
+              // If this is the first connection, allow it if adjacent to the start tooth
+              if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+                setConnectionChain(prev => [...prev, closestTooth!]);
+              }
+            }
+          }
         }
       }
     };
@@ -530,11 +573,39 @@ const ToothChart = ({
     setDragLine({ x1: dotPos.x, y1: dotPos.y, x2: dotPos.x, y2: dotPos.y });
   };
 
-  // Finish connection and create group - allow any chain
+  // Finish connection and create group - with flexible adjacency validation
   const finishConnection = () => {
     if (connectionChain.length >= 2) {
-      // No adjacency validation: allow any chain
-      onDragConnection(connectionChain);
+      console.log('Finishing connection with chain:', connectionChain);
+      
+      // For drag connections, we want to be more flexible
+      // Allow connecting to existing groups at any valid position
+      if (connectionChain.length === 2) {
+        // Simple 2-tooth connection - validate adjacency
+        if (areTeethStrictlyAdjacent(connectionChain[0], connectionChain[1])) {
+          console.log('Creating valid 2-tooth connection:', connectionChain);
+          onDragConnection(connectionChain);
+        } else {
+          console.log('Connection rejected: teeth not adjacent');
+        }
+      } else {
+        // Multi-tooth chain - validate each step
+        let isValidChain = true;
+        for (let i = 0; i < connectionChain.length - 1; i++) {
+          if (!areTeethStrictlyAdjacent(connectionChain[i], connectionChain[i + 1])) {
+            console.log('Invalid chain: teeth', connectionChain[i], 'and', connectionChain[i + 1], 'are not adjacent');
+            isValidChain = false;
+            break;
+          }
+        }
+        
+        if (isValidChain) {
+          console.log('Creating valid multi-tooth connection chain:', connectionChain);
+          onDragConnection(connectionChain);
+        } else {
+          console.log('Connection rejected: non-adjacent teeth in chain');
+        }
+      }
     }
     // Reset connection state
     setConnectionChain([]);
@@ -545,7 +616,7 @@ const ToothChart = ({
     setLastHoveredDot(null);
   };
 
-  // Handle mouse move during drag - allow any connection
+  // Handle mouse move during drag - with flexible adjacency validation
   const handleMouseMove = (event: React.MouseEvent) => {
     if (!svgRef.current) return;
     if (!isDragging || !dragStart) return;
@@ -554,6 +625,7 @@ const ToothChart = ({
     setMousePosition({ x, y });
     const startPos = getDotPosition(dragStart);
     setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+    
     // Only add to chain if dragging and not already in chain
     let closestTooth: number | null = null;
     let minDistance = 18;
@@ -561,6 +633,7 @@ const ToothChart = ({
       ...selectedTeeth.map(t => t.toothNumber),
       ...selectedGroups.flatMap(g => g.teeth)
     ];
+    
     for (const toothNumber of allTeeth) {
       if (connectionChain.includes(toothNumber)) continue;
       const dotPos = getDotPosition(toothNumber);
@@ -570,8 +643,18 @@ const ToothChart = ({
         closestTooth = toothNumber;
       }
     }
+    
     if (closestTooth !== null) {
-      setConnectionChain(prev => [...prev, closestTooth]);
+      // More flexible: allow adding if adjacent to any tooth in the chain
+      const lastToothInChain = connectionChain[connectionChain.length - 1];
+      if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+        setConnectionChain(prev => [...prev, closestTooth!]);
+      } else if (connectionChain.length === 1) {
+        // If this is the first connection, allow it if adjacent to the start tooth
+        if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+          setConnectionChain(prev => [...prev, closestTooth!]);
+        }
+      }
     }
   };
 
