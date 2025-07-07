@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/tooth';
 
 interface SelectedTooth {
   toothNumber: number;
@@ -7,13 +7,13 @@ interface SelectedTooth {
 }
 
 interface ToothChartProps {
-  selectedGroups: ToothGroup[];
+  selectedGroups: LegacyToothGroup[];
   selectedTeeth: SelectedTooth[];
   onToothClick: (toothNumber: number, event: React.MouseEvent) => void;
   onDragConnection: (teeth: number[] | number, splitData?: any) => void;
   isToothSelected: (toothNumber: number) => boolean;
   getToothType: (toothNumber: number) => 'abutment' | 'pontic' | null;
-  onGroupsChange: (groups: ToothGroup[]) => void;
+  onGroupsChange: (groups: LegacyToothGroup[]) => void;
   setSelectedTeeth: React.Dispatch<React.SetStateAction<SelectedTooth[]>>;
 }
 
@@ -91,7 +91,7 @@ const ToothChart = ({
     let minDistance = 24;
     const allTeeth = [
       ...selectedTeeth.map(t => t.toothNumber),
-      ...selectedGroups.flatMap(g => (g.teethDetails?.flat().map(t => t.teethNumber) || []))
+      ...selectedGroups.flatMap(g => g.teeth)
     ];
     for (const toothNumber of allTeeth) {
       const dotPos = getDotPosition(toothNumber);
@@ -119,13 +119,15 @@ const ToothChart = ({
     setMousePosition({ x, y });
     const startPos = getDotPosition(dragStart);
     setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+    
     // Only add to chain if dragging and not already in chain
     let closestTooth: number | null = null;
     let minDistance = 24;
     const allTeeth = [
       ...selectedTeeth.map(t => t.toothNumber),
-      ...selectedGroups.flatMap(g => (g.teethDetails?.flat().map(t => t.teethNumber) || []))
+      ...selectedGroups.flatMap(g => g.teeth)
     ];
+    
     for (const toothNumber of allTeeth) {
       if (connectionChain.includes(toothNumber)) continue;
       const dotPos = getDotPosition(toothNumber);
@@ -135,8 +137,18 @@ const ToothChart = ({
         closestTooth = toothNumber;
       }
     }
+    
     if (closestTooth !== null) {
-      setConnectionChain(prev => [...prev, closestTooth]);
+      // More flexible: allow adding if adjacent to any tooth in the chain
+      const lastToothInChain = connectionChain[connectionChain.length - 1];
+      if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+        setConnectionChain(prev => [...prev, closestTooth!]);
+      } else if (connectionChain.length === 1) {
+        // If this is the first connection, allow it if adjacent to the start tooth
+        if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+          setConnectionChain(prev => [...prev, closestTooth!]);
+        }
+      }
     }
   };
 
@@ -168,6 +180,37 @@ const ToothChart = ({
         if (isDragging && dragStart) {
           const startPos = getDotPosition(dragStart);
           setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+          
+          // Add adjacency validation for touch drag
+          let closestTooth: number | null = null;
+          let minDistance = 24;
+          const allTeeth = [
+            ...selectedTeeth.map(t => t.toothNumber),
+            ...selectedGroups.flatMap(g => g.teeth)
+          ];
+          
+          for (const toothNumber of allTeeth) {
+            if (connectionChain.includes(toothNumber)) continue;
+            const dotPos = getDotPosition(toothNumber);
+            const distance = Math.sqrt(Math.pow(x - dotPos.x, 2) + Math.pow(y - dotPos.y, 2));
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestTooth = toothNumber;
+            }
+          }
+          
+          if (closestTooth !== null) {
+            // More flexible: allow adding if adjacent to any tooth in the chain
+            const lastToothInChain = connectionChain[connectionChain.length - 1];
+            if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+              setConnectionChain(prev => [...prev, closestTooth!]);
+            } else if (connectionChain.length === 1) {
+              // If this is the first connection, allow it if adjacent to the start tooth
+              if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+                setConnectionChain(prev => [...prev, closestTooth!]);
+              }
+            }
+          }
         }
       }
     };
@@ -322,10 +365,10 @@ const ToothChart = ({
     if (!type) return 'white';
 
     // Check if tooth is in a group
-    const group = selectedGroups.find(g => g.teethDetails && g.teethDetails.flat().some(t => t.teethNumber === toothNumber));
+    const group = selectedGroups.find(g => g.teeth.includes(toothNumber));
     if (group) {
       if (type === 'pontic') return '#9333EA'; // purple for pontics
-      return group.groupType === 'joint' ? '#10B981' : '#F59E0B'; // green for joint, orange for bridge
+      return group.type === 'joint' ? '#10B981' : '#F59E0B'; // green for joint, orange for bridge
     }
 
     // Individual teeth
@@ -342,10 +385,10 @@ const ToothChart = ({
     const type = getToothType(toothNumber);
     if (!type) return '#000';
 
-    const group = selectedGroups.find(g => g.teethDetails && g.teethDetails.flat().some(t => t.teethNumber === toothNumber));
+    const group = selectedGroups.find(g => g.teeth.includes(toothNumber));
     if (group) {
       if (type === 'pontic') return '#7C3AED';
-      return group.groupType === 'joint' ? '#059669' : '#D97706';
+      return group.type === 'joint' ? '#059669' : '#D97706';
     }
 
     return type === 'pontic' ? '#7C3AED' : '#1D4ED8';
@@ -441,11 +484,11 @@ const ToothChart = ({
   };
 
   // Handle double-click on connection lines to split groups - with strict adjacency validation
-  const handleLineDoubleClick = (group: ToothGroup, tooth1: number, tooth2: number, event: React.MouseEvent) => {
+  const handleLineDoubleClick = (group: LegacyToothGroup, tooth1: number, tooth2: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     
-    console.log('Double-clicking line between', tooth1, 'and', tooth2, 'in group', group.groupId || '');
+    console.log('Double-clicking line between', tooth1, 'and', tooth2, 'in group', group.groupId);
     
     // Validate that the line we're splitting is actually valid (strictly adjacent)
     if (!areTeethStrictlyAdjacent(tooth1, tooth2)) {
@@ -453,7 +496,7 @@ const ToothChart = ({
       return;
     }
 
-    if ((group.teethDetails?.flat().map(t => t.teethNumber) || []).length <= 2) {
+    if (group.teeth.length <= 2) {
       // If only 2 teeth, remove the group entirely and make them individual teeth
       console.log('Removing 2-tooth group completely');
       onDragConnection(-3, { groupToRemove: group });
@@ -466,10 +509,10 @@ const ToothChart = ({
     const lowerArch = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
     
     // Determine which arch this group belongs to
-    const arch = upperArch.includes(group.teethDetails?.flat().map(t => t.teethNumber) || []) ? upperArch : lowerArch;
+    const arch = upperArch.includes(group.teeth[0]) ? upperArch : lowerArch;
     
     // Sort teeth by arch order
-    const sortedTeeth = (group.teethDetails?.flat().map(t => t.teethNumber) || []).slice().sort((a, b) => arch.indexOf(a) - arch.indexOf(b));
+    const sortedTeeth = group.teeth.slice().sort((a, b) => arch.indexOf(a) - arch.indexOf(b));
     
     const tooth1Index = sortedTeeth.indexOf(tooth1);
     const tooth2Index = sortedTeeth.indexOf(tooth2);
@@ -489,10 +532,10 @@ const ToothChart = ({
     console.log('Splitting group into:', group1Teeth, 'and', group2Teeth);
     
     // Create two new groups
-    const group1: ToothGroup = {
+    const group1: LegacyToothGroup = {
       groupId: `group-${Date.now()}-1`,
-      teethDetails: group.teethDetails?.filter(t => group1Teeth.includes(t.teethNumber)) || [],
-      groupType: group.groupType,
+      teeth: group1Teeth,
+      type: group.type,
       pontics: group.pontics?.filter(p => group1Teeth.includes(p)) || [],
       notes: group.notes,
       material: group.material,
@@ -500,10 +543,10 @@ const ToothChart = ({
       productType: group.productType || 'implant',
     };
 
-    const group2: ToothGroup = {
+    const group2: LegacyToothGroup = {
       groupId: `group-${Date.now()}-2`,
-      teethDetails: group.teethDetails?.filter(t => group2Teeth.includes(t.teethNumber)) || [],
-      groupType: group.groupType,
+      teeth: group2Teeth,
+      type: group.type,
       pontics: group.pontics?.filter(p => group2Teeth.includes(p)) || [],
       notes: group.notes,
       material: group.material,
@@ -530,11 +573,39 @@ const ToothChart = ({
     setDragLine({ x1: dotPos.x, y1: dotPos.y, x2: dotPos.x, y2: dotPos.y });
   };
 
-  // Finish connection and create group - allow any chain
+  // Finish connection and create group - with flexible adjacency validation
   const finishConnection = () => {
     if (connectionChain.length >= 2) {
-      // No adjacency validation: allow any chain
-      onDragConnection(connectionChain);
+      console.log('Finishing connection with chain:', connectionChain);
+      
+      // For drag connections, we want to be more flexible
+      // Allow connecting to existing groups at any valid position
+      if (connectionChain.length === 2) {
+        // Simple 2-tooth connection - validate adjacency
+        if (areTeethStrictlyAdjacent(connectionChain[0], connectionChain[1])) {
+          console.log('Creating valid 2-tooth connection:', connectionChain);
+          onDragConnection(connectionChain);
+        } else {
+          console.log('Connection rejected: teeth not adjacent');
+        }
+      } else {
+        // Multi-tooth chain - validate each step
+        let isValidChain = true;
+        for (let i = 0; i < connectionChain.length - 1; i++) {
+          if (!areTeethStrictlyAdjacent(connectionChain[i], connectionChain[i + 1])) {
+            console.log('Invalid chain: teeth', connectionChain[i], 'and', connectionChain[i + 1], 'are not adjacent');
+            isValidChain = false;
+            break;
+          }
+        }
+        
+        if (isValidChain) {
+          console.log('Creating valid multi-tooth connection chain:', connectionChain);
+          onDragConnection(connectionChain);
+        } else {
+          console.log('Connection rejected: non-adjacent teeth in chain');
+        }
+      }
     }
     // Reset connection state
     setConnectionChain([]);
@@ -545,7 +616,7 @@ const ToothChart = ({
     setLastHoveredDot(null);
   };
 
-  // Handle mouse move during drag - allow any connection
+  // Handle mouse move during drag - with flexible adjacency validation
   const handleMouseMove = (event: React.MouseEvent) => {
     if (!svgRef.current) return;
     if (!isDragging || !dragStart) return;
@@ -554,13 +625,15 @@ const ToothChart = ({
     setMousePosition({ x, y });
     const startPos = getDotPosition(dragStart);
     setDragLine({ x1: startPos.x, y1: startPos.y, x2: x, y2: y });
+    
     // Only add to chain if dragging and not already in chain
     let closestTooth: number | null = null;
     let minDistance = 18;
     const allTeeth = [
       ...selectedTeeth.map(t => t.toothNumber),
-      ...selectedGroups.flatMap(g => (g.teethDetails?.flat().map(t => t.teethNumber) || []))
+      ...selectedGroups.flatMap(g => g.teeth)
     ];
+    
     for (const toothNumber of allTeeth) {
       if (connectionChain.includes(toothNumber)) continue;
       const dotPos = getDotPosition(toothNumber);
@@ -570,8 +643,18 @@ const ToothChart = ({
         closestTooth = toothNumber;
       }
     }
+    
     if (closestTooth !== null) {
-      setConnectionChain(prev => [...prev, closestTooth]);
+      // More flexible: allow adding if adjacent to any tooth in the chain
+      const lastToothInChain = connectionChain[connectionChain.length - 1];
+      if (lastToothInChain && areTeethStrictlyAdjacent(lastToothInChain, closestTooth)) {
+        setConnectionChain(prev => [...prev, closestTooth!]);
+      } else if (connectionChain.length === 1) {
+        // If this is the first connection, allow it if adjacent to the start tooth
+        if (areTeethStrictlyAdjacent(connectionChain[0], closestTooth)) {
+          setConnectionChain(prev => [...prev, closestTooth!]);
+        }
+      }
     }
   };
 
@@ -596,12 +679,12 @@ const ToothChart = ({
   // Generate connection lines between dots in joint/bridge groups - ONLY for strictly adjacent teeth
   const generateConnectionLines = () => {
     return selectedGroups.map(group => {
-      if ((group.teethDetails?.flat().map(t => t.teethNumber) || []).length < 2) return null;
+      if (group.teeth.length < 2) return null;
       
       const lines = [];
       
       // Sort teeth by FDI numbering for proper adjacency checking
-      const sortedTeeth = (group.teethDetails?.flat().map(t => t.teethNumber) || []).slice().sort((a, b) => a - b);
+      const sortedTeeth = group.teeth.slice().sort((a, b) => a - b);
       
       // Generate lines between consecutive teeth in the sorted array
       for (let i = 0; i < sortedTeeth.length - 1; i++) {
@@ -612,9 +695,9 @@ const ToothChart = ({
         if (areTeethStrictlyAdjacent(tooth1, tooth2)) {
           const pos1 = getDotPosition(tooth1);
           const pos2 = getDotPosition(tooth2);
-          const lineColor = group.groupType === 'joint' ? '#10B981' : '#F59E0B';
-          const strokeWidth = group.groupType === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId || ''}-${tooth1}-${tooth2}`;
+          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          const strokeWidth = group.type === 'bridge' ? '4' : '3';
+          const lineId = `${group.groupId}-${tooth1}-${tooth2}`;
           const isHovered = hoveredLine === lineId;
           
           lines.push(
@@ -638,16 +721,16 @@ const ToothChart = ({
       
       // Special handling for cross-quadrant connections that might not be consecutive in sorted array
       // Check for 11-21 connection
-      if ((group.teethDetails?.flat().map(t => t.teethNumber) || []).includes(11) && (group.teethDetails?.flat().map(t => t.teethNumber) || []).includes(21)) {
+      if (group.teeth.includes(11) && group.teeth.includes(21)) {
         const existingLine = lines.find(line => 
-          line.key === `${group.groupId || ''}-11-21` || line.key === `${group.groupId || ''}-21-11`
+          line.key === `${group.groupId}-11-21` || line.key === `${group.groupId}-21-11`
         );
         if (!existingLine && areTeethStrictlyAdjacent(11, 21)) {
           const pos1 = getDotPosition(11);
           const pos2 = getDotPosition(21);
-          const lineColor = group.groupType === 'joint' ? '#10B981' : '#F59E0B';
-          const strokeWidth = group.groupType === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId || ''}-11-21`;
+          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          const strokeWidth = group.type === 'bridge' ? '4' : '3';
+          const lineId = `${group.groupId}-11-21`;
           const isHovered = hoveredLine === lineId;
           
           lines.push(
@@ -670,16 +753,16 @@ const ToothChart = ({
       }
       
       // Check for 31-41 connection
-      if ((group.teethDetails?.flat().map(t => t.teethNumber) || []).includes(31) && (group.teethDetails?.flat().map(t => t.teethNumber) || []).includes(41)) {
+      if (group.teeth.includes(31) && group.teeth.includes(41)) {
         const existingLine = lines.find(line => 
-          line.key === `${group.groupId || ''}-31-41` || line.key === `${group.groupId || ''}-41-31`
+          line.key === `${group.groupId}-31-41` || line.key === `${group.groupId}-41-31`
         );
         if (!existingLine && areTeethStrictlyAdjacent(31, 41)) {
           const pos1 = getDotPosition(31);
           const pos2 = getDotPosition(41);
-          const lineColor = group.groupType === 'joint' ? '#10B981' : '#F59E0B';
-          const strokeWidth = group.groupType === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId || ''}-31-41`;
+          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          const strokeWidth = group.type === 'bridge' ? '4' : '3';
+          const lineId = `${group.groupId}-31-41`;
           const isHovered = hoveredLine === lineId;
           
           lines.push(
@@ -1111,30 +1194,29 @@ const ToothChart = ({
           </g>
 
           {/* Connector dots for selected teeth */}
-          {[...selectedTeeth, ...selectedGroups.flatMap(g => (g.teethDetails?.flat() || []).map(t => ({ toothNumber: t.teethNumber, type: t.type || 'abutment' })))]
-            .map(tooth => {
-              const pos = getDotPosition(tooth.toothNumber);
-              const isInChain = connectionChain.includes(tooth.toothNumber);
-              const isHovered = lastHoveredDot === tooth.toothNumber;
-              const isTouchActive = touchStartInfo && touchStartInfo.tooth === tooth.toothNumber;
-              return (
-                <circle
-                  key={`dot-${tooth.toothNumber}`}
-                  cx={pos.x}
-                  cy={pos.y}
-                  r={isTouchActive ? dotHoverRadius : (isHovered ? dotHoverRadius : dotRadius)}
-                  fill={isInChain ? "#666" : "#3B82F6"}
-                  stroke={isTouchActive ? '#f59e42' : 'white'}
-                  strokeWidth={isTouchActive ? 4 : 2}
-                  className="cursor-pointer transition-all duration-200"
-                  onMouseDown={(e) => handleDotMouseDown(tooth.toothNumber, e)}
-                  style={{
-                    filter: isHovered || isTouchActive ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' : 'none',
-                    touchAction: 'none',
-                  }}
-                />
-              );
-            })}
+          {[...selectedTeeth, ...selectedGroups.flatMap(g => g.teeth.map(t => ({ toothNumber: t, type: 'abutment' as const })))].map(tooth => {
+            const pos = getDotPosition(tooth.toothNumber);
+            const isInChain = connectionChain.includes(tooth.toothNumber);
+            const isHovered = lastHoveredDot === tooth.toothNumber;
+            const isTouchActive = touchStartInfo && touchStartInfo.tooth === tooth.toothNumber;
+            return (
+              <circle
+                key={`dot-${tooth.toothNumber}`}
+                cx={pos.x}
+                cy={pos.y}
+                r={isTouchActive ? dotHoverRadius : (isHovered ? dotHoverRadius : dotRadius)}
+                fill={isInChain ? "#666" : "#3B82F6"}
+                stroke={isTouchActive ? '#f59e42' : 'white'}
+                strokeWidth={isTouchActive ? 4 : 2}
+                className="cursor-pointer transition-all duration-200"
+                onMouseDown={(e) => handleDotMouseDown(tooth.toothNumber, e)}
+                style={{
+                  filter: isHovered || isTouchActive ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' : 'none',
+                  touchAction: 'none',
+                }}
+              />
+            );
+          })}
 
           {/* Connection lines */}
           {generateConnectionLines()}

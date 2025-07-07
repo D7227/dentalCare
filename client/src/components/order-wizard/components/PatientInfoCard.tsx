@@ -53,7 +53,7 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
         <CardTitle className="text-xl font-semibold">Patient Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col flex-1 sm:flex-row gap-4 w-full">
+        <div className="flex flex-col flex-1  gap-4 w-full">
           <div className='w-full'>
             <Label htmlFor="firstName">First Name *</Label>
             <Input

@@ -14,6 +14,7 @@ export interface FormData {
   category: OrderCategory;
   type: string;
   caseHandledBy: string;
+  doctorMobile: string;
   consultingDoctor: string;
   firstName: string;
   lastName: string;

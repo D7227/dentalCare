@@ -77,6 +77,8 @@ const ProductSelection = ({ formData, setFormData, onAddMoreProducts }: ProductS
 
   const  isMobile  = useIsMobile();
 
+  console.log(' %c formData', 'background: #FF0000; color: white;', formData)
+
   // Always get the latest allGroups from formData
   const getAllGroups = () => {
     const toothGroups = formData.toothGroups || [];

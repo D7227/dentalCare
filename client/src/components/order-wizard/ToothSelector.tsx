@@ -30,31 +30,18 @@ interface SelectedTooth {
 // Helper functions to convert between new and legacy formats
 const convertToLegacyGroups = (groups: ToothGroup[]): LegacyToothGroup[] => {
   return groups.map((group, index) => {
-    console.log(group,"hellosolsoso")
     const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber || tooth.toothNumber);
     const pontics = group.teethDetails.flat()
       .filter(tooth => tooth.type === 'pontic')
       .map(tooth => tooth.teethNumber);
-    // Determine type for legacy
-    let legacyType: 'separate' | 'joint' | 'bridge' = 'joint';
-    if (group.groupType === 'bridge') legacyType = 'bridge';
-    else if (group.groupType === 'joint') legacyType = 'joint';
-    else if (group.groupType === 'individual' || group.groupType === 'separate') legacyType = 'separate';
-    // Material as string (first productName or empty string)
-    const firstProduct = group.teethDetails.flat()[0]?.productName;
-    let material = '';
-    if (Array.isArray(firstProduct)) {
-      material = firstProduct[0] || '';
-    } else if (typeof firstProduct === 'string') {
-      material = firstProduct;
-    }
+    
     return {
       groupId: `group-${Date.now()}-${index}`,
       teeth: allTeeth,
-      type: legacyType,
+      type: group.groupType,
       productType: 'implant',
       notes: '',
-      material,
+      material: group.teethDetails.flat()[0]?.productName || '',
       shade: group.teethDetails.flat()[0]?.shadeDetails || '',
       pontics: pontics.length > 0 ? pontics : undefined,
     };
@@ -116,7 +103,6 @@ const ToothSelector = ({
   });
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<'digital' | 'manual' | null>(null);
-  const [localProductNames, setLocalProductNames] = useState<string[]>([]);
 
   console.log('selectedTeeth', selectedTeeth);
   console.log('selectedGroups', selectedGroups);
@@ -137,13 +123,6 @@ const ToothSelector = ({
     setLocalSelectedTeeth(teeth);
     onSelectionChange(groups, teeth);
     if (onGroupsChange) onGroupsChange(groups, teeth);
-
-    // Aggregate all product names from all teethDetails in all groups
-    const allProductNames = groups
-      .flatMap(g => g.teethDetails.flat().flatMap(t => t.productName));
-    // Remove duplicates
-    const uniqueProductNames = Array.from(new Set(allProductNames));
-    setLocalProductNames(uniqueProductNames);
   };
 
   const isToothSelected = useCallback((toothNumber: number) => {
@@ -1072,14 +1051,15 @@ const ToothSelector = ({
             <div className="mb-4 overflow-x-auto">
               <div className="min-w-[320px] sm:min-w-0">
                 <ToothChart 
-                  selectedGroups={localSelectedGroups} 
+                  selectedGroups={legacyGroups} 
                   selectedTeeth={localSelectedTeeth} 
                   onToothClick={handleToothClick} 
                   onDragConnection={handleDragConnection} 
                   isToothSelected={isToothSelected} 
                   getToothType={getToothType} 
                   onGroupsChange={groups => {
-                    updateSelection(groups, localSelectedTeeth);
+                    const newGroups = convertToNewGroups(groups);
+                    updateSelection(newGroups, localSelectedTeeth);
                   }} 
                   setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
                 />
