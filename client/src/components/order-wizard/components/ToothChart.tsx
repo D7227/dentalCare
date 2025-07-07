@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LegacyToothGroup } from '../types/tooth';
+import { ToothGroup } from '../types/tooth';
+import { Lock } from 'lucide-react'; // Add this for lock icon
 
 interface SelectedTooth {
   toothNumber: number;
@@ -15,6 +17,8 @@ interface ToothChartProps {
   getToothType: (toothNumber: number) => 'abutment' | 'pontic' | null;
   onGroupsChange: (groups: LegacyToothGroup[]) => void;
   setSelectedTeeth: React.Dispatch<React.SetStateAction<SelectedTooth[]>>;
+  disabledTeeth?: number[];
+  disabledGroups?: LegacyToothGroup[];
 }
 
 const ToothChart = ({
@@ -25,7 +29,9 @@ const ToothChart = ({
   isToothSelected,
   getToothType,
   onGroupsChange,
-  setSelectedTeeth
+  setSelectedTeeth,
+  disabledTeeth = [],
+  disabledGroups = [],
 }: ToothChartProps) => {
   // Safety check for required props
   if (typeof getToothType !== 'function') {
@@ -45,6 +51,8 @@ const ToothChart = ({
       </div>
     );
   }
+
+  console.log('%c selectedGroups', 'background: #00ffff; color: white;',selectedGroups);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<number | null>(null);
@@ -354,43 +362,82 @@ const ToothChart = ({
     return false;
   };
 
+  // Helper to check if a tooth is disabled (individual)
+  const isDisabledTooth = (toothNumber: number) => {
+    return disabledTeeth.includes(toothNumber);
+  };
+  // Helper to check if a tooth is in a disabled group
+  const isDisabledGroupTooth = (toothNumber: number) => {
+    return disabledGroups.some(g => g.teeth.includes(toothNumber));
+  };
+  // Helper to get disabled group for a tooth
+  const getDisabledGroup = (toothNumber: number) => {
+    return disabledGroups.find(g => g.teeth.includes(toothNumber));
+  };
+  // Helper to get disabled group tooth type
+  const getDisabledGroupToothType = (toothNumber: number) => {
+    const group = getDisabledGroup(toothNumber);
+    if (!group) return null;
+    if (group.type === 'bridge' && group.pontics && group.pontics.includes(toothNumber)) return 'pontic';
+    if (group.type === 'joint' || group.type === 'separate') return 'abutment';
+    return group.type as 'abutment' | 'pontic' | 'joint';
+  };
+
   // Get tooth fill color based on selection state
   const getToothFillColor = (toothNumber: number): string => {
+    if (isDisabledTooth(toothNumber)) {
+      return '#D1D5DB'; // light gray for disabled individual teeth
+    }
+    if (isDisabledGroupTooth(toothNumber)) {
+      const group = getDisabledGroup(toothNumber);
+      const type = getDisabledGroupToothType(toothNumber);
+      if (!group || !type) return '#A3A3A3';
+      if (group.type === 'bridge') return '#111827'; // dark gray
+      if (group.type === 'joint') return '#6B7280'; // medium gray
+      if (group.type === 'separate') return '#D1D5DB'; // light gray
+      return '#A3A3A3';
+    }
     if (typeof getToothType !== 'function') {
       console.warn('getToothType is not a function, returning default color');
       return 'white';
     }
-    
     const type = getToothType(toothNumber);
     if (!type) return 'white';
-
     // Check if tooth is in a group
     const group = selectedGroups.find(g => g.teeth.includes(toothNumber));
     if (group) {
       if (type === 'pontic') return '#9333EA'; // purple for pontics
       return group.type === 'joint' ? '#10B981' : '#F59E0B'; // green for joint, orange for bridge
     }
-
     // Individual teeth
     return type === 'pontic' ? '#9333EA' : '#3B82F6'; // purple for pontic, blue for abutment
   };
 
   // Get tooth stroke color
   const getToothStrokeColor = (toothNumber: number): string => {
+    if (isDisabledTooth(toothNumber)) {
+      return '#D1D5DB'; // light gray for disabled individual teeth
+    }
+    if (isDisabledGroupTooth(toothNumber)) {
+      const group = getDisabledGroup(toothNumber);
+      const type = getDisabledGroupToothType(toothNumber);
+      if (!group || !type) return '#525252';
+      if (group.type === 'bridge') return '#111827'; // dark gray
+      if (group.type === 'joint') return '#6B7280'; // medium gray
+      if (group.type === 'separate') return '#D1D5DB'; // light gray
+      return '#525252';
+    }
     if (typeof getToothType !== 'function') {
       console.warn('getToothType is not a function, returning default stroke color');
       return '#000';
     }
-    
     const type = getToothType(toothNumber);
     if (!type) return '#000';
-
     const group = selectedGroups.find(g => g.teeth.includes(toothNumber));
     if (group) {
       if (type === 'pontic') return '#7C3AED';
       return group.type === 'joint' ? '#059669' : '#D97706';
     }
-
     return type === 'pontic' ? '#7C3AED' : '#1D4ED8';
   };
 
@@ -677,29 +724,27 @@ const ToothChart = ({
   };
 
   // Generate connection lines between dots in joint/bridge groups - ONLY for strictly adjacent teeth
-  const generateConnectionLines = () => {
-    return selectedGroups.map(group => {
+  const generateConnectionLines = (groups: ToothGroup[], isDisabled = false) => {
+    return groups.map(group => {
       if (group.teeth.length < 2) return null;
-      
       const lines = [];
-      
       // Sort teeth by FDI numbering for proper adjacency checking
       const sortedTeeth = group.teeth.slice().sort((a, b) => a - b);
-      
       // Generate lines between consecutive teeth in the sorted array
       for (let i = 0; i < sortedTeeth.length - 1; i++) {
         const tooth1 = sortedTeeth[i];
         const tooth2 = sortedTeeth[i + 1];
-        
         // Check if these teeth are strictly adjacent
         if (areTeethStrictlyAdjacent(tooth1, tooth2)) {
           const pos1 = getDotPosition(tooth1);
           const pos2 = getDotPosition(tooth2);
-          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          // Gray palette for disabled lines
+          const lineColor = isDisabled
+            ? (group.type === 'bridge' ? '#111827' : group.type === 'joint' ? '#6B7280' : '#D1D5DB')
+            : (group.type === 'joint' ? '#10B981' : '#F59E0B');
           const strokeWidth = group.type === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId}-${tooth1}-${tooth2}`;
+          const lineId = `${group.groupId || 'disabled'}-${tooth1}-${tooth2}`;
           const isHovered = hoveredLine === lineId;
-          
           lines.push(
             <line
               key={lineId}
@@ -707,18 +752,17 @@ const ToothChart = ({
               y1={pos1.y}
               x2={pos2.x}
               y2={pos2.y}
-              stroke={isHovered ? '#ef4444' : lineColor}
-              strokeWidth={isHovered ? '6' : strokeWidth}
+              stroke={isDisabled ? lineColor : (isHovered ? '#ef4444' : lineColor)}
+              strokeWidth={isDisabled ? strokeWidth : (isHovered ? '6' : strokeWidth)}
               strokeLinecap="round"
-              className="cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"
-              onMouseEnter={() => setHoveredLine(lineId)}
-              onMouseLeave={() => setHoveredLine(null)}
-              onDoubleClick={(e) => handleLineDoubleClick(group, tooth1, tooth2, e)}
+              className={isDisabled ? "pointer-events-none opacity-70" : "cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"}
+              onMouseEnter={isDisabled ? undefined : () => setHoveredLine(lineId)}
+              onMouseLeave={isDisabled ? undefined : () => setHoveredLine(null)}
+              onDoubleClick={isDisabled ? undefined : (e) => handleLineDoubleClick(group, tooth1, tooth2, e)}
             />
           );
         }
       }
-      
       // Special handling for cross-quadrant connections that might not be consecutive in sorted array
       // Check for 11-21 connection
       if (group.teeth.includes(11) && group.teeth.includes(21)) {
@@ -728,11 +772,13 @@ const ToothChart = ({
         if (!existingLine && areTeethStrictlyAdjacent(11, 21)) {
           const pos1 = getDotPosition(11);
           const pos2 = getDotPosition(21);
-          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          // Gray palette for disabled lines
+          const lineColor = isDisabled
+            ? (group.type === 'bridge' ? '#111827' : group.type === 'joint' ? '#6B7280' : '#D1D5DB')
+            : (group.type === 'joint' ? '#10B981' : '#F59E0B');
           const strokeWidth = group.type === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId}-11-21`;
+          const lineId = `${group.groupId || 'disabled'}-11-21`;
           const isHovered = hoveredLine === lineId;
-          
           lines.push(
             <line
               key={lineId}
@@ -740,18 +786,17 @@ const ToothChart = ({
               y1={pos1.y}
               x2={pos2.x}
               y2={pos2.y}
-              stroke={isHovered ? '#ef4444' : lineColor}
-              strokeWidth={isHovered ? '6' : strokeWidth}
+              stroke={isDisabled ? lineColor : (isHovered ? '#ef4444' : lineColor)}
+              strokeWidth={isDisabled ? strokeWidth : (isHovered ? '6' : strokeWidth)}
               strokeLinecap="round"
-              className="cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"
-              onMouseEnter={() => setHoveredLine(lineId)}
-              onMouseLeave={() => setHoveredLine(null)}
-              onDoubleClick={(e) => handleLineDoubleClick(group, 11, 21, e)}
+              className={isDisabled ? "pointer-events-none opacity-70" : "cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"}
+              onMouseEnter={isDisabled ? undefined : () => setHoveredLine(lineId)}
+              onMouseLeave={isDisabled ? undefined : () => setHoveredLine(null)}
+              onDoubleClick={isDisabled ? undefined : (e) => handleLineDoubleClick(group, 11, 21, e)}
             />
           );
         }
       }
-      
       // Check for 31-41 connection
       if (group.teeth.includes(31) && group.teeth.includes(41)) {
         const existingLine = lines.find(line => 
@@ -760,11 +805,13 @@ const ToothChart = ({
         if (!existingLine && areTeethStrictlyAdjacent(31, 41)) {
           const pos1 = getDotPosition(31);
           const pos2 = getDotPosition(41);
-          const lineColor = group.type === 'joint' ? '#10B981' : '#F59E0B';
+          // Gray palette for disabled lines
+          const lineColor = isDisabled
+            ? (group.type === 'bridge' ? '#111827' : group.type === 'joint' ? '#6B7280' : '#D1D5DB')
+            : (group.type === 'joint' ? '#10B981' : '#F59E0B');
           const strokeWidth = group.type === 'bridge' ? '4' : '3';
-          const lineId = `${group.groupId}-31-41`;
+          const lineId = `${group.groupId || 'disabled'}-31-41`;
           const isHovered = hoveredLine === lineId;
-          
           lines.push(
             <line
               key={lineId}
@@ -772,18 +819,17 @@ const ToothChart = ({
               y1={pos1.y}
               x2={pos2.x}
               y2={pos2.y}
-              stroke={isHovered ? '#ef4444' : lineColor}
-              strokeWidth={isHovered ? '6' : strokeWidth}
+              stroke={isDisabled ? lineColor : (isHovered ? '#ef4444' : lineColor)}
+              strokeWidth={isDisabled ? strokeWidth : (isHovered ? '6' : strokeWidth)}
               strokeLinecap="round"
-              className="cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"
-              onMouseEnter={() => setHoveredLine(lineId)}
-              onMouseLeave={() => setHoveredLine(null)}
-              onDoubleClick={(e) => handleLineDoubleClick(group, 31, 41, e)}
+              className={isDisabled ? "pointer-events-none opacity-70" : "cursor-pointer drop-shadow-sm hover:drop-shadow-lg transition-all duration-200"}
+              onMouseEnter={isDisabled ? undefined : () => setHoveredLine(lineId)}
+              onMouseLeave={isDisabled ? undefined : () => setHoveredLine(null)}
+              onDoubleClick={isDisabled ? undefined : (e) => handleLineDoubleClick(group, 31, 41, e)}
             />
           );
         }
       }
-      
       return lines;
     }).filter(Boolean).flat();
   };
@@ -880,7 +926,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(11)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(11, e)} 
+              onClick={isDisabledTooth(11) || isDisabledGroupTooth(11) ? undefined : (e) => onToothClick(11, e)} 
             />
             <text x="136" y="22" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(11)}</text>
 
@@ -889,7 +935,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(12)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(12, e)} 
+              onClick={isDisabledTooth(12) || isDisabledGroupTooth(12) ? undefined : (e) => onToothClick(12, e)} 
             />
             <text x="104" y="31" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(12)}</text>
 
@@ -898,7 +944,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(13)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(13, e)} 
+              onClick={isDisabledTooth(13) || isDisabledGroupTooth(13) ? undefined : (e) => onToothClick(13, e)} 
             />
             <text x="81" y="51" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(13)}</text>
 
@@ -907,7 +953,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(14)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(14, e)} 
+              onClick={isDisabledTooth(14) || isDisabledGroupTooth(14) ? undefined : (e) => onToothClick(14, e)} 
             />
             <text x="66" y="76" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(14)}</text>
 
@@ -916,7 +962,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(15)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(15, e)} 
+              onClick={isDisabledTooth(15) || isDisabledGroupTooth(15) ? undefined : (e) => onToothClick(15, e)} 
             />
             <text x="52" y="113" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(15)}</text>
 
@@ -925,7 +971,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(16)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(16, e)} 
+              onClick={isDisabledTooth(16) || isDisabledGroupTooth(16) ? undefined : (e) => onToothClick(16, e)} 
             />
             <text x="39" y="145" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(16)}</text>
 
@@ -934,7 +980,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(17)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(17, e)} 
+              onClick={isDisabledTooth(17) || isDisabledGroupTooth(17) ? undefined : (e) => onToothClick(17, e)} 
             />
             <text x="27" y="192" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(17)}</text>
 
@@ -943,7 +989,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(18)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(18, e)} 
+              onClick={isDisabledTooth(18) || isDisabledGroupTooth(18) ? undefined : (e) => onToothClick(18, e)} 
             />
             <text x="22" y="240" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(18)}</text>
 
@@ -953,8 +999,17 @@ const ToothChart = ({
               stroke={getToothStrokeColor(21)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(21, e)} 
+              onClick={isDisabledTooth(21) || isDisabledGroupTooth(21) ? undefined : (e) => onToothClick(21, e)} 
             />
+            {isDisabledTooth(21) || isDisabledGroupTooth(21) ? (
+              <g>
+                <circle cx="174" cy="22" r="8" fill="#fff" />
+                <Lock x="174" y="22" size={12} color="#888" />
+                <text x="174" y="22" fill="#888" textAnchor="middle" className="text-xs font-medium">Assigned</text>
+              </g>
+            ) : null}
+            {/* Placeholder for product badge/list */}
+            {/* <g>...product badges here...</g> */}
             <text x="174" y="22" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(21)}</text>
 
             <path d="M194.761 14.4549C193.734 16.0814 193.085 18.0684 192.532 19.9337C191.084 24.8171 190.739 29.9817 190.906 35.0562C191.079 40.3554 191.252 48.2878 197.563 49.9853C199.856 50.6023 202.292 49.887 204.469 48.9295C211.715 45.7426 217.702 39.7177 220.896 32.3975C223.317 26.8481 221.685 21.3219 217.096 17.4769C214.249 15.0918 210.763 13.6427 207.282 12.3903C204.866 11.5212 202.324 10.7186 199.781 11.0484C197.426 11.3537 195.872 12.693 194.761 14.4549Z" 
@@ -962,7 +1017,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(22)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(22, e)} 
+              onClick={isDisabledTooth(22) || isDisabledGroupTooth(22) ? undefined : (e) => onToothClick(22, e)} 
             />
             <text x="206" y="31" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(22)}</text>
 
@@ -971,7 +1026,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(23)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md"
-              onClick={(e) => onToothClick(23, e)} 
+              onClick={isDisabledTooth(23) || isDisabledGroupTooth(23) ? undefined : (e) => onToothClick(23, e)} 
             />
             <text x="229" y="51" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(23)}</text>
 
@@ -980,7 +1035,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(24)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(24, e)} 
+              onClick={isDisabledTooth(24) || isDisabledGroupTooth(24) ? undefined : (e) => onToothClick(24, e)} 
             />
             <text x="244" y="76" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(24)}</text>
 
@@ -989,7 +1044,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(25)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(25, e)} 
+              onClick={isDisabledTooth(25) || isDisabledGroupTooth(25) ? undefined : (e) => onToothClick(25, e)} 
             />
             <text x="258" y="113" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(25)}</text>
 
@@ -998,7 +1053,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(26)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(26, e)} 
+              onClick={isDisabledTooth(26) || isDisabledGroupTooth(26) ? undefined : (e) => onToothClick(26, e)} 
             />
             <text x="271" y="145" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(26)}</text>
 
@@ -1007,7 +1062,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(27)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(27, e)} 
+              onClick={isDisabledTooth(27) || isDisabledGroupTooth(27) ? undefined : (e) => onToothClick(27, e)} 
             />
             <text x="283" y="192" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(27)}</text>
 
@@ -1016,7 +1071,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(28)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(28, e)} 
+              onClick={isDisabledTooth(28) || isDisabledGroupTooth(28) ? undefined : (e) => onToothClick(28, e)} 
             />
             <text x="288" y="240" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(28)}</text>
           </g>
@@ -1052,7 +1107,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(31)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(31, e)} 
+              onClick={isDisabledTooth(31) || isDisabledGroupTooth(31) ? undefined : (e) => onToothClick(31, e)} 
             />
             <text x="174" y="240" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(31)}</text>
 
@@ -1061,7 +1116,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(32)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(32, e)} 
+              onClick={isDisabledTooth(32) || isDisabledGroupTooth(32) ? undefined : (e) => onToothClick(32, e)} 
             />
             <text x="206" y="231" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(32)}</text>
 
@@ -1070,7 +1125,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(33)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md"
-              onClick={(e) => onToothClick(33, e)} 
+              onClick={isDisabledTooth(33) || isDisabledGroupTooth(33) ? undefined : (e) => onToothClick(33, e)} 
             />
             <text x="229" y="211" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(33)}</text>
 
@@ -1079,7 +1134,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(34)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(34, e)} 
+              onClick={isDisabledTooth(34) || isDisabledGroupTooth(34) ? undefined : (e) => onToothClick(34, e)} 
             />
             <text x="244" y="186" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(34)}</text>
 
@@ -1088,7 +1143,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(35)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(35, e)} 
+              onClick={isDisabledTooth(35) || isDisabledGroupTooth(35) ? undefined : (e) => onToothClick(35, e)} 
             />
             <text x="258" y="149" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(35)}</text>
 
@@ -1097,7 +1152,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(36)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(36, e)} 
+              onClick={isDisabledTooth(36) || isDisabledGroupTooth(36) ? undefined : (e) => onToothClick(36, e)} 
             />
             <text x="271" y="117" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(36)}</text>
 
@@ -1106,7 +1161,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(37)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(37, e)} 
+              onClick={isDisabledTooth(37) || isDisabledGroupTooth(37) ? undefined : (e) => onToothClick(37, e)} 
             />
             <text x="283" y="70" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(37)}</text>
 
@@ -1115,7 +1170,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(38)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(38, e)} 
+              onClick={isDisabledTooth(38) || isDisabledGroupTooth(38) ? undefined : (e) => onToothClick(38, e)} 
             />
             <text x="288" y="22" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(38)}</text>
 
@@ -1125,7 +1180,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(41)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(41, e)} 
+              onClick={isDisabledTooth(41) || isDisabledGroupTooth(41) ? undefined : (e) => onToothClick(41, e)} 
             />
             <text x="136" y="240" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(41)}</text>
 
@@ -1134,7 +1189,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(42)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(42, e)} 
+              onClick={isDisabledTooth(42) || isDisabledGroupTooth(42) ? undefined : (e) => onToothClick(42, e)} 
             />
             <text x="104" y="231" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(42)}</text>
 
@@ -1143,7 +1198,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(43)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(43, e)} 
+              onClick={isDisabledTooth(43) || isDisabledGroupTooth(43) ? undefined : (e) => onToothClick(43, e)} 
             />
             <text x="81" y="211" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(43)}</text>
 
@@ -1152,7 +1207,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(44)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(44, e)} 
+              onClick={isDisabledTooth(44) || isDisabledGroupTooth(44) ? undefined : (e) => onToothClick(44, e)} 
             />
             <text x="66" y="186" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(44)}</text>
 
@@ -1161,7 +1216,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(45)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(45, e)} 
+              onClick={isDisabledTooth(45) || isDisabledGroupTooth(45) ? undefined : (e) => onToothClick(45, e)} 
             />
             <text x="52" y="149" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(45)}</text>
 
@@ -1170,7 +1225,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(46)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(46, e)} 
+              onClick={isDisabledTooth(46) || isDisabledGroupTooth(46) ? undefined : (e) => onToothClick(46, e)} 
             />
             <text x="39" y="117" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(46)}</text>
 
@@ -1179,7 +1234,7 @@ const ToothChart = ({
               stroke={getToothStrokeColor(47)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(47, e)} 
+              onClick={isDisabledTooth(47) || isDisabledGroupTooth(47) ? undefined : (e) => onToothClick(47, e)} 
             />
             <text x="27" y="70" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(47)}</text>
 
@@ -1188,12 +1243,81 @@ const ToothChart = ({
               stroke={getToothStrokeColor(48)} 
               strokeWidth="1.2" 
               className="cursor-pointer transition-all duration-200 hover:opacity-80 hover:drop-shadow-md" 
-              onClick={(e) => onToothClick(48, e)} 
+              onClick={isDisabledTooth(48) || isDisabledGroupTooth(48) ? undefined : (e) => onToothClick(48, e)} 
             />
             <text x="22" y="22" textAnchor="middle" className="text-xs fill-gray-600 pointer-events-none font-medium">{getPalmerNotation(48)}</text>
           </g>
 
+          {/* Disabled group connection lines (read-only, below) */}
+          {generateConnectionLines(disabledGroups, true)}
+          {/* Editable group connection lines (above static) */}
+          {generateConnectionLines(selectedGroups, false)}
+
+          {/* Disabled individual teeth dots (read-only, below) */}
+          {disabledTeeth.map(toothNumber => {
+            const pos = getDotPosition(toothNumber);
+            return (
+              <circle
+                key={`disabled-dot-${toothNumber}`}
+                cx={pos.x}
+                cy={pos.y}
+                r={dotRadius}
+                fill="#D1D5DB"
+                stroke="#D1D5DB"
+                strokeWidth={3}
+                className="pointer-events-none opacity-70"
+                style={{ touchAction: 'none', pointerEvents: 'none' }}
+              />
+            );
+          })}
+          {/* Disabled group dots (read-only, below) */}
+          {disabledGroups.flatMap((g: ToothGroup) => g.teeth.map((toothNumber: number) => {
+            const pos = getDotPosition(toothNumber);
+            let fill = '#A3A3A3';
+            let stroke = '#525252';
+            if (g.type === 'bridge') { fill = '#111827'; stroke = '#111827'; }
+            else if (g.type === 'joint') { fill = '#6B7280'; stroke = '#6B7280'; }
+            else if (g.type === 'separate') { fill = '#D1D5DB'; stroke = '#D1D5DB'; }
+            return (
+              <circle
+                key={`disabled-group-dot-${toothNumber}`}
+                cx={pos.x}
+                cy={pos.y}
+                r={dotRadius}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={3}
+                className="pointer-events-none opacity-70"
+                style={{ touchAction: 'none', pointerEvents: 'none' }}
+              />
+            );
+          }))}
+
           {/* Connector dots for selected teeth */}
+          {/* Static group dots (read-only, below) */}
+          {selectedGroups.flatMap(g => g.teeth.map(toothNumber => {
+            const pos = getDotPosition(toothNumber);
+            // Gray palette for static dots
+            let fill = '#A3A3A3';
+            let stroke = '#525252';
+            if (g.type === 'bridge') { fill = '#111827'; stroke = '#111827'; }
+            else if (g.type === 'joint') { fill = '#6B7280'; stroke = '#6B7280'; }
+            else if (g.type === 'separate') { fill = '#D1D5DB'; stroke = '#D1D5DB'; }
+            return (
+              <circle
+                key={`static-dot-${toothNumber}`}
+                cx={pos.x}
+                cy={pos.y}
+                r={dotRadius}
+                fill={fill}
+                stroke={stroke}
+                strokeWidth={3}
+                className="pointer-events-none opacity-70"
+                style={{ touchAction: 'none', pointerEvents: 'none' }}
+              />
+            );
+          }))}
+          {/* Editable group and selected teeth dots (above static) */}
           {[...selectedTeeth, ...selectedGroups.flatMap(g => g.teeth.map(t => ({ toothNumber: t, type: 'abutment' as const })))].map(tooth => {
             const pos = getDotPosition(tooth.toothNumber);
             const isInChain = connectionChain.includes(tooth.toothNumber);
@@ -1219,7 +1343,7 @@ const ToothChart = ({
           })}
 
           {/* Connection lines */}
-          {generateConnectionLines()}
+          {generateConnectionLines(selectedGroups, false)}
 
           {/* Chain connection lines */}
           {generateChainLines()}

@@ -17,6 +17,8 @@ interface ToothSelectorProps {
   onGroupsChange?: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onSelectionChange: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onProductComplete?: () => void;
+  disabledTeeth?: number[];
+  disabledGroups?: any[];
 }
 
 interface SelectedTooth {
@@ -30,18 +32,29 @@ interface SelectedTooth {
 // Helper functions to convert between new and legacy formats
 const convertToLegacyGroups = (groups: ToothGroup[]): LegacyToothGroup[] => {
   return groups.map((group, index) => {
-    const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber || tooth.toothNumber);
+    const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber);
     const pontics = group.teethDetails.flat()
       .filter(tooth => tooth.type === 'pontic')
       .map(tooth => tooth.teethNumber);
-    
+    // Only allow 'bridge', 'joint', or 'separate' for type
+    let legacyType: 'bridge' | 'joint' | 'separate' =
+      group.groupType === 'bridge' ? 'bridge' :
+      group.groupType === 'joint' ? 'joint' :
+      'separate';
+    let materialValue = '';
+    const productName = group.teethDetails.flat()[0]?.productName;
+    if (Array.isArray(productName)) {
+      materialValue = productName[0] || '';
+    } else if (typeof productName === 'string') {
+      materialValue = productName;
+    }
     return {
       groupId: `group-${Date.now()}-${index}`,
       teeth: allTeeth,
-      type: group.groupType,
+      type: legacyType,
       productType: 'implant',
       notes: '',
-      material: group.teethDetails.flat()[0]?.productName || '',
+      material: materialValue,
       shade: group.teethDetails.flat()[0]?.shadeDetails || '',
       pontics: pontics.length > 0 ? pontics : undefined,
     };
@@ -90,7 +103,9 @@ const ToothSelector = ({
   selectedTeeth,
   onGroupsChange,
   onSelectionChange,
-  onProductComplete
+  onProductComplete,
+  disabledTeeth = [],
+  disabledGroups = [],
 }: ToothSelectorProps) => {
   const [productSelection, setProductSelection] = useState<'implant' | 'crown-bridge' | null>(null);
   const [localSelectedTeeth, setLocalSelectedTeeth] = useState<SelectedTooth[]>(selectedTeeth || []);
@@ -104,11 +119,11 @@ const ToothSelector = ({
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<'digital' | 'manual' | null>(null);
 
-  console.log('selectedTeeth', selectedTeeth);
-  console.log('selectedGroups', selectedGroups);
-  console.log('onGroupsChange', onGroupsChange);
-  console.log('onSelectionChange', onSelectionChange);
-  console.log('onProductComplete', onProductComplete);
+  console.log('%c selectedTeeth', 'background: #07AD94; color: white;',selectedTeeth);
+  console.log('%c selectedGroups', 'background: #1D4ED8; color: white;',selectedGroups);
+  console.log('%c onGroupsChange', 'background: #231F20; color: white;',onGroupsChange);
+  console.log('%c onSelectionChange', 'background: #3B82F6; color: white;',onSelectionChange);
+  console.log('%c onProductComplete', 'background: #4F46E5; color: white;',onProductComplete);
 
   useEffect(() => {
     setLocalSelectedTeeth(selectedTeeth || []);
@@ -1043,6 +1058,11 @@ const ToothSelector = ({
   // Convert to legacy format for child components that still expect it
   const legacyGroups = convertToLegacyGroups(localSelectedGroups);
 
+  useEffect(()=>{
+    console.log('%c localSelectedGroups', 'background: #00ff00; color: white;',localSelectedGroups);
+    console.log('%c localSelectedTeeth', 'background: #00ff00; color: white;',localSelectedTeeth);
+  },[localSelectedGroups, localSelectedTeeth])
+
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full">
       <div className="w-full md:w-1/2 min-w-0">
@@ -1053,6 +1073,8 @@ const ToothSelector = ({
                 <ToothChart 
                   selectedGroups={legacyGroups} 
                   selectedTeeth={localSelectedTeeth} 
+                  disabledTeeth={disabledTeeth}
+                  disabledGroups={disabledGroups}
                   onToothClick={handleToothClick} 
                   onDragConnection={handleDragConnection} 
                   isToothSelected={isToothSelected} 
@@ -1165,3 +1187,4 @@ const ToothSelector = ({
 };
 
 export default ToothSelector;
+export { convertToLegacyGroups };

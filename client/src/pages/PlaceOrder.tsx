@@ -347,8 +347,8 @@ const PlaceOrder = () => {
   };
 
   useEffect(()=>{
-    console.log('orderCategory', orderCategory)
-    console.log('formData', formData)
+    console.log('%c orderCategory', 'background: #00ff00; color: white;',orderCategory)
+    console.log('%c formData', 'background: #00ff00; color: white;',formData);
   },[formData,orderCategory])
 
   const renderStepContent = () => {

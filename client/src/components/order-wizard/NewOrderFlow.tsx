@@ -16,6 +16,8 @@ import SelectedTeethViewer from './components/SelectedTeethViewer';
 import { Camera } from 'lucide-react';
 import Webcam from 'react-webcam';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ToothGroup } from './types/tooth';
+import { convertToLegacyGroups } from './ToothSelector';
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -351,8 +353,37 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
     );
   }
 
+  console.log('%c formData', 'background: #FF0000; color: white;',formData);
+
   // Step 3: Teeth Selection
   if (currentStep === 3) {
+    // Build disabledGroups (bridge/joint with product) and disabledTeeth (individual with product)
+    const disabledGroups: any[] = [];
+    const disabledTeethSet = new Set<number>();
+    // 1. Groups (bridge/joint)
+    (formData.toothGroups || []).forEach((group: ToothGroup) => {
+      if ((group.groupType === 'bridge' || group.groupType === 'joint') && group.teethDetails) {
+        const hasProduct = group.teethDetails.flat().some(
+          (tooth: any) => (tooth.selectedProducts && tooth.selectedProducts.length > 0) || (tooth.productName && tooth.productName.length > 0)
+        );
+        if (hasProduct) {
+          // Convert to legacy group for disabledGroups
+          const legacy = convertToLegacyGroups([group])[0];
+          disabledGroups.push(legacy);
+        }
+      }
+    });
+    // 2. Individual teeth
+    (formData.selectedTeeth || []).forEach((t: any) => {
+      if ((t.selectedProducts && t.selectedProducts.length > 0) || (t.productName && t.productName.length > 0)) {
+        disabledTeethSet.add(t.toothNumber);
+      }
+    });
+    // Remove teeth that are part of a disabled group from disabledTeeth
+    disabledGroups.forEach((g: any) => {
+      (g.teeth || []).forEach((n: number) => disabledTeethSet.delete(n));
+    });
+    const disabledTeeth = Array.from(disabledTeethSet);
     if (isMobile) {
       return (
         <div className="flex flex-col gap-4">
@@ -371,6 +402,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                   toothGroups: groups,
                   selectedTeeth: teeth
                 })}
+                disabledTeeth={disabledTeeth}
+                disabledGroups={disabledGroups}
               />
             </CardContent>
           </Card>
@@ -395,6 +428,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                   toothGroups: groups,
                   selectedTeeth: teeth
                 })}
+                disabledTeeth={disabledTeeth}
+                disabledGroups={disabledGroups}
               />
             </CardContent>
           </Card>
