@@ -1,6 +1,6 @@
 export interface ToothDetail {
   teethNumber: number;
-  productName: string;
+  productName: string[];
   productQuantity: number;
   shadeDetails: string;
   occlusalStaining: string;
@@ -11,7 +11,7 @@ export interface ToothDetail {
 }
 
 export interface ToothGroup {
-  groupType: 'bridge' | 'joint' | 'separate';
+  groupType: 'bridge' | 'joint' | 'separate' | 'individual';
   teethDetails: ToothDetail[][];
 }
 

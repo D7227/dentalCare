@@ -21,7 +21,8 @@ export const useOrderValidation = () => {
         case 3:
           // Step 3: Teeth Selection - validate that teeth are selected
           const toothGroups = formData.toothGroups || [];
-          if (toothGroups.length === 0 && formData.selectedTeeth.length === 0) {
+          const selectedTeeth = (formData as any).selectedTeeth || [];
+          if (toothGroups.length === 0 && selectedTeeth.length === 0) {
             errors.push('Please select at least one tooth group');
           }
           break;
@@ -32,9 +33,15 @@ export const useOrderValidation = () => {
             errors.push('At least one restoration product group is required');
           } else {
             // Validate tooth groups have required product details
-            const incompleteGroups = productToothGroups.filter((group: any) =>
-              !group.teeth || group.teeth.length === 0 || !group.selectedProducts || group.selectedProducts.length === 0
-            );
+            const incompleteGroups = productToothGroups.filter((group: any) => {
+              const allTeeth = group.teethDetails?.flat() || [];
+              // Accept 'separate' as the groupType for individual teeth
+              return allTeeth.length === 0 || !allTeeth.every(
+                (t: any) =>
+                  (t.selectedProducts && t.selectedProducts.length > 0) ||
+                  (t.productName && t.productName.length > 0)
+              );
+            });
             if (incompleteGroups.length > 0) {
               errors.push('Please complete product selection for all tooth groups');
             }

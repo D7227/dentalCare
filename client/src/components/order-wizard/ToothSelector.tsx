@@ -30,18 +30,31 @@ interface SelectedTooth {
 // Helper functions to convert between new and legacy formats
 const convertToLegacyGroups = (groups: ToothGroup[]): LegacyToothGroup[] => {
   return groups.map((group, index) => {
-    const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber);
+    console.log(group,"hellosolsoso")
+    const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber || tooth.toothNumber);
     const pontics = group.teethDetails.flat()
       .filter(tooth => tooth.type === 'pontic')
       .map(tooth => tooth.teethNumber);
-    
+    // Determine type for legacy
+    let legacyType: 'separate' | 'joint' | 'bridge' = 'joint';
+    if (group.groupType === 'bridge') legacyType = 'bridge';
+    else if (group.groupType === 'joint') legacyType = 'joint';
+    else if (group.groupType === 'individual' || group.groupType === 'separate') legacyType = 'separate';
+    // Material as string (first productName or empty string)
+    const firstProduct = group.teethDetails.flat()[0]?.productName;
+    let material = '';
+    if (Array.isArray(firstProduct)) {
+      material = firstProduct[0] || '';
+    } else if (typeof firstProduct === 'string') {
+      material = firstProduct;
+    }
     return {
       groupId: `group-${Date.now()}-${index}`,
       teeth: allTeeth,
-      type: group.groupType,
+      type: legacyType,
       productType: 'implant',
       notes: '',
-      material: group.teethDetails.flat()[0]?.productName || '',
+      material,
       shade: group.teethDetails.flat()[0]?.shadeDetails || '',
       pontics: pontics.length > 0 ? pontics : undefined,
     };
@@ -60,7 +73,7 @@ const convertToNewGroups = (legacyGroups: LegacyToothGroup[]): ToothGroup[] => {
       const isPontic = group.pontics?.includes(toothNumber) || false;
       const toothDetail: ToothDetail = {
         teethNumber: toothNumber,
-        productName: group.material || 'gold',
+        productName: [group.material],
         productQuantity: 1,
         shadeDetails: group.shade || '',
         occlusalStaining: group.occlusalStaining || '',
@@ -103,6 +116,7 @@ const ToothSelector = ({
   });
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<'digital' | 'manual' | null>(null);
+  const [localProductNames, setLocalProductNames] = useState<string[]>([]);
 
   console.log('selectedTeeth', selectedTeeth);
   console.log('selectedGroups', selectedGroups);
@@ -123,6 +137,13 @@ const ToothSelector = ({
     setLocalSelectedTeeth(teeth);
     onSelectionChange(groups, teeth);
     if (onGroupsChange) onGroupsChange(groups, teeth);
+
+    // Aggregate all product names from all teethDetails in all groups
+    const allProductNames = groups
+      .flatMap(g => g.teethDetails.flat().flatMap(t => t.productName));
+    // Remove duplicates
+    const uniqueProductNames = Array.from(new Set(allProductNames));
+    setLocalProductNames(uniqueProductNames);
   };
 
   const isToothSelected = useCallback((toothNumber: number) => {
@@ -308,7 +329,7 @@ const ToothSelector = ({
                   const toothDetail = flatTeeth.find(t => t.teethNumber === toothNum);
                   return toothDetail || {
                     teethNumber: toothNum,
-                    productName: 'gold',
+                    productName: [],
                     productQuantity: 1,
                     shadeDetails: '',
                     occlusalStaining: '',
@@ -385,7 +406,7 @@ const ToothSelector = ({
                   const toothDetail = groupContainingTooth.teethDetails.flat().find(t => t.teethNumber === toothNum);
                   return toothDetail || {
                     teethNumber: toothNum,
-                    productName: 'gold',
+                    productName: [],
                     productQuantity: 1,
                     shadeDetails: '',
                     occlusalStaining: '',
@@ -502,7 +523,7 @@ const ToothSelector = ({
         teethDetails: [[
           {
             teethNumber: clickedTooth,
-            productName: 'gold',
+            productName: [],
             productQuantity: 1,
             shadeDetails: '',
             occlusalStaining: '',
@@ -513,7 +534,7 @@ const ToothSelector = ({
           },
           {
             teethNumber: clickedTooth,
-            productName: 'gold',
+            productName: [],
             productQuantity: 1,
             shadeDetails: '',
             occlusalStaining: '',
@@ -555,7 +576,7 @@ const ToothSelector = ({
     // Create new tooth detail
     const newToothDetail: ToothDetail = {
       teethNumber: toothNumber,
-      productName: 'gold',
+      productName: [],
       productQuantity: 1,
       shadeDetails: '',
       occlusalStaining: '',
@@ -659,7 +680,7 @@ const ToothSelector = ({
                 const isPontic = group.pontics?.includes(toothNumber) || false;
                 return {
                   teethNumber: toothNumber,
-                  productName: group.material || 'gold',
+                  productName: [],
                   productQuantity: 1,
                   shadeDetails: group.shade || '',
                   occlusalStaining: group.occlusalStaining || '',
@@ -758,7 +779,7 @@ const ToothSelector = ({
             if (individualTooth) {
               return {
                 teethNumber: toothNumber,
-                productName: 'gold',
+                productName: [],
                 productQuantity: 1,
                 shadeDetails: '',
                 occlusalStaining: '',
@@ -772,7 +793,7 @@ const ToothSelector = ({
             // New tooth, default to abutment
             return {
               teethNumber: toothNumber,
-              productName: 'gold',
+              productName: [],
               productQuantity: 1,
               shadeDetails: '',
               occlusalStaining: '',
@@ -836,7 +857,7 @@ const ToothSelector = ({
                 const individualTooth = localSelectedTeeth.find(t => t.toothNumber === tooth2);
                 const newToothDetail: ToothDetail = {
                   teethNumber: tooth2,
-                  productName: 'gold',
+                  productName: [],
                   productQuantity: 1,
                   shadeDetails: '',
                   occlusalStaining: '',
@@ -891,7 +912,7 @@ const ToothSelector = ({
                 const individualTooth = localSelectedTeeth.find(t => t.toothNumber === tooth1);
                 const newToothDetail: ToothDetail = {
                   teethNumber: tooth1,
-                  productName: 'gold',
+                  productName: [],
                   productQuantity: 1,
                   shadeDetails: '',
                   occlusalStaining: '',
@@ -931,7 +952,7 @@ const ToothSelector = ({
         if (individualTooth) {
           return {
             teethNumber: toothNumber,
-            productName: 'gold',
+            productName: [],
             productQuantity: 1,
             shadeDetails: '',
             occlusalStaining: '',
@@ -951,7 +972,7 @@ const ToothSelector = ({
           // New tooth, default to abutment
           return {
             teethNumber: toothNumber,
-            productName: 'gold',
+            productName: [],
             productQuantity: 1,
             shadeDetails: '',
             occlusalStaining: '',
@@ -1051,15 +1072,14 @@ const ToothSelector = ({
             <div className="mb-4 overflow-x-auto">
               <div className="min-w-[320px] sm:min-w-0">
                 <ToothChart 
-                  selectedGroups={legacyGroups} 
+                  selectedGroups={localSelectedGroups} 
                   selectedTeeth={localSelectedTeeth} 
                   onToothClick={handleToothClick} 
                   onDragConnection={handleDragConnection} 
                   isToothSelected={isToothSelected} 
                   getToothType={getToothType} 
                   onGroupsChange={groups => {
-                    const newGroups = convertToNewGroups(groups);
-                    updateSelection(newGroups, localSelectedTeeth);
+                    updateSelection(groups, localSelectedTeeth);
                   }} 
                   setSelectedTeeth={teeth => updateSelection(localSelectedGroups, teeth as SelectedTooth[])} 
                 />

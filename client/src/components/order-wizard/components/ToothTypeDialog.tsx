@@ -149,7 +149,7 @@ const ToothTypeDialog = ({
               key={group.groupId}
               onClick={() => onJoinGroup?.(toothNumber, group.groupId)}
               className={`w-full text-sm ${
-                (group as any).type === 'joint'
+                (group as any).type === 'separate'
                   ? 'bg-green-500 hover:bg-green-600'
                   : (group as any).type === 'bridge'
                   ? 'bg-orange-500 hover:bg-orange-600'

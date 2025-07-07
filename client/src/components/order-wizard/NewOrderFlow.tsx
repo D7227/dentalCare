@@ -238,6 +238,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
   const isMobile = useIsMobile();
   const [showInstructions, setShowInstructions] = useState(false);
 
+  console.log('formData', formData)
+
   // Fetch companies from API
   useEffect(() => {
     const fetchCompanies = async () => {
