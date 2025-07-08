@@ -11,7 +11,7 @@ import ProductSearch from "./ProductSearch";
 import ShadeSelector, { ShadeOption } from "./ShadeSelector";
 import FormField from "@/components/shared/FormField";
 import TrialSelector from "./components/TrialSelector";
-import ShadeGuideSection from "./components/ShadeGuideSection";
+import ShadeGuideSection, { ShadeGuide } from "./components/ShadeGuideSection";
 import { CheckCircle, Plus, Pencil } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +42,7 @@ interface ProductDetails {
   trial: string;
   shadeNotes?: string;
   additionalNotes?: string;
-  shadeGuide?: string[];
+  shadeGuide?: ShadeGuide | null;
   productName: string[];
 }
 
@@ -84,7 +84,7 @@ const ProductSelection = ({
     trial: "",
     shadeNotes: "",
     additionalNotes: "",
-    shadeGuide: [],
+    shadeGuide: null,
     productName: [],
   });
   const [editingGroupIndex, setEditingGroupIndex] = useState<number | null>(
@@ -97,9 +97,37 @@ const ProductSelection = ({
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [modalSelectedProducts, setModalSelectedProducts] = useState<SelectedProduct[]>([]);
 
+  // --- 1. Add edit modal state for group/field ---
+  const [editField, setEditField] = useState<null | { field: string; groupIdx: number }>(null);
+  const [editFieldValue, setEditFieldValue] = useState<any>("");
+
   const isMobile = useIsMobile();
 
   console.log(" %c formData", "background: #FF0000; color: white;", formData);
+
+  // --- MIGRATION: On mount, move any group-level fields from first tooth to group if needed ---
+  useEffect(() => {
+    const updatedGroups = (formData.toothGroups as any[]).map((group: any) => {
+      const firstTooth = group.teethDetails?.[0]?.[0];
+      let changed = false;
+      const newGroup = { ...group };
+      [
+        'shadeDetails',
+        'shadeGuide',
+        'shadeNotes',
+        'occlusalStaining',
+        'trialRequirements',
+      ].forEach(field => {
+        if (!group[field] && firstTooth && firstTooth[field]) {
+          newGroup[field] = firstTooth[field];
+          changed = true;
+        }
+      });
+      return newGroup;
+    });
+    setFormData((f: any) => ({ ...f, toothGroups: updatedGroups }));
+    // eslint-disable-next-line
+  }, []);
 
   const getAllGroups = () => {
     const toothGroups = formData.toothGroups || [];
@@ -200,13 +228,13 @@ const ProductSelection = ({
       // A tooth is configured if it has either selectedProducts OR productName
       const isConfigured = hasSelectedProducts || hasProductName;
 
-      console.log(
-        `Tooth ${t.teethNumber || t.toothNumber}: hasSelectedProducts=${hasSelectedProducts}, hasProductName=${hasProductName}, isConfigured=${isConfigured}`,
-      );
+      // console.log(
+      //   `Tooth ${t.teethNumber || t.toothNumber}: hasSelectedProducts=${hasSelectedProducts}, hasProductName=${hasProductName}, isConfigured=${isConfigured}`,
+      // );
       return isConfigured;
     });
 
-    console.log(`Group ${group.groupType} configuration status:`, result);
+    // console.log(`Group ${group.groupType} configuration status:`, result);
     if (!result) {
       console.log("Unconfigured group:", group, "teeth:", allTeeth);
     }
@@ -216,7 +244,7 @@ const ProductSelection = ({
   const allGroupsConfigured =
     allGroups.length > 0 &&
     allGroups.every((group: any) => isGroupConfigured(group));
-  console.log(allGroupsConfigured, "this is a all moasdaisdjasijd");
+  // console.log(allGroupsConfigured, "this is a all moasdaisdjasijd");
   // Get unconfigured groups only
   const unconfiguredGroups = allGroups.filter(
     (group: any) => !isGroupConfigured(group),
@@ -287,6 +315,10 @@ const ProductSelection = ({
       if (field === "shade") {
         // Always store as array
         return { ...prev, shade: value ? [value.label || value] : [] };
+      } else if (field === "shadeGuide") {
+        return { ...prev, shadeGuide: value };
+      } else if (field === "ponticDesign") {
+        return { ...prev, ponticDesign: value };
       }
       return { ...prev, [field]: value };
     });
@@ -297,17 +329,6 @@ const ProductSelection = ({
       ...prev,
       trial: trials && trials.length > 0 ? trials[0] : "",
     }));
-  };
-
-  const handleShadeGuideChange = (guideShades: string[]) => {
-    setProductDetails((prev) => {
-      // Merge unique shade names from dropdown and guide
-      const allShades = Array.from(
-        new Set([...(prev.shadeGuide || []), ...guideShades]),
-      );
-      return { ...prev, shadeGuide: allShades };
-    });
-    // Removed: setFormData for shadeGuide at root
   };
 
   const startConfiguring = () => {
@@ -323,7 +344,7 @@ const ProductSelection = ({
       trial: "",
       shadeNotes: "",
       additionalNotes: "",
-      shadeGuide: [],
+      shadeGuide: null,
       productName: [],
     });
   };
@@ -508,6 +529,54 @@ const ProductSelection = ({
         }
       }
 
+      // --- DEMO: After updating teethDetails, set group-level fields from first tooth or config form ---
+      const groupLevelFields = [
+        'shadeDetails',
+        'shadeGuide',
+        'shadeNotes',
+        'occlusalStaining',
+        'trialRequirements',
+        'ponticDesign',
+      ];
+      updatedGroups = updatedGroups.map((group: any) => {
+        const firstTooth = group.teethDetails?.[0]?.[0];
+        groupLevelFields.forEach(field => {
+          if (field === 'shadeGuide') {
+            // Prefer productDetails.shadeGuide if present, else from firstTooth
+            if (productDetails.shadeGuide && productDetails.shadeGuide.type) {
+              group.shadeGuide = productDetails.shadeGuide;
+            } else if (firstTooth && firstTooth.shadeGuide && firstTooth.shadeGuide.type) {
+              group.shadeGuide = firstTooth.shadeGuide;
+            }
+          } else if (field === 'ponticDesign') {
+            if (productDetails.ponticDesign) {
+              group.ponticDesign = productDetails.ponticDesign;
+            } else if (firstTooth && firstTooth.ponticDesign) {
+              group.ponticDesign = firstTooth.ponticDesign;
+            }
+          } else if (firstTooth && firstTooth[field]) {
+            group[field] = firstTooth[field];
+          } else if (field === 'shadeDetails' && shade && shade.length > 0) {
+            group[field] = shade[0];
+          } else if (field === 'shadeNotes' && shadeNotes) {
+            group[field] = shadeNotes;
+          } else if (field === 'occlusalStaining' && occlusalStaining) {
+            group[field] = occlusalStaining;
+          } else if (field === 'trialRequirements' && trial) {
+            group[field] = trial;
+          }
+        });
+        // Remove from all teeth
+        group.teethDetails = group.teethDetails.map((arr: any[]) =>
+          arr.map((tooth: any) => {
+            const rest = { ...tooth };
+            groupLevelFields.forEach(field => delete rest[field]);
+            return rest;
+          })
+        );
+        return group;
+      });
+
       // Build restorationProducts array by aggregating products across all configured groups and individual teeth
       const productMap: Record<string, { product: string; quantity: number }> =
         {};
@@ -567,7 +636,7 @@ const ProductSelection = ({
           trial: "",
           shadeNotes: "",
           additionalNotes: "",
-          shadeGuide: [],
+          shadeGuide: null,
           productName: [],
         });
         setEditingGroupIndex(null);
@@ -590,7 +659,7 @@ const ProductSelection = ({
       trial: "",
       shadeNotes: "",
       additionalNotes: "",
-      shadeGuide: [],
+      shadeGuide: null,
       productName: [],
     });
     setEditingGroupIndex(null);
@@ -622,14 +691,14 @@ const ProductSelection = ({
 
   useEffect(() => {
     if (!isConfiguring && unconfiguredGroups.length > 0) {
-      console.log("unconfiguredGroups", unconfiguredGroups);
+      // console.log("unconfiguredGroups", unconfiguredGroups);
       startConfiguring();
     }
     // Optionally, add dependencies if you want to trigger on step change
     // eslint-disable-next-line
   }, []);
 
-  console.log("4444444 allGroups", allGroups);
+  // console.log("4444444 allGroups", allGroups);
 
   // Handler for opening the modal
   const openProductModal = () => {
@@ -684,7 +753,7 @@ const ProductSelection = ({
         teethDetails: updatedTeethDetails,
       };
     });
-    console.log("updatedGroups", updatedGroups)
+    // console.log("updatedGroups", updatedGroups)
     setFormData({
       ...formData,
       toothGroups: updatedGroups,
@@ -745,407 +814,412 @@ const ProductSelection = ({
           )}
 
           {/* Configured Groups Detail Cards - Show all configured groups */}
-          {renderableGroups.filter((group) => isGroupConfigured(group)).length >
-            0 &&
+          {renderableGroups.filter((group) => isGroupConfigured(group)).length > 0 &&
             (
               Object.entries(
                 renderableGroups
                   .filter((group) => isGroupConfigured(group))
                   .reduce((acc: any, group: any) => {
-                    const type =
-                      group.prescriptionType || formData.prescriptionType;
+                    const type = group.prescriptionType || formData.prescriptionType;
                     if (!acc[type]) acc[type] = [];
                     acc[type].push(group);
                     return acc;
                   }, {}),
               ) as [string, any[]][]
-            ).map(([type, groups], idx) => (
-              <Card
-                key={type}
-                className="border border-green-200 bg-gray-50 mb-4"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-1 ${type === "implant" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"} text-xs rounded-full font-medium`}
-                      >
-                        {type === "implant" ? "Implant" : "Crown & Bridge"}
-                      </span>
-                    </div>
-                    {/* Edit button for all groups at once (per type) */}
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="p-1 text-gray-400 hover:text-blue-600"
-                        onClick={() => {
-                          setShowProductCheckboxes((prev: any) => ({
-                            ...prev,
-                            [type]: !prev[type],
-                          }));
-                        }}
-                        aria-label="Add product selection"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="p-1 text-gray-400 hover:text-blue-600"
-                        onClick={() => {
-                          if (isConfiguring && editingGroupIndex === idx) {
-                            setIsConfiguring(false);
-                            setEditingGroupIndex(null);
-                            return;
-                          }
-                          setIsConfiguring(false);
-                          setTimeout(() => {
-                            setEditingGroupIndex(idx);
-                            setIsConfiguring(true);
-                            // Calculate actual product quantities based on tooth count for each unique product
-                            const productQuantityMap: Record<string, { product: any; count: number }> = {};
-                            groups[idx].teethDetails?.flat().forEach((tooth: any) => {
-                              if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
-                                tooth.selectedProducts.forEach((product: any) => {
-                                  if (productQuantityMap[product.id]) {
-                                    productQuantityMap[product.id].count += 1;
-                                  } else {
-                                    productQuantityMap[product.id] = {
-                                      product: { ...product },
-                                      count: 1,
-                                    };
-                                  }
-                                });
-                              }
-                            });
-                            const productsWithCorrectQuantities = Object.values(productQuantityMap).map((item) => ({
-                              ...item.product,
-                              quantity: item.count,
+            ).map(([type, groups], idx) => {
+              const group = groups[0]; // Only one group per type for summary
+              return (
+                <Card
+                  key={type}
+                  className="border border-green-200 bg-gray-50 mb-4"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 ${type === "implant" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"} text-xs rounded-full font-medium`}
+                        >
+                          {type === "implant" ? "Implant" : "Crown & Bridge"}
+                        </span>
+                      </div>
+                      {/* Edit button for all groups at once (per type) */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                          onClick={() => {
+                            setShowProductCheckboxes((prev: any) => ({
+                              ...prev,
+                              [type]: !prev[type],
                             }));
-                            // Use first tooth's product details for editing
-                            const firstTooth = groups[idx]?.teethDetails?.flat()[0];
-                            setSelectedProducts(productsWithCorrectQuantities);
-                            setProductDetails({
-                              shade: firstTooth?.productDetails?.shade ? [firstTooth.productDetails.shade] : [],
-                              occlusalStaining: firstTooth?.productDetails?.occlusalStaining || "medium",
-                              ponticDesign: firstTooth?.productDetails?.ponticDesign || "",
-                              notes: firstTooth?.productDetails?.notes || "",
-                              trial: firstTooth?.productDetails?.trial || "",
-                              shadeNotes: firstTooth?.productDetails?.shadeNotes || "",
-                              additionalNotes: firstTooth?.productDetails?.additionalNotes || "",
-                              shadeGuide: (firstTooth?.productDetails?.shadeGuide ?? firstTooth?.shadeGuide) || [],
-                              productName: firstTooth?.productDetails?.productName || [],
-                            });
-                          }, 0);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="p-1 text-gray-400 hover:text-green-600"
-                        onClick={() => {
-                          toast({
-                            title: "Group already configured",
-                            description:
-                              "This group has already been configured. You can edit it using the pencil icon.",
-                          });
-                        }}
-                        aria-label="Group already configured"
-                      >
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="font-medium text-gray-900 mb-1">Teeth:</p>
-                      <div className="text-gray-600">
-                        {["bridge", "joint", "individual"].map((groupType) => {
-                          const groupsOfType = groups.filter(
-                            (g: any) => g.groupType === groupType,
-                          );
-                          if (groupsOfType.length === 0) return null;
-                          const teethNumbers = groupsOfType
-                            .flatMap((g: any) => g.teethDetails?.flat() || [])
-                            .map((t: any) => t.toothNumber ?? t.teethNumber)
-                            .filter(
-                              (n: any) =>
-                                n !== undefined && n !== null && n !== "",
-                            )
-                            .join(", ");
-                          return teethNumbers ? (
-                            <div key={groupType}>
-                              <span className="font-semibold capitalize">
-                                {groupType}:
-                              </span>{" "}
-                              {teethNumbers}
-                            </div>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          {/* Only show select-all checkbox if toggled on */}
-                          {showProductCheckboxes?.[type] && (() => {
-                            const allTeethFromType = groups.flatMap(
-                              (g: any) =>
-                                g.teethDetails?.flat().map((t: any) => t.teethNumber || t.toothNumber) || [],
-                            );
-                            if (allTeethFromType.length > 1) {
-                              return (
-                                <input
-                                  type="checkbox"
-                                  className="w-3 h-3 rounded border-gray-300"
-                                  checked={selectedTeethForProducts.length === allTeethFromType.length && allTeethFromType.every(tooth => selectedTeethForProducts.includes(tooth))}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedTeethForProducts(allTeethFromType);
-                                    } else {
-                                      setSelectedTeethForProducts([]);
-                                    }
-                                  }}
-                                />
-                              );
+                          }}
+                          aria-label="Add product selection"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                        {/* <button
+                          type="button"
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                          onClick={() => {
+                            if (isConfiguring && editingGroupIndex === idx) {
+                              setIsConfiguring(false);
+                              setEditingGroupIndex(null);
+                              return;
                             }
-                            return null;
-                          })()}
-                          <p className="font-medium text-gray-900 mb-0">Products:</p>
-                        </div>
-                      </div>
-                      {/* Product checkboxes for each tooth: label always visible, checkbox only if toggled */}
-                      <div className="text-gray-600 space-y-1 mt-2">
-                        {(() => {
-                          const toothProductList: { tooth: number; products: string[]; shadeGuide?: string[]; shadeNotes?: string; trialRequirements?: string; occlusalStaining?: string; }[] = [];
-                          groups.forEach((group: any) => {
-                            group.teethDetails?.flat().forEach((tooth: any) => {
-                              let productNames: string[] = [];
-                              if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
-                                productNames = tooth.selectedProducts.map((p: any) => p.name);
-                              } else if (tooth.productName && tooth.productName.length > 0) {
-                                productNames = [...tooth.productName];
-                              } else if (
-                                tooth.productDetails &&
-                                tooth.productDetails.productName &&
-                                tooth.productDetails.productName.length > 0
-                              ) {
-                                productNames = [...tooth.productDetails.productName];
-                              }
-                              if (productNames.length > 0) {
-                                toothProductList.push({
-                                  tooth: tooth.teethNumber || tooth.toothNumber,
-                                  products: productNames,
-                                  shadeGuide: tooth.shadeGuide,
-                                  shadeNotes: tooth.shadeNotes,
-                                  trialRequirements: tooth.trialRequirements,
-                                  occlusalStaining: tooth.occlusalStaining,
-                                });
-                              }
-                            });
-                          });
-                          toothProductList.sort((a, b) => a.tooth - b.tooth);
-                          return toothProductList.map((item, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              {showProductCheckboxes?.[type] && (
-                                <input
-                                  type="checkbox"
-                                  className="w-3 h-3 rounded border-gray-300"
-                                  checked={selectedTeethForProducts.includes(item.tooth)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedTeethForProducts(prev => [...prev, item.tooth]);
+                            setIsConfiguring(false);
+                            setTimeout(() => {
+                              setEditingGroupIndex(idx);
+                              setIsConfiguring(true);
+                              // Calculate actual product quantities based on tooth count for each unique product
+                              const productQuantityMap: Record<string, { product: any; count: number }> = {};
+                              groups[idx].teethDetails?.flat().forEach((tooth: any) => {
+                                if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+                                  tooth.selectedProducts.forEach((product: any) => {
+                                    if (productQuantityMap[product.id]) {
+                                      productQuantityMap[product.id].count += 1;
                                     } else {
-                                      setSelectedTeethForProducts(prev => prev.filter(t => t !== item.tooth));
+                                      productQuantityMap[product.id] = {
+                                        product: { ...product },
+                                        count: 1,
+                                      };
                                     }
-                                  }}
-                                />
-                              )}
-                              <span>Tooth {item.tooth}: {item.products.join(", ")}</span>
-                            </div>
-                          ));
-                        })()}
+                                  });
+                                }
+                              });
+                              const productsWithCorrectQuantities = Object.values(productQuantityMap).map((item) => ({
+                                ...item.product,
+                                quantity: item.count,
+                              }));
+                              // Use first tooth's product details for editing
+                              const firstTooth = groups[idx]?.teethDetails?.flat()[0];
+                              setSelectedProducts(productsWithCorrectQuantities);
+                              setProductDetails({
+                                shade: firstTooth?.productDetails?.shade ? [firstTooth.productDetails.shade] : [],
+                                occlusalStaining: firstTooth?.productDetails?.occlusalStaining || "medium",
+                                ponticDesign: firstTooth?.productDetails?.ponticDesign || "",
+                                notes: firstTooth?.productDetails?.notes || "",
+                                trial: firstTooth?.productDetails?.trial || "",
+                                shadeNotes: firstTooth?.productDetails?.shadeNotes || "",
+                                additionalNotes: firstTooth?.productDetails?.additionalNotes || "",
+                                shadeGuide: (firstTooth?.productDetails?.shadeGuide ?? firstTooth?.shadeGuide) || null,
+                                productName: firstTooth?.productDetails?.productName || [],
+                              });
+                            }, 0);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button> */}
+                        <button
+                          type="button"
+                          className="p-1 text-gray-400 hover:text-green-600"
+                          onClick={() => {
+                            toast({
+                              title: "Group already configured",
+                              description:
+                                "This group has already been configured. You can edit it using the pencil icon.",
+                            });
+                          }}
+                          aria-label="Group already configured"
+                        >
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </button>
                       </div>
-                      {selectedTeethForProducts.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <button
-                            type="button"
-                            onClick={openProductModal}
-                            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Add product for {selectedTeethForProducts.length} selected {selectedTeethForProducts.length === 1 ? 'tooth' : 'teeth'}
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                    <div>
-                      <p className="font-medium text-gray-900 mb-1">Shade:</p>
-                      <p className="text-gray-600 uppercase">
-                        {(() => {
-                          const shades = Array.from(
-                            new Set(
-                              groups.flatMap((g: any) =>
-                                g.teethDetails
-                                  ?.flat()
-                                  .map((t: any) => t.productDetails?.shade)
-                                  .filter(Boolean),
-                              ),
-                            ),
-                          );
-                          return shades.length > 0
-                            ? shades.join(", ")
-                            : "Not specified";
-                        })()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 mb-1">
-                        Occlusal Staining:
-                      </p>
-                      <p className="text-gray-600 capitalize">
-                        {(() => {
-                          const stainings = Array.from(
-                            new Set(
-                              groups.flatMap((g: any) =>
-                                g.teethDetails
-                                  ?.flat()
-                                  .map(
-                                    (t: any) =>
-                                      t.productDetails?.occlusalStaining,
-                                  )
-                                  .filter(Boolean),
-                              ),
-                            ),
-                          );
-                          if (stainings.length === 1) return stainings[0];
-                          if (stainings.length > 1) return "Multiple";
-                          return "Not specified";
-                        })()}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Notes: show all notes concatenated if present */}
-                  {(() => {
-                    const notes = groups.flatMap((g: any) =>
-                      g.teethDetails
-                        ?.flat()
-                        .map((t: any) => t.productDetails?.notes)
-                        .filter(Boolean),
-                    );
-                    if (notes.length > 0) {
-                      return (
-                        <div className="mt-3 text-sm">
-                          <p className="font-medium text-gray-900 mb-1">
-                            Notes:
-                          </p>
-                          <p className="text-gray-600 italic text-xs leading-relaxed">
-                            {notes.join(" | ")}
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {/* Notes: show all notes concatenated if present */}
-                  {(() => {
-                    const notes = groups.flatMap((g: any) =>
-                      g.teethDetails
-                        ?.flat()
-                        .map((t: any) => t.productDetails?.notes)
-                        .filter(Boolean),
-                    );
-                    if (notes.length > 0) {
-                      return (
-                        <div className="mt-3 text-sm">
-                          <p className="font-medium text-gray-900 mb-1">
-                            Notes:
-                          </p>
-                          <p className="text-gray-600 italic text-xs leading-relaxed">
-                            {notes.join(" | ")}
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                    <div>
-                      {(() => {
-                        // Use the first tooth in the group to show the main product detail card
-                        const firstTooth = groups[0]?.teethDetails?.flat()[0];
-                        if (!firstTooth) return null;
-                        // Only show label if value exists
-                        if (firstTooth.shadeGuide && firstTooth.shadeGuide.length > 0) {
-                          return (
-                            <>
-                              <p className="font-medium text-gray-900 mb-1">Shade Guide:</p>
-                              <div className="text-gray-600 capitalize flex flex-col">
-                                {firstTooth.shadeGuide.map((shade: string, idx: number) => (
-                                  <div key={idx}>{shade}</div>
-                                ))}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                        <div className="text-gray-600">
+                          {["bridge", "joint", "individual"].map((groupType) => {
+                            const groupsOfType = groups.filter(
+                              (g: any) => g.groupType === groupType,
+                            );
+                            if (groupsOfType.length === 0) return null;
+                            const teethNumbers = groupsOfType
+                              .flatMap((g: any) => g.teethDetails?.flat() || [])
+                              .map((t: any) => t.toothNumber ?? t.teethNumber)
+                              .filter(
+                                (n: any) =>
+                                  n !== undefined && n !== null && n !== "",
+                              )
+                              .join(", ");
+                            return teethNumbers ? (
+                              <div key={groupType}>
+                                <span className="font-semibold capitalize">
+                                  {groupType}:
+                                </span>{" "}
+                                {teethNumbers}
                               </div>
-                            </>
-                          );
-                        }
-                        return null;
-                      })()}
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {/* Only show select-all checkbox if toggled on */}
+                            {showProductCheckboxes?.[type] && (() => {
+                              const allTeethFromType = groups.flatMap(
+                                (g: any) =>
+                                  g.teethDetails?.flat().map((t: any) => t.teethNumber || t.toothNumber) || [],
+                              );
+                              if (allTeethFromType.length > 1) {
+                                return (
+                                  <input
+                                    type="checkbox"
+                                    className="w-3 h-3 rounded border-gray-300"
+                                    checked={selectedTeethForProducts.length === allTeethFromType.length && allTeethFromType.every(tooth => selectedTeethForProducts.includes(tooth))}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedTeethForProducts(allTeethFromType);
+                                      } else {
+                                        setSelectedTeethForProducts([]);
+                                      }
+                                    }}
+                                  />
+                                );
+                              }
+                              return null;
+                            })()}
+                            <p className="font-medium text-gray-900 mb-0">Products:</p>
+                          </div>
+                        </div>
+                        {/* Product checkboxes for each tooth: label always visible, checkbox only if toggled */}
+                        <div className="text-gray-600 space-y-1 mt-2">
+                          {(() => {
+                            const toothProductList: { tooth: number; products: string[]; shadeGuide?: string[]; shadeNotes?: string; trialRequirements?: string; occlusalStaining?: string; }[] = [];
+                            groups.forEach((group: any) => {
+                              group.teethDetails?.flat().forEach((tooth: any) => {
+                                let productNames: string[] = [];
+                                if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+                                  productNames = tooth.selectedProducts.map((p: any) => p.name);
+                                } else if (tooth.productName && tooth.productName.length > 0) {
+                                  productNames = [...tooth.productName];
+                                } else if (
+                                  tooth.productDetails &&
+                                  tooth.productDetails.productName &&
+                                  tooth.productDetails.productName.length > 0
+                                ) {
+                                  productNames = [...tooth.productDetails.productName];
+                                }
+                                if (productNames.length > 0) {
+                                  toothProductList.push({
+                                    tooth: tooth.teethNumber || tooth.toothNumber,
+                                    products: productNames,
+                                    shadeGuide: tooth.shadeGuide,
+                                    shadeNotes: tooth.shadeNotes,
+                                    trialRequirements: tooth.trialRequirements,
+                                    occlusalStaining: tooth.occlusalStaining,
+                                  });
+                                }
+                              });
+                            });
+                            toothProductList.sort((a, b) => a.tooth - b.tooth);
+                            return toothProductList.map((item, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                {showProductCheckboxes?.[type] && (
+                                  <input
+                                    type="checkbox"
+                                    className="w-3 h-3 rounded border-gray-300"
+                                    checked={selectedTeethForProducts.includes(item.tooth)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedTeethForProducts(prev => [...prev, item.tooth]);
+                                      } else {
+                                        setSelectedTeethForProducts(prev => prev.filter(t => t !== item.tooth));
+                                      }
+                                    }}
+                                  />
+                                )}
+                                <span>Tooth {item.tooth}: {item.products.join(", ")}</span>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                        {selectedTeethForProducts.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={openProductModal}
+                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add product for {selectedTeethForProducts.length} selected {selectedTeethForProducts.length === 1 ? 'tooth' : 'teeth'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      {(() => {
-                        // Use the first tooth in the group to show the main product detail card
-                        const firstTooth = groups[0]?.teethDetails?.flat()[0];
-                        if (!firstTooth) return null;
-                        if (firstTooth.trialRequirements) {
-                          return (
-                            <>
-                              <p className="font-medium text-gray-900 mb-1">Trial Requirements:</p>
-                              <p className="text-gray-600 capitalize">{firstTooth.trialRequirements} Trial</p>
-                            </>
-                          );
-                        }
-                        return null;
-                      })()}
+                    <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1 flex items-center">Shade:
+                          <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeDetails', groupIdx: idx }); setEditFieldValue(group?.shadeDetails || ""); }}>
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </p>
+                        <p className="text-gray-600 uppercase">
+                          {group?.shadeDetails ? group.shadeDetails : <span className="text-blue-600 cursor-pointer" onClick={() => { setEditField({ field: 'shadeDetails', groupIdx: idx }); setEditFieldValue(""); }}>Add Shade</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1 flex items-center"> Occlusal Staining:
+                          <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'occlusalStaining', groupIdx: idx }); setEditFieldValue(group?.occlusalStaining || ""); }}>
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </p>
+                        <p className="text-gray-600 capitalize">
+                          {group?.occlusalStaining ? group.occlusalStaining : <span className="text-blue-600 cursor-pointer" onClick={() => { setEditField({ field: 'occlusalStaining', groupIdx: idx }); setEditFieldValue(""); }}>Add Occlusal Staining</span>}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-3">
+                    {/* Notes: show all notes concatenated if present */}
                     {(() => {
-                      // Use the first tooth in the group to show the main product detail card
-                      const firstTooth = groups[0]?.teethDetails?.flat()[0];
-                      if (!firstTooth) return null;
-                      if (firstTooth.shadeNotes) {
+                      const notes = groups.flatMap((g: any) =>
+                        g.teethDetails
+                          ?.flat()
+                          .map((t: any) => t.productDetails?.notes)
+                          .filter(Boolean),
+                      );
+                      if (notes.length > 0) {
                         return (
-                          <>
-                            <p className="font-medium text-gray-900 mb-1">Shade Notes:</p>
-                            <p className="text-gray-600 capitalize">{firstTooth.shadeNotes}</p>
-                          </>
+                          <div className="mt-3 text-sm">
+                            <p className="font-medium text-gray-900 mb-1 flex items-center"> Notes:
+                              <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeNotes', groupIdx: idx }); setEditFieldValue(group?.shadeNotes || ""); }}>
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </p>
+                            <p className="text-gray-600 italic text-xs leading-relaxed">
+                              {notes.join(" | ")}
+                            </p>
+                          </div>
                         );
                       }
                       return null;
                     })()}
-                  </div>
-                  {/* Product Quantities Summary */}
-                  {getProductQuantities().length > 0 && (
-                    <div className="mt-4">
-                      <h6 className="text-sm font-semibold mb-2">Product Quantities</h6>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="font-medium">Product</div>
-                        <div className="font-medium">Quantity</div>
-                        {getProductQuantities().map((item) => (
-                          <React.Fragment key={item.name}>
-                            <div>{item.name}</div>
-                            <div>X {item.quantity}</div>
-                          </React.Fragment>
-                        ))}
+                    {/* Notes: show all notes concatenated if present */}
+                    {(() => {
+                      const notes = groups.flatMap((g: any) =>
+                        g.teethDetails
+                          ?.flat()
+                          .map((t: any) => t.productDetails?.notes)
+                          .filter(Boolean),
+                      );
+                      if (notes.length > 0) {
+                        return (
+                          <div className="mt-3 text-sm">
+                            <p className="font-medium text-gray-900 mb-1 flex items-center">Notes:
+                              <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeNotes', groupIdx: idx }); setEditFieldValue(group?.shadeNotes || ""); }}>
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </p>
+                            <p className="text-gray-600 italic text-xs leading-relaxed">
+                              {notes.join(" | ")}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                      <div>
+                        {group?.shadeGuide && group.shadeGuide.type && group.shadeGuide.shades && group.shadeGuide.shades.length > 0 ? (
+                          <>
+                            <p className="font-medium text-gray-900 mb-1 flex items-center">Shade Guide:
+                              <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeGuide', groupIdx: idx }); setEditFieldValue(group.shadeGuide); }}>
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </p>
+                            <div className="text-gray-600 capitalize flex flex-col">
+                              <span className="font-semibold">{group.shadeGuide.type === 'anterior' ? 'Anterior' : 'Posterior'}:</span>
+                              {/* <span>{group.shadeGuide.shades.join(', ')}</span> */}
+                              <div className="text-gray-600 capitalize flex flex-col">
+                                {group.shadeGuide.shades.map((shade: string, idx: number) => (
+                                  <div key={idx}>{shade}</div>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="font-medium text-gray-900 mb-1 flex items-center">Shade Guide:
+                            <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeGuide', groupIdx: idx }); setEditFieldValue(null); }}>
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <span className="text-blue-600 cursor-pointer ml-2" onClick={() => { setEditField({ field: 'shadeGuide', groupIdx: idx }); setEditFieldValue(null); }}>Add Shade Guide</span>
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        {group?.trialRequirements ? (
+                          <>
+                            <p className="font-medium text-gray-900 mb-1 flex items-center">Trial Requirements:
+                              <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'trialRequirements', groupIdx: idx }); setEditFieldValue(group?.trialRequirements || ""); }}>
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </p>
+                            <p className="text-gray-600 capitalize">{group.trialRequirements}</p>
+                          </>
+                        ) : (
+                          <p className="font-medium text-gray-900 mb-1 flex items-center">Trial Requirements:
+                            <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'trialRequirements', groupIdx: idx }); setEditFieldValue(""); }}>
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <span className="text-blue-600 cursor-pointer ml-2" onClick={() => { setEditField({ field: 'trialRequirements', groupIdx: idx }); setEditFieldValue(""); }}>Add Trial Requirements</span>
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="mt-3">
+                      {group?.shadeNotes ? (
+                        <>
+                          <p className="font-medium text-gray-900 mb-1 flex items-center">Shade Notes:
+                            <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeNotes', groupIdx: idx }); setEditFieldValue(group?.shadeNotes || ""); }}>
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          </p>
+                          <p className="text-gray-600 capitalize">{group.shadeNotes}</p>
+                        </>
+                      ) : (
+                        <p className="font-medium text-gray-900 mb-1 flex items-center">Shade Notes:
+                          <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'shadeNotes', groupIdx: idx }); setEditFieldValue(""); }}>
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <span className="text-blue-600 cursor-pointer ml-2" onClick={() => { setEditField({ field: 'shadeNotes', groupIdx: idx }); setEditFieldValue(""); }}>Add Shade Notes</span>
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1 flex items-center">Pontic Design:
+                          <button type="button" className="ml-2 p-1 text-gray-400 hover:text-blue-600" onClick={() => { setEditField({ field: 'ponticDesign', groupIdx: idx }); setEditFieldValue(group.ponticDesign || ""); }}>
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </p>
+                        <div className="mt-1">
+                          <PonticSelector value={group.ponticDesign} readonly />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Product Quantities Summary */}
+                    {getProductQuantities().length > 0 && (
+                      <div className="mt-4">
+                        <h6 className="text-sm font-semibold mb-2">Product Quantities</h6>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="font-medium">Product</div>
+                          <div className="font-medium">Quantity</div>
+                          {getProductQuantities().map((item) => (
+                            <React.Fragment key={item.name}>
+                              <div>{item.name}</div>
+                              <div>X {item.quantity}</div>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                   
+                  </CardContent>
+                </Card>
+              );
+            })}
 
           {/* Tooth Groups Summary for unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
@@ -1261,7 +1335,10 @@ const ProductSelection = ({
                         <h6 className="text-sm font-medium text-gray-900 mb-3">
                           Select Pontic
                         </h6>
-                       <PonticSelector/>
+                        <PonticSelector
+                          value={productDetails.ponticDesign}
+                          onChange={val => handleProductDetailsChange("ponticDesign", val)}
+                        />
                       </div>
 
 
@@ -1272,8 +1349,18 @@ const ProductSelection = ({
                         </h6>
                         <ShadeGuideSection
                           selectedGroups={[]}
-                          onShadeGuideChange={handleShadeGuideChange}
+                          onShadeGuideChange={guide => handleProductDetailsChange("shadeGuide", guide)}
+                          selectedGuide={productDetails.shadeGuide || null}
                         />
+                        {/* Show current value if present */}
+                        {productDetails.shadeGuide && productDetails.shadeGuide.type && productDetails.shadeGuide.shades && productDetails.shadeGuide.shades.length > 0 && (
+                          <div className="mt-2 text-xs text-gray-700">
+                            <span className="font-semibold">{productDetails.shadeGuide.type === 'anterior' ? 'Anterior' : 'Posterior'}:</span>
+                            {productDetails.shadeGuide.shades.map((shade, idx) => (
+                              <span key={idx} className="ml-2">{shade}</span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Additional Notes */}
@@ -1414,6 +1501,103 @@ const ProductSelection = ({
             >
               Add Product
             </Button>
+          </div>
+        </div>
+      </BaseModal>
+
+
+      {/* Modal for editing a single field */}
+      {/* --- 3. Edit Modal for group-level fields --- */}
+      <BaseModal
+        isOpen={!!editField}
+        onClose={() => setEditField(null)}
+        title={`Edit ${editField?.field ? editField.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) : ''}`}
+      >
+        <div className="flex flex-col h-full justify-between">
+          {editField?.field === 'shadeDetails' && (
+            <ShadeSelector
+              value={
+                shadeOptions.find(opt => opt.label === (typeof editFieldValue === 'string' ? editFieldValue : editFieldValue[0])) || null
+              }
+              onValueChange={value => setEditFieldValue(value ? value.label : '')}
+              label="Shade"
+              placeholder="Select Shade"
+            />
+          )}
+          {editField?.field === 'occlusalStaining' && (
+            <FormField
+              id="occlusalStaining"
+              label="Occlusal Staining"
+              type="select"
+              value={editFieldValue as string}
+              onChange={value => setEditFieldValue(value)}
+              options={[
+                { value: "light", label: "Light" },
+                { value: "medium", label: "Medium" },
+                { value: "heavy", label: "Heavy" },
+              ]}
+            />
+          )}
+          {editField?.field === 'shadeGuide' && (
+            <ShadeGuideSection
+              selectedGroups={[]}
+              onShadeGuideChange={guide => setEditFieldValue(guide)}
+              selectedGuide={editFieldValue as ShadeGuide | null}
+            />
+          )}
+          {editField?.field === 'ponticDesign' && (
+            <PonticSelector value={editFieldValue as string} onChange={val => setEditFieldValue(val)} />
+          )}
+          {editField?.field === 'notes' && (
+            <FormField
+              id="notes"
+              label="Notes"
+              type="textarea"
+              value={editFieldValue as string}
+              onChange={value => setEditFieldValue(value)}
+              placeholder="Any special instructions for notes..."
+              rows={3}
+            />
+          )}
+          {editField?.field === 'trialRequirements' && (
+            <TrialSelector
+              productType={formData.prescriptionType === "implant" ? "implant" : "crown-bridge"}
+              selectedTrials={[editFieldValue as string]}
+              onTrialsChange={trials => setEditFieldValue(trials && trials.length > 0 ? trials[0] : '')}
+            />
+          )}
+          {editField?.field === 'shadeNotes' && (
+            <FormField
+              id="shadeNotes"
+              label="Shade Notes"
+              type="textarea"
+              value={editFieldValue as string}
+              onChange={value => setEditFieldValue(value)}
+              placeholder="Any special instructions for shade..."
+              rows={2}
+            />
+          )}
+          <div className="flex justify-end mt-4 gap-2">
+            <Button variant="outline" onClick={() => setEditField(null)}>Cancel</Button>
+            <Button className="bg-[#11AB93] hover:bg-[#0F9A82] text-white" onClick={() => {
+              if (editField) {
+                const updatedTeethGroups = [...formData.toothGroups];
+                // Store at group level
+                updatedTeethGroups[editField.groupIdx] = {
+                  ...updatedTeethGroups[editField.groupIdx],
+                  [editField.field]: editFieldValue,
+                };
+                // Remove from all teeth in this group
+                updatedTeethGroups[editField.groupIdx].teethDetails = updatedTeethGroups[editField.groupIdx].teethDetails.map((arr: any) =>
+                  (arr as any[]).map((tooth: any) => {
+                    const { shadeDetails, shadeGuide, shadeNotes, occlusalStaining, trialRequirements, ponticDesign, ...rest } = tooth;
+                    return rest;
+                  })
+                );
+                setFormData({ ...formData, toothGroups: updatedTeethGroups });
+                setEditField(null);
+              }
+            }}>Save</Button>
           </div>
         </div>
       </BaseModal>

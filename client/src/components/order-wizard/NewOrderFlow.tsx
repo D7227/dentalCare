@@ -672,8 +672,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                 </div>
               </div>
             )}
-            {formData.orderType === 'request-scan' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
+            {formData.orderType === 'send-by-courier' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div>
                   <Label htmlFor="courierName">Courier Name</Label>
                   <Input
@@ -884,7 +884,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                     )}
                   </div>
                 )}
-                {formData.orderType === 'request-scan' && formData.scanBooking && (
+                {formData.orderType === 'send-by-courier' && formData.scanBooking && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <Label className="font-medium text-xs sm:text-sm">Courier Name:</Label>

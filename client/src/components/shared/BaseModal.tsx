@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 interface BaseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   description?: string;
   badge?: {
     text: string;
@@ -23,14 +23,14 @@ interface BaseModalProps {
 const BaseModal = ({
   isOpen,
   onClose,
-  title,
+  title = 'Hello',
   description,
   badge,
   children,
   onKeyDown,
   className = '',
   height,
-  overflow = 'hidden'
+  overflow
 }: BaseModalProps) => {
   if (!isOpen) return null;
 
@@ -38,7 +38,7 @@ const BaseModal = ({
     <div className={`fixed inset-0 flex items-center justify-center`}>
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div
-        className={`relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 ${height}  ${overflow} ${className}`}
+        className={`relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 ${height}  ${overflow && overflow} ${className}`}
         onKeyDown={onKeyDown}
       >
         <div className="flex items-center justify-between p-6 border-b">
