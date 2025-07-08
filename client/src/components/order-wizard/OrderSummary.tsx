@@ -7,6 +7,7 @@ import ToothChart from './components/ToothChart';
 import { DoctorInfo } from '../shared/DoctorInfo';
 import { ToothSummary } from '../shared/ToothSummary';
 import { CrownBridgeTeeth, ImpantTeeth } from '@/assets/svg';
+import { convertToLegacyGroups } from './ToothSelector';
 
 interface OrderSummaryProps {
   formData: any;
@@ -69,7 +70,20 @@ function getSummaryToothType(toothNumber: number, summaryGroups: any[], selected
   return null;
 }
 
+// Helper: Safe no-op handlers for read-only summary
+const noopToothClick = (toothNumber: number, event: React.MouseEvent) => {};
+const noopGroupsChange = (groups: any[]) => {};
+const noopSetSelectedTeeth = (fn: any) => {};
+const noopDragConnection = (teeth: number[] | number, splitData?: any) => {};
+
 const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryProps) => {
+  // Use convertToLegacyGroups for correct group conversion
+  const selectedGroups = convertToLegacyGroups(formData.toothGroups || []);
+  const selectedTeeth = (formData.selectedTeeth || []).map((t: any) => ({
+    toothNumber: t.toothNumber,
+    type: t.type || 'abutment',
+  }));
+
   const getCategoryTitle = () => {
     switch (orderCategory) {
       case 'new': return 'Review & Submit Order';
@@ -101,7 +115,27 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
   );
 
   // Group restoration data by teeth groups
-  const restorationGroups = buildSummaryGroups(formData.toothGroups || [], formData.selectedTeeth || []);
+  let restorationGroups = convertToLegacyGroups(formData.toothGroups || []);
+
+  // Find all teeth already included in groups
+  const groupedTeeth = new Set(restorationGroups.flatMap(g => g.teeth));
+
+  // Find individual teeth (not in any group)
+  const individualTeeth = (formData.selectedTeeth || [])
+    .filter((t: any) => !groupedTeeth.has(t.toothNumber));
+
+  // If there are individual teeth, add them as a group
+  if (individualTeeth.length > 0) {
+    restorationGroups.push({
+      groupId: 'individual-group',
+      teeth: individualTeeth.map((t: any) => t.toothNumber),
+      type: 'individual', // treat as separate for LegacyToothGroup compatibility
+      productType: 'implant',
+      notes: '',
+      material: '',
+      shade: '',
+    });
+  }
 
   let allGroups = [...formData.toothGroups];
   if (formData.selectedTeeth.length > 0) {
@@ -133,6 +167,23 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
     ? uniqueTypes.map(t => t === 'implant' ? 'Implant' : 'Crown & Bridge').join(', ')
     : (uniqueTypes[0] === 'implant' ? 'Implant' : 'Crown & Bridge');
 
+  // Aggregate details from toothGroups
+  const allTeeth = (formData.toothGroups || []).flatMap((g: any) => g.teethDetails?.flat() || []);
+  const pontics = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.ponticDesign).filter(Boolean)));
+  const trials = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.trial).filter(Boolean)));
+  const occlusalStainings = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.occlusalStaining).filter(Boolean)));
+  const shades = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean)));
+
+  const shadeGuides = Array.from(new Set(
+    allTeeth
+      .flatMap((t: any) =>
+        (t.productDetails?.shadeGuide && Array.isArray(t.productDetails.shadeGuide))
+          ? t.productDetails.shadeGuide
+          : (Array.isArray(t.shadeGuide) ? t.shadeGuide : [])
+      )
+      .filter(Boolean)
+  ));
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
       {/* Header */}
@@ -163,14 +214,14 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardHeader>
             <CardContent className="pt-0">
               <ToothChart
-                selectedGroups={formData.toothGroups || []}
-                selectedTeeth={formData.selectedTeeth || []}
-                onToothClick={() => { }}
+                selectedGroups={selectedGroups}
+                selectedTeeth={selectedTeeth}
+                onToothClick={noopToothClick}
                 isToothSelected={() => false}
-                getToothType={(toothNumber) => getSummaryToothType(toothNumber, restorationGroups, formData.selectedTeeth || [])}
-                onGroupsChange={() => { }}
-                setSelectedTeeth={() => { }}
-                onDragConnection={() => { }}
+                getToothType={(toothNumber) => getSummaryToothType(toothNumber, restorationGroups, selectedTeeth)}
+                onGroupsChange={noopGroupsChange}
+                setSelectedTeeth={noopSetSelectedTeeth}
+                onDragConnection={noopDragConnection}
               />
             </CardContent>
           </Card>
@@ -225,28 +276,38 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardHeader>
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
               <div className="flex flex-wrap gap-4 text-sm">
-                <div className='flex-1 min-w-[120px]'>
-                  <div className="text-xs text-gray-500">Consulting Doctor</div>
-                  <div className="font-medium text-gray-900">{formData.consultingDoctor || '-'}</div>
-                </div>
-                <div className='flex-1 min-w-[120px]'>
-                  <div className="text-xs text-gray-500">Case Handled By</div>
-                  <div className="font-medium text-gray-900">{formData.caseHandledBy || '-'}</div>
-                </div>
+                {formData.consultingDoctor && (
+                  <div className='flex-1 min-w-[120px]'>
+                    <div className="text-xs text-gray-500">Consulting Doctor</div>
+                    <div className="font-medium text-gray-900">{formData.consultingDoctor}</div>
+                  </div>
+                )}
+                {formData.caseHandledBy && (
+                  <div className='flex-1 min-w-[120px]'>
+                    <div className="text-xs text-gray-500">Case Handled By</div>
+                    <div className="font-medium text-gray-900">{formData.caseHandledBy}</div>
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-4 text-sm">
-                <div className='flex-1 min-w-[120px]'>
-                  <div className="text-xs text-gray-500">Patient Name</div>
-                  <div className="font-medium text-gray-900">{formData.firstName || formData.patientFirstName} {formData.lastName || formData.patientLastName || '-'}</div>
-                </div>
-                <div className='flex-1 min-w-[120px]'>
-                  <div className="text-xs text-gray-500">Age</div>
-                  <div className="font-medium text-gray-900">{formData.age || formData.patientAge || '-'}</div>
-                </div>
-                <div className='flex-1 min-w-[120px]'>
-                  <div className="text-xs text-gray-500">Gender</div>
-                  <div className="font-medium text-gray-900">{formData.sex || formData.patientSex || '-'}</div>
-                </div>
+                {(formData.firstName || formData.patientFirstName) && (
+                  <div className='flex-1 min-w-[120px]'>
+                    <div className="text-xs text-gray-500">Patient Name</div>
+                    <div className="font-medium text-gray-900">{formData.firstName || formData.patientFirstName} {formData.lastName || formData.patientLastName}</div>
+                  </div>
+                )}
+                {(formData.age || formData.patientAge) && (
+                  <div className='flex-1 min-w-[120px]'>
+                    <div className="text-xs text-gray-500">Age</div>
+                    <div className="font-medium text-gray-900">{formData.age || formData.patientAge}</div>
+                  </div>
+                )}
+                {(formData.sex || formData.patientSex) && (
+                  <div className='flex-1 min-w-[120px]'>
+                    <div className="text-xs text-gray-500">Gender</div>
+                    <div className="font-medium text-gray-900">{formData.sex || formData.patientSex}</div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -275,50 +336,65 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 <div className='font-medium text-gray-900'>{typeLabel}</div>
               </div>
               <div className="text-xs text-gray-500 mt-4 mb-1">Teeth</div>
-              {allGroups.length > 0 && (
+              {restorationGroups.length > 0 && (
                 <div className="flex flex-wrap gap-2 items-center">
-                  {allGroups.map((group: any, index: number) => {
+                  {restorationGroups.map((group: any, index: number) => {
                     return (
                       <div key={index} className={`flex border h-fit items-center px-3 py-2 text-white ${group.type === 'individual' ? 'bg-[#1D4ED8] border-[#4574F9]' : group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]'} rounded-lg w-fit`}>
                         <span className="text-xs text-[10px]">{group.type}:</span>
                         <span className=" ml-2 text-[10px]">
                           {group.teeth?.join(', ')}
                         </span>
-                        {/* <span className="text-orange-600 text-sm">Pending</span> */}
                       </div>
                     );
                   })}
                 </div>
               )}
               <div className="flex flex-wrap mt-4">
-                <div className='flex-1 gap-2 min-w-[120px]'>
-                  <div className="text-[12px] text-gray-500">Product Selection</div>
-                  <div className="font-medium text-gray-900 text-xs">
-                    {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 ? (
-                      formData.restorationProducts.map((product: any, idx: number) => (
+                {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 && (
+                  <div className='flex-1 gap-2 min-w-[120px]'>
+                    <div className="text-[12px] text-gray-500">Product Selection</div>
+                    <div className="font-medium text-gray-900 text-xs">
+                      {formData.restorationProducts.map((product: any, idx: number) => (
                         <span key={idx}>{product.product}{idx < formData.restorationProducts.length - 1 ? ', ' : ''}</span>
-                      ))
-                    ) : '-'}
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className='flex-1 gap-2 min-w-[120px]'>
-                  <div className="text-[12px] text-gray-500">Pontic</div>
-                  <div className="font-medium text-gray-900 text-xs">{formData.pontic || '-'}</div>
-                </div>
-              </div>
-              <div className='flex flex-wrap mt-4'>
-                <div className='flex-1 gap-2 min-w-[120px]'>
-                  <div className="text-[12px] text-gray-500">Trial</div>
-                  <div className="font-medium text-gray-900 text-xs">{formData.trial || '-'} Trial</div>
-                </div>
-                <div className='flex-1 gap-2 min-w-[120px]'>
-                  <div className="text-[12px] text-gray-500">Occlusal Staining</div>
-                  <div className="font-medium text-gray-900 text-xs">{formData.occlusalStaining || '-'}</div>
-                </div>
-              </div>
-              <div className='mt-4'>
-                <div className="text-[12px] text-gray-500">Shade</div>
-                <div className="font-medium text-gray-900 text-xs">{formData.shade || '—'}</div>
+                )}
+                {pontics.length > 0 && (
+                  <div className='flex-1 gap-2 min-w-[120px]'>
+                    <div className="text-[12px] text-gray-500">Pontic</div>
+                    <div className="font-medium text-gray-900 text-xs">{pontics.join(', ')}</div>
+                  </div>
+                )}
+                {trials.length > 0 && (
+                  <div className='flex-1 gap-2 min-w-[120px]'>
+                    <div className="text-[12px] text-gray-500">Trial</div>
+                    <div className="font-medium text-gray-900 text-xs">{trials.join(', ')}</div>
+                  </div>
+                )}
+                {occlusalStainings.length > 0 && (
+                  <div className='flex-1 gap-2 min-w-[120px]'>
+                    <div className="text-[12px] text-gray-500">Occlusal Staining</div>
+                    <div className="font-medium text-gray-900 text-xs">{occlusalStainings.join(', ')}</div>
+                  </div>
+                )}
+                {shades.length > 0 && (
+                  <div className='mt-4 mr-3'>
+                    <div className="text-[12px] text-gray-500">Shade</div>
+                    <div className="font-medium text-gray-900 text-xs">{shades.join(', ')}</div>
+                  </div>
+                )}
+                {shadeGuides.length > 0 && (
+                  <div className='mt-4'>
+                    <div className="text-[12px] text-gray-500">Shade Guide</div>
+                    <div className="font-medium text-gray-900 text-xs flex flex-col">
+                      {(shadeGuides as string[]).map((guide, idx) => (
+                        <div key={idx}>{guide}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

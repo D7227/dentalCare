@@ -3,11 +3,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { db } from "./db";
-import { chats } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from 'dotenv';
+import { chats } from "./src/chat/chatSchema";
+import { messageStorage } from "./src/message/messageController";
+import { teamMemberStorage } from "./src/teamMember/teamMemberController";
+import { clinicStorage } from "./src/clinic/clinicController";
 dotenv.config();
 
 const app = express();
@@ -110,7 +113,7 @@ app.use((req, res, next) => {
         console.log('New message received:', data);
         
         // Save message to database
-        const savedMessage = await storage.createMessage({
+        const savedMessage = await messageStorage.createMessage({
           ...data.message,
           chatId: data.chatId
         });
@@ -127,8 +130,8 @@ app.use((req, res, next) => {
         const activeUsersInThisChat = activeChatUsers.get(data.chatId) || new Set();
         
         // Get all users (both team members and clinics)
-        const teamMembers = await storage.getTeamMembers();
-        const clinics = await storage.getClinics();
+        const teamMembers = await teamMemberStorage.getTeamMembers();
+        const clinics = await clinicStorage.getClinics();
         
         // Create a combined list of all users
         const allUsers = [
@@ -150,7 +153,7 @@ app.use((req, res, next) => {
           if (userId && userId !== savedMessage.sender && !activeUsersInThisChat.has(userId)) {
             const socketId = userSocketMap.get(userId);
             if (socketId) {
-              const unreadCount = await storage.getUnreadMessageCount(data.chatId, userId);
+              const unreadCount = await messageStorage.getUnreadMessageCount(data.chatId, userId);
               io.to(socketId).emit('unread-count-update', { chatId: data.chatId, unreadCount });
               console.log(`Sent unread count update to ${userId}: ${unreadCount} unread messages in chat ${data.chatId}`);
             }

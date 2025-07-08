@@ -19,7 +19,7 @@ export interface ToothGroup {
 export interface LegacyToothGroup {
   groupId: string;
   teeth: number[];
-  type: 'separate' | 'joint' | 'bridge';
+  type: 'separate' | 'joint' | 'bridge' | 'individual';
   productType: 'implant' | 'crown-bridge';
   notes: string;
   material: string;

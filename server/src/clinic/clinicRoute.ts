@@ -74,4 +74,35 @@ export function setupClinicRoutes(app: Express) {
   });
 
 
+  app.get("/api/clinics/name/:clinicName", async (req, res) => {
+    try {
+      const { clinicName } = req.params;
+      const clinics = await clinicStorage.getClinics();
+      const clinic = clinics.find(c => c.clinicName === clinicName);
+      if (!clinic) {
+        return res.status(404).json({ error: 'Clinic not found' });
+      }
+      res.json({ id: clinic.id, clinicName: clinic.clinicName });
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get clinic name by clinic id
+  app.get("/api/clinics/:id", async (req, res) => {
+    console.log("clinic name by id",req.params.id)
+    try {
+      console.log("clinic name by id",req.params.id)
+      const { id } = req.params;
+      const clinic = await clinicStorage.getClinic(id);
+      if (!clinic) {
+        return res.status(404).json({ error: 'Clinic not found' });
+      }
+      res.json({ id: clinic.id, clinicName: clinic.clinicName });
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+
 }

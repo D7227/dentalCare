@@ -16,6 +16,8 @@ import { CheckCircle, Plus, Pencil } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import BaseModal from '@/components/shared/BaseModal';
+import PonticSelector from "./components/ponticSelector";
+import React from "react";
 
 interface ProductSelectionProps {
   formData: any;
@@ -136,14 +138,15 @@ const ProductSelection = ({
 
     // Process each prescription type separately
     Object.entries(groupedByPrescriptionType).forEach(
-      ([prescriptionType, teeth]: [string, any[]]) => {
-        const configuredTeeth = teeth.filter(
+      ([prescriptionType, teeth]) => {
+        const teethArray = teeth as any[];
+        const configuredTeeth = teethArray.filter(
           (t: any) =>
             (t.selectedProducts && t.selectedProducts.length > 0) ||
             (t.productName && t.productName.length > 0),
         );
 
-        const unconfiguredTeeth = teeth.filter(
+        const unconfiguredTeeth = teethArray.filter(
           (t: any) =>
             !(t.selectedProducts && t.selectedProducts.length > 0) &&
             !(t.productName && t.productName.length > 0),
@@ -175,9 +178,13 @@ const ProductSelection = ({
   };
   const allGroups = getAllGroups();
 
-  // Only use real groups for rendering (exclude unconfigured 'individual' group)
+  // Show individual teeth if there are no non-individual groups, even if not configured
+  const hasNonIndividualGroups = allGroups.some((g: any) => g.groupType !== "individual");
   const renderableGroups = allGroups.filter(
-    (g: any) => g.groupType !== "individual" || g.isConfigured,
+    (g: any) =>
+      g.groupType !== "individual" ||
+      g.isConfigured ||
+      (!hasNonIndividualGroups && g.groupType === "individual")
   );
 
   // Use allGroups for display/configuration logic below
@@ -300,10 +307,7 @@ const ProductSelection = ({
       );
       return { ...prev, shadeGuide: allShades };
     });
-    setFormData((prev: any) => ({
-      ...prev,
-      shadeGuide: guideShades,
-    }));
+    // Removed: setFormData for shadeGuide at root
   };
 
   const startConfiguring = () => {
@@ -332,6 +336,7 @@ const ProductSelection = ({
         shadeNotes,
         additionalNotes,
         shadeGuide,
+        occlusalStaining,
         ...productDetailsWithoutExtras
       } = productDetails;
       let updatedGroups = [...allGroups];
@@ -342,21 +347,17 @@ const ProductSelection = ({
         (g: any) => g.groupType !== "individual",
       );
 
-      // Handle adding products to selected teeth
       if (isAddingProductForSelectedTeeth && selectedTeethForProducts.length > 0) {
-        // Update groups where selected teeth exist
         updatedGroups = updatedGroups.map((group: any) => {
           const updatedTeethDetails = group.teethDetails.map((arr: any) =>
             arr.map((tooth: any) => {
               const toothNumber = tooth.toothNumber || tooth.teethNumber;
-              
+              // Only update if this tooth is in selectedTeethForProducts
               if (selectedTeethForProducts.includes(toothNumber)) {
-                // Add new products to existing products
                 const existingProducts = tooth.selectedProducts || [];
                 const newProducts = selectedProducts.filter(
                   (newProd: any) => !existingProducts.some((existing: any) => existing.id === newProd.id)
                 );
-                
                 return {
                   ...tooth,
                   selectedProducts: [...existingProducts, ...newProducts],
@@ -364,6 +365,10 @@ const ProductSelection = ({
                     ...(tooth.productName || []),
                     ...newProducts.map((p: any) => p.name)
                   ],
+                  shadeGuide: shadeGuide,
+                  shadeNotes: shadeNotes,
+                  trialRequirements: trial,
+                  occlusalStaining: occlusalStaining,
                   productDetails: {
                     ...tooth.productDetails,
                     ...productDetailsWithoutExtras,
@@ -372,49 +377,55 @@ const ProductSelection = ({
                       ...(tooth.productDetails?.productName || []),
                       ...newProducts.map((p: any) => p.name)
                     ],
+                    shadeGuide: shadeGuide,
+                    shadeNotes: shadeNotes,
+                    trial: trial,
+                    occlusalStaining: occlusalStaining,
                   },
                 };
               }
+              // Otherwise, leave the tooth unchanged
               return tooth;
             })
           );
-          
           return {
             ...group,
             teethDetails: updatedTeethDetails,
           };
         });
       } else {
-        // Original logic for normal configuration
-        // Do NOT add ungrouped individual teeth to toothGroups; keep them only in selectedTeeth
-        // Only update real groups in toothGroups
-        if (editingGroupIndex !== null) {
-          const group = allGroups[editingGroupIndex];
-          // Update only the teeth that are currently being configured
-          const updatedTeethDetails = group.teethDetails.map((arr: any) =>
-            arr.map((tooth: any) => {
-              const toothNumber = tooth.toothNumber || tooth.teethNumber;
-
-              // Only update teeth that are in the current editing session
-              if (editingTeethNumbers.includes(toothNumber)) {
-                return {
-                  ...tooth,
-                  selectedProducts: [...selectedProducts],
-                  productName: selectedProducts.map((p: any) => p.name),
-                  productDetails: {
-                    ...productDetailsWithoutExtras,
-                    shade: productDetails.shade[0] || "",
-                    productName: selectedProducts.map((p: any) => p.name),
-                  },
-                };
-              }
-
-              // Keep existing configuration for teeth not being edited
-              return tooth;
-            }),
-          );
+        if (typeof editingGroupIndex === 'number') {
+          // Only update the group at editingGroupIndex if it is implant or joint/bridge
           updatedGroups = updatedGroups.map((g: any, idx: number) => {
-            if (idx === editingGroupIndex) {
+            if (idx === editingGroupIndex && (g.groupType === 'joint' || g.groupType === 'bridge' || g.groupType === 'implant')) {
+              const updatedTeethDetails = g.teethDetails.map((arr: any) =>
+                arr.map((tooth: any) => {
+                  const toothNumber = tooth.toothNumber || tooth.teethNumber;
+                  // Only update if this tooth is in editingTeethNumbers
+                  if (editingTeethNumbers.includes(toothNumber)) {
+                    return {
+                      ...tooth,
+                      selectedProducts: [...selectedProducts],
+                      productName: selectedProducts.map((p: any) => p.name),
+                      shadeGuide: shadeGuide,
+                      shadeNotes: shadeNotes,
+                      trialRequirements: trial,
+                      occlusalStaining: occlusalStaining,
+                      productDetails: {
+                        ...productDetailsWithoutExtras,
+                        shade: productDetails.shade[0] || "",
+                        productName: selectedProducts.map((p: any) => p.name),
+                        shadeGuide: shadeGuide,
+                        shadeNotes: shadeNotes,
+                        trial: trial,
+                        occlusalStaining: occlusalStaining,
+                      },
+                    };
+                  }
+                  // Otherwise, leave the tooth unchanged
+                  return tooth;
+                })
+              );
               return {
                 ...g,
                 teethDetails: updatedTeethDetails,
@@ -424,34 +435,40 @@ const ProductSelection = ({
             return g;
           });
         } else {
-          // Update all groups of the same type as the first group being edited
+          // null: update all groups of the same type (as before)
           const typeToEdit = formData.prescriptionType;
           updatedGroups = updatedGroups.map((group: any) => {
             if (
-              (group.prescriptionType || formData.prescriptionType) === typeToEdit
+              (group.prescriptionType || formData.prescriptionType) === typeToEdit &&
+              (group.groupType === 'joint' || group.groupType === 'bridge' || group.groupType === 'implant')
             ) {
-              // Update only teeth that are in the current editing session
               const updatedTeethDetails = group.teethDetails.map((arr: any) =>
                 arr.map((tooth: any) => {
                   const toothNumber = tooth.toothNumber || tooth.teethNumber;
-
-                  // Only update teeth that are in the current editing session
+                  // Only update if this tooth is in editingTeethNumbers
                   if (editingTeethNumbers.includes(toothNumber)) {
                     return {
                       ...tooth,
                       selectedProducts: [...selectedProducts],
                       productName: selectedProducts.map((p: any) => p.name),
+                      shadeGuide: shadeGuide,
+                      shadeNotes: shadeNotes,
+                      trialRequirements: trial,
+                      occlusalStaining: occlusalStaining,
                       productDetails: {
                         ...productDetailsWithoutExtras,
                         shade: productDetails.shade[0] || "",
                         productName: selectedProducts.map((p: any) => p.name),
+                        shadeGuide: shadeGuide,
+                        shadeNotes: shadeNotes,
+                        trial: trial,
+                        occlusalStaining: occlusalStaining,
                       },
                     };
                   }
-
-                  // Keep existing configuration for teeth not being edited
+                  // Otherwise, leave the tooth unchanged
                   return tooth;
-                }),
+                })
               );
               return {
                 ...group,
@@ -461,8 +478,6 @@ const ProductSelection = ({
             }
             return group;
           });
-
-          // Update individual teeth that match the prescription type and are in editing session
           updatedSelectedTeeth = updatedSelectedTeeth.map((tooth: any) => {
             if (
               tooth.prescriptionType === typeToEdit &&
@@ -472,13 +487,22 @@ const ProductSelection = ({
                 ...tooth,
                 selectedProducts: [...selectedProducts],
                 productName: selectedProducts.map((p: any) => p.name),
+                shadeGuide: shadeGuide,
+                shadeNotes: shadeNotes,
+                trialRequirements: trial,
+                occlusalStaining: occlusalStaining,
                 productDetails: {
                   ...productDetailsWithoutExtras,
                   shade: productDetails.shade[0] || "",
                   productName: selectedProducts.map((p: any) => p.name),
+                  shadeGuide: shadeGuide,
+                  shadeNotes: shadeNotes,
+                  trial: trial,
+                  occlusalStaining: occlusalStaining,
                 },
               };
             }
+            // Otherwise, leave the tooth unchanged
             return tooth;
           });
         }
@@ -489,7 +513,6 @@ const ProductSelection = ({
         {};
       const accessoriesSet = new Set<string>();
 
-      // Process regular groups
       updatedGroups.forEach((group: any) => {
         group.teethDetails?.flat().forEach((tooth: any) => {
           (tooth.selectedProducts || []).forEach((product: any) => {
@@ -505,8 +528,6 @@ const ProductSelection = ({
           });
         });
       });
-
-      // Process individual teeth (configured)
       updatedSelectedTeeth.forEach((tooth: any) => {
         (tooth.selectedProducts || []).forEach((product: any) => {
           if (productMap[product.name]) {
@@ -524,43 +545,37 @@ const ProductSelection = ({
       const restorationProducts = Object.values(productMap);
       const accessories = Array.from(accessoriesSet);
 
-      setFormData({
+      const newFormData = {
         ...formData,
         toothGroups: updatedGroups, // only real groups
         selectedTeeth: updatedSelectedTeeth, // all individual teeth
         restorationProducts,
         accessories,
-        trial: productDetails.trial,
-        shade: productDetails.shade,
-        shadeNotes: productDetails.shadeNotes,
-        additionalNotes: productDetails.additionalNotes,
-        shadeGuide: productDetails.shadeGuide,
-        productName: selectedProducts.map((p: any) => p.name),
-      });
+        // Removed: trial, shade, shadeNotes, additionalNotes, shadeGuide, productName at root
+      };
 
-      // Reset editing state
-      setIsConfiguring(false);
-      setSelectedProducts([selectedProducts[selectedProducts.length - 1]]);
-      setProductDetails({
-        shade: [],
-        occlusalStaining: "medium",
-        ponticDesign: "",
-        notes: "",
-        trial: "",
-        shadeNotes: "",
-        additionalNotes: "",
-        shadeGuide: [],
-        productName: [],
-      });
-      setEditingGroupIndex(null); // Reset editing state
-      setSelectedTeethForProducts([]); // Reset tooth selection
-      setIsAddingProductForSelectedTeeth(false); // Reset product addition mode
+      setFormData(newFormData);
 
-      // After updating allGroups in saveConfiguration, add a debug log
-      console.log("After save, allGroups:", updatedGroups);
+      setTimeout(() => {
+        setIsConfiguring(false);
+        setSelectedProducts([selectedProducts[selectedProducts.length - 1]]);
+        setProductDetails({
+          shade: [],
+          occlusalStaining: "medium",
+          ponticDesign: "",
+          notes: "",
+          trial: "",
+          shadeNotes: "",
+          additionalNotes: "",
+          shadeGuide: [],
+          productName: [],
+        });
+        setEditingGroupIndex(null);
+        setSelectedTeethForProducts([]);
+        setIsAddingProductForSelectedTeeth(false);
+      }, 0);
     } catch (error) {
       console.error("Error saving configuration:", error);
-      // Don't crash the app, just log the error
     }
   };
 
@@ -625,7 +640,6 @@ const ProductSelection = ({
   // Handler for saving products from modal
   const handleSaveProductsToTeeth = () => {
 
-  console.log("modalSelectedProducts",modalSelectedProducts)
     // Update selected products for selectedTeethForProducts in the group
     let updatedGroups = [...allGroups];
     updatedGroups = updatedGroups.map((group: any) => {
@@ -645,12 +659,20 @@ const ProductSelection = ({
                 ...(tooth.productName || []),
                 ...newProducts.map((p: any) => p.name)
               ],
+              shadeGuide: productDetails.shadeGuide,
+              shadeNotes: productDetails.shadeNotes,
+              trialRequirements: productDetails.trial,
+              occlusalStaining: productDetails.occlusalStaining,
               productDetails: {
                 ...tooth.productDetails,
                 productName: [
                   ...(tooth.productDetails?.productName || []),
                   ...newProducts.map((p: any) => p.name)
                 ],
+                shadeGuide: productDetails.shadeGuide,
+                shadeNotes: productDetails.shadeNotes,
+                trial: productDetails.trial,
+                occlusalStaining: productDetails.occlusalStaining,
               },
             };
           }
@@ -662,13 +684,41 @@ const ProductSelection = ({
         teethDetails: updatedTeethDetails,
       };
     });
-    console.log("updatedGroups",updatedGroups)
+    console.log("updatedGroups", updatedGroups)
     setFormData({
       ...formData,
       toothGroups: updatedGroups,
     });
     setIsProductModalOpen(false);
     setSelectedTeethForProducts([]);
+  };
+
+  // Helper to aggregate product quantities across all teeth in all groups
+  const getProductQuantities = () => {
+    const productMap: Record<string, number> = {};
+    allGroups.forEach((group: any) => {
+      group.teethDetails?.flat().forEach((tooth: any) => {
+        let counted = false;
+        // Prefer selectedProducts if present and non-empty
+        if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
+          tooth.selectedProducts.forEach((prod: any) => {
+            if (prod && prod.name) {
+              productMap[prod.name] = (productMap[prod.name] || 0) + 1;
+              counted = true;
+            }
+          });
+        }
+        // Otherwise, use productName
+        if (!counted && tooth.productName && Array.isArray(tooth.productName)) {
+          tooth.productName.forEach((name: string) => {
+            if (name) {
+              productMap[name] = (productMap[name] || 0) + 1;
+            }
+          });
+        }
+      });
+    });
+    return Object.entries(productMap).map(([name, quantity]) => ({ name, quantity }));
   };
 
   return (
@@ -742,65 +792,50 @@ const ProductSelection = ({
                         type="button"
                         className="p-1 text-gray-400 hover:text-blue-600"
                         onClick={() => {
-                          setEditingGroupIndex(null); // null means edit all
-                          setIsConfiguring(!isConfiguring);
-
-                          // Calculate actual product quantities based on tooth count for each unique product
-                          const productQuantityMap: Record<
-                            string,
-                            { product: any; count: number }
-                          > = {};
-
-                          groups.forEach((g) => {
-                            g.teethDetails?.flat().forEach((tooth: any) => {
-                              if (
-                                tooth.selectedProducts &&
-                                tooth.selectedProducts.length > 0
-                              ) {
-                                tooth.selectedProducts.forEach(
-                                  (product: any) => {
-                                    if (productQuantityMap[product.id]) {
-                                      productQuantityMap[product.id].count += 1;
-                                    } else {
-                                      productQuantityMap[product.id] = {
-                                        product: { ...product },
-                                        count: 1,
-                                      };
-                                    }
-                                  },
-                                );
+                          if (isConfiguring && editingGroupIndex === idx) {
+                            setIsConfiguring(false);
+                            setEditingGroupIndex(null);
+                            return;
+                          }
+                          setIsConfiguring(false);
+                          setTimeout(() => {
+                            setEditingGroupIndex(idx);
+                            setIsConfiguring(true);
+                            // Calculate actual product quantities based on tooth count for each unique product
+                            const productQuantityMap: Record<string, { product: any; count: number }> = {};
+                            groups[idx].teethDetails?.flat().forEach((tooth: any) => {
+                              if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+                                tooth.selectedProducts.forEach((product: any) => {
+                                  if (productQuantityMap[product.id]) {
+                                    productQuantityMap[product.id].count += 1;
+                                  } else {
+                                    productQuantityMap[product.id] = {
+                                      product: { ...product },
+                                      count: 1,
+                                    };
+                                  }
+                                });
                               }
                             });
-                          });
-
-                          // Convert to selected products with correct quantities
-                          const productsWithCorrectQuantities = Object.values(
-                            productQuantityMap,
-                          ).map((item) => ({
-                            ...item.product,
-                            quantity: item.count,
-                          }));
-
-                          setSelectedProducts(productsWithCorrectQuantities);
-                          setProductDetails({
-                            shade: formData.shade || [],
-                            occlusalStaining:
-                              groups[0]?.teethDetails?.flat()[0]?.productDetails
-                                ?.occlusalStaining || "medium",
-                            ponticDesign:
-                              groups[0]?.teethDetails?.flat()[0]?.productDetails
-                                ?.ponticDesign || "",
-                            notes:
-                              groups[0]?.teethDetails?.flat()[0]?.productDetails
-                                ?.notes || "",
-                            trial: formData.trial || "",
-                            shadeNotes: formData.shadeNotes || "",
-                            additionalNotes: formData.additionalNotes || "",
-                            shadeGuide: formData.shadeGuide || [],
-                            productName: productsWithCorrectQuantities.map(
-                              (p: any) => p.name,
-                            ),
-                          });
+                            const productsWithCorrectQuantities = Object.values(productQuantityMap).map((item) => ({
+                              ...item.product,
+                              quantity: item.count,
+                            }));
+                            // Use first tooth's product details for editing
+                            const firstTooth = groups[idx]?.teethDetails?.flat()[0];
+                            setSelectedProducts(productsWithCorrectQuantities);
+                            setProductDetails({
+                              shade: firstTooth?.productDetails?.shade ? [firstTooth.productDetails.shade] : [],
+                              occlusalStaining: firstTooth?.productDetails?.occlusalStaining || "medium",
+                              ponticDesign: firstTooth?.productDetails?.ponticDesign || "",
+                              notes: firstTooth?.productDetails?.notes || "",
+                              trial: firstTooth?.productDetails?.trial || "",
+                              shadeNotes: firstTooth?.productDetails?.shadeNotes || "",
+                              additionalNotes: firstTooth?.productDetails?.additionalNotes || "",
+                              shadeGuide: (firstTooth?.productDetails?.shadeGuide ?? firstTooth?.shadeGuide) || [],
+                              productName: firstTooth?.productDetails?.productName || [],
+                            });
+                          }, 0);
                         }}
                       >
                         <Pencil className="w-4 h-4" />
@@ -882,25 +917,29 @@ const ProductSelection = ({
                       {/* Product checkboxes for each tooth: label always visible, checkbox only if toggled */}
                       <div className="text-gray-600 space-y-1 mt-2">
                         {(() => {
-                          const toothProductList: { tooth: number; product: string }[] = [];
+                          const toothProductList: { tooth: number; products: string[]; shadeGuide?: string[]; shadeNotes?: string; trialRequirements?: string; occlusalStaining?: string; }[] = [];
                           groups.forEach((group: any) => {
                             group.teethDetails?.flat().forEach((tooth: any) => {
-                              let toothProductName = "";
+                              let productNames: string[] = [];
                               if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
-                                toothProductName = tooth.selectedProducts[0].name;
+                                productNames = tooth.selectedProducts.map((p: any) => p.name);
                               } else if (tooth.productName && tooth.productName.length > 0) {
-                                toothProductName = tooth.productName[0];
+                                productNames = [...tooth.productName];
                               } else if (
                                 tooth.productDetails &&
                                 tooth.productDetails.productName &&
                                 tooth.productDetails.productName.length > 0
                               ) {
-                                toothProductName = tooth.productDetails.productName[0];
+                                productNames = [...tooth.productDetails.productName];
                               }
-                              if (toothProductName) {
+                              if (productNames.length > 0) {
                                 toothProductList.push({
                                   tooth: tooth.teethNumber || tooth.toothNumber,
-                                  product: toothProductName,
+                                  products: productNames,
+                                  shadeGuide: tooth.shadeGuide,
+                                  shadeNotes: tooth.shadeNotes,
+                                  trialRequirements: tooth.trialRequirements,
+                                  occlusalStaining: tooth.occlusalStaining,
                                 });
                               }
                             });
@@ -922,12 +961,12 @@ const ProductSelection = ({
                                   }}
                                 />
                               )}
-                              <span>Tooth {item.tooth}: {item.product}</span>
+                              <span>Tooth {item.tooth}: {item.products.join(", ")}</span>
                             </div>
                           ));
                         })()}
                       </div>
-                       {selectedTeethForProducts.length > 0 && (
+                      {selectedTeethForProducts.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-gray-200">
                           <button
                             type="button"
@@ -1032,6 +1071,78 @@ const ProductSelection = ({
                     }
                     return null;
                   })()}
+
+                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                    <div>
+                      {(() => {
+                        // Use the first tooth in the group to show the main product detail card
+                        const firstTooth = groups[0]?.teethDetails?.flat()[0];
+                        if (!firstTooth) return null;
+                        // Only show label if value exists
+                        if (firstTooth.shadeGuide && firstTooth.shadeGuide.length > 0) {
+                          return (
+                            <>
+                              <p className="font-medium text-gray-900 mb-1">Shade Guide:</p>
+                              <div className="text-gray-600 capitalize flex flex-col">
+                                {firstTooth.shadeGuide.map((shade: string, idx: number) => (
+                                  <div key={idx}>{shade}</div>
+                                ))}
+                              </div>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    <div>
+                      {(() => {
+                        // Use the first tooth in the group to show the main product detail card
+                        const firstTooth = groups[0]?.teethDetails?.flat()[0];
+                        if (!firstTooth) return null;
+                        if (firstTooth.trialRequirements) {
+                          return (
+                            <>
+                              <p className="font-medium text-gray-900 mb-1">Trial Requirements:</p>
+                              <p className="text-gray-600 capitalize">{firstTooth.trialRequirements} Trial</p>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    {(() => {
+                      // Use the first tooth in the group to show the main product detail card
+                      const firstTooth = groups[0]?.teethDetails?.flat()[0];
+                      if (!firstTooth) return null;
+                      if (firstTooth.shadeNotes) {
+                        return (
+                          <>
+                            <p className="font-medium text-gray-900 mb-1">Shade Notes:</p>
+                            <p className="text-gray-600 capitalize">{firstTooth.shadeNotes}</p>
+                          </>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  {/* Product Quantities Summary */}
+                  {getProductQuantities().length > 0 && (
+                    <div className="mt-4">
+                      <h6 className="text-sm font-semibold mb-2">Product Quantities</h6>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="font-medium">Product</div>
+                        <div className="font-medium">Quantity</div>
+                        {getProductQuantities().map((item) => (
+                          <React.Fragment key={item.name}>
+                            <div>{item.name}</div>
+                            <div>X {item.quantity}</div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -1042,7 +1153,8 @@ const ProductSelection = ({
               <CardHeader className="pb-3 p-0">
                 <CardTitle className="text-lg">Product Selection</CardTitle>
                 <CardDescription>
-                  Groups waiting to be configured
+                  Groups waiting to be
+                  configured
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 mt-2">
@@ -1144,6 +1256,14 @@ const ProductSelection = ({
                           { value: "heavy", label: "Heavy" },
                         ]}
                       />
+
+                      <div className="border-t pt-4">
+                        <h6 className="text-sm font-medium text-gray-900 mb-3">
+                          Select Pontic
+                        </h6>
+                       <PonticSelector/>
+                      </div>
+
 
                       {/* Shade Guide Section */}
                       <div className="border-t pt-4">
@@ -1262,24 +1382,39 @@ const ProductSelection = ({
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}
         title="Add Product to Selected Teeth"
+        // height="h-[50vh]"
+        overflow='visible'
       >
-        <ProductSearch
-          selectedProducts={modalSelectedProducts}
-          onProductsChange={setModalSelectedProducts}
-          selectedTeeth={selectedTeethForProducts}
-          restorationType="separate"
-        />
-        <div className="flex justify-end mt-4 gap-2">
-          <Button variant="outline" onClick={() => setIsProductModalOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveProductsToTeeth}
-            disabled={modalSelectedProducts.length === 0}
-            className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
-          >
-            Add Product
-          </Button>
+        <div className="flex flex-col h-full justify-between">
+          <ProductSearch
+            selectedProducts={modalSelectedProducts}
+            onProductsChange={setModalSelectedProducts}
+            selectedTeeth={selectedTeethForProducts}
+            restorationType="separate"
+          />
+          {/* Selected Products Summary */}
+          {modalSelectedProducts.length > 0 && (
+            <div className="mt-4 mb-2 px-2 py-2 bg-gray-50 rounded border border-gray-200">
+              <div className="font-medium text-gray-700 mb-1 text-sm">Selected Products:</div>
+              <ul className="list-disc pl-5 text-gray-800 text-sm">
+                {modalSelectedProducts.map((prod, idx) => (
+                  <li key={prod.id || idx}>{prod.name}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex justify-end mt-4 gap-2">
+            <Button variant="outline" onClick={() => setIsProductModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveProductsToTeeth}
+              disabled={modalSelectedProducts.length === 0}
+              className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
+            >
+              Add Product
+            </Button>
+          </div>
         </div>
       </BaseModal>
     </div>

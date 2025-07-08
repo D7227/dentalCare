@@ -7,9 +7,10 @@ import { X, CheckCircle } from 'lucide-react';
 interface ShadeGuideSectionProps {
   selectedGroups: ToothGroup[];
   onShadeGuideChange?: (shades: string[]) => void;
+  selectedShades?: string[];
 }
 
-const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange }: ShadeGuideSectionProps) => {
+const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedShades }: ShadeGuideSectionProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<'anterior' | 'posterior' | null>(null);
   // Store shades for both types
@@ -17,6 +18,19 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange }: ShadeGuideSec
     anterior: ({ part: number; value: string; label: string; family: string }[]) | null;
     posterior: ({ part: number; value: string; label: string; family: string }[]) | null;
   }>({ anterior: null, posterior: null });
+
+  // Sync selectedShades prop to local state
+  React.useEffect(() => {
+    if (selectedShades && selectedShades.length > 0) {
+      // For simplicity, assign all to anterior if present, otherwise posterior
+      setShadesByType(prev => ({
+        ...prev,
+        anterior: selectedShades.length ? selectedShades.map((label, idx) => ({ part: idx + 1, value: label, label, family: '' })) : null,
+      }));
+    } else {
+      setShadesByType({ anterior: null, posterior: null });
+    }
+  }, [selectedShades]);
 
   const handleSVGClick = (type: 'anterior' | 'posterior') => {
     setSelectedType(type);

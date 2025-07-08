@@ -28,6 +28,7 @@ import { useQuery } from "@tanstack/react-query";
 import DropdownSelector from "../common/DropdownSelector";
 import TabNavButtons from "../common/TabNavButtons";
 import { DentalOrder, OrderCard } from "./OrderCard.tsx";
+import { useAppSelector } from '@/store/hooks';
 // import CustomStatusLabel from '../common/CustomStatusLabel';
 
 interface OrdersContentProps {
@@ -36,6 +37,7 @@ interface OrdersContentProps {
 }
 
 const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
+  const { user } = useAppSelector(state => state.auth);
   const [location, setLocation] = useLocation();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,7 +52,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
     isLoading,
     error,
   } = useQuery<any[]>({
-    queryKey: ["/api/orders"],
+    queryKey: [`/api/orders/${user?.clinicId}`],
     refetchInterval: 30000,
   });
 

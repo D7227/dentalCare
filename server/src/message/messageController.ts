@@ -1,10 +1,10 @@
-import { companies } from "@shared/schema";
 import { chatStorage } from "../chat/chatController";
 import { InsertMessage, Message, messages } from "./messageSchema";
 import { orderStorage } from "../order/orderController";
 import { eq, and, or, sql, gte, lte, inArray, asc } from "drizzle-orm";
 import { db } from "../../database/db";
 import { chats } from "../chat/chatSchema";
+import { companies } from "../company/companyschema";
 
 export interface MessageStore {
 createMessage(message: InsertMessage): Promise<Message>;

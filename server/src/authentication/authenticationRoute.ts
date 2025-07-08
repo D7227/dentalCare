@@ -41,6 +41,7 @@ export function setupAuthenticationRoutes(app: Express) {
           res.status(500).json({ message: "Internal server error" });
         }
       });
+      
 
       app.post("/api/clinic/register", async (req, res) => {
         try {
@@ -49,6 +50,16 @@ export function setupAuthenticationRoutes(app: Express) {
           const existingClinic = await clinicStorage.getClinicByEmail(clinicData.email);
           if (existingClinic) {
             return res.status(400).json({ error: "Clinic with this email already exists" });
+          }
+          // Check if mobile number already exists in clinic table
+          const existingClinicByMobile = await clinicStorage.getClinicByMobileNumber(clinicData.phone);
+          if (existingClinicByMobile) {
+            return res.status(400).json({ error: "Mobile number is already in use by a clinic" });
+          }
+          // Check if mobile number already exists in team-member table
+          const existingTeamMemberByMobile = await teamMemberStorage.getTeamMemberByMobileNumber(clinicData.phone);
+          if (existingTeamMemberByMobile) {
+            return res.status(400).json({ error: "Mobile number is already in use by a team member" });
           }
           // Set default permissions for new clinics
           const defaultPermissions = [
@@ -213,5 +224,139 @@ export function setupAuthenticationRoutes(app: Express) {
           }
           res.status(200).json({ message: "Logout successful" });
         });
+      });
+
+      app.get('/api/userData/:id', async (req, res) => {
+        try {
+          const { id } = req.params;
+          console.log('getUserData API called with ID:', id);
+          
+          // First try to find clinic (main_doctor)
+          let clinic = await clinicStorage.getClinic(id);
+          console.log('Clinic lookup result:', clinic ? 'Found' : 'Not found');
+          
+          if (clinic) {
+            console.log('Processing clinic data for:', clinic.firstname, clinic.lastname);
+            // Get role name
+            let roleName = '';
+            if (clinic.roleId) {
+              try {
+                const role = await RolesStorage.getRoleById(clinic.roleId);
+                roleName = role?.name || '';
+                console.log('Role name for clinic:', roleName);
+              } catch (error) {
+                console.log('Failed to fetch role name:', error);
+              }
+            }
+    
+            // Parse clinic address and billing info
+            let clinicAddress: any = {};
+            let billingInfo: any = {};
+            
+            try {
+              if (clinic.clinicAddress) {
+                clinicAddress = JSON.parse(clinic.clinicAddress);
+              }
+            } catch (e) {
+              clinicAddress = { address: clinic.clinicAddress || '' };
+            }
+            
+            try {
+              if (clinic.billingInfo) {
+                billingInfo = JSON.parse(clinic.billingInfo);
+              }
+            } catch (e) {
+              billingInfo = {};
+            }
+    
+            console.log('Clinic', clinic);
+    
+            const userData = {
+              id: clinic.id,
+              firstName: clinic.firstname,
+              lastName: clinic.lastname,
+              email: clinic.email,
+              phone: clinic.phone,
+              clinicName: clinic.clinicName,
+              licenseNumber: clinic.clinicLicenseNumber,
+              clinicAddressLine1: clinic.clinicAddressLine1 || '',
+              clinicAddressLine2: clinic.clinicAddressLine2 || '',
+              clinicCity: clinic.clinicCity || '',
+              clinicState: clinic.clinicState || '',
+              clinicPincode: clinic.clinicPincode || '',
+              clinicCountry: clinic.clinicCountry || '',
+              billingAddressLine1: clinic.billingAddressLine1 || '',
+              billingAddressLine2: clinic.billingAddressLine2 || '',
+              billingCity: clinic.billingCity || '',
+              billingState: clinic.billingState || '',
+              billingPincode: clinic.billingPincode || '',
+              billingCountry: clinic.billingCountry || '',
+              gstNumber: clinic.gstNumber || '',
+              panNumber: clinic.panNumber || '',
+              roleName: roleName,
+              userType: 'clinic',
+              permissions: clinic.permissions || []
+            };
+            
+            console.log('Returning clinic user data');
+            return res.json(userData);
+          }
+    
+          // If not found in clinic table, try team member table
+          let teamMember = await teamMemberStorage.getTeamMember(id);
+          console.log('Team member lookup result:', teamMember ? 'Found' : 'Not found');
+          
+          if (teamMember) {
+            console.log('Processing team member data for:', teamMember.fullName);
+            // Get role name
+            let roleName = '';
+            if (teamMember.roleId) {
+              try {
+                const role = await RolesStorage.getRoleById(teamMember.roleId);
+                roleName = role?.name || '';
+                console.log('Role name for team member:', roleName);
+              } catch (error) {
+                console.log('Failed to fetch role name:', error);
+              }
+            }
+    
+            const userData = {
+              id: teamMember.id,
+              firstName: teamMember.fullName.split(' ')[0] || '',
+              lastName: teamMember.fullName.split(' ').slice(1).join(' ') || '',
+              email: teamMember.email,
+              phone: teamMember.contactNumber,
+              clinicName: teamMember.clinicName,
+              licenseNumber: '',
+              clinicAddressLine1: '',
+              clinicAddressLine2: '',
+              clinicCity: '',
+              clinicState: '',
+              clinicPincode: '',
+              clinicCountry: 'India',
+              billingAddressLine1: '',
+              billingAddressLine2: '',
+              billingCity: '',
+              billingState: '',
+              billingPincode: '',
+              billingCountry: 'India',
+              gstNumber: '',
+              panNumber: '',
+              roleName: roleName,
+              userType: 'teamMember',
+              permissions: teamMember.permissions || []
+            };
+            
+            console.log('Returning team member user data');
+            return res.json(userData);
+          }
+    
+          // If not found in either table
+          console.log('User not found in either clinic or team member tables');
+          return res.status(404).json({ error: 'User not found' });
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          res.status(500).json({ error: 'Failed to fetch user data' });
+        }
       });
 }

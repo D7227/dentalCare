@@ -28,24 +28,25 @@ interface SelectedTooth {
 }
 
 // Helper functions to convert between new and legacy formats
-const convertToLegacyGroups = (groups: ToothGroup[]): LegacyToothGroup[] => {
-  return groups.map((group, index) => {
-    const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber || tooth.toothNumber);
-    const pontics = group.teethDetails.flat()
-      .filter(tooth => tooth.type === 'pontic')
-      .map(tooth => tooth.teethNumber);
-    
-    return {
-      groupId: `group-${Date.now()}-${index}`,
-      teeth: allTeeth,
-      type: group.groupType,
-      productType: 'implant',
-      notes: '',
-      material: group.teethDetails.flat()[0]?.productName || '',
-      shade: group.teethDetails.flat()[0]?.shadeDetails || '',
-      pontics: pontics.length > 0 ? pontics : undefined,
-    };
-  });
+export const convertToLegacyGroups = (groups: ToothGroup[]): LegacyToothGroup[] => {
+  return groups
+    .filter(group => group.groupType === 'joint' || group.groupType === 'bridge' || group.groupType === 'separate')
+    .map((group, index) => {
+      const allTeeth = group.teethDetails.flat().map(tooth => tooth.teethNumber);
+      const pontics = group.teethDetails.flat()
+        .filter(tooth => tooth.type === 'pontic')
+        .map(tooth => tooth.teethNumber);
+      return {
+        groupId: `group-${Date.now()}-${index}`,
+        teeth: allTeeth,
+        type: group.groupType as 'joint' | 'bridge' | 'separate',
+        productType: 'implant',
+        notes: '',
+        material: (group.teethDetails.flat()[0]?.productName || []).join(', '),
+        shade: group.teethDetails.flat()[0]?.shadeDetails || '',
+        pontics: pontics.length > 0 ? pontics : undefined,
+      };
+    });
 };
 
 const convertToNewGroups = (legacyGroups: LegacyToothGroup[]): ToothGroup[] => {

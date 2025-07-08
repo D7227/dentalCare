@@ -48,15 +48,39 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
 
+  const { user } = useAppSelector(state => state.auth);
+  const clinicId = user?.clinicId;
   const {
     data: dbOrders = [],
     isLoading,
     error,
   } = useQuery<any[]>({
-    queryKey: ["/api/orders"],
+    queryKey: ["/api/orders/filter", clinicId],
+    queryFn: async () => {
+      if (!clinicId) return [];
+      const response = await fetch(`/api/orders/filter/${clinicId}`);
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      return await response.json();
+    },
     refetchInterval: 30000,
   });
 
+
+//   const clinicId = user?.clinicId;
+// const filters = {
+//   patientName: "Jane",
+//   prescription: "Bridge",
+//   reference_id: "REF123",
+//   order_id: "ORD456"
+// };
+
+// const params = new URLSearchParams();
+// Object.entries(filters).forEach(([key, value]) => {
+//   if (value) params.append(key, value);
+// });
+
+// const response = await fetch(`/api/orders/filter/${clinicId}?${params.toString()}`);
+// const data = await response.json();
   // Orders page shows all orders - no filtering needed
 
   const { data: patients = [] } = useQuery<any[]>({
@@ -79,7 +103,6 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     refetchInterval: 30000,
   });
 
-  const user = useAppSelector(state => state.auth.user);
   const { data: chats = [] } = useQuery({
     queryKey: ['/api/chats', user?.fullName],
     queryFn: async () => {

@@ -25,6 +25,16 @@ export const useOrderValidation = () => {
           if (toothGroups.length === 0 && selectedTeeth.length === 0) {
             errors.push('Please select at least one tooth group');
           }
+            // Additional validation: single pontic in bridge group
+            const singlePonticBridge = formData?.selectedTeeth.find((group: any) => {
+              if (group.type === 'pontic') {
+                return true;
+              }
+              return false;
+            });
+            if (singlePonticBridge) {
+              errors.push('Single pontic is not allowed make a bridge group.');
+            }
           break;
         case 4:
           // Step 4: Product Selection - validate that products are configured

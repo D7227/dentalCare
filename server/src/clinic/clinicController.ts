@@ -1,5 +1,5 @@
 import { db } from "server/database/db";
-import { clinic } from "@shared/schema";
+import { clinic } from "./clinicSchema";
 import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface ClinicStore {

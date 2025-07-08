@@ -1,6 +1,6 @@
 import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 import { db } from "../../database/db";
-import { role } from "@shared/schema";
+import { role } from "./roleSchema";
 
 export interface RoleStore {
   // Role methods

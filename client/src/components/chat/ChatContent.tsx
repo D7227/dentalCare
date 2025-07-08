@@ -102,9 +102,9 @@ const ChatContent = () => {
 
   // Fetch orders for creating order-specific chats
   const { data: orders = [] } = useQuery({
-    queryKey: ['/api/orders'],
+    queryKey: [`/api/orders/${user?.clinicId}`],
     queryFn: async () => {
-      const response = await fetch('/api/orders');
+      const response = await fetch(`/api/orders/${user?.clinicId}`);
       if (!response.ok) throw new Error('Failed to fetch orders');
       return response.json();
     }

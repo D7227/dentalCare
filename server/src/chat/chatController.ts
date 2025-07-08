@@ -1,4 +1,4 @@
-import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../../database/db";
 import { Chat, chats, InsertChat } from "./chatSchema";
 import { messages } from "../message/messageSchema";

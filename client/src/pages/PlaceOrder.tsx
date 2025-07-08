@@ -81,6 +81,7 @@ const PlaceOrder = () => {
     selectedFileType: '',
     caseHandledBy: '',
     consultingDoctor: '',
+    doctorMobile: '', // <-- Added missing required property
     firstName: '',
     lastName: '',
     age: '',
@@ -198,7 +199,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -232,7 +233,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -292,7 +293,7 @@ const PlaceOrder = () => {
       }
 
       // Invalidate the orders cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
 
       toast({
         title: "Order submitted successfully!",

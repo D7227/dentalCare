@@ -1,6 +1,6 @@
 import { eq, asc, desc } from "drizzle-orm";
 import { db } from "../../database/db";
-import { teamMembers, InsertTeamMember, TeamMember } from "@shared/schema";
+import { teamMembers, InsertTeamMember, TeamMember } from "./teamMemberschema";
 
 export interface TeamMemberStorage {
 getTeamMember(id: string): Promise<TeamMember | undefined>;

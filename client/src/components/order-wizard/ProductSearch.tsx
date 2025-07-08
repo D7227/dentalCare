@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Minus, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Product {
@@ -32,6 +32,21 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Click-away logic
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   // Fetch products from API
   useEffect(() => {
@@ -128,7 +143,7 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={containerRef}>
       <div className="relative">
         <Label className="text-sm font-medium mb-2 block">Product list *</Label>
         <div className="relative">
@@ -136,7 +151,7 @@ const ProductSearch = ({ selectedProducts = [], onProductsChange, selectedTeeth 
             placeholder={loading ? "Loading products..." : "Search and add products"}
             value={searchTerm}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => setIsDropdownOpen(searchTerm.length > 0 || true)}
+            onFocus={() => setIsDropdownOpen(true)}
             className="pl-8"
             disabled={loading}
           />

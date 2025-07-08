@@ -4,11 +4,12 @@ import { db } from "server/database/db";
 import { toothGroups } from "../../../shared/schema";
 import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 import { orderSchema } from "./orderSchema";
+import { Chat, chats } from "../chat/chatSchema";
 
 export interface orderStore {
 getOrder(id: string): Promise<any | undefined>;
 createOrder(order: any): Promise<any>;
-getOrders(): Promise<any[]>;
+getOrders(clinicId?: string): Promise<any[]>;
 getOrdersWithFilters(filters: {
   search?: string;
   paymentStatus?: string;
@@ -36,8 +37,13 @@ initializeData(): Promise<void>;
 
 export class OrderStorage implements orderStore {
     async getOrder(id: string): Promise<any | undefined> {
-        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
-        return order;
+      if (id !== undefined) {
+        // Return only orders for the specified clinicId
+        return await db.select().from(orderSchema).where(eq(orderSchema.clinicId, id));
+      } else {
+        // Return all orders
+        return await db.select().from(orderSchema);
+      }
       }
     
       async createOrder(insertOrder: any): Promise<any> {
@@ -67,8 +73,14 @@ export class OrderStorage implements orderStore {
         return order;
       }
     
-      async getOrders(): Promise<any[]> {
-        return await db.select().from(orderSchema);
+      async getOrders(clinicId?: string): Promise<any[]> {
+        if (clinicId !== undefined) {
+          // Return only orders for the specified clinicId
+          return await db.select().from(orderSchema).where(eq(orderSchema.clinicId, clinicId));
+        } else {
+          // Return all orders
+          return await db.select().from(orderSchema);
+        }
       }
     
       async getOrdersWithFilters(filters: {
@@ -187,10 +199,10 @@ export class OrderStorage implements orderStore {
         return await db.select().from(toothGroups).where(eq(toothGroups.orderId, orderId));
       }
 
-    //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
-    //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
-    //     return chat;
-    //   }
+      async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
+        const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
+        return chat;
+      }
     
       async updateOrderStatus(id: string, status: string): Promise<any | undefined> {
         const [order] = await db
