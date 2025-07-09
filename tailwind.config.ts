@@ -101,6 +101,9 @@ export default {
           20: '#0B804333',
           100: '#07AD94',
         },
+        custonLightGray:{
+          100:'#F5F9F8',
+        },
         customGray: {
           100: '#5B6664',
           200:'#CCDAD8',

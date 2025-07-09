@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import logoImage from '@/assets/logo.png';
+import Small_Logo from '@/assets/Small_Logo.png';
 import { useClinicMembers } from '@/hooks/useClinicMembers';
 import LoadingSpinner from './shared/LoadingSpinner';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
@@ -99,19 +100,19 @@ const Sidebar = ({
   const handleLogout = () => {
     // Clear all Redux data
     dispatch(logout());
-    
+
     // Clear Redux persist data
     clearReduxPersist();
-    
+
     // Clear all React Query cache
     queryClient.clear();
-    
+
     // Show success toast
     toast({
       title: "Logged out successfully",
       description: "You have been logged out and redirected to login.",
     });
-    
+
     // Redirect to login page
     setLocation('/login');
   };
@@ -173,13 +174,21 @@ const Sidebar = ({
           isCollapsed ? "justify-center" : ""
         )}>
           <div className={cn("flex items-center justify-center w-full", isCollapsed && "mx-auto")}>
-            <img
-              src={logoImage}
-              alt="ADVANCE Dental Export"
-              className={cn(
-                isCollapsed ? "h-[40px] w-[40px] mx-auto" : "h-[60px] w-[155px] ml-[40px] mr-[40px]"
-              )}
-            />
+            {isCollapsed ?
+              <img
+                src={Small_Logo}
+                alt="ADVANCE Dental Export"
+                className="h-[40px] w-[40px]"
+              />
+              :
+              <img
+                src={logoImage}
+                alt="ADVANCE Dental Export"
+                className={cn(
+                  isCollapsed ? "h-[40px] w-[40px] mx-auto" : "h-[60px] w-[155px] ml-[40px] mr-[40px]"
+                )}
+              />
+            }
           </div>
         </div>
       </div>

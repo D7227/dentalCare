@@ -3,9 +3,9 @@ import { insertPatientSchema } from "./patientSchema";
 import type { Express } from "express";
 import { patientStorage } from "./patientController";
 
-export default async function setupPatientRoute (app: Express) {
-// Patients API
-app.get("/api/patients", async (req, res) => {
+export const setupPatientRoute = async (app: Express) => {
+  // Patients API
+  app.get("/api/patients", async (req, res) => {
     try {
       const patients = await patientStorage.getPatients();
       res.json(patients);
@@ -23,4 +23,4 @@ app.get("/api/patients", async (req, res) => {
       res.status(400).json({ error: "Invalid patient data" });
     }
   });
-}
+};

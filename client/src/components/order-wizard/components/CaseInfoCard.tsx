@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Phone } from 'lucide-react';
 
 interface CaseInfoCardProps {
   formData: any;
@@ -33,8 +34,8 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   }];
 
   return (
-      <Card className='bg-[#EFF9F7]'>
-      <CardHeader>
+      <Card className='bg-custonLightGray-100'>
+      <CardHeader className="py-3">
         <CardTitle className="text-xl font-semibold">Clinic Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -67,21 +68,24 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
         </div>
         <div>
           <Label htmlFor="doctorMobile">Doctor Mobile Number</Label>
-          <Input 
-            id="doctorMobile" 
-            style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
-              borderRadius: '0.5rem'
-            }}
-
-            value={formData.doctorMobile} 
-            onChange={e => setFormData({
-              ...formData,
-              doctorMobile: e.target.value
-            })} 
-            className="mt-1" 
-          />
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input 
+              id="doctorMobile" 
+              style={{
+                // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+                // border: '1px solid #CCDAD8',
+                borderRadius: '0.5rem'
+              }}
+              value={formData.doctorMobile} 
+              onChange={e => setFormData({
+                ...formData,
+                doctorMobile: e.target.value
+              })} 
+              className="mt-1 pl-10" 
+              placeholder="Enter mobile number"
+            />
+          </div>
         </div>
         <div>
           <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
@@ -99,7 +103,29 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
               consultingDoctor: e.target.value
             })} 
             className="mt-1" 
+             placeholder="Enter Consulting Doctor Name"
           />
+        </div>
+        <div>
+          <Label htmlFor="consultingDoctorMobile">Consulting Doctor Mobile Number</Label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input 
+              id="consultingDoctorMobile" 
+              style={{
+                // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+                // border: '1px solid #CCDAD8',
+                borderRadius: '0.5rem'
+              }}
+              value={formData.consultingDoctorMobile} 
+              onChange={e => setFormData({
+                ...formData,
+                consultingDoctorMobile: e.target.value
+              })} 
+              className="mt-1 pl-10" 
+              placeholder="Enter mobile number"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -64,6 +64,7 @@ var orderSchema = pgTable("orders", {
   trial: text("trial"),
   shade: jsonb("shade").$type().default([]),
   consultingDoctor: text("consulting_doctor"),
+  consultingDoctorMobile: text("consulting_doctor_mobile"),
   patientFirstName: text("patient_first_name"),
   patientLastName: text("patient_last_name"),
   patientAge: integer("patient_age"),
@@ -75,6 +76,7 @@ var orderSchema = pgTable("orders", {
   selectedTeeth: jsonb("selected_teeth").$type().default([]),
   location: text("location"),
   prescriptionType: text("prescription_type"),
+  subcategoryType: text("subcategory_type"),
   productName: text("product_name"),
   quantity: integer("quantity"),
   statusLabel: text("status_label"),
@@ -640,7 +642,7 @@ var TeamMemberStorage = class {
 var teamMemberStorage = new TeamMemberStorage();
 
 // server/src/authentication/authenticationRoute.ts
-function setupAuthenticationRoutes(app2) {
+var setupAuthenticationRoutes = (app2) => {
   app2.post("/api/clinic/login", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -672,7 +674,9 @@ function setupAuthenticationRoutes(app2) {
   app2.post("/api/clinic/register", async (req, res) => {
     try {
       const clinicData = insertClinicSchema2.parse(req.body);
-      const existingClinic = await clinicStorage.getClinicByEmail(clinicData.email);
+      const existingClinic = await clinicStorage.getClinicByEmail(
+        clinicData.email
+      );
       if (existingClinic) {
         return res.status(400).json({ error: "Clinic with this email already exists" });
       }
@@ -732,7 +736,9 @@ function setupAuthenticationRoutes(app2) {
       if (!mobileNumber || !password) {
         return res.status(400).json({ error: "Mobile number and password are required" });
       }
-      const teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(mobileNumber);
+      const teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(
+        mobileNumber
+      );
       if (teamMember) {
         if (teamMember.password === password) {
           let roleName = "";
@@ -742,7 +748,9 @@ function setupAuthenticationRoutes(app2) {
           }
           let clinicId = "";
           if (teamMember.clinicName) {
-            const clinic3 = await clinicStorage.getClinicByName(teamMember.clinicName);
+            const clinic3 = await clinicStorage.getClinicByName(
+              teamMember.clinicName
+            );
             clinicId = clinic3?.id || "";
           }
           return res.json({
@@ -785,7 +793,9 @@ function setupAuthenticationRoutes(app2) {
       if (!mobileNumber || typeof mobileNumber !== "string") {
         return res.status(401).json({ error: "Not authenticated" });
       }
-      let teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(mobileNumber);
+      let teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(
+        mobileNumber
+      );
       let clinic2 = null;
       let userType = "teamMember";
       if (!teamMember) {
@@ -836,7 +846,11 @@ function setupAuthenticationRoutes(app2) {
       let clinic2 = await clinicStorage.getClinic(id);
       console.log("Clinic lookup result:", clinic2 ? "Found" : "Not found");
       if (clinic2) {
-        console.log("Processing clinic data for:", clinic2.firstname, clinic2.lastname);
+        console.log(
+          "Processing clinic data for:",
+          clinic2.firstname,
+          clinic2.lastname
+        );
         let roleName = "";
         if (clinic2.roleId) {
           try {
@@ -894,7 +908,10 @@ function setupAuthenticationRoutes(app2) {
         return res.json(userData);
       }
       let teamMember = await teamMemberStorage.getTeamMember(id);
-      console.log("Team member lookup result:", teamMember ? "Found" : "Not found");
+      console.log(
+        "Team member lookup result:",
+        teamMember ? "Found" : "Not found"
+      );
       if (teamMember) {
         console.log("Processing team member data for:", teamMember.fullName);
         let roleName = "";
@@ -943,7 +960,7 @@ function setupAuthenticationRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch user data" });
     }
   });
-}
+};
 
 // server/src/chat/chatController.ts
 import { eq as eq6 } from "drizzle-orm";
@@ -1120,15 +1137,15 @@ var chatStorage = new ChatStorage();
 import { eq as eq7, and as and3, or as or3, sql as sql3, gte as gte3, lte as lte3, inArray as inArray3 } from "drizzle-orm";
 var OrderStorage = class {
   async getOrder(id) {
-    if (id !== void 0) {
-      return await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, id));
-    } else {
-      return await db2.select().from(orderSchema);
-    }
+    const [order] = await db2.select().from(orderSchema).where(eq7(orderSchema.id, id));
+    return order;
   }
   async createOrder(insertOrder) {
     const orderData = {
       ...insertOrder,
+      prescriptionType: insertOrder.prescriptionType || "",
+      subcategoryType: insertOrder.subcategoryType || "",
+      consultingDoctorMobile: insertOrder.consultingDoctorMobile || "",
       files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
       toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
       restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
@@ -1152,12 +1169,8 @@ var OrderStorage = class {
     const [order] = await db2.insert(orderSchema).values(orderData).returning();
     return order;
   }
-  async getOrders(clinicId) {
-    if (clinicId !== void 0) {
-      return await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, clinicId));
-    } else {
-      return await db2.select().from(orderSchema);
-    }
+  async getOrders() {
+    return await db2.select().from(orderSchema);
   }
   async getOrdersWithFilters(filters) {
     const whereClauses = [];
@@ -1246,10 +1259,10 @@ var OrderStorage = class {
     console.log("orderId", orderId);
     return await db2.select().from(toothGroups).where(eq7(toothGroups.orderId, orderId));
   }
-  async getChatByOrderId(orderId) {
-    const [chat] = await db2.select().from(chats).where(eq7(chats.orderId, orderId));
-    return chat;
-  }
+  //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
+  //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
+  //     return chat;
+  //   }
   async updateOrderStatus(id, status) {
     const [order] = await db2.update(orderSchema).set({ status }).where(eq7(orderSchema.id, id)).returning();
     return order;
@@ -1370,7 +1383,7 @@ var MessageStorage = class {
 var messageStorage = new MessageStorage();
 
 // server/src/chat/chatRoute.ts
-function setupChatRoutes(app2) {
+var setupChatRoutes = (app2) => {
   app2.get("/api/chats", async (req, res) => {
     try {
       const { userId } = req.query;
@@ -1381,19 +1394,29 @@ function setupChatRoutes(app2) {
         console.log(`Calculating unread counts for user: ${userId}`);
         const chatsWithUnreadCount = await Promise.all(
           chats2.map(async (chat) => {
-            console.log(`Processing chat ${chat.title} (${chat.id}) with participants:`, chat.participants);
+            console.log(
+              `Processing chat ${chat.title} (${chat.id}) with participants:`,
+              chat.participants
+            );
             const participants = chat.participants || [];
             const isParticipant = participants.some((participant) => {
               const exactMatch = participant.toLowerCase() === userId.toLowerCase();
               const containsMatch = participant.toLowerCase().includes(userId.toLowerCase()) || userId.toLowerCase().includes(participant.toLowerCase());
               return exactMatch || containsMatch;
             });
-            console.log(`User ${userId} isParticipant in chat ${chat.title}: ${isParticipant}`);
+            console.log(
+              `User ${userId} isParticipant in chat ${chat.title}: ${isParticipant}`
+            );
             if (!isParticipant) {
               return null;
             }
-            const unreadCount = await messageStorage.getUnreadMessageCount(chat.id, userId);
-            console.log(`Chat ${chat.title} (${chat.id}): ${unreadCount} unread messages for user ${userId}`);
+            const unreadCount = await messageStorage.getUnreadMessageCount(
+              chat.id,
+              userId
+            );
+            console.log(
+              `Chat ${chat.title} (${chat.id}): ${unreadCount} unread messages for user ${userId}`
+            );
             return {
               ...chat,
               unreadCount
@@ -1404,7 +1427,9 @@ function setupChatRoutes(app2) {
         console.log("Final chats with unread counts:", filteredChats);
         res.json(filteredChats);
       } else {
-        console.log("No userId provided, returning chats without unread counts");
+        console.log(
+          "No userId provided, returning chats without unread counts"
+        );
         res.json(chats2);
       }
     } catch (error) {
@@ -1479,7 +1504,10 @@ function setupChatRoutes(app2) {
       if (io2 && userSocketMap2 && userId) {
         const socketId = userSocketMap2.get(userId);
         if (socketId) {
-          const unreadCount = await messageStorage.getUnreadMessageCount(chatId, userId);
+          const unreadCount = await messageStorage.getUnreadMessageCount(
+            chatId,
+            userId
+          );
           io2.to(socketId).emit("unread-count-update", { chatId, unreadCount });
         }
       }
@@ -1522,8 +1550,12 @@ function setupChatRoutes(app2) {
       }
       const currentChat = await chatStorage.getChat(chatId);
       const currentParticipants = currentChat?.participants || [];
-      const newParticipants = participants.filter((p) => !currentParticipants.includes(p));
-      const removedParticipants = currentParticipants.filter((p) => !participants.includes(p));
+      const newParticipants = participants.filter(
+        (p) => !currentParticipants.includes(p)
+      );
+      const removedParticipants = currentParticipants.filter(
+        (p) => !participants.includes(p)
+      );
       const chat = await chatStorage.updateChat(chatId, { participants });
       if (!chat) {
         return res.status(404).json({ error: "Chat not found" });
@@ -1537,14 +1569,16 @@ function setupChatRoutes(app2) {
           removedParticipants,
           updatedBy: req.body.updatedBy || "Unknown"
         });
-        console.log(`Participants updated for chat ${chatId}, broadcasting to all users`);
+        console.log(
+          `Participants updated for chat ${chatId}, broadcasting to all users`
+        );
       }
       res.json(chat);
     } catch (error) {
       res.status(500).json({ error: "Failed to update participants" });
     }
   });
-}
+};
 
 // server/src/clinic/clinicRoute.ts
 var clinicFieldMap = {
@@ -1577,7 +1611,7 @@ function mapClinicFields(obj) {
   }
   return mapped;
 }
-function setupClinicRoutes(app2) {
+var setupClinicRoutes = (app2) => {
   app2.get("/api/clinics/mobile/:mobileNumber", async (req, res) => {
     try {
       const { mobileNumber } = req.params;
@@ -1606,7 +1640,10 @@ function setupClinicRoutes(app2) {
       res.json(clinic2);
     } catch (error) {
       console.log("clinic update error", error);
-      res.status(400).json({ error: "Invalid clinic update data", details: error instanceof Error ? error.message : "Unknown error" });
+      res.status(400).json({
+        error: "Invalid clinic update data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
   app2.get("/api/clinics/name/:clinicName", async (req, res) => {
@@ -1636,7 +1673,7 @@ function setupClinicRoutes(app2) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-}
+};
 
 // server/src/lifeCycle/lifeCycleSchema.ts
 import { date as date7, pgTable as pgTable10, text as text10, timestamp as timestamp9, uuid as uuid10 } from "drizzle-orm/pg-core";
@@ -1661,7 +1698,7 @@ var LifeCycleStorage = class {
 var lifeCycleStorage = new LifeCycleStorage();
 
 // server/src/lifeCycle/lifeCycleRoute.ts
-async function setupLifeCycleRoutes(app2) {
+var setupLifeCycleRoutes = async (app2) => {
   app2.get("/api/lifecycle-stages", async (req, res) => {
     try {
       const stages = await lifeCycleStorage.getLifecycleStages();
@@ -1670,14 +1707,14 @@ async function setupLifeCycleRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch lifecycle stages" });
     }
   });
-}
+};
 
 // server/src/message/messageRoute.ts
-function setupMessageRoutes(app2) {
-}
+var setupMessageRoutes = (app2) => {
+};
 
 // server/src/order/orderRoute.ts
-function setupOrderRoutes(app2) {
+var setupOrderRoutes = (app2) => {
   app2.get("/api/orders/:id", async (req, res) => {
     try {
       const order = await orderStorage.getOrder(req.params.id);
@@ -1725,14 +1762,7 @@ function setupOrderRoutes(app2) {
   });
   app2.get("/api/orders/filters/count", async (req, res) => {
     try {
-      const {
-        search,
-        paymentStatus,
-        type,
-        dateFrom,
-        dateTo,
-        categories
-      } = req.query;
+      const { search, paymentStatus, type, dateFrom, dateTo, categories } = req.query;
       const filters = {
         search,
         paymentStatus,
@@ -1749,7 +1779,9 @@ function setupOrderRoutes(app2) {
   });
   app2.get("/api/orders/patient/:patientId", async (req, res) => {
     try {
-      const orders = await orderStorage.getOrdersByPatient(req.params.patientId);
+      const orders = await orderStorage.getOrdersByPatient(
+        req.params.patientId
+      );
       res.json(orders);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch orders for patient" });
@@ -1757,7 +1789,9 @@ function setupOrderRoutes(app2) {
   });
   app2.get("/api/orders/:id/tooth-groups", async (req, res) => {
     try {
-      const toothGroups2 = await orderStorage.getToothGroupsByOrder(req.params.id);
+      const toothGroups2 = await orderStorage.getToothGroupsByOrder(
+        req.params.id
+      );
       res.json(toothGroups2);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch tooth groups for order" });
@@ -1809,15 +1843,17 @@ function setupOrderRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch chat for order" });
     }
   });
-}
+};
 
 // server/src/teamMember/teamMemberRoute.ts
-function setupTeamMemberRoutes(app2) {
+var setupTeamMemberRoutes = (app2) => {
   app2.get("/api/team-members", async (req, res) => {
     try {
       const { clinicName } = req.query;
       if (clinicName && typeof clinicName === "string") {
-        const teamMembers2 = await teamMemberStorage.getTeamMembersByClinic(clinicName);
+        const teamMembers2 = await teamMemberStorage.getTeamMembersByClinic(
+          clinicName
+        );
         const teamMembersWithRoleName = await Promise.all(
           teamMembers2.map(async (member) => {
             let roleName = "";
@@ -1867,11 +1903,15 @@ function setupTeamMemberRoutes(app2) {
   app2.post("/api/team-members", async (req, res) => {
     try {
       const { roleName, ...teamMemberData } = req.body;
-      const existingTeamMemberByMobile = await teamMemberStorage.getTeamMemberByMobileNumber(teamMemberData.contactNumber);
+      const existingTeamMemberByMobile = await teamMemberStorage.getTeamMemberByMobileNumber(
+        teamMemberData.contactNumber
+      );
       if (existingTeamMemberByMobile) {
         return res.status(400).json({ error: "Mobile number is already in use by a team member" });
       }
-      const existingClinicByMobile = await clinicStorage.getClinicByMobileNumber(teamMemberData.contactNumber);
+      const existingClinicByMobile = await clinicStorage.getClinicByMobileNumber(
+        teamMemberData.contactNumber
+      );
       if (existingClinicByMobile) {
         return res.status(400).json({ error: "Mobile number is already in use by a clinic" });
       }
@@ -1898,7 +1938,9 @@ function setupTeamMemberRoutes(app2) {
   app2.put("/api/team-members/:id", async (req, res) => {
     try {
       const { roleName, ...teamMemberData } = req.body;
-      const prevTeamMember = await teamMemberStorage.getTeamMember(req.params.id);
+      const prevTeamMember = await teamMemberStorage.getTeamMember(
+        req.params.id
+      );
       const prevFullName = prevTeamMember?.fullName;
       if (roleName) {
         const role2 = await RolesStorage.getRoleByName(roleName);
@@ -1907,7 +1949,10 @@ function setupTeamMemberRoutes(app2) {
         }
         teamMemberData.roleId = role2.id;
       }
-      const teamMember = await teamMemberStorage.updateTeamMember(req.params.id, teamMemberData);
+      const teamMember = await teamMemberStorage.updateTeamMember(
+        req.params.id,
+        teamMemberData
+      );
       if (!teamMember) {
         return res.status(404).json({ error: "Team member not found" });
       }
@@ -1916,12 +1961,17 @@ function setupTeamMemberRoutes(app2) {
       const memberId = teamMember.fullName;
       console.log(teamMember.fullName, "teamMember.fullName");
       console.log("Update request body:", req.body);
-      console.log("userSocketMap:", Array.from(userSocketMap2?.entries?.() || []));
+      console.log(
+        "userSocketMap:",
+        Array.from(userSocketMap2?.entries?.() || [])
+      );
       if (io2 && userSocketMap2 && memberId) {
         const socketId = userSocketMap2.get(memberId);
         if (socketId) {
           io2.to(socketId).emit("permissions-updated");
-          console.log(`Emitted permissions-updated to ${memberId} (${socketId})`);
+          console.log(
+            `Emitted permissions-updated to ${memberId} (${socketId})`
+          );
         } else {
           console.log(`No socketId found for memberId: ${memberId}`);
         }
@@ -1934,8 +1984,12 @@ function setupTeamMemberRoutes(app2) {
         const allChats = await chatStorage.getChats();
         for (const chat of allChats) {
           if (Array.isArray(chat.participants) && chat.participants.includes(prevFullName)) {
-            const updatedParticipants = chat.participants.map((p) => p === prevFullName ? teamMember.fullName : p);
-            await chatStorage.updateChat(chat.id, { participants: updatedParticipants });
+            const updatedParticipants = chat.participants.map(
+              (p) => p === prevFullName ? teamMember.fullName : p
+            );
+            await chatStorage.updateChat(chat.id, {
+              participants: updatedParticipants
+            });
             if (io2) {
               io2.emit("participants-updated", {
                 chatId: chat.id,
@@ -1944,7 +1998,10 @@ function setupTeamMemberRoutes(app2) {
                 removedParticipants: [prevFullName],
                 updatedBy: "System"
               });
-              console.log(`Updated participants for chat ${chat.id} after name change:`, updatedParticipants);
+              console.log(
+                `Updated participants for chat ${chat.id} after name change:`,
+                updatedParticipants
+              );
             }
           }
         }
@@ -1963,13 +2020,17 @@ function setupTeamMemberRoutes(app2) {
       let allChats = [];
       if (fullName) {
         allChats = await chatStorage.getChats();
-        affectedChats = allChats.filter((chat) => Array.isArray(chat.participants) && chat.participants.includes(fullName));
+        affectedChats = allChats.filter(
+          (chat) => Array.isArray(chat.participants) && chat.participants.includes(fullName)
+        );
       }
       await teamMemberStorage.deleteTeamMember(req.params.id);
       const io2 = req.app.get("io") || req.app.io;
       if (io2 && fullName) {
         for (const chat of affectedChats) {
-          const updatedParticipants = (chat.participants || []).filter((p) => p !== fullName);
+          const updatedParticipants = (chat.participants || []).filter(
+            (p) => p !== fullName
+          );
           io2.emit("participants-updated", {
             chatId: chat.id,
             participants: updatedParticipants,
@@ -1988,7 +2049,9 @@ function setupTeamMemberRoutes(app2) {
     try {
       const { mobileNumber } = req.params;
       console.log("Finding team member by mobile number:", mobileNumber);
-      const teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(mobileNumber);
+      const teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(
+        mobileNumber
+      );
       if (!teamMember) {
         return res.status(404).json({ message: "Team member not found" });
       }
@@ -1999,10 +2062,10 @@ function setupTeamMemberRoutes(app2) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
-}
+};
 
 // server/src/role/roleRoute.ts
-function setuRoleRoutes(app2) {
+var setuRoleRoutes = (app2) => {
   app2.get("/api/roles/:roleId", async (req, res) => {
     try {
       const { roleId } = req.params;
@@ -2029,10 +2092,10 @@ function setuRoleRoutes(app2) {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-}
+};
 
 // server/src/patient/patientRoute.ts
-async function setupPatientRoute(app2) {
+var setupPatientRoute = async (app2) => {
   app2.get("/api/patients", async (req, res) => {
     try {
       const patients2 = await patientStorage.getPatients();
@@ -2050,7 +2113,7 @@ async function setupPatientRoute(app2) {
       res.status(400).json({ error: "Invalid patient data" });
     }
   });
-}
+};
 
 // server/routes.ts
 async function registerRoutes(app2) {

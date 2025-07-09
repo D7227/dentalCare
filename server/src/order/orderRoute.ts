@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { orderStorage } from "./orderController";
 import { chatStorage } from "../chat/chatController";
 
-export default function setupOrderRoutes(app: Express) {
-
+export const setupOrderRoutes = (app: Express) => {
   app.get("/api/orders/:id", async (req, res) => {
     try {
       const order = await orderStorage.getOrder(req.params.id);
@@ -55,14 +54,8 @@ export default function setupOrderRoutes(app: Express) {
 
   app.get("/api/orders/filters/count", async (req, res) => {
     try {
-      const {
-        search,
-        paymentStatus,
-        type,
-        dateFrom,
-        dateTo,
-        categories
-      } = req.query;
+      const { search, paymentStatus, type, dateFrom, dateTo, categories } =
+        req.query;
 
       const filters = {
         search: search as string,
@@ -70,7 +63,11 @@ export default function setupOrderRoutes(app: Express) {
         type: type as string,
         dateFrom: dateFrom as string,
         dateTo: dateTo as string,
-        categories: categories ? (Array.isArray(categories) ? categories : [categories]) as string[] : undefined
+        categories: categories
+          ? ((Array.isArray(categories)
+              ? categories
+              : [categories]) as string[])
+          : undefined,
       };
 
       const count = await orderStorage.getOrdersWithFiltersCount(filters);
@@ -82,7 +79,9 @@ export default function setupOrderRoutes(app: Express) {
 
   app.get("/api/orders/patient/:patientId", async (req, res) => {
     try {
-      const orders = await orderStorage.getOrdersByPatient(req.params.patientId);
+      const orders = await orderStorage.getOrdersByPatient(
+        req.params.patientId
+      );
       res.json(orders);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch orders for patient" });
@@ -91,7 +90,9 @@ export default function setupOrderRoutes(app: Express) {
 
   app.get("/api/orders/:id/tooth-groups", async (req, res) => {
     try {
-      const toothGroups = await orderStorage.getToothGroupsByOrder(req.params.id);
+      const toothGroups = await orderStorage.getToothGroupsByOrder(
+        req.params.id
+      );
       res.json(toothGroups);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch tooth groups for order" });
@@ -110,28 +111,33 @@ export default function setupOrderRoutes(app: Express) {
       // Filter by patient name if provided
       if (patientName) {
         const name = String(patientName).toLowerCase();
-        orders = orders.filter(order =>
-          (order.patientFirstName && order.patientFirstName.toLowerCase().includes(name)) ||
-          (order.patientLastName && order.patientLastName.toLowerCase().includes(name))
+        orders = orders.filter(
+          (order) =>
+            (order.patientFirstName &&
+              order.patientFirstName.toLowerCase().includes(name)) ||
+            (order.patientLastName &&
+              order.patientLastName.toLowerCase().includes(name))
         );
       }
       // Filter by prescription if provided
       if (prescription) {
         const presc = String(prescription).toLowerCase();
-        orders = orders.filter(order =>
-          order.prescription && order.prescription.toLowerCase().includes(presc)
+        orders = orders.filter(
+          (order) =>
+            order.prescription &&
+            order.prescription.toLowerCase().includes(presc)
         );
       }
       // Filter by reference_id if provided
       if (reference_id) {
-        orders = orders.filter(order =>
-          order.reference_id && order.reference_id == reference_id
+        orders = orders.filter(
+          (order) => order.reference_id && order.reference_id == reference_id
         );
       }
       // Filter by order_id if provided
       if (order_id) {
-        orders = orders.filter(order =>
-          order.order_id && order.order_id == order_id
+        orders = orders.filter(
+          (order) => order.order_id && order.order_id == order_id
         );
       }
       res.json(orders);
@@ -140,16 +146,16 @@ export default function setupOrderRoutes(app: Express) {
     }
   });
 
-    // Get chat by orderId
-    app.get('/api/orders/:orderId/chat', async (req, res) => {
-      try {
-        const chat = await chatStorage.getChatByOrderId(req.params.orderId);
-        if (!chat) {
-          return res.status(404).json({ error: 'Chat not found for this order' });
-        }
-        res.json(chat);
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch chat for order' });
+  // Get chat by orderId
+  app.get("/api/orders/:orderId/chat", async (req, res) => {
+    try {
+      const chat = await chatStorage.getChatByOrderId(req.params.orderId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found for this order" });
       }
-    });
-}
+      res.json(chat);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat for order" });
+    }
+  });
+};

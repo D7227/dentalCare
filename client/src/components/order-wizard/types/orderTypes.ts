@@ -16,6 +16,7 @@ export interface FormData {
   caseHandledBy: string;
   doctorMobile: string;
   consultingDoctor: string;
+  consultingDoctorMobile: string;
   firstName: string;
   lastName: string;
   age: string;

@@ -80,8 +80,9 @@ const PlaceOrder = () => {
     orderMethod: '',
     selectedFileType: '',
     caseHandledBy: '',
+    doctorMobile: '',
     consultingDoctor: '',
-    doctorMobile: '', // <-- Added missing required property
+    consultingDoctorMobile: '',
     firstName: '',
     lastName: '',
     age: '',
@@ -137,13 +138,28 @@ const PlaceOrder = () => {
   };
 
   const hasSelectedTeeth = getHasSelectedTeeth();
-  console.log("hasSelectedTeeth--", hasSelectedTeeth)
   const steps = getStepsForCategory(orderCategory, hasSelectedTeeth);
   const maxSteps = steps.length - 1;
 
   const validateCurrentStep = (): boolean => {
     const errors = validateStep(currentStep, orderCategory, formData);
     setStepValidationErrors(prev => ({ ...prev, [currentStep]: errors }));
+    if (errors.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: (
+          <ul className="space-y-1 sm:space-y-2 mt-1">
+            {errors.map((error, index) => (
+              <li key={index} className="text-xs sm:text-sm text-red-700 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
+                {error}
+              </li>
+            ))}
+          </ul>
+        ),
+        variant: 'destructive',
+      });
+    }
     return errors.length === 0;
   };
 
@@ -199,7 +215,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -233,7 +249,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -293,7 +309,7 @@ const PlaceOrder = () => {
       }
 
       // Invalidate the orders cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
       toast({
         title: "Order submitted successfully!",
@@ -459,9 +475,28 @@ const PlaceOrder = () => {
                 </div>
               </div>
                 <div className='flex items-center gap-3'>
-                  <div className="text-customBlack-100 text-12/16 bg-mainBrackground px-3 sm:px-4 py-2 sm:py-3 rounded-[8px] font-medium border border-customGreen-100 h-[36px] sm:h-[40px] flex items-center justify-center">
-                    Step {currentStep + 1} of {steps.length}
-                  </div>
+                  {orderCategory && (
+                    <div className="flex items-center gap-1 sm:gap-2 bg-mainBrackground px-2 sm:px-3 py-2 rounded-[8px] border border-customGreen-100">
+                      {steps.map((step, index) => (
+                        <div key={step.number} className="flex items-center">
+                          <div className={`
+                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors
+                            ${index < currentStep ? 'bg-customGreen-100 text-white' : 
+                              index === currentStep ? 'bg-customGreen-100 text-white' : 
+                              'bg-gray-200 text-gray-500'}
+                          `}>
+                            {index + 1}
+                          </div>
+                          {index < steps.length - 1 && (
+                            <div className={`
+                              w-2 sm:w-3 h-0.5 mx-0.5 sm:mx-1
+                              ${index < currentStep ? 'bg-customGreen-100' : 'bg-gray-200'}
+                            `} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {orderCategory && !isMobile && (
                     <Button
                       variant="outline"
@@ -482,41 +517,25 @@ const PlaceOrder = () => {
       {/* Main Layout */}
       <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:py-6">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-          {/* Left Sidebar - Progress Steps */}
-          <div className="lg:w-80 flex-shrink-0 order-2 lg:order-1">
-            <Card className="lg:sticky lg:top-24 shadow-sm border border-customGray-200 bg-white">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Order Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <WizardProgress steps={steps} currentStep={currentStep} />
-              </CardContent>
-            </Card>
-          </div>
+          {/* Left Sidebar - Hidden when order category is selected */}
+          {!orderCategory && (
+            <div className="lg:w-80 flex-shrink-0 order-2 lg:order-1">
+              <Card className="lg:sticky lg:top-24 shadow-sm border border-customGray-200 bg-white">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Order Progress</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <WizardProgress steps={steps} currentStep={currentStep} />
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
-          {/* Right Content Area */}
-          <div className="flex-1 min-w-0 bg-transparent order-1 lg:order-2">
+          {/* Main Content Area */}
+          <div className={`flex-1 min-w-0 bg-transparent order-1 ${orderCategory ? 'lg:order-1' : 'lg:order-2'}`}>
             <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-white">
               <CardContent className="p-4 sm:p-6">
                 {/* Validation Errors */}
-                {currentStepErrors.length > 0 && (
-                  <Card className="mb-4 sm:mb-6 border-red-200 bg-red-50">
-                    <CardContent className="p-3 sm:p-4">
-                      <h4 className="font-semibold text-red-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
-                        <span className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-xs font-bold">!</span>
-                        Please fix the following errors:
-                      </h4>
-                      <ul className="space-y-1 sm:space-y-2">
-                        {currentStepErrors.map((error, index) => (
-                          <li key={index} className="text-xs sm:text-sm text-red-700 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
-                            {error}
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Step Content */}
                 <form onSubmit={handleSubmit}>
