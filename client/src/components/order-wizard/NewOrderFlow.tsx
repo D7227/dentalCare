@@ -30,6 +30,7 @@ import Webcam from "react-webcam";
 import { useIsMobile } from "@/hooks/use-mobile";
 import OrderTypeSection from "./components/OrderTypeSection";
 import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
+import { StlViewer } from "react-stl-viewer";
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -313,6 +314,7 @@ const NewOrderFlow = ({
   const [companiesError, setCompaniesError] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [showInstructions, setShowInstructions] = useState(false);
+  const viewerRef = useRef(null);
 
   console.log("formData", formData);
 
@@ -340,6 +342,18 @@ const NewOrderFlow = ({
 
     fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    if (viewerRef.current) {
+      // Type assertion to fix TS error: Property 'querySelector' does not exist on type 'never'
+      const viewerElement = viewerRef.current as HTMLElement;
+      const canvas = viewerElement.querySelector('canvas');
+      if (canvas) {
+        canvas.style.height = '400px';
+        canvas.style.width = '400px';
+      }
+    }
+  }, [formData.intraOralScans]);
 
   // Step 1: Patient & Case Information
   if (currentStep === 1) {
@@ -468,236 +482,131 @@ const NewOrderFlow = ({
 
   // Step 6: Upload Files & Impression Handling
   if (currentStep === 6) {
-    const handlePhoto = (file: File) => {
-      setFormData({
-        ...formData,
-        implantPhoto: file,
-        capturedPhoto: file,
-      });
-    };
+    const summaryGroups = buildSummaryGroups(
+      formData.toothGroups || [],
+      formData.selectedTeeth || []
+    );
     return (
-      <div className="space-y-2 sm:space-y-4">
-        {formData.prescriptionType === "implant" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl font-semibold">
-                Implant System
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 sm:space-y-6">
-              <div>
-                <Label className="text-base font-medium">Select Company</Label>
-                <Select
-                  value={formData.implantCompany || ""}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      implantCompany: value,
-                    })
-                  }
-                  disabled={loadingCompanies}
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue
-                      placeholder={
-                        loadingCompanies
-                          ? "Loading companies..."
-                          : "Choose a company"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{company.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                    {companies.length === 0 &&
-                      !loadingCompanies &&
-                      !companiesError && (
-                        <SelectItem value="" disabled>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-gray-500">
-                              No companies available
-                            </span>
-                          </div>
-                        </SelectItem>
-                      )}
-                    {companiesError && (
-                      <SelectItem value="" disabled>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-red-500">
-                            {companiesError}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 sm:space-y-3">
-                <Label className="text-base font-medium">Capture Photos</Label>
-
-                <CameraCapture onPhoto={handlePhoto} />
-                {formData.capturedPhoto && (
-                  <div className="flex flex-col items-center ">
-                    <span className="text-xs sm:text-sm text-gray-600 mb-2">
-                      Captured Photo Preview:
-                    </span>
-                    <img
-                      src={URL.createObjectURL(formData.capturedPhoto)}
-                      alt="Captured"
-                      className="rounded-lg border w-36 sm:w-48 h-28 sm:h-36 object-cover"
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label className="text-base font-medium">Remark</Label>
-                <Textarea
-                  id="implantRemark"
-                  value={formData.implantRemark || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      implantRemark: e.target.value,
-                    })
-                  }
-                  className="mt-3"
-                  rows={1}
-                  placeholder="Enter any implant-related remarks here..."
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      <div className="space-y-4 sm:space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg sm:text-xl font-semibold">
               Upload Files
             </CardTitle>
             <CardDescription className="text-xs sm:text-base">
-              Select file type and upload supporting files
+              Please upload patient details
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 sm:space-y-6">
-            {/* File Type Selection */}
-            <div>
-              <Label className="text-base font-medium">Select File Type</Label>
-              <Select
-                value={formData.selectedFileType || ""}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    selectedFileType: value,
-                  })
-                }
-              >
-                <SelectTrigger className="mt-3 text-start">
-                  <SelectValue placeholder="Choose file type to upload" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="scan">
-                    <div className="flex flex-col">
-                      <span className="font-medium">Scan File</span>
-                      <span className="text-xs text-gray-600">
-                        Supports: PLY, STL files
-                      </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left: File Inputs */}
+              <div className="flex flex-col gap-6">
+                {/* Intra oral scans */}
+                <div>
+                  <Label className="text-base font-medium">Intra oral scans (STL/PLY)</Label>
+                  <Input
+                    type="file"
+                    accept=".stl,.ply"
+                    multiple
+                    onChange={e => setFormData({ ...formData, intraOralScans: Array.from(e.target.files || []) })}
+                  />
+                  <div className="mt-2 space-y-1">
+                    {(formData.intraOralScans || []).map((file: any, idx: number) => (
+                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                        {file.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Face scans */}
+                <div>
+                  <Label className="text-base font-medium">Face scans (JPG/PNG)</Label>
+                  <Input
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    multiple
+                    onChange={e => setFormData({ ...formData, faceScans: Array.from(e.target.files || []) })}
+                  />
+                  <div className="mt-2 space-y-1">
+                    {(formData.faceScans || []).map((file: any, idx: number) => (
+                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                        {file.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Patient photos */}
+                <div>
+                  <Label className="text-base font-medium">Add patient photos (JPG/PNG)</Label>
+                  <Input
+                    type="file"
+                    accept=".jpg,.jpeg,.png"
+                    multiple
+                    onChange={e => setFormData({ ...formData, patientPhotos: Array.from(e.target.files || []) })}
+                  />
+                  <div className="mt-2 space-y-1">
+                    {(formData.patientPhotos || []).map((file: any, idx: number) => (
+                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                        {file.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Referral files */}
+                <div>
+                  <Label className="text-base font-medium">Referral images/docs (PDF/JPG/PNG)</Label>
+                  <Input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    multiple
+                    onChange={e => setFormData({ ...formData, referralFiles: Array.from(e.target.files || []) })}
+                  />
+                  <div className="mt-2 space-y-1">
+                    {(formData.referralFiles || []).map((file: any, idx: number) => (
+                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                        {file.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Right: STL Preview */}
+              <div className="flex flex-col items-center justify-start w-full">
+                <div
+                  ref={viewerRef}
+                  style={{
+                    width: 400,
+                    height: 400,
+                    border: '1px solid #ccc',
+                    borderRadius: 8,
+                    backgroundColor: '#000', // black background
+                    overflow: 'hidden',
+                  }}
+                >
+                  {(formData.intraOralScans || []).some((f: any) =>
+                    f.name?.toLowerCase().endsWith('.stl')
+                  ) ? (
+                    <StlViewer
+                      url={URL.createObjectURL(
+                        (formData.intraOralScans || []).find((f: any) =>
+                          f.name?.toLowerCase().endsWith('.stl')
+                        )
+                      )}
+                      width="100%"
+                      height="100%"
+                      // modelColor="#cccccc" // light gray for better contrast
+                      style={{ backgroundColor: "#000000" }}
+                      orbitControls
+                      shadows
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                      No STL file selected
                     </div>
-                  </SelectItem>
-                  <SelectItem value="xray-photo">
-                    <div className="flex flex-col">
-                      <span className="font-medium">X-ray / Shade Photos</span>
-                      <span className="text-xs text-gray-600">
-                        Supports: JPG, PNG, JPEG files
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="pdf">
-                    <div className="flex flex-col">
-                      <span className="font-medium">PDF Document</span>
-                      <span className="text-xs text-gray-600">
-                        Supports: PDF files
-                      </span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="dicom">
-                    <div className="flex flex-col">
-                      <span className="font-medium">DICOM (CBCT Scan)</span>
-                      <span className="text-xs text-gray-600">
-                        Supports: DICOM files
-                      </span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                  )}
+                </div>
+              </div>
             </div>
-            {/* File Upload - Only show when file type is selected */}
-            {formData.selectedFileType && (
-              <div className="border-t pt-4 sm:pt-6">
-                <FileUploader
-                  files={formData.files || []}
-                  onFilesChange={(files) =>
-                    setFormData({
-                      ...formData,
-                      files,
-                    })
-                  }
-                  maxFiles={10}
-                  acceptedTypes={
-                    formData.selectedFileType === "scan"
-                      ? [".ply", ".stl"]
-                      : formData.selectedFileType === "xray-photo"
-                        ? [".jpg", ".jpeg", ".png"]
-                        : formData.selectedFileType === "pdf"
-                          ? [".pdf"]
-                          : formData.selectedFileType === "dicom"
-                            ? [".dcm", ".dicom"]
-                            : [
-                                ".jpg",
-                                ".jpeg",
-                                ".png",
-                                ".pdf",
-                                ".stl",
-                                ".ply",
-                                ".dcm",
-                                ".dicom",
-                              ]
-                  }
-                  label={`Upload ${formData.selectedFileType === "scan"
-                      ? "Scan Files"
-                      : formData.selectedFileType === "xray-photo"
-                        ? "X-ray / Shade Photos"
-                        : formData.selectedFileType === "pdf"
-                          ? "PDF Documents"
-                          : formData.selectedFileType === "dicom"
-                            ? "DICOM Files"
-                            : "Files"
-                  }`}
-                  description={
-                    formData.selectedFileType === "scan"
-                      ? "Upload PLY or STL scan files"
-                      : formData.selectedFileType === "xray-photo"
-                        ? "Upload JPG, PNG, or JPEG image files"
-                        : formData.selectedFileType === "pdf"
-                          ? "Upload PDF documents"
-                          : formData.selectedFileType === "dicom"
-                            ? "Upload DICOM scan files"
-                            : "Upload your selected file type"
-                  }
-                />
-              </div>
-            )}
-            {/* Show instruction when no file type selected */}
-            {!formData.selectedFileType && (
-              <div className="text-center py-6 sm:py-8 text-gray-500">
-                <p className="text-xs sm:text-sm">
-                  Please select a file type above to begin uploading
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
         <Card>
@@ -998,7 +907,7 @@ const NewOrderFlow = ({
                 </Label>
                 <p className="text-xs sm:text-sm text-gray-600">
                   {formData.restoration_products &&
-                  formData.restoration_products.length > 0
+                    formData.restoration_products.length > 0
                     ? `${formData.restoration_products.length} product(s) selected`
                     : "No products selected"}
                 </p>
@@ -1044,63 +953,63 @@ const NewOrderFlow = ({
             {(formData.pickupDate ||
               formData.pickupTime ||
               formData.scanBooking) && (
-              <div className="border-b pb-4">
-                <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">
-                  Pickup/Scan Information
-                </h4>
-                {formData.orderType === "pickup-from-lab" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <Label className="font-medium text-xs sm:text-sm">
-                        Pickup Date:
-                      </Label>
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        {formData.pickupDate || "Not specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-medium text-xs sm:text-sm">
-                        Pickup Time:
-                      </Label>
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        {formData.pickupTime || "Not specified"}
-                      </p>
-                    </div>
-                    {formData.pickupRemarks && (
-                      <div className="col-span-1 sm:col-span-2">
-                        <Label className="font-medium text-xs sm:text-sm">
-                          Pickup Remarks:
-                        </Label>
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.pickupRemarks}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {formData.orderType === "send-by-courier" &&
-                  formData.scanBooking && (
+                <div className="border-b pb-4">
+                  <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">
+                    Pickup/Scan Information
+                  </h4>
+                  {formData.orderType === "pickup-from-lab" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
                         <Label className="font-medium text-xs sm:text-sm">
-                          Courier Name:
+                          Pickup Date:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.scanBooking.courierName || "Not specified"}
+                          {formData.pickupDate || "Not specified"}
                         </p>
                       </div>
                       <div>
                         <Label className="font-medium text-xs sm:text-sm">
-                          Tracking ID:
+                          Pickup Time:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.scanBooking.trackingId || "Not specified"}
+                          {formData.pickupTime || "Not specified"}
                         </p>
                       </div>
+                      {formData.pickupRemarks && (
+                        <div className="col-span-1 sm:col-span-2">
+                          <Label className="font-medium text-xs sm:text-sm">
+                            Pickup Remarks:
+                          </Label>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            {formData.pickupRemarks}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
-              </div>
-            )}
+                  {formData.orderType === "send-by-courier" &&
+                    formData.scanBooking && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                          <Label className="font-medium text-xs sm:text-sm">
+                            Courier Name:
+                          </Label>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            {formData.scanBooking.courierName || "Not specified"}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="font-medium text-xs sm:text-sm">
+                            Tracking ID:
+                          </Label>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            {formData.scanBooking.trackingId || "Not specified"}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                </div>
+              )}
 
             {/* Notes Summary */}
             {formData.notes && (
