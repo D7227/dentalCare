@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { orderStorage } from "./orderController";
 import { chatStorage } from "../chat/chatController";
 
-export function setupOrderRoutes(app: Express) {
+export default function setupOrderRoutes(app: Express) {
 
   app.get("/api/orders/:id", async (req, res) => {
     try {

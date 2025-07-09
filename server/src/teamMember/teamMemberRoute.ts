@@ -5,7 +5,7 @@ import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
 
 
-export function setupTeamMemberRoutes(app: Express) {  
+export default function setupTeamMemberRoutes(app: Express) {  
 app.get("/api/team-members", async (req, res) => {
     try {
       const { clinicName } = req.query;

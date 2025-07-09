@@ -1,5 +1,5 @@
 import type { Express } from "express";
 
-export function setupMessageRoutes(app: Express) {
+export default function setupMessageRoutes(app: Express) {
     
 }

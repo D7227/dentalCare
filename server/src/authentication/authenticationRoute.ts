@@ -4,7 +4,7 @@ import { RolesStorage } from "../role/roleController";
 import { teamMemberStorage } from "../teamMember/teamMemberController";
 import { insertClinicSchema } from "../clinic/clinicSchema";
 
-export function setupAuthenticationRoutes(app: Express) {
+export default function setupAuthenticationRoutes(app: Express) {
 
     app.post("/api/clinic/login", async (req, res) => {
         try {

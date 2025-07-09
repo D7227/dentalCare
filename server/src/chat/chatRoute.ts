@@ -5,7 +5,7 @@ import { insertChatSchema } from "./chatSchema";
 import { messageStorage } from "../message/messageController";
 
 
-export function setupChatRoutes(app: Express) {  
+export default function setupChatRoutes(app: Express) {  
 
     app.get("/api/chats", async (req, res) => {
         try {

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { lifeCycleStorage } from "./lifeCycleController";
 
 
-export async function setupLifeCycleRoutes(app: Express) {
+export default async function setupLifeCycleRoutes(app: Express) {
 
 app.get('/api/lifecycle-stages', async (req, res) => {
     try {

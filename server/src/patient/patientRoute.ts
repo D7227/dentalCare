@@ -3,7 +3,7 @@ import { insertPatientSchema } from "./patientSchema";
 import type { Express } from "express";
 import { patientStorage } from "./patientController";
 
-export async function setupPatientRoute (app: Express) {
+export default async function setupPatientRoute (app: Express) {
 // Patients API
 app.get("/api/patients", async (req, res) => {
     try {

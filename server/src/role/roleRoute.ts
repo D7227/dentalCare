@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { RolesStorage } from "./roleController";
 
 
-export function setuRoleRoutes(app: Express) {  
+export default function setuRoleRoutes(app: Express) {  
 app.get("/api/roles/:roleId", async (req, res) => {
     try {
       const { roleId } = req.params;

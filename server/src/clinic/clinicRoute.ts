@@ -34,7 +34,7 @@ const clinicFieldMap: { [key: string]: string } = {
     return mapped;
   }
 
-export function setupClinicRoutes(app: Express) {  
+export default function setupClinicRoutes(app: Express) {  
 
   // Get clinic by mobile number
   app.get("/api/clinics/mobile/:mobileNumber", async (req, res) => {
