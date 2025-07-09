@@ -31,6 +31,7 @@ import { OrderStatusBadge } from "../shared/OrderStatusBadge";
 import { DoctorInfo } from "../shared/DoctorInfo";
 import { ToothSummary } from "../shared/ToothSummary";
 import { useQuery } from "@tanstack/react-query";
+import { useAppSelector } from '@/store/hooks';
 
 interface OrdersHistoryProps {
   onViewOrder?: (order: any) => void;
@@ -39,6 +40,7 @@ interface OrdersHistoryProps {
 
 const OrdersHistory = ({ onViewOrder, onPayNow }: OrdersHistoryProps) => {
   const [location, setLocation] = useLocation();
+  const { user } = useAppSelector(state => state.auth);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -53,7 +55,7 @@ const OrdersHistory = ({ onViewOrder, onPayNow }: OrdersHistoryProps) => {
     isLoading,
     error,
   } = useQuery<any[]>({
-    queryKey: ["/api/orders"],
+    queryKey: [`/api/orders/${user?.clinicId}`],
     refetchInterval: 30000,
   });
 

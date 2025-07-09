@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Edit } from 'lucide-react';
-import { ToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/tooth';
 import ToothModificationDialog from './ToothModificationDialog.tsx';
 import { CrownBridge, CrownJoint, CrownSeparate, ImplantBridge, ImplantJoint, ImplantSeparate } from '@/assets/svg/index.ts';
 
@@ -12,11 +12,11 @@ interface SelectedTooth {
 }
 
 interface SelectedToothGroupsProps {
-  selectedGroups: ToothGroup[];
+  selectedGroups: LegacyToothGroup[];
   selectedTeeth: SelectedTooth[];
   onRemoveGroup: (groupId: string) => void;
   onRemoveTooth: (toothNumber: number) => void;
-  onUpdateGroup?: (groupId: string, updatedGroup: ToothGroup) => void;
+  onUpdateGroup?: (groupId: string, updatedGroup: LegacyToothGroup) => void;
   onUpdateTooth?: (toothNumber: number, newType: 'abutment' | 'pontic') => void;
   onAddIndividualTooth?: (toothNumber: number, type: 'abutment' | 'pontic') => void;
   prescriptionType?: 'implant' | 'crown_bridge';
@@ -34,9 +34,9 @@ const SelectedToothGroups = ({
 }: SelectedToothGroupsProps) => {
   const [showModificationDialog, setShowModificationDialog] = useState(false);
   const [selectedToothForEdit, setSelectedToothForEdit] = useState<number | null>(null);
-  const [selectedGroupForEdit, setSelectedGroupForEdit] = useState<ToothGroup | null>(null);
+  const [selectedGroupForEdit, setSelectedGroupForEdit] = useState<LegacyToothGroup | null>(null);
 
-  const handleEditTooth = (toothNumber: number, group?: ToothGroup) => {
+  const handleEditTooth = (toothNumber: number, group?: LegacyToothGroup) => {
     console.log('Edit tooth clicked:', toothNumber, 'group:', group);
     setSelectedToothForEdit(toothNumber);
     setSelectedGroupForEdit(group || null);
@@ -132,7 +132,7 @@ const SelectedToothGroups = ({
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+     <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
         📋 Selected Teeth
       </h4>
 
@@ -152,7 +152,7 @@ const SelectedToothGroups = ({
                   <span className="text-xs font-medium">
                     {tooth.toothNumber} {tooth.type === 'abutment' ? '(A)' : '(P)'}
                   </span>
-                  <Button
+                  {/* <Button
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -169,7 +169,7 @@ const SelectedToothGroups = ({
                     className="h-3 w-3 p-0 hover:bg-red-100"
                   >
                     <X size={14} />
-                  </Button>
+                  </Button> */}
                 </div>
               ))}
             </div>
@@ -217,7 +217,7 @@ const SelectedToothGroups = ({
                       }`}
                     >
                       <span>{toothNumber} {isPontic ? '(P)' : '(A)'}</span>
-                      <Button
+                      {/* <Button
                         type="button"
                         variant="ghost"
                         size="sm"
@@ -225,7 +225,7 @@ const SelectedToothGroups = ({
                         className="h-3 w-3 p-0 hover:bg-gray-100 mr-1"
                       >
                         <Edit size={14} />
-                      </Button>
+                      </Button> */}
                     </div>
                   );
                 })}

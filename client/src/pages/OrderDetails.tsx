@@ -17,15 +17,15 @@ import ScanBookingContent from '@/components/ScanBookingContent';
 import { useToast } from '@/hooks/use-toast';
 import { getStatusColor } from '@/utils/orderUtils';
 import { cn } from '@/lib/utils';
-import { Order } from '@/data/ordersData';
 import { useQuery } from '@tanstack/react-query';
+import { useAppSelector } from '@/store/hooks';
 
 const OrderDetails = () => {
   const [location, setLocation] = useLocation();
   const { orderId } = useParams();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'pickup' | 'scan' | 'payment'>('details');
-
+  const { user } = useAppSelector(state => state.auth);
   const handlePaymentClick = (type: 'online' | 'collection') => {
     if (type === 'online') {
       toast({
@@ -48,7 +48,7 @@ const OrderDetails = () => {
 
   // Fetch order by ID from API
   const { data: order, isLoading, error } = useQuery<any>({
-    queryKey: ['/api/orders/', orderId],
+    queryKey: [`/api/orders/${user?.clinicId}`, orderId],
     enabled: !!orderId,
   });
 

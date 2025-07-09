@@ -81,6 +81,7 @@ const PlaceOrder = () => {
     selectedFileType: '',
     caseHandledBy: '',
     consultingDoctor: '',
+    doctorMobile: '', // <-- Added missing required property
     firstName: '',
     lastName: '',
     age: '',
@@ -184,11 +185,7 @@ const PlaceOrder = () => {
     try {
       if (orderCategory === 'repair') {
         formData.category = 'repair';
-        formData.firstName = formData.patientFirstName;
-        formData.lastName = formData.patientLastName;
-        formData.age = formData.patientAge;
-        formData.sex = formData.patientSex;
-        // Use the existing firstName, lastName, age, sex fields instead of patient* fields
+        // No need to set firstName, lastName, age, sex again
         const orderData = createOrderObject(formData, user?.clinicId || '');
         console.log("Order data:", orderData);
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
@@ -202,7 +199,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -224,10 +221,6 @@ const PlaceOrder = () => {
         }
         // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         formData.category = 'repeat';
-        formData.firstName = formData.patientFirstName;
-        formData.lastName = formData.patientLastName;
-        formData.age = formData.patientAge;
-        formData.sex = formData.patientSex;
         const orderData = createOrderObject(formData, user?.clinicId || '');
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
           method: 'PUT',
@@ -240,7 +233,7 @@ const PlaceOrder = () => {
           throw new Error('Failed to update order');
         }
         const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
         toast({
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
@@ -300,7 +293,7 @@ const PlaceOrder = () => {
       }
 
       // Invalidate the orders cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${user?.clinicId}`] });
 
       toast({
         title: "Order submitted successfully!",

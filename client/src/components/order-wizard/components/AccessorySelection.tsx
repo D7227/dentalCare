@@ -85,11 +85,11 @@ const AccessorySelection = ({ formData, setFormData }: AccessorySelectionProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+        <CardTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
           <Package size={20} />
           Accessories Selection
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-base">
           Search and add accessories needed for this case
         </p>
       </CardHeader>

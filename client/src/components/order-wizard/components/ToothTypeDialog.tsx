@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/tooth';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ToothTypeDialogProps {
@@ -10,7 +10,7 @@ interface ToothTypeDialogProps {
   toothNumber: number;
   position: { x: number; y: number };
   onSelectType: (type: 'abutment' | 'pontic') => void;
-  selectedGroups: ToothGroup[];
+  selectedGroups: LegacyToothGroup[];
   onJoinGroup?: (toothNumber: number, groupId: string) => void;
   debugMode?: boolean; // Add debug mode for testing
   prescriptionType: 'implant' | 'crown-bridge';
@@ -31,7 +31,7 @@ const ToothTypeDialog = ({
 
   // Check if tooth can join existing groups
   const getJoinableGroups = () => {
-    const joinableGroups: { group: ToothGroup; direction: 'upper' | 'lower'; isAdjacent: boolean }[] = [];
+    const joinableGroups: { group: LegacyToothGroup; direction: 'upper' | 'lower'; isAdjacent: boolean }[] = [];
     
     // Define arch sequences (FDI numbering)
     const upperArch = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -149,7 +149,7 @@ const ToothTypeDialog = ({
               key={group.groupId}
               onClick={() => onJoinGroup?.(toothNumber, group.groupId)}
               className={`w-full text-sm ${
-                (group as any).type === 'joint'
+                (group as any).type === 'separate'
                   ? 'bg-green-500 hover:bg-green-600'
                   : (group as any).type === 'bridge'
                   ? 'bg-orange-500 hover:bg-orange-600'

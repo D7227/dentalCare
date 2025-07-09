@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { OrderData } from '../../types';
+import { useAppSelector } from '@/store/hooks';
 
 export interface UseOrderDataResult {
   orders: OrderData[];
@@ -9,12 +10,13 @@ export interface UseOrderDataResult {
 }
 
 export const useOrderData = (): UseOrderDataResult => {
+  const { user } = useAppSelector(state => state.auth);
   const { 
     data: orders = [], 
     isLoading: isOrdersLoading, 
     error: ordersError 
   } = useQuery<OrderData[]>({ 
-    queryKey: ['/api/orders'] 
+    queryKey: [`/api/orders/${user?.clinicId}`] 
   });
 
   const getToothGroupsByOrder = (referenceId: string): any[] => {

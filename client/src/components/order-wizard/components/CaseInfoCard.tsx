@@ -65,7 +65,24 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
             </SelectContent>
           </Select>
         </div>
-        
+        <div>
+          <Label htmlFor="doctorMobile">Doctor Mobile Number</Label>
+          <Input 
+            id="doctorMobile" 
+            style={{
+              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
+              // border: '1px solid #CCDAD8',
+              borderRadius: '0.5rem'
+            }}
+
+            value={formData.doctorMobile} 
+            onChange={e => setFormData({
+              ...formData,
+              doctorMobile: e.target.value
+            })} 
+            className="mt-1" 
+          />
+        </div>
         <div>
           <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
           <Input 

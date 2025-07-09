@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { OrderFormData, OrderData, convertToOrderData } from '@/types';
+import { useAppSelector } from '@/store/hooks';
 
 // API functions
 const createOrderAPI = async (formData: OrderFormData): Promise<OrderData> => {
@@ -23,7 +24,8 @@ const createOrderAPI = async (formData: OrderFormData): Promise<OrderData> => {
 };
 
 const getOrdersAPI = async (): Promise<OrderData[]> => {
-  const ordersResponse = await fetch('/api/orders');
+  const { user } = useAppSelector(state => state.auth);
+  const ordersResponse = await fetch(`/api/orders/${user?.clinicId}`);
   const patientsResponse = await fetch('/api/patients');
   
   if (!ordersResponse.ok) {
@@ -131,6 +133,8 @@ export const useCreateOrder = (onSuccessCallback?: (data: OrderData) => void) =>
 
 // Hook for fetching all orders (for clinic dashboard and OrdersTab)
 export const useOrders = () => {
+  const { user } = useAppSelector(state => state.auth);
+  const clinicId = user?.clinicId;
   return useQuery({
     queryKey: ['orders'],
     queryFn: getOrdersAPI,
@@ -140,13 +144,16 @@ export const useOrders = () => {
 };
 
 // Standalone query function for orders (can be used in components that need the query config)
-export const getOrders = () => {
-  return useQuery({
-    queryKey: ['orders'],
-    queryFn: getOrdersAPI,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  });
+export const getOrders = async () => {
+  const { user } = useAppSelector(state => state.auth);
+  const clinicId = user?.clinicId;
+  let ordersResponse;
+  if (clinicId) {
+    ordersResponse = await fetch(`/api/orders/${clinicId}`);
+  } else {
+    ordersResponse = await fetch('/api/orders');
+  }
+  return await ordersResponse.json();
 };
 
 export const useOrder = (id: number) => {

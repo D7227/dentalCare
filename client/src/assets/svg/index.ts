@@ -12,6 +12,10 @@ import card3 from "./card3.svg";
 import bigCard1 from "./big-card1.svg"
 import bigCard2 from "./big-card2.svg"
 import bigCard3 from "./big-card3.svg"
+import pontic1 from "../svg/pontic-icon/pontic01.png"
+import pontic2 from "../svg/pontic-icon/pontic02.png"
+import pontic3 from "../svg/pontic-icon/pontic03.png"
+import pontic4 from "../svg/pontic-icon/pontic04.png"
 import teethGroup1 from "./teeth-icon/teethGroupImage.svg"
 import teethGroup2 from "./teeth-icon/teethGroupImage2.svg"
 
@@ -63,4 +67,8 @@ export {
   ImplantBridge,
   ImplantJoint,
   ImplantSeparate,
+  pontic1,
+  pontic2,
+  pontic3,
+  pontic4,
 };

@@ -3,13 +3,13 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/tooth';
 
 interface ToothModificationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   clickedTooth: number;
-  currentGroup: ToothGroup | null;
+  currentGroup: LegacyToothGroup | null;
   onMakeAbutment: () => void;
   onMakePontic: () => void;
   onRemoveTooth: () => void;

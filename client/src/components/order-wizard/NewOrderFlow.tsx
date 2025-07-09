@@ -238,6 +238,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
   const isMobile = useIsMobile();
   const [showInstructions, setShowInstructions] = useState(false);
 
+  console.log('formData', formData)
+
   // Fetch companies from API
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -272,6 +274,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
       </div>
     );
   }
+
+  console.log((formData?.selectedTeeth?.length > 0 && formData?.selectedTeeth === undefined ),"formData?.toothGroups?.length")
 
   // Step 2: Restoration Type Selection
   if (currentStep === 2) {
@@ -308,28 +312,34 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
             </Card>
 
             {/* Order Method */}
-            <Card className='p-3 sm:p-4 mt-4'>
-              <Label className="text-base font-medium">Order Method</Label>
-              <RadioGroup
-                value={formData.orderMethod}
-                onValueChange={value => setFormData({
-                  ...formData,
-                  orderMethod: value
-                })}
-                className="mt-3"
-              >
-                <div className="flex flex-col gap-2 sm:gap-4 items-start ">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="digital" id="digital" />
-                    <Label htmlFor="digital" className="font-normal">Digital</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="manual" id="manual" />
-                    <Label htmlFor="manual" className="font-normal">Manual</Label>
-                  </div>
-                </div>
-              </RadioGroup>
-            </Card>
+            {
+              ((formData?.toothGroups?.length === 0 || !formData?.toothGroups) &&
+                (!formData?.selectedTeeth || formData?.selectedTeeth.length === 0)) && (
+                <Card className='p-3 sm:p-4 mt-4'>
+                  <Label className="text-base font-medium">Order Method</Label>
+                  <RadioGroup
+                    value={formData.orderMethod}
+                    onValueChange={value => setFormData({
+                      ...formData,
+                      orderMethod: value
+                    })}
+                    className="mt-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:gap-4 items-start ">
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="digital" id="digital" />
+                        <Label htmlFor="digital" className="font-normal">Digital</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="manual" id="manual" />
+                        <Label htmlFor="manual" className="font-normal">Manual</Label>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </Card>
+              )
+            }
+            
 
             {/* Show selection summary */}
             {(formData.prescriptionType || formData.orderMethod) && (
@@ -662,8 +672,8 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                 </div>
               </div>
             )}
-            {formData.orderType === 'request-scan' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
+            {formData.orderType === 'send-by-courier' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                 <div>
                   <Label htmlFor="courierName">Courier Name</Label>
                   <Input
@@ -874,7 +884,7 @@ const NewOrderFlow = ({ currentStep, formData, setFormData, onAddMoreProducts, o
                     )}
                   </div>
                 )}
-                {formData.orderType === 'request-scan' && formData.scanBooking && (
+                {formData.orderType === 'send-by-courier' && formData.scanBooking && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <Label className="font-medium text-xs sm:text-sm">Courier Name:</Label>
