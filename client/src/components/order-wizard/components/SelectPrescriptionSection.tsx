@@ -6,7 +6,7 @@ import {
     CardTitle,
     CardDescription,
 } from "@/components/ui/card";
-import { Bridge, Crown, Dentures, FixedRestoration, Implant, ImplimplantSolution, Inlay, Onlay, Ortho, Sleep_Accesories, Splits_Guard_Tmj, SurgicalGuide, Veneers } from "@/assets/images";
+import { BridgeIcon, DenturesIcon, Fixed_RestorationIcon, Implant_SolutionIcon, ImplantIcon, InlayIcon, onlayIcon, OrthoIcon, Sleep_AccesoriesIcon, SplintsIcon, Surgical_GuideIcon, VeneersIcon } from "@/assets/svg";
 
 
 interface SelectPrescriptionSectionProps {
@@ -23,31 +23,31 @@ const getSubcategoriesForPrescription = (prescriptionType: string) => {
                     id: "crown",
                     name: "Crown",
                     description: "Single tooth restoration",
-                    icon: <img src={Crown} />,
+                    icon: <img src={Fixed_RestorationIcon} />,
                 },
                 {
                     id: "inlay",
                     name: "Inlay",
                     description: "Partial tooth restoration",
-                    icon: <img src={Inlay} />,
+                    icon: <img src={InlayIcon} />,
                 },
                 {
                     id: "onlay",
                     name: "Onlay",
                     description: "Extended tooth restoration",
-                    icon: <img src={Onlay} />,
+                    icon: <img src={onlayIcon} />,
                 },
                 {
                     id: "bridge",
                     name: "Bridge",
                     description: "Multiple connected crowns",
-                    icon: <img src={Bridge} />,
+                    icon: <img src={BridgeIcon} />,
                 },
                 {
                     id: "veneers",
                     name: "Veneers",
                     description: "Thin tooth coverings",
-                    icon: <img src={Veneers} />,
+                    icon: <img src={VeneersIcon} />,
                 },
             ];
         case "implant":
@@ -56,19 +56,19 @@ const getSubcategoriesForPrescription = (prescriptionType: string) => {
                     id: "implant-crown",
                     name: "Implant Crown",
                     description: "Single implant restoration",
-                    icon: <img src={Implant} />,
+                    icon: <img src={ImplantIcon} />,
                 },
                 {
                     id: "implant-bridge",
                     name: "Implant Bridge",
                     description: "Multiple implant restorations",
-                    icon: <img src={ImplimplantSolution} />,
+                    icon: <img src={Implant_SolutionIcon} />,
                 },
                 {
                     id: "surgical-guides",
                     name: "Surgical Guides",
                     description: "Implant placement guides",
-                    icon: <img src={SurgicalGuide} />,
+                    icon: <img src={Surgical_GuideIcon} />,
                 },
             ];
         case "splints-guards":
@@ -328,37 +328,37 @@ const prescriptionTypes = [
         id: "fixed-restoration",
         name: "Fixed Restoration",
         description: "Crowns, Bridges, Inlays, Onlays & Veneers",
-        icon: <img src={FixedRestoration} />,
+        icon: <img src={Fixed_RestorationIcon} />,
     },
     {
         id: "implant",
         name: "Implant Solution",
         description: "Implant Crowns, Bridges, & Surgical Guides",
-        icon: <img src={ImplimplantSolution} />,
+        icon: <img src={Implant_SolutionIcon} />,
     },
     {
         id: "splints-guards",
         name: "Splints, Guards & TMJ",
         description: "Night Guard, Sports Guards, TMJ/TMD",
-        icon: <img src={Splits_Guard_Tmj} />,
+        icon: <img src={SplintsIcon} />,
     },
     {
         id: "ortho",
         name: "Ortho",
         description: "Clear aligners & Retainers",
-        icon: <img src={Ortho} />,
+        icon: <img src={OrthoIcon} />,
     },
     {
         id: "dentures",
         name: "Dentures",
         description: "Full & Partial Dentures",
-        icon: <img src={Dentures} />,
+        icon: <img src={DenturesIcon} />,
     },
     {
         id: "sleep-accessories",
         name: "Sleep Accessories",
         description: "Sleep Apnea, Bleaching Trays",
-        icon: <img src={Sleep_Accesories} />,
+        icon: <img src={Sleep_AccesoriesIcon} />,
     },
 ];
 

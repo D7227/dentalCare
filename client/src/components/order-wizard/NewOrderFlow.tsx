@@ -31,6 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import OrderTypeSection from "./components/OrderTypeSection";
 import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
 import { StlViewer } from "react-stl-viewer";
+import Combined3DPreview from "./Combined3DPreview";
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -583,27 +584,13 @@ const NewOrderFlow = ({
                     overflow: 'hidden',
                   }}
                 >
-                  {(formData.intraOralScans || []).some((f: any) =>
-                    f.name?.toLowerCase().endsWith('.stl')
-                  ) ? (
-                    <StlViewer
-                      url={URL.createObjectURL(
-                        (formData.intraOralScans || []).find((f: any) =>
-                          f.name?.toLowerCase().endsWith('.stl')
-                        )
-                      )}
-                      width="100%"
-                      height="100%"
-                      // modelColor="#cccccc" // light gray for better contrast
-                      style={{ backgroundColor: "#000000" }}
-                      orbitControls
-                      shadows
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                      No STL file selected
-                    </div>
-                  )}
+                  {(formData.intraOralScans || []).length > 0 ? (
+  <Combined3DPreview files={formData.intraOralScans} />
+) : (
+  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+    No STL/PLY file selected
+  </div>
+)}
                 </div>
               </div>
             </div>
@@ -747,6 +734,7 @@ const NewOrderFlow = ({
       </div>
     );
   }
+
   // Step 7: Final Details & Accessories
   if (currentStep === 7) {
     const summaryGroups = buildSummaryGroups(
