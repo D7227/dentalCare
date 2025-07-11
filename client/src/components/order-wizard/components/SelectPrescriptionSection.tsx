@@ -13,6 +13,7 @@ interface SelectPrescriptionSectionProps {
     formData: any;
     setFormData: (data: any) => void;
     mode: "prescription" | "subcategory";
+    onNextStep?: () => void; // Add callback for next step
 }
 
 const getSubcategoriesForPrescription = (prescriptionType: string) => {
@@ -366,7 +367,32 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
     formData,
     setFormData,
     mode,
+    onNextStep,
 }) => {
+    // Handle double click for prescription selection
+    const handlePrescriptionDoubleClick = (typeId: string) => {
+        setFormData({
+            ...formData,
+            prescriptionType: typeId,
+        });
+        // Move to next step after a short delay to show selection
+        setTimeout(() => {
+            onNextStep?.();
+        }, 100);
+    };
+
+    // Handle double click for subcategory selection
+    const handleSubcategoryDoubleClick = (subcategoryId: string) => {
+        setFormData({
+            ...formData,
+            subcategoryType: subcategoryId,
+        });
+        // Move to next step after a short delay to show selection
+        setTimeout(() => {
+            onNextStep?.();
+        }, 100);
+    };
+
     if (mode === "prescription") {
         return (
             <div className="space-y-4 sm:space-y-6">
@@ -395,6 +421,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                                 prescriptionType: type.id,
                                             })
                                         }
+                                        onDoubleClick={() => handlePrescriptionDoubleClick(type.id)}
                                     >
                                         <CardContent className="p-6 text-center">
                                             <div
@@ -457,6 +484,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                             subcategoryType: subcategory.id,
                                         })
                                     }
+                                    onDoubleClick={() => handleSubcategoryDoubleClick(subcategory.id)}
                                 >
                                     <CardContent className="p-4 text-center">
                                         <div

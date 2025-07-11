@@ -363,10 +363,10 @@ const PlaceOrder = () => {
     });
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     console.log('orderCategory', orderCategory)
     console.log('formData', formData)
-  },[formData,orderCategory])
+  }, [formData, orderCategory])
 
   const renderStepContent = () => {
     if (currentStep === 0) {
@@ -393,6 +393,7 @@ const PlaceOrder = () => {
           setFormData={setFormData}
           onAddMoreProducts={handleAddMoreProducts}
           onSaveOrder={handleSaveOrder}
+          setCurrentStep={setCurrentStep}
         />;
       case 'repeat':
         return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
@@ -442,7 +443,7 @@ const PlaceOrder = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFF9F7]">
+    <div className="min-h-screen">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
         <div className='max-w-7xl mx-auto'>
@@ -474,40 +475,40 @@ const PlaceOrder = () => {
                   </div>
                 </div>
               </div>
-                <div className='flex items-center gap-3'>
-                  {orderCategory && (
-                    <div className="flex items-center gap-1 sm:gap-2 bg-mainBrackground px-2 sm:px-3 py-2 rounded-[8px] border border-customGreen-100">
-                      {steps.map((step, index) => (
-                        <div key={step.number} className="flex items-center">
-                          <div className={`
+              <div className='flex items-center gap-3'>
+                {orderCategory && (
+                  <div className="flex items-center gap-1 sm:gap-2 bg-mainBrackground px-2 sm:px-3 py-2 rounded-[8px] border border-customGreen-100">
+                    {steps.map((step, index) => (
+                      <div key={step.number} className="flex items-center">
+                        <div className={`
                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors
-                            ${index < currentStep ? 'bg-customGreen-100 text-white' : 
-                              index === currentStep ? 'bg-customGreen-100 text-white' : 
+                            ${index < currentStep ? 'bg-customGreen-100 text-white' :
+                            index === currentStep ? 'bg-customGreen-100 text-white' :
                               'bg-gray-200 text-gray-500'}
                           `}>
-                            {index + 1}
-                          </div>
-                          {index < steps.length - 1 && (
-                            <div className={`
+                          {index + 1}
+                        </div>
+                        {index < steps.length - 1 && (
+                          <div className={`
                               w-2 sm:w-3 h-0.5 mx-0.5 sm:mx-1
                               ${index < currentStep ? 'bg-customGreen-100' : 'bg-gray-200'}
                             `} />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {orderCategory && !isMobile && (
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelOrder}
-                      className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                    >
-                      <X size={16} />
-                      Cancel Order
-                    </Button>
-                  )}
-                </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {orderCategory && !isMobile && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelOrder}
+                    className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  >
+                    <X size={16} />
+                    Cancel Order
+                  </Button>
+                )}
+              </div>
 
             </div>
           </CardContent>
@@ -532,9 +533,9 @@ const PlaceOrder = () => {
           )}
 
           {/* Main Content Area */}
-          <div className={`flex-1 min-w-0 bg-transparent order-1 ${orderCategory ? 'lg:order-1' : 'lg:order-2'}`}>
-            <Card className="shadow-sm border bg-transparent !border-customPrimery-200 !bg-white">
-              <CardContent className="p-4 sm:p-6">
+          <div className={`flex-1 min-w-0 order-1 ${orderCategory ? 'lg:order-1' : 'lg:order-2'}`}>
+            <Card className="shadow-sm border !border-customPrimery-200 bg-custonLightGray-100">
+              <CardContent className="p-4 sm:p-6 ">
                 {/* Validation Errors */}
 
                 {/* Step Content */}

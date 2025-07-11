@@ -39,6 +39,7 @@ interface NewOrderFlowProps {
   setFormData: (data: any) => void;
   onAddMoreProducts?: () => void;
   onSaveOrder?: (orderData: any) => void;
+  setCurrentStep?: any
 }
 
 // Function to create comprehensive order object
@@ -382,6 +383,9 @@ const NewOrderFlow = ({
         formData={formData}
         setFormData={setFormData}
         mode="prescription"
+        onNextStep={() => {
+          setCurrentStep(currentStep + 1);
+        }}
       />
     );
   }
@@ -393,6 +397,9 @@ const NewOrderFlow = ({
         formData={formData}
         setFormData={setFormData}
         mode="subcategory"
+        onNextStep={() => {
+          setCurrentStep(currentStep + 1);
+        }}
       />
     );
   }
