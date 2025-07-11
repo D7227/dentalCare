@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,11 @@ interface CaseInfoCardProps {
 }
 
 const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
+  const [errors, setErrors] = useState<{
+    doctorMobile?: string;
+    consultingDoctorMobile?: string;
+  }>({});
+
   const clinicDoctors = [{
     id: 'dr1',
     name: 'Dr. James Wilson',
@@ -33,27 +38,54 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
     role: 'Oral Surgeon'
   }];
 
+  // Function to validate mobile number input
+  const validateMobileNumber = (value: string): boolean => {
+    // Only allow digits
+    const numberOnly = /^\d*$/.test(value);
+    return numberOnly;
+  };
+
+  // Function to handle mobile number changes with validation
+  const handleMobileNumberChange = (field: string, value: string) => {
+    if (value === '' || validateMobileNumber(value)) {
+      setFormData({
+        ...formData,
+        [field]: value
+      });
+
+      // Clear error for this field
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    } else {
+      // Set error message
+      setErrors(prev => ({
+        ...prev,
+        [field]: 'Please enter only numbers'
+      }));
+    }
+  };
+
   return (
-      <Card>
+    <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-xl font-semibold">Clinic Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
           <Label htmlFor="caseHandledBy">Case Handled By *</Label>
-          <Select 
-            value={formData.caseHandledBy} 
+          <Select
+            value={formData.caseHandledBy}
             onValueChange={value => setFormData({
               ...formData,
               caseHandledBy: value
             })}
           >
-            <SelectTrigger className="mt-1" 
-            style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
-              borderRadius: '0.5rem'
-            }}
+            <SelectTrigger className="mt-1"
+              style={{
+                borderRadius: '0.5rem'
+              }}
             >
               <SelectValue placeholder="Select doctor" />
             </SelectTrigger>
@@ -69,61 +101,53 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
         <div>
           <Label htmlFor="doctorMobile">Doctor Mobile Number</Label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              id="doctorMobile" 
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+            <Input
+              id="doctorMobile"
               style={{
-                // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-                // border: '1px solid #CCDAD8',
                 borderRadius: '0.5rem'
               }}
-              value={formData.doctorMobile} 
-              onChange={e => setFormData({
-                ...formData,
-                doctorMobile: e.target.value
-              })} 
-              className="mt-1 pl-10" 
-              placeholder="Enter mobile number"
+              value={formData.doctorMobile}
+              onChange={e => handleMobileNumberChange('doctorMobile', e.target.value)}
+              className="mt-1 pl-10"
+              placeholder="Enter mobile number (numbers only)"
+              error={!!errors.doctorMobile}
+              errorMessage={errors.doctorMobile}
             />
           </div>
         </div>
         <div>
           <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
-          <Input 
-            id="consultingDoctor" 
+          <Input
+            id="consultingDoctor"
             style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
               borderRadius: '0.5rem'
             }}
 
-            value={formData.consultingDoctor} 
+            value={formData.consultingDoctor}
             onChange={e => setFormData({
               ...formData,
               consultingDoctor: e.target.value
-            })} 
-            className="mt-1" 
-             placeholder="Enter Consulting Doctor Name"
+            })}
+            className="mt-1"
+            placeholder="Enter Consulting Doctor Name"
           />
         </div>
         <div>
           <Label htmlFor="consultingDoctorMobile">Consulting Doctor Mobile Number</Label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              id="consultingDoctorMobile" 
+            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+            <Input
+              id="consultingDoctorMobile"
               style={{
-                // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-                // border: '1px solid #CCDAD8',
                 borderRadius: '0.5rem'
               }}
-              value={formData.consultingDoctorMobile} 
-              onChange={e => setFormData({
-                ...formData,
-                consultingDoctorMobile: e.target.value
-              })} 
-              className="mt-1 pl-10" 
-              placeholder="Enter mobile number"
+              value={formData.consultingDoctorMobile}
+              onChange={e => handleMobileNumberChange('consultingDoctorMobile', e.target.value)}
+              className="mt-1 pl-10"
+              placeholder="Enter mobile number (numbers only)"
+              error={!!errors.consultingDoctorMobile}
+              errorMessage={errors.consultingDoctorMobile}
             />
           </div>
         </div>
