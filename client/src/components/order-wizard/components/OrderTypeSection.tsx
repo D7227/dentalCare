@@ -12,7 +12,7 @@ interface OrderTypeSectionProps {
 
 const OrderTypeSection = ({ formData, setFormData }: OrderTypeSectionProps) => {
   return (
-    <Card className="bg-custonLightGray-100">
+    <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-xl font-semibold">
           Order Type

@@ -370,7 +370,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
     if (mode === "prescription") {
         return (
             <div className="space-y-4 sm:space-y-6">
-                <Card className="border-none p-0">
+                <Card className="border-none p-0 bg-transparent">
                     <CardHeader className="p-0">
                         <CardTitle className="text-lg sm:text-xl font-semibold">
                             Select Prescription
@@ -385,7 +385,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                 {prescriptionTypes.map((type) => (
                                     <Card
                                         key={type.id}
-                                        className={`cursor-pointer transition-all duration-200 hover:shadow-md border-4 ${formData.prescriptionType === type.id
+                                        className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 ${formData.prescriptionType === type.id
                                             ? "border-teal-500 shadow-md"
                                             : "border-gray-200 hover:border-gray-300"
                                             }`}
@@ -432,7 +432,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
     if (!subcategories.length) return null;
     return (
         <div className="space-y-4 sm:space-y-6">
-            <Card className="border-none p-0">
+            <Card className="border-none p-0 bg-transparent">
                 <CardHeader className="p-0">
                     <CardTitle className="text-lg sm:text-xl font-semibold">
                         Select Subcategory
@@ -447,7 +447,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                             {subcategories.map((subcategory) => (
                                 <Card
                                     key={subcategory.id}
-                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-4 ${formData.subcategoryType === subcategory.id
+                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 ${formData.subcategoryType === subcategory.id
                                         ? "border-teal-500 shadow-md"
                                         : "border-gray-200 hover:border-gray-300"
                                         }`}

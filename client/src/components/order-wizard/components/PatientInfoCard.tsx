@@ -53,7 +53,7 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
   };
 
   return (
-    <Card className="bg-custonLightGray-100">
+    <Card>
       <CardHeader className="py-3">
         <CardTitle className="text-xl font-semibold">
           Patient Information
