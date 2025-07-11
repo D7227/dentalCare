@@ -36,22 +36,22 @@ const DashboardLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthPersistence();
   const { onUnreadCountUpdate, offUnreadCountUpdate, getSocket } = useSocket();
-  
+
   // Debug Redux state
   const authState = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
-  
+
   const { toast } = useToast();
-  
+
   // Fetch chats for unread count
   const { data: chats = [] } = useQuery({
     queryKey: ['/api/chats', user?.fullName],
     queryFn: async () => {
-      const url = user?.fullName 
+      const url = user?.fullName
         ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
         : '/api/chats';
       const response = await fetch(url);
@@ -64,11 +64,11 @@ const DashboardLayout = () => {
   // Calculate unread group count (filtered for user permissions)
   const userFullName = user?.fullName || '';
   let permissionFilteredChats = chats;
-  
+
   // Check if user has chat permission
   const hasChatPermission = hasPermission(user, 'chat');
   const userRole = user?.roleName || '';
-  
+
   // Apply participant-based filtering for all users
   if (!hasChatPermission) {
     permissionFilteredChats = chats.filter((chat: any) => {
@@ -93,7 +93,7 @@ const DashboardLayout = () => {
   }
 
   const unreadMessagesCount = permissionFilteredChats.filter((chat: any) => chat.unreadCount && chat.unreadCount > 0).length;
-  
+
   const prevPermissionsRef = useRef<string[]>(user?.permissions || []);
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const DashboardLayout = () => {
       offUnreadCountUpdate(handleUnreadCountUpdate);
     };
   }, [onUnreadCountUpdate, offUnreadCountUpdate, queryClient, user?.fullName]);
-  
+
   const handlePermissionsUpdated = useCallback(async () => {
     try {
       const headers = user?.contactNumber ? { 'x-mobile-number': user.contactNumber } : undefined;
@@ -127,16 +127,16 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     const socket = typeof getSocket === 'function' ? getSocket() : null;
-    if (!socket){
+    if (!socket) {
       return;
-    } 
-    
+    }
+
     socket.on('permissions-updated', handlePermissionsUpdated);
     return () => {
       socket.off('permissions-updated', handlePermissionsUpdated);
     };
   }, [getSocket, handlePermissionsUpdated]);
-  
+
   useEffect(() => {
     // Register user with socket for real-time events
     const socket = getSocket && getSocket();
@@ -144,7 +144,7 @@ const DashboardLayout = () => {
       socket.emit('register-user', user.fullName);
     }
   }, [user?.fullName, isAuthenticated, getSocket]);
-  
+
   // Map sections to required permissions
   const sectionPermissionMap: Record<string, string> = {
     billing: 'billing',
@@ -268,7 +268,7 @@ const DashboardLayout = () => {
     <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -295,7 +295,7 @@ const DashboardLayout = () => {
           onSectionChange={handleSectionChange}
           title={sectionTitleMap[activeSection] || 'Dashboard'}
         />
-        <main className="flex-1 p-6 bg-mainBrackground">
+        <main className="flex-1 p-6 bg-white">
           {renderMainContent()}
         </main>
       </div>

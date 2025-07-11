@@ -205,9 +205,9 @@ const Sidebar = ({
             <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-gray-600 dark:text-gray-400")} />
             {!isCollapsed && <>
               <span className={cn("flex-1 text-left", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.label}</span>
-              {item.badge && <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">{item.badge}</span>}
+              {item.badge && <span className="ml-auto bg-secondary text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">{item.badge}</span>}
             </>}
-            {isCollapsed && item.badge && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">{item.badge}</span>}
+            {isCollapsed && item.badge && <span className="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">{item.badge}</span>}
           </button>;
         })}
       </nav>
