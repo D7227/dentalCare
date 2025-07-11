@@ -9,8 +9,15 @@ interface OrderTypeSectionProps {
   setFormData: (data: any) => void;
 }
 
-
 const OrderTypeSection = ({ formData, setFormData }: OrderTypeSectionProps) => {
+  // Update the value 
+  const handleupdateValue = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      [field]: value,
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="py-3">
@@ -26,12 +33,7 @@ const OrderTypeSection = ({ formData, setFormData }: OrderTypeSectionProps) => {
               ? "border-teal-500 bg-teal-50 shadow-md"
               : "border-gray-200 hover:border-gray-300"
               }`}
-            onClick={() =>
-              setFormData({
-                ...formData,
-                orderMethod: "digital",
-              })
-            }
+            onClick={() => handleupdateValue("orderMethod", "digital")}
           >
             <CardContent className="p-4 text-center">
               <div
@@ -66,12 +68,7 @@ const OrderTypeSection = ({ formData, setFormData }: OrderTypeSectionProps) => {
               ? "border-teal-500 bg-teal-50 shadow-md"
               : "border-gray-200 hover:border-gray-300"
               }`}
-            onClick={() =>
-              setFormData({
-                ...formData,
-                orderMethod: "manual",
-              })
-            }
+            onClick={() => handleupdateValue("orderMethod", "manual")}
           >
             <CardContent className="p-4 text-center">
               <div

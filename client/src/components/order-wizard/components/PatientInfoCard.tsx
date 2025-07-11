@@ -52,6 +52,14 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
     }
   };
 
+  const handleSexChange = (value: string) => {
+    console.log('value', value)
+    setFormData({
+      ...formData,
+      sex: value,
+    })
+  }
+
   return (
     <Card>
       <CardHeader className="py-3">
@@ -111,12 +119,7 @@ const PatientInfoCard = ({ formData, setFormData }: PatientInfoCardProps) => {
             <Label htmlFor="sex">Sex</Label>
             <Select
               value={formData.sex}
-              onValueChange={(value) =>
-                setFormData({
-                  ...formData,
-                  sex: value,
-                })
-              }
+              onValueChange={(value) => handleSexChange(value)}
             >
               <SelectTrigger
                 className="mt-1"
