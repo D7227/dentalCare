@@ -66,7 +66,7 @@ const ProductSearch = ({
       try {
         setLoading(true);
         setError(null);
-        
+
         // Build query parameters for filtering
         const queryParams = new URLSearchParams();
         if (prescriptionType) {
@@ -75,7 +75,7 @@ const ProductSearch = ({
         if (subcategoryType) {
           queryParams.append('subcategoryType', subcategoryType);
         }
-        
+
         const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
         const response = await fetch(url);
 
@@ -107,7 +107,31 @@ const ProductSearch = ({
   const calculateQuantity = () => {
     if (!restorationType || selectedTeeth.length === 0) return 1;
 
-    // For all restoration types, quantity is based on number of teeth selected
+    // For these prescription types, quantity is based on arch selection
+    const archBasedPrescriptionTypes = [
+      'splints-guards',
+      'ortho',
+      'dentures',
+      'sleep-accessories'
+    ];
+
+    if (archBasedPrescriptionTypes.includes(prescriptionType || '')) {
+      // Calculate quantity based on arch selection
+      const upperArchTeeth = [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28];
+      const lowerArchTeeth = [31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48];
+
+      const hasUpperTeeth = selectedTeeth.some(tooth => upperArchTeeth.includes(tooth));
+      const hasLowerTeeth = selectedTeeth.some(tooth => lowerArchTeeth.includes(tooth));
+
+      if (hasUpperTeeth && hasLowerTeeth) {
+        return 2; // Both arches
+      } else if (hasUpperTeeth || hasLowerTeeth) {
+        return 1; // Single arch
+      }
+      return 1; // Default fallback
+    }
+
+    // For all other restoration types, quantity is based on number of teeth selected
     return selectedTeeth.length;
   };
 

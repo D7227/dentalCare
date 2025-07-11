@@ -17,7 +17,7 @@ interface ShadeSelectorProps {
   part?: number;
 }
 
-const shadeOptions: ShadeOption[] = [
+export const shadeOptions: ShadeOption[] = [
   { value: 'a1', label: 'A1 - Vita Classic', family: 'Vita Classic' },
   { value: 'a2', label: 'A2 - Vita Classic', family: 'Vita Classic' },
   { value: 'a3', label: 'A3 - Vita Classic', family: 'Vita Classic' },

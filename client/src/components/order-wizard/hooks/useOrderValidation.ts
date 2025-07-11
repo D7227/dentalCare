@@ -26,16 +26,41 @@ export const useOrderValidation = () => {
           if (formData.prescriptionType && !formData.subcategoryType) {
             // Check if this prescription type requires subcategory selection
             const requiresSubcategory = [
-              "fixed-restoration", 
-              "implant", 
-              "splints-guards", 
-              "ortho", 
-              "dentures", 
+              "fixed-restoration",
+              "implant",
+              "splints-guards",
+              "ortho",
+              "dentures",
               "sleep-accessories"
             ].includes(formData.prescriptionType);
-            
+
             if (requiresSubcategory) {
               errors.push("Please select a subcategory");
+            }
+          }
+
+          // Subcategory-specific validations
+          if (formData.subcategoryType) {
+            switch (formData.subcategoryType) {
+              case "implant-crown":
+              case "implant-bridge":
+              case "all-on-4":
+              case "all-on-6":
+                if (!formData.abutmentType) {
+                  errors.push(
+                    "Please select an abutment type for implant orders"
+                  );
+                }
+                break;
+              case "full-dentures":
+              case "partial-dentures":
+                // Denture-specific validations can be added here
+                break;
+              case "night-guard":
+              case "sports-guard":
+              case "tmj-splint":
+                // Splint-specific validations can be added here
+                break;
             }
           }
           break;
@@ -62,25 +87,44 @@ export const useOrderValidation = () => {
         case 5:
           // Step 5: Product Selection - validate that products are configured
           const productToothGroups = formData.toothGroups || [];
-          if (productToothGroups.length === 0) {
+          const individualTeeth = formData.selectedTeeth || [];
+
+          // Check if we have either tooth groups or individual teeth
+          if (productToothGroups.length === 0 && individualTeeth.length === 0) {
             errors.push("At least one restoration product group is required");
           } else {
             // Validate tooth groups have required product details
             const incompleteGroups = productToothGroups.filter((group: any) => {
               const allTeeth = group.teethDetails?.flat() || [];
-              // Accept 'separate' as the groupType for individual teeth
               return (
                 allTeeth.length === 0 ||
                 !allTeeth.every(
                   (t: any) =>
                     (t.selectedProducts && t.selectedProducts.length > 0) ||
-                    (t.productName && t.productName.length > 0),
+                    (t.productName && t.productName.length > 0)
                 )
               );
             });
+
+            // Validate individual teeth have products selected
+            const incompleteIndividualTeeth = individualTeeth.filter(
+              (tooth: any) => {
+                return (
+                  (!tooth.selectedProducts ||
+                    tooth.selectedProducts.length === 0) &&
+                  (!tooth.productName || tooth.productName.length === 0)
+                );
+              }
+            );
+
             if (incompleteGroups.length > 0) {
               errors.push(
-                "Please complete product selection for all tooth groups",
+                "Please complete product selection for all tooth groups"
+              );
+            }
+            if (incompleteIndividualTeeth.length > 0) {
+              errors.push(
+                "Please complete product selection for all individual teeth"
               );
             }
           }

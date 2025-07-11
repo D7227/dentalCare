@@ -25,83 +25,22 @@ import PatientInfoCard from "./components/PatientInfoCard";
 import CaseInfoCard from "./components/CaseInfoCard";
 import AccessorySelection from "./components/AccessorySelection";
 import SelectedTeethViewer from "./components/SelectedTeethViewer";
-import { Camera, Smartphone, FileText } from "lucide-react";
+import { Camera } from "lucide-react";
 import Webcam from "react-webcam";
 import { useIsMobile } from "@/hooks/use-mobile";
 import OrderTypeSection from "./components/OrderTypeSection";
 import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
-import { StlViewer } from "react-stl-viewer";
 import Combined3DPreview from "./Combined3DPreview";
+import { FormData } from "./types/orderTypes";
 
 interface NewOrderFlowProps {
   currentStep: number;
-  formData: any;
+  formData: FormData;
   setFormData: (data: any) => void;
   onAddMoreProducts?: () => void;
   onSaveOrder?: (orderData: any) => void;
   setCurrentStep?: any
 }
-
-// Function to create comprehensive order object
-export const createOrderObject = (formData: any, clinicId: string) => {
-  return {
-    // Order basic info
-    referenceId: `REF-${Date.now()}-${Math.random()
-      .toString(36)
-      .substr(2, 4)
-      .toUpperCase()}`,
-    type: formData.prescriptionType || formData.category || "crown-bridge",
-    category: formData.category || "new",
-    status: "pending",
-    priority: "standard",
-    urgency: "standard",
-    paymentStatus: "pending",
-    clinicId: clinicId,
-    patientFirstName: formData.firstName || "",
-    patientLastName: formData.lastName || "",
-    patientAge: formData.age ? parseInt(formData.age, 10) : null,
-    issueDescription: formData.issueDescription || "",
-    issueCategory: formData.issueCategory || "",
-    repairType: formData.repairType || "",
-    trialApproval: formData.trialApproval || false,
-    reapirInstructions: formData.reapirInstructions || "",
-    patientSex: formData.sex || "",
-    caseHandledBy: formData.caseHandledBy || "",
-    consultingDoctor: formData.consultingDoctor || "",
-    consultingDoctorMobile: formData.consultingDoctorMobile || "",
-    restorationType: formData.restorationType || "",
-    prescriptionType: formData.prescriptionType || "",
-    subcategoryType: formData.subcategoryType || "",
-    orderType: formData.orderType || "",
-    orderMethod: formData.orderMethod || "",
-    toothGroups: formData.toothGroups || [],
-    restorationProducts:
-      formData.restoration_products || formData.restorationProducts || [],
-    files: formData.files || [],
-    notes: formData.notes || "",
-    accessories: formData.accessories || [],
-    selectedTeeth: formData.selectedTeeth || [],
-    // Pickup/Scan Information
-    pickupDate: formData.pickupDate || "",
-    pickupTime: formData.pickupTime || "",
-    pickupRemarks: formData.pickupRemarks || "",
-    scanBooking: formData.scanBooking || {},
-    implantPhoto: formData.implantPhoto || "",
-    implantCompany: formData.implantCompany || "",
-    implantRemark: formData.implantRemark || "",
-    // Additional Details
-    selectedFileType: formData.selectedFileType || "",
-    selectedCompany: formData.selectedCompany || "",
-    expectedDeliveryDate: formData.expectedDeliveryDate || "",
-    trial: formData.trial || "",
-    shade: formData.shade || [],
-    pontic: formData.pontic || "Ridge Lap",
-    occlusalStaining: formData.occlusalStaining || "",
-    shadeGuide: formData.shadeGuide || [],
-    additionalNotes: formData.additionalNotes || "",
-    shadeNotes: formData.shadeNotes || "",
-  };
-};
 
 // Helper to build deduplicated, prioritized group list for summary
 function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
@@ -130,7 +69,7 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
     });
   // Then individual teeth
   const individualTeeth = selectedTeeth.filter(
-    (t: any) => !usedTeeth.has(t.toothNumber)
+    (t: any) => !usedTeeth.has(t.toothNumber),
   );
   if (individualTeeth.length > 0) {
     summaryGroups.push({
@@ -308,6 +247,7 @@ const NewOrderFlow = ({
   setFormData,
   onAddMoreProducts,
   onSaveOrder,
+  setCurrentStep
 }: NewOrderFlowProps) => {
   const [companies, setCompanies] = useState<
     Array<{ id: string; name: string }>
@@ -344,18 +284,6 @@ const NewOrderFlow = ({
 
     fetchCompanies();
   }, []);
-
-  useEffect(() => {
-    if (viewerRef.current) {
-      // Type assertion to fix TS error: Property 'querySelector' does not exist on type 'never'
-      const viewerElement = viewerRef.current as HTMLElement;
-      const canvas = viewerElement.querySelector('canvas');
-      if (canvas) {
-        canvas.style.height = '400px';
-        canvas.style.width = '400px';
-      }
-    }
-  }, [formData.intraOralScans]);
 
   // Step 1: Patient & Case Information
   if (currentStep === 1) {
@@ -406,40 +334,9 @@ const NewOrderFlow = ({
 
   // Step 4: Teeth Selection
   if (currentStep === 4) {
-    if (isMobile) {
-      return (
-        <div className="flex flex-col gap-4">
-          <Card className="border-none p-0">
-            <CardHeader className="p-0">
-              <CardTitle className="text-lg font-semibold">
-                Teeth Selection
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Select the teeth for your restoration
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 mt-4">
-              <ToothSelector
-                prescriptionType={formData.prescriptionType}
-                selectedGroups={formData.toothGroups || []}
-                selectedTeeth={formData.selectedTeeth || []}
-                onSelectionChange={(groups, teeth) =>
-                  setFormData({
-                    ...formData,
-                    toothGroups: groups,
-                    selectedTeeth: teeth,
-                  })
-                }
-              />
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-    // Desktop: side-by-side layout
     return (
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
-        <Card className="border-none p-0">
+        <Card className="border-none p-0 bg-transparent">
           <CardHeader className="p-0">
             <CardTitle className="text-lg sm:text-xl font-semibold">
               Teeth Selection
@@ -450,9 +347,9 @@ const NewOrderFlow = ({
           </CardHeader>
           <CardContent className="p-0 mt-4">
             <ToothSelector
-              prescriptionType={formData.prescriptionType}
-              selectedGroups={formData.toothGroups || []}
-              selectedTeeth={formData.selectedTeeth || []}
+              prescriptionType={formData?.prescriptionType}
+              selectedGroups={formData?.toothGroups || []}
+              selectedTeeth={formData?.selectedTeeth || []}
               onSelectionChange={(groups, teeth) =>
                 setFormData({
                   ...formData,
@@ -460,6 +357,8 @@ const NewOrderFlow = ({
                   selectedTeeth: teeth,
                 })
               }
+              subcategoryType={formData?.subcategoryType}
+              formData={formData}
             />
           </CardContent>
         </Card>
@@ -471,7 +370,7 @@ const NewOrderFlow = ({
   if (currentStep === 5) {
     return (
       <div className="space-y-4 sm:space-y-6">
-        <Card className="border-none p-0">
+        <Card className="border-none p-0 bg-transparent">
           <div className="p-0 mt-4">
             <ProductSelection
               formData={formData}
@@ -592,161 +491,26 @@ const NewOrderFlow = ({
                   }}
                 >
                   {(formData.intraOralScans || []).length > 0 ? (
-  <Combined3DPreview files={formData.intraOralScans} />
-) : (
-  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-    No STL/PLY file selected
-  </div>
-)}
+                    <Combined3DPreview files={formData.intraOralScans} />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                      No STL/PLY file selected
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg sm:text-xl font-semibold">
-              Impression Handling
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-base">
-              Select how you want to handle impressions
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4">
-            <div>
-              <Label>Handling Type</Label>
-              <RadioGroup
-                value={formData.orderType}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    orderType: value,
-                  })
-                }
-                className="mt-2"
-              >
-                <div className="flex flex-col items-start gap-2">
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem
-                      value="pickup-from-lab"
-                      id="pickup-from-lab"
-                    />
-                    <Label htmlFor="pickup-from-lab">Pickup from Clinic</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem
-                      value="send-by-courier"
-                      id="send-by-courier"
-                    />
-                    <Label htmlFor="send-by-courier">Send by Courier</Label>
-                  </div>
-                </div>
-              </RadioGroup>
-            </div>
-            {formData.orderType === "pickup-from-lab" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <Label htmlFor="pickupDate">Pickup Date</Label>
-                  <Input
-                    id="pickupDate"
-                    type="date"
-                    value={formData.pickupDate}
-                    min={new Date().toISOString().split("T")[0]}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pickupDate: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pickupTime">Pickup Time</Label>
-                  <Input
-                    id="pickupTime"
-                    type="time"
-                    value={formData.pickupTime}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pickupTime: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label htmlFor="pickupRemarks">Pickup Remarks</Label>
-                  <Textarea
-                    id="pickupRemarks"
-                    value={formData.pickupRemarks}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        pickupRemarks: e.target.value,
-                      })
-                    }
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-              </div>
-            )}
-            {formData.orderType === "send-by-courier" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <Label htmlFor="courierName">Courier Name</Label>
-                  <Input
-                    id="courierName"
-                    type="text"
-                    placeholder="Search courier name..."
-                    value={formData.scanBooking?.courierName || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        scanBooking: {
-                          ...formData.scanBooking,
-                          courierName: e.target.value,
-                        },
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="trackingId">Tracking ID</Label>
-                  <Input
-                    id="trackingId"
-                    type="text"
-                    placeholder="Enter tracking ID..."
-                    value={formData.scanBooking?.trackingId || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        scanBooking: {
-                          ...formData.scanBooking,
-                          trackingId: e.target.value,
-                        },
-                      })
-                    }
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          </CardContent >
+        </Card >
         <AccessorySelection formData={formData} setFormData={setFormData} />
-      </div>
+      </div >
     );
   }
-
   // Step 7: Final Details & Accessories
   if (currentStep === 7) {
     const summaryGroups = buildSummaryGroups(
       formData.toothGroups || [],
-      formData.selectedTeeth || []
+      formData.selectedTeeth || [],
     );
     return (
       <div className="space-y-4 sm:space-y-6">

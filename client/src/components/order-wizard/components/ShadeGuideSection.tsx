@@ -1,13 +1,8 @@
 import React, { useState } from "react";
-import { ToothGroup } from "../types/tooth";
 import ShadeSelectModal from "./ShadeSelectModal";
 import { AnteriorSVG, PosteriorSVG } from "@/assets/svg";
 import { X, CheckCircle } from "lucide-react";
-
-export interface ShadeGuide {
-  type: "anterior" | "posterior";
-  shades: string[];
-}
+import { ShadeGuide, ToothGroup } from "../types/orderTypes";
 
 interface ShadeGuideSectionProps {
   selectedGroups: ToothGroup[];

@@ -42,7 +42,7 @@ export const PonticSelector: React.FC<PonticSelectorProps> = ({ value, onChange,
     }
 
     return (
-        <div className="flex gap-4 justify-around items-center">
+        <div className="flex gap-4 justify-between items-center">
             {ponticOptions.map((option) => (
                 <div className='flex flex-col items-center justify-start gap-2' key={option.key}>
                     <button

@@ -7,7 +7,7 @@ import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import OrderCategoryStep from '@/components/order-wizard/OrderCategoryStep';
-import NewOrderFlow, { createOrderObject } from '@/components/order-wizard/NewOrderFlow';
+import NewOrderFlow from '@/components/order-wizard/NewOrderFlow';
 import RepeatOrderFlow from '@/components/order-wizard/RepeatOrderFlow';
 import RepairOrderFlow from '@/components/order-wizard/RepairOrderFlow';
 import AccessoryTagging from '@/components/order-wizard/AccessoryTagging';
@@ -20,6 +20,7 @@ import CustomButton from '@/components/common/customButtom';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setUser } from '@/store/slices/authSlice';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { createOrderObject } from '@/utils/orderHelper';
 
 interface ToothGroup {
   groupId: string;
@@ -75,18 +76,29 @@ const PlaceOrder = () => {
 
   const [formData, setFormData] = useState<FormData>({
     category: null,
+    type: 'new',
+    firstName: 'asdf',
+    lastName: 'asdf',
+    age: '',
+    sex: '',
     prescriptionType: '',
     orderType: '',
-    orderMethod: '',
+    orderMethod: 'digital',
     selectedFileType: '',
-    caseHandledBy: '',
+    caseHandledBy: "Dr. Sarah Chen",
     doctorMobile: '',
     consultingDoctor: '',
     consultingDoctorMobile: '',
-    firstName: '',
-    lastName: '',
-    age: '',
-    sex: '',
+    abutmentDetails: {
+      abutmentType: '',
+      quantity: 0,
+      product: [
+        {
+          name: '',
+          provider: ''
+        }
+      ],
+    },
     restorationType: '',
     productSelection: '',
     toothGroups: [],
@@ -118,7 +130,6 @@ const PlaceOrder = () => {
     repairType: '',
     issueDescription: '',
     returnWithTrial: false,
-    type: 'new',
     teethEditedByUser: false,
   });
 

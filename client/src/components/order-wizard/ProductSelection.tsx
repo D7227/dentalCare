@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -8,16 +8,20 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductSearch from "./ProductSearch";
-import ShadeSelector, { ShadeOption } from "./ShadeSelector";
+import ShadeSelector, {  shadeOptions } from "./ShadeSelector";
 import FormField from "@/components/shared/FormField";
 import TrialSelector from "./components/TrialSelector";
-import ShadeGuideSection, { ShadeGuide } from "./components/ShadeGuideSection";
+import ShadeGuideSection from "./components/ShadeGuideSection";
 import { CheckCircle, Plus, Pencil } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import BaseModal from "@/components/shared/BaseModal";
 import PonticSelector from "./components/ponticSelector";
 import React from "react";
+import { Product, ShadeGuide } from "./types/orderTypes";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import EditProductModel from "./components/EditProductModel";
+import ImplantTypeSelector, { ImplantSelectionsState } from "./components/ImplantTypeSelector";
 
 interface ProductSelectionProps {
   formData: any;
@@ -25,16 +29,8 @@ interface ProductSelectionProps {
   onAddMoreProducts?: () => void;
 }
 
-interface SelectedProduct {
-  id: string;
-  name: string;
-  category: string;
-  material: string;
-  description: string;
-  quantity: number;
-}
-
-interface ProductDetails {
+// Define ProductDetails type for local state (not in orderTypes.ts)
+type ProductDetails = {
   shade: string[];
   occlusalStaining: string;
   ponticDesign: string;
@@ -44,28 +40,44 @@ interface ProductDetails {
   additionalNotes?: string;
   shadeGuide?: ShadeGuide | null;
   productName: string[];
+};
+
+// Helper type for compatibility with ProductSearch
+type SelectedProduct = Omit<Product, 'category'> & { category: string; quantity: number };
+
+// Convert Product[] to SelectedProduct[] (default quantity 1 if missing)
+function toSelectedProducts(products: Product[]): SelectedProduct[] {
+  return products.map((p: Product) => ({ ...p, category: String(p.category), quantity: p.quantity ?? 1 }));
 }
 
-const shadeOptions: ShadeOption[] = [
-  { value: "a1", label: "A1 - Vita Classic", family: "Vita Classic" },
-  { value: "a2", label: "A2 - Vita Classic", family: "Vita Classic" },
-  { value: "a3", label: "A3 - Vita Classic", family: "Vita Classic" },
-  { value: "a3.5", label: "A3.5 - Vita Classic", family: "Vita Classic" },
-  { value: "b1", label: "B1 - Vita Classic", family: "Vita Classic" },
-  { value: "b2", label: "B2 - Vita Classic", family: "Vita Classic" },
-  { value: "b3", label: "B3 - Vita Classic", family: "Vita Classic" },
-  { value: "c1", label: "C1 - Vita Classic", family: "Vita Classic" },
-  { value: "c2", label: "C2 - Vita Classic", family: "Vita Classic" },
-  { value: "d2", label: "D2 - Vita Classic", family: "Vita Classic" },
-  { value: "1m1", label: "1M1 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "1m2", label: "1M2 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "2l1.5", label: "2L1.5 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "2l2.5", label: "2L2.5 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "2m1", label: "2M1 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "2m2", label: "2M2 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "3m1", label: "3M1 - Vita 3D Master", family: "Vita 3D Master" },
-  { value: "3m2", label: "3M2 - Vita 3D Master", family: "Vita 3D Master" },
-];
+// Convert SelectedProduct[] to Product[] (strip quantity, cast category back to PrescriptionType)
+function toProducts(selected: SelectedProduct[]): Product[] {
+  return selected.map(({ quantity, category, ...rest }) => ({ ...rest, category: category as import("./types/orderTypes").PrescriptionType, quantity }));
+}
+
+// SafeImagePreview: Safely renders an image from a File or string URL
+function SafeImagePreview({ fileOrUrl, ...props }: { fileOrUrl: File | string, [key: string]: any }) {
+  const url = useMemo(() => {
+    if (fileOrUrl instanceof File) {
+      return URL.createObjectURL(fileOrUrl);
+    }
+    if (typeof fileOrUrl === "string") {
+      return fileOrUrl;
+    }
+    return null;
+  }, [fileOrUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (fileOrUrl instanceof File && url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [fileOrUrl, url]);
+
+  if (!url) return null;
+  return <img src={url} {...props} />;
+}
 
 const ProductSelection = ({
   formData,
@@ -73,9 +85,7 @@ const ProductSelection = ({
   onAddMoreProducts,
 }: ProductSelectionProps) => {
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
-    [],
-  );
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [productDetails, setProductDetails] = useState<ProductDetails>({
     shade: [],
     occlusalStaining: "medium",
@@ -101,7 +111,7 @@ const ProductSelection = ({
   const { toast } = useToast();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [modalSelectedProducts, setModalSelectedProducts] = useState<
-    SelectedProduct[]
+    Product[]
   >([]);
 
   // --- 1. Add edit modal state for group/field ---
@@ -112,6 +122,7 @@ const ProductSelection = ({
   const [editFieldValue, setEditFieldValue] = useState<any>("");
 
   const isMobile = useIsMobile();
+  const [providerPopupOpen, setProviderPopupOpen] = useState(false);
 
   console.log(" %c formData", "background: #FF0000; color: white;", formData);
 
@@ -150,7 +161,7 @@ const ProductSelection = ({
       .map((t: any) => ({
         ...t,
         selectedProducts: t.selectedProducts || [],
-        productDetails: t.productDetails || {},
+        // productDetails: t.productDetails || {},
       }))
       .filter((t: any) => !groupedTeeth.has(t.toothNumber));
 
@@ -410,7 +421,19 @@ const ProductSelection = ({
                   occlusalStaining: occlusalStaining,
                   productDetails: {
                     ...tooth.productDetails,
-                    ...productDetailsWithoutExtras,
+                    quantity: (() => {
+                      const singleUnitPrescriptionTypes = [
+                        "splints-guards",
+                        "ortho",
+                        "dentures",
+                        "sleep-accessories",
+                      ];
+                      return singleUnitPrescriptionTypes.includes(
+                        formData.prescriptionType || "",
+                      )
+                        ? 1
+                        : selectedTeethForProducts.length || 1;
+                    })(),
                     shade:
                       productDetails.shade[0] ||
                       tooth.productDetails?.shade ||
@@ -460,6 +483,46 @@ const ProductSelection = ({
                       occlusalStaining: occlusalStaining,
                       productDetails: {
                         ...productDetailsWithoutExtras,
+                        quantity: (() => {
+                          const archBasedPrescriptionTypes = [
+                            "splints-guards",
+                            "ortho",
+                            "dentures",
+                            "sleep-accessories",
+                          ];
+
+                          if (
+                            archBasedPrescriptionTypes.includes(
+                              formData.prescriptionType || "",
+                            )
+                          ) {
+                            // Calculate quantity based on arch selection for editing teeth
+                            const upperArchTeeth = [
+                              11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
+                              25, 26, 27, 28,
+                            ];
+                            const lowerArchTeeth = [
+                              31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
+                              45, 46, 47, 48,
+                            ];
+
+                            const hasUpperTeeth = editingTeethNumbers.some(
+                              (tooth) => upperArchTeeth.includes(tooth),
+                            );
+                            const hasLowerTeeth = editingTeethNumbers.some(
+                              (tooth) => lowerArchTeeth.includes(tooth),
+                            );
+
+                            if (hasUpperTeeth && hasLowerTeeth) {
+                              return 2; // Both arches
+                            } else if (hasUpperTeeth || hasLowerTeeth) {
+                              return 1; // Single arch
+                            }
+                            return 1; // Default fallback
+                          }
+
+                          return editingTeethNumbers.length || 1;
+                        })(),
                         shade: productDetails.shade[0] || "",
                         productName: selectedProducts.map((p: any) => p.name),
                         shadeGuide: shadeGuide,
@@ -487,7 +550,7 @@ const ProductSelection = ({
           updatedGroups = updatedGroups.map((group: any) => {
             if (
               (group.prescriptionType || formData.prescriptionType) ===
-                typeToEdit &&
+              typeToEdit &&
               (group.groupType === "joint" ||
                 group.groupType === "bridge" ||
                 group.groupType === "implant")
@@ -507,6 +570,46 @@ const ProductSelection = ({
                       occlusalStaining: occlusalStaining,
                       productDetails: {
                         ...productDetailsWithoutExtras,
+                        quantity: (() => {
+                          const archBasedPrescriptionTypes = [
+                            "splints-guards",
+                            "ortho",
+                            "dentures",
+                            "sleep-accessories",
+                          ];
+
+                          if (
+                            archBasedPrescriptionTypes.includes(
+                              formData.prescriptionType || "",
+                            )
+                          ) {
+                            // Calculate quantity based on arch selection for editing teeth
+                            const upperArchTeeth = [
+                              11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
+                              25, 26, 27, 28,
+                            ];
+                            const lowerArchTeeth = [
+                              31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
+                              45, 46, 47, 48,
+                            ];
+
+                            const hasUpperTeeth = editingTeethNumbers.some(
+                              (tooth) => upperArchTeeth.includes(tooth),
+                            );
+                            const hasLowerTeeth = editingTeethNumbers.some(
+                              (tooth) => lowerArchTeeth.includes(tooth),
+                            );
+
+                            if (hasUpperTeeth && hasLowerTeeth) {
+                              return 2; // Both arches
+                            } else if (hasUpperTeeth || hasLowerTeeth) {
+                              return 1; // Single arch
+                            }
+                            return 1; // Default fallback
+                          }
+
+                          return editingTeethNumbers.length || 1;
+                        })(),
                         shade: productDetails.shade[0] || "",
                         productName: selectedProducts.map((p: any) => p.name),
                         shadeGuide: shadeGuide,
@@ -537,19 +640,19 @@ const ProductSelection = ({
                 ...tooth,
                 selectedProducts: [...selectedProducts],
                 productName: selectedProducts.map((p: any) => p.name),
-                shadeGuide: shadeGuide,
-                shadeNotes: shadeNotes,
-                trialRequirements: trial,
-                occlusalStaining: occlusalStaining,
-                productDetails: {
-                  ...productDetailsWithoutExtras,
-                  shade: productDetails.shade[0] || "",
-                  productName: selectedProducts.map((p: any) => p.name),
-                  shadeGuide: shadeGuide,
-                  shadeNotes: shadeNotes,
-                  trial: trial,
-                  occlusalStaining: occlusalStaining,
-                },
+                // shadeGuide: shadeGuide,
+                // shadeNotes: shadeNotes,
+                // trialRequirements: trial,
+                // occlusalStaining: occlusalStaining,
+                // productDetails: {
+                //   ...productDetailsWithoutExtras,
+                //   shade: productDetails.shade[0] || "",
+                //   productName: selectedProducts.map((p: any) => p.name),
+                //   shadeGuide: shadeGuide,
+                //   shadeNotes: shadeNotes,
+                //   trial: trial,
+                //   occlusalStaining: occlusalStaining,
+                // },
               };
             }
             // Otherwise, leave the tooth unchanged
@@ -832,11 +935,19 @@ const ProductSelection = ({
     }));
   };
 
+  // const renderHeadetr
+
+  // Add implantSelections state
+  const [implantSelections, setImplantSelections] = useState<ImplantSelectionsState>({
+    retentionType: null,
+    abutmentType: null,
+  });
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-transparent">
       {renderableGroups.length > 0 ? (
         <>
-          {/* Completion Status */}
+          {/* Completion Status, in summart part Heading */}
           {allGroupsConfigured && (
             <Card className="border border-green-200 bg-green-50">
               <CardContent className="p-4">
@@ -881,9 +992,9 @@ const ProductSelection = ({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-1 ${type === "implant" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"} text-xs rounded-full font-medium`}
+                          className={`px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium capitalize`}
                         >
-                          {type === "implant" ? "Implant" : "Crown & Bridge"}
+                          {type}
                         </span>
                       </div>
                       {/* Edit button for all groups at once (per type) */}
@@ -901,72 +1012,7 @@ const ProductSelection = ({
                         >
                           <Plus className="w-4 h-4" />
                         </button>
-                        {/* <button
-                          type="button"
-                          className="p-1 text-gray-400 hover:text-blue-600"
-                          onClick={() => {
-                            if (isConfiguring && editingGroupIndex === idx) {
-                              setIsConfiguring(false);
-                              setEditingGroupIndex(null);
-                              return;
-                            }
-                            setIsConfiguring(false);
-                            setTimeout(() => {
-                              setEditingGroupIndex(idx);
-                              setIsConfiguring(true);
-                              // Calculate actual product quantities based on tooth count for each unique product
-                              const productQuantityMap: Record<string, { product: any; count: number }> = {};
-                              groups[idx].teethDetails?.flat().forEach((tooth: any) => {
-                                if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
-                                  tooth.selectedProducts.forEach((product: any) => {
-                                    if (productQuantityMap[product.id]) {
-                                      productQuantityMap[product.id].count += 1;
-                                    } else {
-                                      productQuantityMap[product.id] = {
-                                        product: { ...product },
-                                        count: 1,
-                                      };
-                                    }
-                                  });
-                                }
-                              });
-                              const productsWithCorrectQuantities = Object.values(productQuantityMap).map((item) => ({
-                                ...item.product,
-                                quantity: item.count,
-                              }));
-                              // Use first tooth's product details for editing
-                              const firstTooth = groups[idx]?.teethDetails?.flat()[0];
-                              setSelectedProducts(productsWithCorrectQuantities);
-                              setProductDetails({
-                                shade: firstTooth?.productDetails?.shade ? [firstTooth.productDetails.shade] : [],
-                                occlusalStaining: firstTooth?.productDetails?.occlusalStaining || "medium",
-                                ponticDesign: firstTooth?.productDetails?.ponticDesign || "",
-                                notes: firstTooth?.productDetails?.notes || "",
-                                trial: firstTooth?.productDetails?.trial || "",
-                                shadeNotes: firstTooth?.productDetails?.shadeNotes || "",
-                                additionalNotes: firstTooth?.productDetails?.additionalNotes || "",
-                                shadeGuide: (firstTooth?.productDetails?.shadeGuide ?? firstTooth?.shadeGuide) || null,
-                                productName: firstTooth?.productDetails?.productName || [],
-                              });
-                            }, 0);
-                          }}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button> */}
-                        <button
-                          type="button"
-                          className="p-1 text-gray-400 hover:text-green-600"
-                          onClick={() => {
-                            toast({
-                              title: "Group already configured",
-                              description:
-                                "This group has already been configured. You can edit it using the pencil icon.",
-                            });
-                          }}
-                          aria-label="Group already configured"
-                        >
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        </button>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1000,6 +1046,59 @@ const ProductSelection = ({
                             },
                           )}
                         </div>
+
+                        {/* Show implant details if this is an implant prescription */}
+                        {type === "implant" && (
+                          <div className="mt-3">
+                            <p className="font-medium text-gray-900 mb-2">
+                              Implant Details:
+                            </p>
+                            <Accordion type="multiple" className="w-full ">
+                              {groups
+                                .flatMap((g: any) => g.teethDetails?.flat() || [])
+                                .filter((tooth: any) => tooth.implantDetails)
+                                .map((tooth: any, idx: number) => (
+                                  <AccordionItem key={idx} value={`tooth-${tooth.toothNumber || tooth.teethNumber}`} className="border-none mb-2">
+                                    <AccordionTrigger className="p-0 text-sm font-normal border border-gray-400 px-2 py-1 rounded-sm">
+                                      Tooth {tooth.toothNumber || tooth.teethNumber}
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                      <div className="border rounded-md p-2 bg-gray-50 mb-2 flex flex-col gap-2">
+                                        {tooth.implantDetails?.companyName && (
+                                          <div className="flex gap-2 items-baseline">
+                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Company:</span>
+                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.companyName}</span>
+                                          </div>
+                                        )}
+                                        {tooth.implantDetails?.systemName && (
+                                          <div className="flex gap-2 items-baseline">
+                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">System:</span>
+                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.systemName}</span>
+                                          </div>
+                                        )}
+                                        {tooth.implantDetails?.remarks && (
+                                          <div className="flex gap-2 items-baseline">
+                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Remarks:</span>
+                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.remarks}</span>
+                                          </div>
+                                        )}
+                                        {tooth.implantDetails?.photo && (
+                                          <div className="flex flex-col gap-1">
+                                            <span className="font-semibold text-sm text-gray-800">Photo:</span>
+                                            <SafeImagePreview
+                                              fileOrUrl={tooth.implantDetails.photo}
+                                              alt="Implant Photo"
+                                              className="w-28 h-28 object-cover rounded border border-gray-300 bg-white"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                ))}
+                            </Accordion>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -1023,7 +1122,7 @@ const ProductSelection = ({
                                       className="w-3 h-3 rounded border-gray-300"
                                       checked={
                                         selectedTeethForProducts.length ===
-                                          allTeethFromType.length &&
+                                        allTeethFromType.length &&
                                         allTeethFromType.every((tooth) =>
                                           selectedTeethForProducts.includes(
                                             tooth,
@@ -1172,7 +1271,7 @@ const ProductSelection = ({
                             <Pencil className="w-4 h-4" />
                           </button>
                         </p>
-                        <p className="text-gray-600 uppercase">
+                        <p className="text-gray-600">
                           {group?.shadeDetails ? (
                             group.shadeDetails
                           ) : (
@@ -1193,7 +1292,6 @@ const ProductSelection = ({
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 mb-1 flex items-center">
-                          {" "}
                           Occlusal Staining:
                           <button
                             type="button"
@@ -1304,9 +1402,9 @@ const ProductSelection = ({
                     <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
                       <div>
                         {group?.shadeGuide &&
-                        group.shadeGuide.type &&
-                        group.shadeGuide.shades &&
-                        group.shadeGuide.shades.length > 0 ? (
+                          group.shadeGuide.type &&
+                          group.shadeGuide.shades &&
+                          group.shadeGuide.shades.length > 0 ? (
                           <>
                             <p className="font-medium text-gray-900 mb-1 flex items-center">
                               Shade Guide:
@@ -1506,32 +1604,40 @@ const ProductSelection = ({
                         </div>
                       </div>
                     </div>
-                    {/* Product Quantities Summary */}
-                    {getProductQuantities().length > 0 && (
-                      <div className="mt-4">
-                        <h6 className="text-sm font-semibold mb-2">
-                          Product Quantities
-                        </h6>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="font-medium">Product</div>
-                          <div className="font-medium">Quantity</div>
-                          {getProductQuantities().map((item) => (
-                            <React.Fragment key={item.name}>
-                              <div>{item.name}</div>
-                              <div>X {item.quantity}</div>
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
             })}
 
+          {/* Product Quantities Summary */}
+          {getProductQuantities().length > 0 && (
+            <Card className="border border-gray-200 bg-gray-50">
+              <CardContent className="p-4">
+                <h6 className="text-sm font-semibold mb-3 text-gray-900">
+                  Product Quantities
+                </h6>
+                <div className="space-y-2">
+                  {getProductQuantities().map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between p-2 bg-white rounded border border-gray-100"
+                    >
+                      <span className="text-sm font-medium text-gray-700">
+                        {item.name}
+                      </span>
+                      <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        X {item.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Tooth Groups Summary for unconfigured groups */}
           {unconfiguredGroups.length > 0 && (
-            <Card className="border-none p-0">
+            <Card className="border-none p-0 bg-transparent">
               <CardHeader className="pb-3 p-0">
                 <CardTitle className="text-lg">Product Selection</CardTitle>
                 <CardDescription>
@@ -1590,172 +1696,186 @@ const ProductSelection = ({
 
           {/* Single Product Configuration Box - Only show if there are unconfigured groups */}
           {isConfiguring && (
-            <Card className="border-none p-0">
+            <Card className="border-none p-0 bg-transparent">
               <CardContent className="p-0">
                 <div className="space-y-4">
-                  {/* Product Selection */}
-                  <ProductSearch
-                    selectedProducts={selectedProducts}
-                    onProductsChange={setSelectedProducts}
-                    selectedTeeth={
-                      isAddingProductForSelectedTeeth
-                        ? selectedTeethForProducts
-                        : editingTeethNumbers
-                    }
-                    restorationType="separate"
-                    prescriptionType={formData.prescriptionType}
-                    subcategoryType={formData.subcategoryType}
-                  />
-
-                  {/* Product Details Form */}
-                  {selectedProducts.length > 0 && (
-                    <div className="mt-4 p-4 bg-[#EFF9F7] rounded-lg space-y-4">
-                      <h5 className="text-sm font-medium text-gray-900">
-                        Shade Details
-                      </h5>
-
-                      {/* Shade Selection */}
-                      <ShadeSelector
-                        value={
-                          shadeOptions.find(
-                            (opt) => opt.label === productDetails.shade[0],
-                          ) || null
+                  {/* Abutment Type Selection - Only show for implant prescription type */}
+                  {formData.prescriptionType === "implant" && (
+                    <ImplantTypeSelector
+                      formData={formData}
+                      setFormData={setFormData}
+                      editingTeethNumbers={editingTeethNumbers}
+                      implantSelections={implantSelections}
+                      setImplantSelections={setImplantSelections}
+                      onProviderPopupOpen={setProviderPopupOpen}
+                    />
+                  )}
+                  {/* Only show ProductSearch and config UI if provider popup is NOT open */}
+                  {!providerPopupOpen && (
+                    <>
+                      <ProductSearch
+                        selectedProducts={toSelectedProducts(selectedProducts)}
+                        onProductsChange={(products) => setSelectedProducts(toProducts(products))}
+                        selectedTeeth={
+                          isAddingProductForSelectedTeeth
+                            ? selectedTeethForProducts
+                            : editingTeethNumbers
                         }
-                        onValueChange={(value) =>
-                          handleProductDetailsChange("shade", value)
-                        }
-                        label="Shade"
-                        placeholder="Select Shade"
+                        restorationType="separate"
+                        prescriptionType={formData.prescriptionType}
+                        subcategoryType={formData.subcategoryType}
                       />
+                      {/* Product Details Form */}
+                      {selectedProducts.length > 0 && (
+                        <div className="mt-4 space-y-4">
+                          <h5 className="text-sm font-medium text-gray-900">
+                            Shade Details
+                          </h5>
 
-                      {/* Occlusal Staining */}
-                      <FormField
-                        id="occlusalStaining"
-                        label="Occlusal Staining"
-                        type="select"
-                        value={productDetails.occlusalStaining}
-                        onChange={(value) =>
-                          handleProductDetailsChange("occlusalStaining", value)
-                        }
-                        options={[
-                          { value: "light", label: "Light" },
-                          { value: "medium", label: "Medium" },
-                          { value: "heavy", label: "Heavy" },
-                        ]}
-                      />
+                          {/* Shade Selection */}
+                          <ShadeSelector
+                            value={
+                              shadeOptions.find(
+                                (opt) => opt.label === productDetails.shade[0],
+                              ) || null
+                            }
+                            onValueChange={(value) =>
+                              handleProductDetailsChange("shade", value)
+                            }
+                            label="Shade"
+                            placeholder="Select Shade"
+                          />
 
-                      <div className="border-t pt-4">
-                        <h6 className="text-sm font-medium text-gray-900 mb-3">
-                          Select Pontic
-                        </h6>
-                        <PonticSelector
-                          value={productDetails.ponticDesign}
-                          onChange={(val) =>
-                            handleProductDetailsChange("ponticDesign", val)
-                          }
-                        />
-                      </div>
+                          {/* Occlusal Staining */}
+                          <FormField
+                            id="occlusalStaining"
+                            label="Occlusal Staining"
+                            type="select"
+                            value={productDetails.occlusalStaining}
+                            onChange={(value) =>
+                              handleProductDetailsChange("occlusalStaining", value)
+                            }
+                            options={[
+                              { value: "light", label: "Light" },
+                              { value: "medium", label: "Medium" },
+                              { value: "heavy", label: "Heavy" },
+                            ]}
+                          />
 
-                      {/* Shade Guide Section */}
-                      <div className="border-t pt-4">
-                        <h6 className="text-sm font-medium text-gray-900 mb-3">
-                          Shade Guide
-                        </h6>
-                        <ShadeGuideSection
-                          selectedGroups={[]}
-                          onShadeGuideChange={(guide) =>
-                            handleProductDetailsChange("shadeGuide", guide)
-                          }
-                          selectedGuide={productDetails.shadeGuide || null}
-                        />
-                        {/* Show current value if present */}
-                        {productDetails.shadeGuide &&
-                          productDetails.shadeGuide.type &&
-                          productDetails.shadeGuide.shades &&
-                          productDetails.shadeGuide.shades.length > 0 && (
-                            <div className="mt-2 text-xs text-gray-700">
-                              <span className="font-semibold">
-                                {productDetails.shadeGuide.type === "anterior"
-                                  ? "Anterior"
-                                  : "Posterior"}
-                                :
-                              </span>
-                              {productDetails.shadeGuide.shades.map(
-                                (shade, idx) => (
-                                  <span key={idx} className="ml-2">
-                                    {shade}
+                          <div className="border-t pt-4">
+                            <h6 className="text-sm font-medium text-gray-900 mb-3">
+                              Select Pontic
+                            </h6>
+                            <PonticSelector
+                              value={productDetails.ponticDesign}
+                              onChange={(val) =>
+                                handleProductDetailsChange("ponticDesign", val)
+                              }
+                            />
+                          </div>
+
+                          {/* Shade Guide Section */}
+                          <div className="border-t pt-4">
+                            <h6 className="text-sm font-medium text-gray-900 mb-3">
+                              Shade Guide
+                            </h6>
+                            <ShadeGuideSection
+                              selectedGroups={[]}
+                              onShadeGuideChange={(guide) =>
+                                handleProductDetailsChange("shadeGuide", guide)
+                              }
+                              selectedGuide={productDetails.shadeGuide || null}
+                            />
+                            {/* Show current value if present */}
+                            {productDetails.shadeGuide &&
+                              productDetails.shadeGuide.type &&
+                              productDetails.shadeGuide.shades &&
+                              productDetails.shadeGuide.shades.length > 0 && (
+                                <div className="mt-2 text-xs text-gray-700">
+                                  <span className="font-semibold">
+                                    {productDetails.shadeGuide.type === "anterior"
+                                      ? "Anterior"
+                                      : "Posterior"}
+                                    :
                                   </span>
-                                ),
+                                  {productDetails.shadeGuide.shades.map(
+                                    (shade, idx) => (
+                                      <span key={idx} className="ml-2">
+                                        {shade}
+                                      </span>
+                                    ),
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          )}
-                      </div>
+                          </div>
 
-                      {/* Additional Notes */}
-                      <FormField
-                        id="shadeNotes"
-                        label="Shade Notes"
-                        type="textarea"
-                        value={productDetails.shadeNotes || ""}
-                        onChange={(value) =>
-                          setProductDetails((prev) => ({
-                            ...prev,
-                            shadeNotes: value,
-                          }))
-                        }
-                        placeholder="Any special instructions for shade..."
-                        rows={2}
-                      />
-
-                      {/* Trial Requirements */}
-                      <TrialSelector
-                        productType={
-                          formData.prescriptionType === "implant"
-                            ? "implant"
-                            : "crown-bridge"
-                        }
-                        selectedTrials={[productDetails.trial]}
-                        onTrialsChange={handleTrialsChange}
-                      />
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 justify-end  flex-col sm:flex-row ">
-                        {isMobile && (
-                          <Button
-                            type="button"
-                            onClick={saveConfiguration}
-                            className="bg-[#11AB93] hover:bg-[#0F9A82] text-white w-full sm:w-min px-4 py-3"
-                            disabled={
-                              !productDetails.shade.length ||
-                              selectedProducts.length === 0
+                          {/* Additional Notes */}
+                          <FormField
+                            id="shadeNotes"
+                            label="Shade Notes"
+                            type="textarea"
+                            value={productDetails.shadeNotes || ""}
+                            onChange={(value) =>
+                              setProductDetails((prev) => ({
+                                ...prev,
+                                shadeNotes: value,
+                              }))
                             }
-                          >
-                            Save Configuration
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          onClick={cancelConfiguring}
-                          variant="outline"
-                          className="w-full sm:w-min"
-                        >
-                          Cancel
-                        </Button>
-                        {!isMobile && (
-                          <Button
-                            type="button"
-                            onClick={saveConfiguration}
-                            className="bg-[#11AB93] hover:bg-[#0F9A82] text-white w-full sm:w-min px-4 py-3"
-                            disabled={
-                              !productDetails.shade.length ||
-                              selectedProducts.length === 0
+                            placeholder="Any special instructions for shade..."
+                            rows={2}
+                          />
+
+                          {/* Trial Requirements */}
+                          <TrialSelector
+                            productType={
+                              formData.prescriptionType === "implant"
+                                ? "implant"
+                                : "crown-bridge"
                             }
-                          >
-                            Save Configuration
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                            selectedTrials={[productDetails.trial]}
+                            onTrialsChange={handleTrialsChange}
+                          />
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 justify-end  flex-col sm:flex-row ">
+                            {isMobile && (
+                              <Button
+                                type="button"
+                                onClick={saveConfiguration}
+                                className="bg-[#11AB93] hover:bg-[#0F9A82] text-white w-full sm:w-min px-4 py-3"
+                                disabled={
+                                  !productDetails.shade.length ||
+                                  selectedProducts.length === 0
+                                }
+                              >
+                                Save Configuration
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              onClick={cancelConfiguring}
+                              variant="outline"
+                              className="w-full sm:w-min"
+                            >
+                              Cancel
+                            </Button>
+                            {!isMobile && (
+                              <Button
+                                type="button"
+                                onClick={saveConfiguration}
+                                className="bg-[#11AB93] hover:bg-[#0F9A82] text-white w-full sm:w-min px-4 py-3"
+                                disabled={
+                                  !productDetails.shade.length ||
+                                  selectedProducts.length === 0
+                                }
+                              >
+                                Save Configuration
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -1802,8 +1922,8 @@ const ProductSelection = ({
       >
         <div className="flex flex-col h-full justify-between">
           <ProductSearch
-            selectedProducts={modalSelectedProducts}
-            onProductsChange={setModalSelectedProducts}
+            selectedProducts={toSelectedProducts(modalSelectedProducts)}
+            onProductsChange={(products) => setModalSelectedProducts(toProducts(products))}
             selectedTeeth={selectedTeethForProducts}
             restorationType="separate"
             prescriptionType={formData.prescriptionType}
@@ -1842,135 +1962,19 @@ const ProductSelection = ({
 
       {/* Modal for editing a single field */}
       {/* --- 3. Edit Modal for group-level fields --- */}
-      <BaseModal
+      <EditProductModel
         isOpen={!!editField}
         onClose={() => setEditField(null)}
         title={`Edit ${editField?.field ? editField.field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()) : ""}`}
-      >
-        <div className="flex flex-col h-full justify-between">
-          {editField?.field === "shadeDetails" && (
-            <ShadeSelector
-              value={
-                shadeOptions.find(
-                  (opt) =>
-                    opt.label ===
-                    (typeof editFieldValue === "string"
-                      ? editFieldValue
-                      : editFieldValue[0]),
-                ) || null
-              }
-              onValueChange={(value) =>
-                setEditFieldValue(value ? value.label : "")
-              }
-              label="Shade"
-              placeholder="Select Shade"
-            />
-          )}
-          {editField?.field === "occlusalStaining" && (
-            <FormField
-              id="occlusalStaining"
-              label="Occlusal Staining"
-              type="select"
-              value={editFieldValue as string}
-              onChange={(value) => setEditFieldValue(value)}
-              options={[
-                { value: "light", label: "Light" },
-                { value: "medium", label: "Medium" },
-                { value: "heavy", label: "Heavy" },
-              ]}
-            />
-          )}
-          {editField?.field === "shadeGuide" && (
-            <ShadeGuideSection
-              selectedGroups={[]}
-              onShadeGuideChange={(guide) => setEditFieldValue(guide)}
-              selectedGuide={editFieldValue as ShadeGuide | null}
-            />
-          )}
-          {editField?.field === "ponticDesign" && (
-            <PonticSelector
-              value={editFieldValue as string}
-              onChange={(val) => setEditFieldValue(val)}
-            />
-          )}
-          {editField?.field === "notes" && (
-            <FormField
-              id="notes"
-              label="Notes"
-              type="textarea"
-              value={editFieldValue as string}
-              onChange={(value) => setEditFieldValue(value)}
-              placeholder="Any special instructions for notes..."
-              rows={3}
-            />
-          )}
-          {editField?.field === "trialRequirements" && (
-            <TrialSelector
-              productType={
-                formData.prescriptionType === "implant"
-                  ? "implant"
-                  : "crown-bridge"
-              }
-              selectedTrials={[editFieldValue as string]}
-              onTrialsChange={(trials) =>
-                setEditFieldValue(trials && trials.length > 0 ? trials[0] : "")
-              }
-            />
-          )}
-          {editField?.field === "shadeNotes" && (
-            <FormField
-              id="shadeNotes"
-              label="Shade Notes"
-              type="textarea"
-              value={editFieldValue as string}
-              onChange={(value) => setEditFieldValue(value)}
-              placeholder="Any special instructions for shade..."
-              rows={2}
-            />
-          )}
-          <div className="flex justify-end mt-4 gap-2">
-            <Button variant="outline" onClick={() => setEditField(null)}>
-              Cancel
-            </Button>
-            <Button
-              className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
-              onClick={() => {
-                if (editField) {
-                  const updatedTeethGroups = [...formData.toothGroups];
-                  // Store at group level
-                  updatedTeethGroups[editField.groupIdx] = {
-                    ...updatedTeethGroups[editField.groupIdx],
-                    [editField.field]: editFieldValue,
-                  };
-                  // Remove from all teeth in this group
-                  updatedTeethGroups[editField.groupIdx].teethDetails =
-                    updatedTeethGroups[editField.groupIdx].teethDetails.map(
-                      (arr: any) =>
-                        (arr as any[]).map((tooth: any) => {
-                          const {
-                            shadeDetails,
-                            shadeGuide,
-                            shadeNotes,
-                            occlusalStaining,
-                            trialRequirements,
-                            ponticDesign,
-                            ...rest
-                          } = tooth;
-                          return rest;
-                        }),
-                    );
-                  setFormData({ ...formData, toothGroups: updatedTeethGroups });
-                  setEditField(null);
-                }
-              }}
-            >
-              Save
-            </Button>
-          </div>
-        </div>
-      </BaseModal>
+        editField={editField}
+        setEditField={setEditField}
+        editFieldValue={editFieldValue}
+        setEditFieldValue={setEditFieldValue}
+        formData={formData}
+        setFormData={setFormData}
+      />
     </div>
   );
 };
 
-export default ProductSelection;
+export default ProductSelection

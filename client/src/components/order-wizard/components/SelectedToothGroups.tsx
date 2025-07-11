@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Edit } from 'lucide-react';
-import { LegacyToothGroup } from '../types/tooth';
+import { LegacyToothGroup, PrescriptionType } from '../types/orderTypes';
 import ToothModificationDialog from './ToothModificationDialog.tsx';
 import { CrownBridge, CrownJoint, CrownSeparate, ImplantBridge, ImplantJoint, ImplantSeparate } from '@/assets/svg/index.ts';
 
@@ -16,10 +16,11 @@ interface SelectedToothGroupsProps {
   selectedTeeth: SelectedTooth[];
   onRemoveGroup: (groupId: string) => void;
   onRemoveTooth: (toothNumber: number) => void;
+  onRemoveAllSelectedTeeth?: () => void;
   onUpdateGroup?: (groupId: string, updatedGroup: LegacyToothGroup) => void;
   onUpdateTooth?: (toothNumber: number, newType: 'abutment' | 'pontic') => void;
   onAddIndividualTooth?: (toothNumber: number, type: 'abutment' | 'pontic') => void;
-  prescriptionType?: 'implant' | 'crown_bridge';
+  prescriptionType?: PrescriptionType;
 }
 
 const SelectedToothGroups = ({ 
@@ -27,6 +28,7 @@ const SelectedToothGroups = ({
   selectedTeeth, 
   onRemoveGroup, 
   onRemoveTooth,
+  onRemoveAllSelectedTeeth,
   onUpdateGroup,
   onUpdateTooth,
   onAddIndividualTooth,
@@ -90,15 +92,15 @@ const SelectedToothGroups = ({
   const handleSplitGroup = () => {
     if (selectedToothForEdit && selectedGroupForEdit && onUpdateGroup) {
       console.log('Splitting group - removing tooth:', selectedToothForEdit, 'from group:', selectedGroupForEdit);
-      
+
       // Create individual tooth from the one being split
       const toothType = selectedGroupForEdit.pontics?.includes(selectedToothForEdit) ? 'pontic' : 'abutment';
-      
+
       // Add the split tooth as individual tooth
       if (onAddIndividualTooth) {
         onAddIndividualTooth(selectedToothForEdit, toothType);
       }
-      
+
       // Remove tooth from the group
       if (selectedGroupForEdit.teeth.length === 1) {
         // If only one tooth left, remove entire group
@@ -132,7 +134,7 @@ const SelectedToothGroups = ({
 
   return (
     <div className="space-y-3">
-     <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
         📋 Selected Teeth
       </h4>
 
@@ -141,7 +143,21 @@ const SelectedToothGroups = ({
         <Card className="border border-[#1D4ED8] bg-[#4574F9]">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-3">
-            <span className="text-sm flex font-medium text-white items-center gap-3"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-12 h-12 " /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-12 h-12 " />} Individual Teeth</span>
+              <span className="text-sm flex font-medium text-white items-center gap-3"> {prescriptionType === 'implant' ? <img src={ImplantSeparate} alt="Implant Bridge" className="w-12 h-12 " /> : <img src={CrownSeparate} alt="Crown Bridge" className="w-12 h-12 " />} Individual Teeth</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (onRemoveAllSelectedTeeth) {
+                    onRemoveAllSelectedTeeth();
+                  }
+                }}
+                className="h-6 w-6 p-0 text-white hover:bg-blue-600"
+                title="Remove all individual teeth"
+              >
+                <X size={12} />
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedTeeth.map(tooth => (
@@ -185,7 +201,7 @@ const SelectedToothGroups = ({
           <Card key={group.groupId} className={`border ${bgColor}`}>
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-3">
-              <span className={`text-sm font-medium text-white flex items-center gap-3`}>
+                <span className={`text-sm font-medium text-white flex items-center gap-3`}>
                   {
                     prescriptionType === 'implant' ? (
                       group.type === 'joint' ? <img src={ImplantJoint} alt="Implant Joint" className="w-12 h-12" /> : <img src={ImplantBridge} alt="Implant Bridge" className="w-12 h-12" />
@@ -210,11 +226,10 @@ const SelectedToothGroups = ({
                   return (
                     <div
                       key={toothNumber}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                        isPontic 
-                          ? 'bg-[#231F20] text-white' 
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${isPontic
+                          ? 'bg-[#231F20] text-white'
                           : 'bg-white'
-                      }`}
+                        }`}
                     >
                       <span>{toothNumber} {isPontic ? '(P)' : '(A)'}</span>
                       {/* <Button

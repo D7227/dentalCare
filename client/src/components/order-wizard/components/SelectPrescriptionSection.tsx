@@ -369,29 +369,21 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
     mode,
     onNextStep,
 }) => {
-    // Handle double click for prescription selection
-    const handlePrescriptionDoubleClick = (typeId: string) => {
+
+    const handleChange = (field: string, value: string) => {
         setFormData({
             ...formData,
-            prescriptionType: typeId,
+            [field]: value,
         });
-        // Move to next step after a short delay to show selection
-        setTimeout(() => {
-            onNextStep?.();
-        }, 100);
     };
 
-    // Handle double click for subcategory selection
-    const handleSubcategoryDoubleClick = (subcategoryId: string) => {
-        setFormData({
-            ...formData,
-            subcategoryType: subcategoryId,
-        });
+    const handleDoubleClick = (field: string, value: string) => {
+        handleChange(field, value)
         // Move to next step after a short delay to show selection
         setTimeout(() => {
             onNextStep?.();
         }, 100);
-    };
+    }
 
     if (mode === "prescription") {
         return (
@@ -415,13 +407,8 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                             ? "border-teal-500 shadow-md"
                                             : "border-gray-200 hover:border-gray-300"
                                             }`}
-                                        onClick={() =>
-                                            setFormData({
-                                                ...formData,
-                                                prescriptionType: type.id,
-                                            })
-                                        }
-                                        onDoubleClick={() => handlePrescriptionDoubleClick(type.id)}
+                                        onClick={() => handleChange("prescriptionType", type?.id)}
+                                        onDoubleClick={() => handleDoubleClick("prescriptionType", type?.id)}
                                     >
                                         <CardContent className="p-6 text-center">
                                             <div
@@ -478,13 +465,8 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                         ? "border-teal-500 shadow-md"
                                         : "border-gray-200 hover:border-gray-300"
                                         }`}
-                                    onClick={() =>
-                                        setFormData({
-                                            ...formData,
-                                            subcategoryType: subcategory.id,
-                                        })
-                                    }
-                                    onDoubleClick={() => handleSubcategoryDoubleClick(subcategory.id)}
+                                    onClick={() => handleChange("subcategoryType", subcategory?.id)}
+                                    onDoubleClick={() => handleDoubleClick("subcategoryType", subcategory?.id)}
                                 >
                                     <CardContent className="p-4 text-center">
                                         <div
