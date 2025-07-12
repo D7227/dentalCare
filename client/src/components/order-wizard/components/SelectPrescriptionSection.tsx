@@ -71,6 +71,12 @@ const getSubcategoriesForPrescription = (prescriptionType: string) => {
                     description: "Implant placement guides",
                     icon: <img src={Surgical_GuideIcon} />,
                 },
+                {
+                    id: "implant-full-arch",
+                    name: "Implant Full Arch",
+                    description: "Implant placement guides",
+                    icon: <img src={Surgical_GuideIcon} />,
+                },
             ];
         case "splints-guards":
             return [

@@ -120,7 +120,7 @@ export interface FormData {
   selectedTeeth: SelectedTooth[];
   toothGroups: ToothGroup[];
   toothNumbers: string[];
-  abutmentDetails: {
+  abutmentDetails?: {
     abutmentType: string;
     quantity: number;
     cementType?: string;
