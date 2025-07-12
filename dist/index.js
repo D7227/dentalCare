@@ -41,6 +41,7 @@ import { relations } from "drizzle-orm";
 // server/src/order/orderSchema.ts
 import {
   boolean,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -101,6 +102,22 @@ var orderSchema = pgTable("orders", {
   faceScans: jsonb("face_scans").$type(),
   patientPhotos: jsonb("patient_photos").$type(),
   referralFiles: jsonb("referral_files").$type(),
+  // --- Added fields from order table ---
+  quantity: integer("quantity"),
+  patientName: text("patient_name"),
+  teethNo: text("teeth_no"),
+  orderDate: text("order_date"),
+  orderCategory: text("order_category"),
+  orderStatus: text("order_status"),
+  statusLabel: text("status_label"),
+  percentage: integer("percentage"),
+  chatConnection: boolean("chat_connection"),
+  unreadMessages: integer("unread_messages"),
+  messages: jsonb("messages").$type(),
+  isUrgent: boolean("is_urgent"),
+  currency: text("currency"),
+  exportQuality: text("export_quality"),
+  paymentStatus: text("payment_status"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
 });
 var insertOrderSchema = createInsertSchema(orderSchema).omit({
@@ -1187,6 +1204,21 @@ var OrderStorage = class {
     orderData.faceScans = insertOrder.faceScans || null;
     orderData.patientPhotos = insertOrder.patientPhotos || null;
     orderData.referralFiles = insertOrder.referralFiles || null;
+    orderData.quantity = insertOrder.quantity || 1;
+    orderData.patientName = insertOrder.patientName || null;
+    orderData.teethNo = insertOrder.teethNo || null;
+    orderData.orderDate = insertOrder.orderDate || null;
+    orderData.orderCategory = insertOrder.orderCategory || null;
+    orderData.orderStatus = insertOrder.orderStatus || null;
+    orderData.statusLabel = insertOrder.statusLabel || null;
+    orderData.percentage = insertOrder.percentage || 0;
+    orderData.chatConnection = Boolean(insertOrder.chatConnection);
+    orderData.unreadMessages = insertOrder.unreadMessages || 0;
+    orderData.messages = Array.isArray(insertOrder.messages) && insertOrder.messages.length > 0 ? insertOrder.messages : null;
+    orderData.isUrgent = Boolean(insertOrder.isUrgent);
+    orderData.currency = insertOrder.currency || "INR";
+    orderData.exportQuality = insertOrder.exportQuality || "Standard";
+    orderData.paymentStatus = insertOrder.paymentStatus || "pending";
     orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
     orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
     orderData.shadeNotes = insertOrder.shadeNotes || null;
@@ -1287,11 +1319,12 @@ var OrderStorage = class {
     }
   }
   async getOrdersByPatient(patientId) {
-    const patientIdNum = parseInt(patientId, 10);
-    if (isNaN(patientIdNum)) {
-      return [];
-    }
-    return await db2.select().from(orderSchema).where(eq7(orderSchema.patientId, patientIdNum));
+    return await db2.select().from(orderSchema).where(
+      or3(
+        eq7(orderSchema.firstName, patientId),
+        eq7(orderSchema.lastName, patientId)
+      )
+    );
   }
   async getToothGroupsByOrder(orderId) {
     console.log("orderId", orderId);

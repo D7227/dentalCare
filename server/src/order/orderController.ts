@@ -107,6 +107,23 @@ export class OrderStorage implements orderStore {
         orderData.patientPhotos = insertOrder.patientPhotos || null;
         orderData.referralFiles = insertOrder.referralFiles || null;
         
+        // --- Handle new fields from order table ---
+        orderData.quantity = insertOrder.quantity || 1;
+        orderData.patientName = insertOrder.patientName || null;
+        orderData.teethNo = insertOrder.teethNo || null;
+        orderData.orderDate = insertOrder.orderDate || null;
+        orderData.orderCategory = insertOrder.orderCategory || null;
+        orderData.orderStatus = insertOrder.orderStatus || null;
+        orderData.statusLabel = insertOrder.statusLabel || null;
+        orderData.percentage = insertOrder.percentage || 0;
+        orderData.chatConnection = Boolean(insertOrder.chatConnection);
+        orderData.unreadMessages = insertOrder.unreadMessages || 0;
+        orderData.messages = Array.isArray(insertOrder.messages) && insertOrder.messages.length > 0 ? insertOrder.messages : null;
+        orderData.isUrgent = Boolean(insertOrder.isUrgent);
+        orderData.currency = insertOrder.currency || 'INR';
+        orderData.exportQuality = insertOrder.exportQuality || 'Standard';
+        orderData.paymentStatus = insertOrder.paymentStatus || 'pending';
+        
         // Additional fields from frontend that might not be in schema
         orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
         orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
@@ -244,12 +261,13 @@ export class OrderStorage implements orderStore {
       }
 
       async getOrdersByPatient(patientId: string): Promise<any[]> {
-        // Convert string patientId to number since the schema expects integer
-        const patientIdNum = parseInt(patientId, 10);
-        if (isNaN(patientIdNum)) {
-          return [];
-        }
-        return await db.select().from(orderSchema).where(eq(orderSchema.patientId, patientIdNum));
+        // Since there's no patientId field in the schema, search by patient name
+        return await db.select().from(orderSchema).where(
+          or(
+            eq(orderSchema.firstName, patientId),
+            eq(orderSchema.lastName, patientId)
+          )
+        );
       }
 
       async getToothGroupsByOrder(orderId: string): Promise<any[]> {

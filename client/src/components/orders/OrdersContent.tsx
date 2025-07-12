@@ -24,7 +24,7 @@ import OrderDetailView from "@/components/OrderDetailView";
 import { OrderStatusBadge } from "../shared/OrderStatusBadge";
 import { DoctorInfo } from "../shared/DoctorInfo";
 import { ToothSummary } from "../shared/ToothSummary";
-import { useQuery } from "@tanstack/react-query";
+import { useApiGet } from "@/hooks/useApi";
 import DropdownSelector from "../common/DropdownSelector";
 import TabNavButtons from "../common/TabNavButtons";
 import { DentalOrder, OrderCard } from "./OrderCard.tsx";
@@ -47,46 +47,28 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const [detailsHeight, setDetailsHeight] = useState(600);
   const orderDetailRef = useRef(null);
 
-  // Debug logging for clinic ID
-  console.log("Current user:", user);
-  console.log("Clinic ID:", user?.clinicId);
-
   const {
     data: dbOrders = [],
     isLoading,
-    error,
-  } = useQuery<any[]>({
-    queryKey: [`/api/orders/filter/${user?.clinicId}`],
-    queryFn: async () => {
-      if (!user?.clinicId) {
-        console.warn('No clinic ID available');
-        return [];
-      }
-      console.log('Fetching orders for clinic ID:', user.clinicId);
-      const response = await fetch(`/api/orders/filter/${user.clinicId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-      const data = await response.json();
-      console.log('Orders fetched:', data);
-      return data;
-    },
+    isError: error,
+    errorMessage,
+    refetch,
+  } = useApiGet<any[]>(`/api/orders/filter/${user?.clinicId}`, {
     enabled: !!user?.clinicId,
     refetchInterval: 30000,
+    onSuccess: (data) => console.log('Orders fetched:', data),
+    onError: (error) => console.error('Failed to fetch orders:', error),
   });
-
-
-  console.log("dbOrders", dbOrders);
 
   // Orders page shows all orders - no filtering needed
 
-  const { data: patients = [] } = useQuery<any[]>({
-    queryKey: ["/api/patients"],
+  const { data: patients = [] } = useApiGet<any[]>("/api/patients", {
     refetchInterval: 30000,
   });
 
-  const { data: allToothGroups = [] } = useQuery<any[]>({
-    queryKey: ["/api/tooth-groups/all", dbOrders?.length],
+  const { data: allToothGroups = [] } = useApiGet<any[]>("/api/tooth-groups/all", {
+    enabled: !!dbOrders && dbOrders.length > 0,
+    refetchInterval: 30000,
     queryFn: async () => {
       if (!dbOrders || dbOrders.length === 0) return [];
       const toothGroupPromises = dbOrders.map(async (order: any) => {
@@ -96,8 +78,6 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       });
       return Promise.all(toothGroupPromises);
     },
-    enabled: !!dbOrders && dbOrders.length > 0,
-    refetchInterval: 30000,
   });
 
   const getPatientName = (patientId: number) => {
@@ -199,6 +179,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       searchTerm === "" ||
       patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.refId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchesFilter = true;
@@ -292,8 +273,8 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
     return {
       ...order,
       id: order.id,
-      refId: order.referenceId || order.id,
-      orderId: order.orderId || order.referenceId || order.id,
+      refId: order.refId,
+      orderId: order.orderId, // Use orderId if exists, otherwise refId, fallback to id
       prescription: order.restorationType || order.productSelection || "-",
       patientName,
       teethNo,

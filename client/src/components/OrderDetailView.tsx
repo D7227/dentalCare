@@ -46,25 +46,21 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const [chatError, setChatError] = useState<string | null>(null);
   const user = useAppSelector(state => state.auth.user);
 
-  const patient = order?.patientFirstName
+  const patient = order?.firstName
     ? {
-        firstName: order.patientFirstName || '-',
-        lastName: order.patientLastName || '-',
-        age: order.patientAge || '-',
-        gender: order.patientSex || '-',
-      }
+      firstName: order.firstName || '-',
+      lastName: order.lastName || '-',
+      age: order.age || '-',
+      gender: order.sex || '-',
+    }
     : undefined;
 
   const doctor = order?.caseHandledBy
     ? {
-        caseHandledBy: order.caseHandledBy || '-',
-        consultingDoctor: order.consultingDoctor || '-',
-        location:
-          order.clinicAddress ||
-          order.location ||
-          [order.city, order.state, order.pincode].filter(Boolean).join(', ') ||
-          '-',
-      }
+      caseHandledBy: order.caseHandledBy || '-',
+      consultingDoctor: order.consultingDoctor || '-',
+      location: '-',
+    }
     : undefined;
 
   useEffect(() => {
@@ -133,13 +129,14 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const details = {
     restorationType: order.restorationType,
     selectedTeeth: order.selectedTeeth,
-    teethGroup: order.teethNo,
+    teethGroup: (Array.isArray(order.selectedTeeth) ? order.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : ''),
     productSelection: order.restorationProducts?.map((p: any) => ({ name: p.product, count: p.quantity })) || [],
     accessories: order.accessories?.map((a: string) => ({ name: a, count: null })) || [],
-    pontic: order.pontic || "-",
-    trial: order.trial || "-",
-    occlusalStaining: order.occlusalStaining || "-",
+    pontic: order.ponticDesign || '-',
+    trial: order.trial || '-',
+    occlusalStaining: order.occlusalStaining || '-',
     shade: order.shade || [],
+    orderDate: order.createdAt || '-',
   };
 
   const notes = order.notes || "No additional notes provided.";
@@ -196,24 +193,24 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="flex-1 w-full p-4 pb-6">
-  <Card className="w-full h-full max-h-[90vh] flex flex-col">
-    <CardContent className="p-0  max-h-[70vh] flex-1 flex flex-col">
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {chatLoading ? (
-          <div className="flex items-center justify-center h-full">Loading chat...</div>
-        ) : chatError ? (
-          <div className="flex items-center justify-center h-full text-gray-500">{chatError}</div>
-        ) : chatId ? (
-          <ChatModule chatId={chatId} userData={user} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            No chat available for this order.
-          </div>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-</TabsContent>
+          <Card className="w-full h-full max-h-[90vh] flex flex-col">
+            <CardContent className="p-0  max-h-[70vh] flex-1 flex flex-col">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {chatLoading ? (
+                  <div className="flex items-center justify-center h-full">Loading chat...</div>
+                ) : chatError ? (
+                  <div className="flex items-center justify-center h-full text-gray-500">{chatError}</div>
+                ) : chatId ? (
+                  <ChatModule chatId={chatId} userData={user} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No chat available for this order.
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
 
 

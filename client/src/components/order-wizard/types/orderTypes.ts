@@ -101,29 +101,36 @@ export interface LegacyToothGroup {
   }>;
 }
 
+export interface Message {
+  label: string;
+  messageBy: string;
+}
+
 export interface FormData {
-  orderId:string;
-  refId:string;
+  // --- Core order fields ---
+  id: string;
+  orderId: string;
+  refId: string;
   category: OrderCategoryType;
   type: OrderCategoryType;
-  firstName: string; // Patient
-  lastName: string; // Patient
-  age: string; // Patient
-  sex: string; // Patient
-  caseHandledBy: string; // Doctor
-  doctorMobile: string; // Doctor
-  consultingDoctor: string; // Doctor
-  consultingDoctorMobile: string; // Doctor
-  orderMethod: OrderMethodType; // digital | manual
-  prescriptionType: PrescriptionType; // fixed-restoration | implant | splints-guards | ortho | dentures | sleep-accessories
-  subcategoryType: string; // based on the prescriptionType
-  restorationType: string;
-  productSelection: string;
+  firstName: string;
+  lastName: string;
+  age: string;
+  sex: string;
+  caseHandledBy: string;
+  doctorMobile: string;
+  consultingDoctor: string;
+  consultingDoctorMobile: string;
+  orderMethod: OrderMethodType;
+  prescriptionType: PrescriptionType;
+  subcategoryType: string;
+  restorationType: string | null;
+  productSelection: string | null;
   orderType: string;
-  selectedFileType: string;
+  selectedFileType: string | null;
   selectedTeeth: SelectedTooth[];
   toothGroups: ToothGroup[];
-  toothNumbers: string[];
+  toothNumbers: string[] | null;
   abutmentDetails?: {
     abutmentType: string;
     quantity: number;
@@ -132,23 +139,23 @@ export interface FormData {
       name: string;
       provider: string;
     }[];
-  };
+  } | null;
   clinicId: string;
   abutmentType: string;
   restorationProducts: any[];
-  ponticDesign: string;
+  ponticDesign: string | null;
   occlusalStaining: string;
-  shadeInstruction: string;
-  clearance: string;
-  accessories: string[];
-  otherAccessory: string;
+  shadeInstruction: string | null;
+  clearance: string | null;
+  accessories: string[] | null;
+  otherAccessory: string | null;
   returnAccessories: boolean | undefined;
-  notes: string;
-  files: File[];
-  expectedDeliveryDate: string;
-  pickupDate: string;
-  pickupTime: string;
-  pickupRemarks: string;
+  notes: string | null;
+  files: File[] | null;
+  expectedDeliveryDate: string | null;
+  pickupDate: string | null;
+  pickupTime: string | null;
+  pickupRemarks: string | null;
   scanBooking: {
     areaManagerId: string;
     scanDate: string;
@@ -157,16 +164,34 @@ export interface FormData {
     trackingId: string;
     courierName: string;
   };
-  previousOrderId: string;
-  repairOrderId: string;
-  issueDescription: string;
-  repairType: string;
+  previousOrderId: string | null;
+  repairOrderId: string | null;
+  issueDescription: string | null;
+  repairType: string | null;
   returnWithTrial: boolean;
   teethEditedByUser?: boolean;
-  intraOralScans: any; // TODO:Update the Type
-  faceScans: any;
-  patientPhotos: any;
-  referralFiles: any;
+  intraOralScans: any[];
+  faceScans: any[];
+  patientPhotos: any[];
+  referralFiles: any[];
+  
+  // --- Order display fields (for OrderCard) ---
+  orderCategory: string | null;
+  orderStatus: string | null;
+  statusLabel: string | null;
+  percentage: number;
+  chatConnection: boolean;
+  unreadMessages: number;
+  messages: Message[];
+  isUrgent: boolean;
+  currency: string;
+  exportQuality: string;
+  paymentStatus: string;
+  quantity: number;
+  patientName: string | null;
+  teethNo: string | null;
+  orderDate: string | null;
+  createdAt: string | null;
 }
 
 export interface Step {

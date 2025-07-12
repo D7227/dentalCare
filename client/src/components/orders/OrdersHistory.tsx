@@ -499,7 +499,7 @@ const OrdersHistory = ({ onViewOrder, onPayNow }: OrdersHistoryProps) => {
                           <div className="flex items-start justify-between">
                             <div>
                               <h3 className="font-semibold text-card-foreground text-sm">
-                                {order.orderId || order.referenceId}
+                                {order.orderId || order.refId}
                               </h3>
                               <p className="text-sm font-medium text-[#020817] leading-tight">
                                 {getPatientName(order.patientId)}

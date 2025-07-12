@@ -15,7 +15,7 @@ import OrderSummary from '@/components/order-wizard/OrderSummary';
 import WizardProgress from '@/components/order-wizard/WizardProgress';
 import { useOrderValidation } from '@/components/order-wizard/hooks/useOrderValidation';
 import { useOrderSteps } from '@/components/order-wizard/hooks/useOrderSteps';
-import { OrderCategory, FormData } from '@/components/order-wizard/types/orderTypes';
+import { OrderCategoryType, FormData } from '@/components/order-wizard/types/orderTypes';
 import CustomButton from '@/components/common/customButtom';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { setUser } from '@/store/slices/authSlice';
@@ -35,7 +35,7 @@ interface ToothGroup {
 const PlaceOrder = () => {
   const [location, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
-  const [orderCategory, setOrderCategory] = useState<OrderCategory>(null);
+  const [orderCategory, setOrderCategory] = useState<OrderCategoryType>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepValidationErrors, setStepValidationErrors] = useState<Record<number, string[]>>({});
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -75,64 +75,86 @@ const PlaceOrder = () => {
   }, [isAuthenticated, dispatch, setLocation]);
 
   const [formData, setFormData] = useState<FormData>({
+    id: '',
+    orderId: '',
+    refId: '',
     category: null,
-    orderId:'',
-    refId:'',
-    type: '',
+    type: null,
     firstName: '',
     lastName: '',
     age: '',
     sex: '',
-    prescriptionType: '',
-    orderType: '',
-    orderMethod: '',
-    selectedFileType: '',
-    caseHandledBy: "",
+    caseHandledBy: '',
     doctorMobile: '',
     consultingDoctor: '',
     consultingDoctorMobile: '',
+    orderMethod: '' as any,
+    prescriptionType: '',
+    subcategoryType: '',
+    restorationType: null,
+    productSelection: null,
+    orderType: '',
+    selectedFileType: null,
+    selectedTeeth: [],
+    toothGroups: [],
+    toothNumbers: [],
     abutmentDetails: {
       abutmentType: '',
       quantity: 0,
-      product: [
-        {
-          name: '',
-          provider: ''
-        }
-      ],
+      product: [{ name: '', provider: '' }]
     },
-    restorationType: '',
-    productSelection: '',
-    toothGroups: [],
-    toothNumbers: [],
     clinicId: '',
-    abutmentType: 'joint',
+    abutmentType: '',
     restorationProducts: [],
-    ponticDesign: '',
+    ponticDesign: null,
     occlusalStaining: 'medium',
-    shadeInstruction: '',
-    clearance: '',
+    shadeInstruction: null,
+    clearance: null,
     accessories: [],
-    otherAccessory: '',
-    returnAccessories: undefined,
-    notes: '',
+    otherAccessory: null,
+    returnAccessories: false,
+    notes: null,
     files: [],
-    expectedDeliveryDate: '',
-    pickupDate: '',
-    pickupTime: '',
-    pickupRemarks: '',
+    expectedDeliveryDate: null,
+    pickupDate: null,
+    pickupTime: null,
+    pickupRemarks: null,
     scanBooking: {
       areaManagerId: '',
       scanDate: '',
       scanTime: '',
-      notes: ''
+      notes: '',
+      trackingId: '',
+      courierName: ''
     },
-    previousOrderId: '',
-    repairOrderId: '',
-    repairType: '',
-    issueDescription: '',
+    previousOrderId: null,
+    repairOrderId: null,
+    issueDescription: null,
+    repairType: null,
     returnWithTrial: false,
     teethEditedByUser: false,
+    intraOralScans: [],
+    faceScans: [],
+    patientPhotos: [],
+    referralFiles: [],
+
+    // --- Order display fields (for OrderCard) ---
+    orderCategory: null,
+    orderStatus: null,
+    statusLabel: null,
+    percentage: 0,
+    chatConnection: false,
+    unreadMessages: 0,
+    messages: [],
+    isUrgent: false,
+    currency: 'INR',
+    exportQuality: 'Standard',
+    paymentStatus: 'pending',
+    quantity: 1,
+    patientName: null,
+    teethNo: null,
+    orderDate: null,
+    createdAt: null
   });
 
   // Update clinicId when Redux data becomes available
@@ -176,7 +198,7 @@ const PlaceOrder = () => {
     return errors.length === 0;
   };
 
-  const handleCategorySelect = (category: OrderCategory) => {
+  const handleCategorySelect = (category: OrderCategoryType) => {
     setOrderCategory(category);
     setFormData({ ...formData, category });
     setCurrentStep(1);
@@ -292,14 +314,22 @@ const PlaceOrder = () => {
       // Create tooth groups for the order
       if (formData.toothGroups && formData.toothGroups.length > 0) {
         for (const toothGroup of formData.toothGroups) {
+          // Type guard for LegacyToothGroup
+          const groupId = (toothGroup as any).groupId || `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const teeth = (toothGroup as any).teeth || [];
+          const type = (toothGroup as any).type || '';
+          const notes = (toothGroup as any).notes || '';
+          const material = (toothGroup as any).material || '';
+          const shade = (toothGroup as any).shade || '';
+
           const toothGroupData = {
             orderId: order.id,
-            groupId: toothGroup.groupId || `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            teeth: toothGroup.teeth,
-            type: toothGroup.type,
-            notes: toothGroup.notes || '',
-            material: toothGroup.material || '',
-            shade: toothGroup.shade || '',
+            groupId,
+            teeth,
+            type,
+            notes,
+            material,
+            shade,
           };
 
           try {

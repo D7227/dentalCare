@@ -77,8 +77,8 @@ export const setupOrderRoutes = (app: Express) => {
         dateTo: dateTo as string,
         categories: categories
           ? ((Array.isArray(categories)
-              ? categories
-              : [categories]) as string[])
+            ? categories
+            : [categories]) as string[])
           : undefined,
       };
 
