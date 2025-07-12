@@ -14,6 +14,7 @@ interface OrderSummaryProps {
   orderCategory: OrderCategoryType;
   onEditSection?: (step: number) => void;
   userType?: string;
+  showHeading?: boolean
 }
 
 // Helper to build deduplicated, prioritized group list for summary
@@ -25,19 +26,19 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
   // Add bridge groups first, but only if teeth are not in selectedTeeth
   toothGroups.filter(g => g.type === 'bridge').forEach(group => {
     const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
-      if (teeth.length > 0) {
-        summaryGroups.push({ ...group, teeth });
-        teeth.forEach((t: number) => usedTeeth.add(t));
-      }
-    });
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
   // Then joint groups, but only if teeth are not in selectedTeeth
   toothGroups.filter(g => g.type === 'joint').forEach(group => {
     const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
-      if (teeth.length > 0) {
-        summaryGroups.push({ ...group, teeth });
-        teeth.forEach((t: number) => usedTeeth.add(t));
-      }
-    });
+    if (teeth.length > 0) {
+      summaryGroups.push({ ...group, teeth });
+      teeth.forEach((t: number) => usedTeeth.add(t));
+    }
+  });
   // Then individual teeth
   const individualTeeth = selectedTeeth.filter((t: any) => !usedTeeth.has(t.toothNumber));
   if (individualTeeth.length > 0) {
@@ -78,7 +79,7 @@ const noopGroupsChange = (groups: any[]) => { };
 const noopSetSelectedTeeth = (fn: any) => { };
 const noopDragConnection = (teeth: number[] | number, splitData?: any) => { };
 
-const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: OrderSummaryProps) => {
+const OrderSummary = ({ formData, orderCategory, onEditSection, userType, showHeading = true }: OrderSummaryProps) => {
   // Use convertToLegacyGroups for correct group conversion
   const selectedGroups = convertToLegacyGroups(formData.toothGroups || []);
   const selectedTeeth = (formData.selectedTeeth || []).map((t: any) => ({
@@ -88,15 +89,15 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
 
   // --- Unified group logic for both toothGroups and selectedTeeth ---
   const selectedTeethGroups = (formData.selectedTeeth || []).length > 0
-      ? Object.values(
-        (formData.selectedTeeth || []).reduce((acc: any, tooth: any) => {
-          const type = tooth.prescriptionType || formData.prescriptionType || "unknown";
-          if (!acc[type]) acc[type] = { prescriptionType: type, groupType: "individual", teethDetails: [[]] };
-          acc[type].teethDetails[0].push(tooth);
-          return acc;
-        }, {})
-      )
-      : [];
+    ? Object.values(
+      (formData.selectedTeeth || []).reduce((acc: any, tooth: any) => {
+        const type = tooth.prescriptionType || formData.prescriptionType || "unknown";
+        if (!acc[type]) acc[type] = { prescriptionType: type, groupType: "individual", teethDetails: [[]] };
+        acc[type].teethDetails[0].push(tooth);
+        return acc;
+      }, {})
+    )
+    : [];
 
   const allGroups = [
     ...(formData.toothGroups || []),
@@ -107,8 +108,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
     const allTeeth = group.teethDetails?.flat() || [];
     return allTeeth.length > 0 && allTeeth.every((t: any) => {
       const hasSelectedProducts = t.selectedProducts && t.selectedProducts.length > 0;
-        const hasProductName = t.productName && t.productName.length > 0;
-        return hasSelectedProducts || hasProductName;
+      const hasProductName = t.productName && t.productName.length > 0;
+      return hasSelectedProducts || hasProductName;
     });
   });
 
@@ -132,12 +133,12 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
   const shades = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean)));
 
   const shadeGuides = Array.from(new Set(
-      allTeeth
-        .flatMap((t: any) =>
+    allTeeth
+      .flatMap((t: any) =>
         (t.productDetails?.shadeGuide && Array.isArray(t.productDetails.shadeGuide))
-            ? t.productDetails.shadeGuide
+          ? t.productDetails.shadeGuide
           : (Array.isArray(t.shadeGuide) ? t.shadeGuide : [])
-        )
+      )
       .filter(Boolean)
   ));
 
@@ -180,11 +181,13 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
         userType === "Qa" ?
           null
           :
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-center w-full">
-              <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
+          (showHeading &&
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-center w-full">
+                <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
+              </div>
             </div>
-          </div>
+          )
       }
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         {/* Left: Tooth Chart with Quadrant Labels */}
@@ -252,7 +255,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                     <div key={accessory.id || index} className="flex items-center justify-between text-sm">
                       <span className="text-gray-900 capitalize text-base">{accessory.name}</span>
                       <span className="text-gray-600 text-base">Qty: {accessory.quantity}</span>
-                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -436,7 +439,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
               {/* Type of Restoration */}
               <div>
                 <div className="text-xs text-gray-500 mb-2">Type of Restoration</div>
-              <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-2'>
                   <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
                     {formData.category === "implant" ? (
                       <img src={ImpantTeeth} alt="ImplantTeeth" />
@@ -444,7 +447,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                       <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
                     )}
                   </div>
-                <div className='font-medium text-gray-900'>{typeLabel}</div>
+                  <div className='font-medium text-gray-900'>{typeLabel}</div>
                 </div>
               </div>
 
@@ -470,20 +473,20 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                           <div className="text-gray-600">
                             {["bridge", "joint", "individual"].map((groupType) => {
                               const groupsOfType = groupsArray.filter((g: any) => g.groupType === groupType);
-                                if (groupsOfType.length === 0) return null;
-                                const teethNumbers = groupsOfType
+                              if (groupsOfType.length === 0) return null;
+                              const teethNumbers = groupsOfType
                                 .flatMap((g: any) => g.teethDetails?.flat() || [])
                                 .map((t: any) => t.toothNumber ?? t.teethNumber)
                                 .filter((n: any) => n !== undefined && n !== null && n !== "")
-                                  .join(", ");
-                                return teethNumbers ? (
+                                .join(", ");
+                              return teethNumbers ? (
                                 <div key={groupType} className="flex items-center gap-2 mb-1">
                                   <div className={`w-2 h-2 rounded-full ${groupType === 'individual' ? 'bg-[#1D4ED8]' : groupType === 'joint' ? 'bg-[#0B8043]' : 'bg-[#EA580C]'}`}></div>
                                   <span className="font-semibold capitalize text-xs">{groupType}:</span>
                                   <span className="text-xs">{teethNumbers}</span>
-                                  </div>
-                                ) : null;
-                  })}
+                                </div>
+                              ) : null;
+                            })}
                           </div>
                         </div>
 
@@ -495,21 +498,21 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                               const toothProductList: { tooth: number; products: string[] }[] = [];
                               groupsArray.forEach((group: any) => {
                                 group.teethDetails?.flat().forEach((tooth: any) => {
-                                    let productNames: string[] = [];
+                                  let productNames: string[] = [];
                                   if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
                                     productNames = tooth.selectedProducts.map((p: any) => p.name);
                                   } else if (tooth.productName && Array.isArray(tooth.productName)) {
-                                      productNames = [...tooth.productName];
+                                    productNames = [...tooth.productName];
                                   } else if (tooth.productDetails && tooth.productDetails.productName && tooth.productDetails.productName.length > 0) {
                                     productNames = [...tooth.productDetails.productName];
-                                    }
-                                    if (productNames.length > 0) {
-                                      toothProductList.push({
+                                  }
+                                  if (productNames.length > 0) {
+                                    toothProductList.push({
                                       tooth: tooth.teethNumber || tooth.toothNumber,
-                                        products: productNames,
-                                      });
-                                    }
-                                  });
+                                      products: productNames,
+                                    });
+                                  }
+                                });
                               });
                               toothProductList.sort((a, b) => a.tooth - b.tooth);
                               return toothProductList.map((item, i) => (
@@ -525,46 +528,46 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                       {/* Implant Details for implant type */}
                       {type === "implant" && (() => {
                         const implantTeeth = groupsArray.flatMap((g: any) => g.teethDetails?.flat() || [])
-                            .filter((tooth: any) => tooth.implantDetails);
+                          .filter((tooth: any) => tooth.implantDetails);
 
-                          if (implantTeeth.length > 0) {
-                            return (
-                              <div className="mt-3">
+                        if (implantTeeth.length > 0) {
+                          return (
+                            <div className="mt-3">
                               <p className="font-medium text-gray-900 mb-2">Implant Details:</p>
-                                <div className="space-y-2">
+                              <div className="space-y-2">
                                 {implantTeeth.map((tooth: any, idx: number) => (
                                   <div key={idx} className="border rounded-md p-2 bg-gray-50">
-                                        <div className="font-semibold text-sm text-gray-800 mb-1">
+                                    <div className="font-semibold text-sm text-gray-800 mb-1">
                                       Tooth {tooth.toothNumber || tooth.teethNumber}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
                                       {tooth.implantDetails?.companyName && (
-                                              <div>
+                                        <div>
                                           <span className="font-semibold text-gray-700">Company:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.companyName}</span>
-                                              </div>
-                                            )}
-                                          {tooth.implantDetails?.systemName && (
-                                            <div>
+                                        </div>
+                                      )}
+                                      {tooth.implantDetails?.systemName && (
+                                        <div>
                                           <span className="font-semibold text-gray-700">System:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.systemName}</span>
-                                            </div>
-                                          )}
-                                          {tooth.implantDetails?.remarks && (
-                                            <div className="col-span-2">
+                                        </div>
+                                      )}
+                                      {tooth.implantDetails?.remarks && (
+                                        <div className="col-span-2">
                                           <span className="font-semibold text-gray-700">Remarks:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.remarks}</span>
-                                            </div>
-                                          )}
                                         </div>
-                                      </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 ))}
-                                </div>
                               </div>
-                            );
-                          }
-                          return null;
-                        })()}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
 
                       {/* Shade and Treatment Details */}
                       <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
@@ -687,7 +690,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                                 <div className="mt-1">
                                   {shadeGuide.shades.map((shade: string, idx: number) => (
                                     <div key={idx} className="text-xs">{shade}</div>
-                      ))}
+                                  ))}
                                 </div>
                               </div>
                             </div>

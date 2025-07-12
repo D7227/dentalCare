@@ -258,8 +258,6 @@ const NewOrderFlow = ({
   const [showInstructions, setShowInstructions] = useState(false);
   const viewerRef = useRef(null);
 
-  console.log("formData", formData);
-
   // Fetch companies from API
   useEffect(() => {
     const fetchCompanies = async () => {
