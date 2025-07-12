@@ -1,83 +1,93 @@
-import { boolean, integer, jsonb, numeric, PgJsonBuilder, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  jsonb,
+  numeric,
+  PgJsonBuilder,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  date,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const orderSchema = pgTable("orders", {
-    id: uuid("id").primaryKey().defaultRandom(),
-    clinicId: uuid("clinic_id").notNull(),
-    orderId: text("order_id"),
-    referenceId: text("reference_id").notNull(),
-    doctorId: uuid("doctor_id"),
-    patientId: integer("patient_id"),
-    type: text("type").notNull(),
-    category: text("category"),
-    orderType: text("order_type"),
-    orderMethod: text("order_method"),
-    occlusalStaining: text("occlusal_staining"),
-    orderDate: timestamp("order_date").defaultNow(),
-    orderStatus: uuid("order_status"),
-    orderCategory: text("order_category"),
-    status: text("status").notNull().default("pending"),
-    priority: text("priority").notNull().default("standard"),
-    urgency: text("urgency").notNull().default("standard"),
-    caseHandledBy: text("case_handled_by"),
-    pontic: text("pontic"),
-    trial: text("trial"), 
-    shade: jsonb("shade").$type<string[]>().default([]),
-    consultingDoctor: text("consulting_doctor"),
-    consultingDoctorMobile: text("consulting_doctor_mobile"),
-    patientFirstName: text("patient_first_name"),
-    patientLastName: text("patient_last_name"),
-    patientAge: integer("patient_age"),
-    patientSex: text("patient_sex"),
-    restorationType: text("restoration_type"),
-    toothGroups: jsonb("tooth_groups").$type<any[]>().default([]),
-    restorationProducts: jsonb("restoration_products").$type<any[]>().default([]),
-    accessories: jsonb("accessories").$type<string[]>().default([]),
-    selectedTeeth: jsonb("selected_teeth").$type<any[]>().default([]),
-    location: text("location"),
-    prescriptionType: text("prescription_type"),
-    subcategoryType: text("subcategory_type"),
-    productName: text("product_name"),
-    quantity: integer("quantity"),
-    statusLabel: text("status_label"),
-    percentage: numeric("percentage", { precision: 5, scale: 2 }),
-    currency: text("currency"),
-    paymentStatus: text("payment_status").default("pending"),
-    totalAmount: numeric("total_amount", { precision: 10, scale: 2 }),
-    paidAmount: numeric("paid_amount", { precision: 10, scale: 2 }),
-    outstandingAmount: numeric("outstanding_amount", { precision: 10, scale: 2 }),
-    shadeNotes: text("shade_notes"),
-    additionalNotes: text("additional_notes"),
-    shadeGuide: jsonb("shade_guide").$type<string[]>().default([]),
-    files: jsonb("files").$type<string[]>().default([]),
-    exportQuality: text("export_quality"),
-    chatConnection: boolean("chat_connection"),
-    unreadMessages: integer("unread_messages"),
-    rejectionReason: text("rejection_reason"),
-    rejectedBy: text("rejected_by"),
-    implantPhoto: text("implant_capture"),
-    implantCompany: text("implant_company"),
-    implantRemark: text("implant_remark_note"),
-    rejectedDate: timestamp("rejected_date"),
-    issueDescription: text("issue_description"),
-    issueCategory: text("issue_category"),
-    repairType: text("repair_type"),
-    trialApproval: boolean("trial_approval"),
-    reapirInstructions: text("repair_instructions"),
-    dueDate: timestamp("due_date"),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  });
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId:text("order_id"),
+  refId:text("ref_id"),
+  category: text("category"),
+  type: text("type"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  age: text("age"),
+  sex: text("sex"),
 
-  
-export const insertOrderSchema = createInsertSchema(orderSchema).omit({
+  caseHandledBy: text("case_handled_by"),
+  doctorMobile: text("doctor_mobile"),
+  consultingDoctor: text("consulting_doctor"),
+  consultingDoctorMobile: text("consulting_doctor_mobile"),
+
+  orderMethod: text("order_method"),
+  prescriptionType: text("prescription_type"),
+  subcategoryType: text("subcategory_type"),
+  restorationType: text("restoration_type"),
+  productSelection: text("product_selection"),
+  orderType: text("order_type"),
+  selectedFileType: text("selected_file_type"),
+
+  selectedTeeth: jsonb("selected_teeth").$type<any[]>(),
+  toothGroups: jsonb("tooth_groups").$type<any[]>(),
+  toothNumbers: jsonb("tooth_numbers").$type<string[]>(),
+
+  abutmentDetails: jsonb("abutment_details").$type<any>(),
+  abutmentType: text("abutment_type"),
+  restorationProducts: jsonb("restoration_products").$type<any[]>(),
+
+  clinicId: text("clinic_id"),
+
+  ponticDesign: text("pontic_design"),
+  occlusalStaining: text("occlusal_staining"),
+  shadeInstruction: text("shade_instruction"),
+  clearance: text("clearance"),
+
+  accessories: jsonb("accessories").$type<string[]>(),
+  otherAccessory: text("other_accessory"),
+  returnAccessories: boolean("return_accessories"),
+
+  notes: text("notes"),
+  files: jsonb("files").$type<any[]>(),
+
+  expectedDeliveryDate: date("expected_delivery_date"),
+  pickupDate: date("pickup_date"),
+  pickupTime: text("pickup_time"),
+  pickupRemarks: text("pickup_remarks"),
+
+  scanBooking: jsonb("scan_booking").$type<any>(),
+
+  previousOrderId: text("previous_order_id"),
+  repairOrderId: text("repair_order_id"),
+  issueDescription: text("issue_description"),
+  repairType: text("repair_type"),
+  returnWithTrial: boolean("return_with_trial"),
+  teethEditedByUser: boolean("teeth_edited_by_user"),
+
+  intraOralScans: jsonb("intra_oral_scans").$type<any>(),
+  faceScans: jsonb("face_scans").$type<any>(),
+  patientPhotos: jsonb("patient_photos").$type<any>(),
+  referralFiles: jsonb("referral_files").$type<any>(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const insertOrderSchema = createInsertSchema(orderSchema)
+  .omit({
     id: true,
     createdAt: true,
-    updatedAt: true,
-  });
+  })
+  .partial();
 
-  
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
-  export type Order = typeof orderSchema.$inferSelect;
+export type Order = typeof orderSchema.$inferSelect;

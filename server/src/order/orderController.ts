@@ -4,11 +4,13 @@ import { db } from "server/database/db";
 import { toothGroups } from "../../../shared/schema";
 import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 import { orderSchema } from "./orderSchema";
+import { v4 as uuidv4 } from 'uuid';
 
 export interface orderStore {
 getOrder(id: string): Promise<any | undefined>;
 createOrder(order: any): Promise<any>;
 getOrders(): Promise<any[]>;
+getOrdersByClinicId(clinicId: string): Promise<any[]>;
 getOrdersWithFilters(filters: {
   search?: string;
   paymentStatus?: string;
@@ -36,42 +38,107 @@ initializeData(): Promise<void>;
 
 export class OrderStorage implements orderStore {
     async getOrder(id: string): Promise<any | undefined> {
-        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
+        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.clinicId, id));
         return order;
       }
 
       async createOrder(insertOrder: any): Promise<any> {
-        const orderData = {
-          ...insertOrder,
-          prescriptionType: insertOrder.prescriptionType || '',
-          subcategoryType: insertOrder.subcategoryType || '',
-          consultingDoctorMobile: insertOrder.consultingDoctorMobile || '',
-          files: Array.isArray(insertOrder.files) ? insertOrder.files as string[] : [],
-          toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-          restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
-          shade: Array.isArray(insertOrder.shade) ? insertOrder.shade as string[] : [],
-          trial: insertOrder.trial || '',
-          pontic: insertOrder.pontic || 'Ridge Lap',
-          occlusalStaining: insertOrder.occlusalStaining || '',
-          shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide as string[] : [],
-          additionalNotes: insertOrder.additionalNotes || '',
-          shadeNotes: insertOrder.shadeNotes || '',
-          selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
-          implantPhoto: insertOrder.implantPhoto || '',
-          implantCompany: insertOrder.implantCompany || '',
-          implantRemark: insertOrder.implantRemark || '',
-          issueDescription: insertOrder.issueDescription || '',
-          issueCategory: insertOrder.issueCategory || '',
-          repairType: insertOrder.repairType || '',
-          trialApproval: insertOrder.trialApproval || false,
-          reapirInstructions: insertOrder.reapirInstructions || '',
-        };
+        // Clean and validate the data before insertion
+        const orderData: any = {};
+        
+        orderData.refId = insertOrder.refId || null;
+        orderData.orderId = insertOrder.orderId || null;
+        orderData.category = insertOrder.category || null;
+        orderData.type = insertOrder.type || null;
+        orderData.firstName = insertOrder.firstName || null;
+        orderData.lastName = insertOrder.lastName || null;
+        orderData.age = insertOrder.age || null;
+        orderData.sex = insertOrder.sex || null;
+        orderData.caseHandledBy = insertOrder.caseHandledBy || null;
+        orderData.doctorMobile = insertOrder.doctorMobile || null;
+        orderData.consultingDoctor = insertOrder.consultingDoctor || null;
+        orderData.consultingDoctorMobile = insertOrder.consultingDoctorMobile || null;
+        orderData.orderMethod = insertOrder.orderMethod || null;
+        orderData.prescriptionType = insertOrder.prescriptionType || null;
+        orderData.subcategoryType = insertOrder.subcategoryType || null;
+        orderData.restorationType = insertOrder.restorationType || null;
+        orderData.productSelection = insertOrder.productSelection || null;
+        orderData.orderType = insertOrder.orderType || null;
+        orderData.selectedFileType = insertOrder.selectedFileType || null;
+        
+        // Handle JSON fields - use null for empty arrays to avoid PostgreSQL array literal issues
+        orderData.selectedTeeth = Array.isArray(insertOrder.selectedTeeth) && insertOrder.selectedTeeth.length > 0 ? insertOrder.selectedTeeth : null;
+        orderData.toothGroups = Array.isArray(insertOrder.toothGroups) && insertOrder.toothGroups.length > 0 ? insertOrder.toothGroups : null;
+        orderData.toothNumbers = Array.isArray(insertOrder.toothNumbers) && insertOrder.toothNumbers.length > 0 ? insertOrder.toothNumbers : null;
+        orderData.abutmentDetails = insertOrder.abutmentDetails || null;
+        orderData.abutmentType = insertOrder.abutmentType || null;
+        orderData.restorationProducts = Array.isArray(insertOrder.restorationProducts) && insertOrder.restorationProducts.length > 0 ? insertOrder.restorationProducts : null;
+        
+        orderData.clinicId = insertOrder.clinicId || null;
+        orderData.ponticDesign = insertOrder.ponticDesign || null;
+        orderData.occlusalStaining = insertOrder.occlusalStaining || null;
+        orderData.shadeInstruction = insertOrder.shadeInstruction || null;
+        orderData.clearance = insertOrder.clearance || null;
+        
+        orderData.accessories = Array.isArray(insertOrder.accessories) && insertOrder.accessories.length > 0 ? insertOrder.accessories : null;
+        orderData.otherAccessory = insertOrder.otherAccessory || null;
+        orderData.returnAccessories = Boolean(insertOrder.returnAccessories);
+        
+        orderData.notes = insertOrder.notes || null;
+        orderData.files = Array.isArray(insertOrder.files) && insertOrder.files.length > 0 ? insertOrder.files : null;
+        
+        // Handle date fields properly - convert to Date objects or null
+        orderData.expectedDeliveryDate = insertOrder.expectedDeliveryDate ? new Date(insertOrder.expectedDeliveryDate) : null;
+        orderData.pickupDate = insertOrder.pickupDate ? new Date(insertOrder.pickupDate) : null;
+        orderData.pickupTime = insertOrder.pickupTime || null;
+        orderData.pickupRemarks = insertOrder.pickupRemarks || null;
+        
+        orderData.scanBooking = insertOrder.scanBooking || null;
+        orderData.previousOrderId = insertOrder.previousOrderId || null;
+        orderData.repairOrderId = insertOrder.repairOrderId || null;
+        orderData.issueDescription = insertOrder.issueDescription || null;
+        orderData.repairType = insertOrder.repairType || null;
+        orderData.returnWithTrial = Boolean(insertOrder.returnWithTrial);
+        orderData.teethEditedByUser = Boolean(insertOrder.teethEditedByUser);
+        
+        // Handle JSON scan fields
+        orderData.intraOralScans = insertOrder.intraOralScans || null;
+        orderData.faceScans = insertOrder.faceScans || null;
+        orderData.patientPhotos = insertOrder.patientPhotos || null;
+        orderData.referralFiles = insertOrder.referralFiles || null;
+        
+        // Additional fields from frontend that might not be in schema
+        orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
+        orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
+        orderData.shadeNotes = insertOrder.shadeNotes || null;
+        orderData.trial = insertOrder.trial || null;
+        orderData.implantPhoto = insertOrder.implantPhoto || null;
+        orderData.implantCompany = insertOrder.implantCompany || null;
+        orderData.implantRemark = insertOrder.implantRemark || null;
+        orderData.issueCategory = insertOrder.issueCategory || null;
+        orderData.trialApproval = Boolean(insertOrder.trialApproval);
+        orderData.reapirInstructions = insertOrder.reapirInstructions || null;
+        orderData.additionalNotes = insertOrder.additionalNotes || null;
+        orderData.selectedCompany = insertOrder.selectedCompany || null;
+        orderData.handlingType = insertOrder.handlingType || null;
+        
+        // IMPORTANT: Remove timestamp fields that are auto-generated by the database
+        // Do NOT include createdAt or updatedAt as they are handled by the database
+        // The frontend sends these as strings, but the database auto-generates them
+        
+        // Generate UUID for the id field
+        orderData.id = uuidv4();
+        
         const [order] = await db.insert(orderSchema).values(orderData).returning();
         return order;
       }
 
       async getOrders(): Promise<any[]> {
         return await db.select().from(orderSchema);
+      }
+
+      async getOrdersByClinicId(clinicId: string): Promise<any[]> {
+        return await db.select().from(orderSchema).where(eq(orderSchema.clinicId, clinicId));
       }
 
       async getOrdersWithFilters(filters: {
@@ -156,8 +223,8 @@ export class OrderStorage implements orderStore {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
           whereClauses.push(
             or(
-              sql`LOWER(${orderSchema.patientFirstName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.patientLastName}) LIKE ${searchTerm}`,
+              sql`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
+              sql`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`

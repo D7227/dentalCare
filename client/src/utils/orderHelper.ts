@@ -29,10 +29,11 @@ export const createOrderObject = (formData: any, clinicId: string) => {
 
   return {
     // Order basic info
-    referenceId: `REF-${Date.now()}-${Math.random()
+    refId: `REF-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 4)
       .toUpperCase()}`,
+    orderId: "",
     type: getOrderTypeBasedOnSubcategory(),
     category: formData.category || "new",
     status: "pending",
@@ -42,13 +43,14 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     clinicId: clinicId,
 
     // Patient Information
-    patientFirstName: formData.firstName || "",
-    patientLastName: formData.lastName || "",
-    patientAge: formData.age ? parseInt(formData.age, 10) : null,
-    patientSex: formData.sex || "",
+    firstName: formData.firstName || "",
+    lastName: formData.lastName || "",
+    age: formData.age ? parseInt(formData.age, 10) : null,
+    sex: formData.sex || "",
 
     // Case Information
     caseHandledBy: formData.caseHandledBy || "",
+    doctorMobile:formData.doctorMobile || "",
     consultingDoctor: formData.consultingDoctor || "",
     consultingDoctorMobile: formData.consultingDoctorMobile || "",
 

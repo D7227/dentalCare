@@ -35,7 +35,7 @@ const ReviewDetailsStep = ({ formData, setFormData }: ReviewDetailsStepProps) =>
   const [occlusalStaining, setOcclusalStaining] = useState('Light');
   const [notes, setNotes] = useState('Everything is Good');
   // Transform database tooth groups to match ToothSelector interface
-  const transformDatabaseToothGroups = (dbGroups: any[]) => {
+  const transformDatabaseToothGroups = (dbGroups: any[] , subcategories: string) => {
     return dbGroups.map((group: any) => ({
       groupId: group.groupId || `group-${group.id}`,
       teeth: Array.isArray(group.teeth) ? group.teeth : [group.teeth],
@@ -43,6 +43,7 @@ const ReviewDetailsStep = ({ formData, setFormData }: ReviewDetailsStepProps) =>
             group.type === 'connected' ? 'joint' : 
             group.type || 'separate',
       productType: group.productType || 'crown-bridge',
+      subcategoryType: subcategories || '',
       material: group.material || '',
       shade: group.shade || '',
       notes: group.notes || '',
@@ -55,7 +56,7 @@ const ReviewDetailsStep = ({ formData, setFormData }: ReviewDetailsStepProps) =>
   const [toothGroups, setToothGroups] = useState(() => {
     // If we have tooth groups from formData (repeat order), transform them
     if (formData.toothGroups && formData.toothGroups.length > 0) {
-      return transformDatabaseToothGroups(formData.toothGroups);
+      return transformDatabaseToothGroups(formData.toothGroups , formData.subcategoryType);
     }
     
     // Default tooth group for new orders

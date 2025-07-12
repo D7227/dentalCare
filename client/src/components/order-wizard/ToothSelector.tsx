@@ -697,6 +697,7 @@ const ToothSelector = ({
       const newGroup: ToothGroup = {
         groupType: "bridge",
         prescriptionType: prescriptionType,
+        subcategoryType: subcategoryType || "",
         productName: [],
         shade: '',
         occlusalStaining: '',
@@ -780,6 +781,7 @@ const ToothSelector = ({
         toothNumber: toothNumber,
         type: type,
         prescriptionType,
+        subcategoryType,
         selectedProducts: [],
         productDetails: {},
         implantDetails: prescriptionType === 'implant' ? details : undefined,
@@ -1353,6 +1355,7 @@ const ToothSelector = ({
             toothNumber: tooth.teethNumber,
             type: tooth.type,
             prescriptionType,
+            subcategoryType,
             selectedProducts: [],
             productDetails: {},
           }) as SelectedTooth,

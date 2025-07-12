@@ -39,80 +39,74 @@ import { z } from "zod";
 import { relations } from "drizzle-orm";
 
 // server/src/order/orderSchema.ts
-import { boolean, integer, jsonb, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  date
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 var orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  clinicId: uuid("clinic_id").notNull(),
   orderId: text("order_id"),
-  referenceId: text("reference_id").notNull(),
-  doctorId: uuid("doctor_id"),
-  patientId: integer("patient_id"),
-  type: text("type").notNull(),
+  refId: text("ref_id"),
   category: text("category"),
-  orderType: text("order_type"),
-  orderMethod: text("order_method"),
-  occlusalStaining: text("occlusal_staining"),
-  orderDate: timestamp("order_date").defaultNow(),
-  orderStatus: uuid("order_status"),
-  orderCategory: text("order_category"),
-  status: text("status").notNull().default("pending"),
-  priority: text("priority").notNull().default("standard"),
-  urgency: text("urgency").notNull().default("standard"),
+  type: text("type"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  age: text("age"),
+  sex: text("sex"),
   caseHandledBy: text("case_handled_by"),
-  pontic: text("pontic"),
-  trial: text("trial"),
-  shade: jsonb("shade").$type().default([]),
+  doctorMobile: text("doctor_mobile"),
   consultingDoctor: text("consulting_doctor"),
   consultingDoctorMobile: text("consulting_doctor_mobile"),
-  patientFirstName: text("patient_first_name"),
-  patientLastName: text("patient_last_name"),
-  patientAge: integer("patient_age"),
-  patientSex: text("patient_sex"),
-  restorationType: text("restoration_type"),
-  toothGroups: jsonb("tooth_groups").$type().default([]),
-  restorationProducts: jsonb("restoration_products").$type().default([]),
-  accessories: jsonb("accessories").$type().default([]),
-  selectedTeeth: jsonb("selected_teeth").$type().default([]),
-  location: text("location"),
+  orderMethod: text("order_method"),
   prescriptionType: text("prescription_type"),
   subcategoryType: text("subcategory_type"),
-  productName: text("product_name"),
-  quantity: integer("quantity"),
-  statusLabel: text("status_label"),
-  percentage: numeric("percentage", { precision: 5, scale: 2 }),
-  currency: text("currency"),
-  paymentStatus: text("payment_status").default("pending"),
-  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }),
-  paidAmount: numeric("paid_amount", { precision: 10, scale: 2 }),
-  outstandingAmount: numeric("outstanding_amount", { precision: 10, scale: 2 }),
-  shadeNotes: text("shade_notes"),
-  additionalNotes: text("additional_notes"),
-  shadeGuide: jsonb("shade_guide").$type().default([]),
-  files: jsonb("files").$type().default([]),
-  exportQuality: text("export_quality"),
-  chatConnection: boolean("chat_connection"),
-  unreadMessages: integer("unread_messages"),
-  rejectionReason: text("rejection_reason"),
-  rejectedBy: text("rejected_by"),
-  implantPhoto: text("implant_capture"),
-  implantCompany: text("implant_company"),
-  implantRemark: text("implant_remark_note"),
-  rejectedDate: timestamp("rejected_date"),
+  restorationType: text("restoration_type"),
+  productSelection: text("product_selection"),
+  orderType: text("order_type"),
+  selectedFileType: text("selected_file_type"),
+  selectedTeeth: jsonb("selected_teeth").$type(),
+  toothGroups: jsonb("tooth_groups").$type(),
+  toothNumbers: jsonb("tooth_numbers").$type(),
+  abutmentDetails: jsonb("abutment_details").$type(),
+  abutmentType: text("abutment_type"),
+  restorationProducts: jsonb("restoration_products").$type(),
+  clinicId: text("clinic_id"),
+  ponticDesign: text("pontic_design"),
+  occlusalStaining: text("occlusal_staining"),
+  shadeInstruction: text("shade_instruction"),
+  clearance: text("clearance"),
+  accessories: jsonb("accessories").$type(),
+  otherAccessory: text("other_accessory"),
+  returnAccessories: boolean("return_accessories"),
+  notes: text("notes"),
+  files: jsonb("files").$type(),
+  expectedDeliveryDate: date("expected_delivery_date"),
+  pickupDate: date("pickup_date"),
+  pickupTime: text("pickup_time"),
+  pickupRemarks: text("pickup_remarks"),
+  scanBooking: jsonb("scan_booking").$type(),
+  previousOrderId: text("previous_order_id"),
+  repairOrderId: text("repair_order_id"),
   issueDescription: text("issue_description"),
-  issueCategory: text("issue_category"),
   repairType: text("repair_type"),
-  trialApproval: boolean("trial_approval"),
-  reapirInstructions: text("repair_instructions"),
-  dueDate: timestamp("due_date"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
+  returnWithTrial: boolean("return_with_trial"),
+  teethEditedByUser: boolean("teeth_edited_by_user"),
+  intraOralScans: jsonb("intra_oral_scans").$type(),
+  faceScans: jsonb("face_scans").$type(),
+  patientPhotos: jsonb("patient_photos").$type(),
+  referralFiles: jsonb("referral_files").$type(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
 });
 var insertOrderSchema = createInsertSchema(orderSchema).omit({
   id: true,
-  createdAt: true,
-  updatedAt: true
-});
+  createdAt: true
+}).partial();
 
 // shared/schema.ts
 var users = pgTable2("users", {
@@ -1135,42 +1129,86 @@ var chatStorage = new ChatStorage();
 
 // server/src/order/orderController.ts
 import { eq as eq7, and as and3, or as or3, sql as sql3, gte as gte3, lte as lte3, inArray as inArray3 } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 var OrderStorage = class {
   async getOrder(id) {
-    const [order] = await db2.select().from(orderSchema).where(eq7(orderSchema.id, id));
+    const [order] = await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, id));
     return order;
   }
   async createOrder(insertOrder) {
-    const orderData = {
-      ...insertOrder,
-      prescriptionType: insertOrder.prescriptionType || "",
-      subcategoryType: insertOrder.subcategoryType || "",
-      consultingDoctorMobile: insertOrder.consultingDoctorMobile || "",
-      files: Array.isArray(insertOrder.files) ? insertOrder.files : [],
-      toothGroups: Array.isArray(insertOrder.toothGroups) ? insertOrder.toothGroups : [],
-      restorationProducts: Array.isArray(insertOrder.restorationProducts) ? insertOrder.restorationProducts : [],
-      shade: Array.isArray(insertOrder.shade) ? insertOrder.shade : [],
-      trial: insertOrder.trial || "",
-      pontic: insertOrder.pontic || "Ridge Lap",
-      occlusalStaining: insertOrder.occlusalStaining || "",
-      shadeGuide: Array.isArray(insertOrder.shadeGuide) ? insertOrder.shadeGuide : [],
-      additionalNotes: insertOrder.additionalNotes || "",
-      shadeNotes: insertOrder.shadeNotes || "",
-      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
-      implantPhoto: insertOrder.implantPhoto || "",
-      implantCompany: insertOrder.implantCompany || "",
-      implantRemark: insertOrder.implantRemark || "",
-      issueDescription: insertOrder.issueDescription || "",
-      issueCategory: insertOrder.issueCategory || "",
-      repairType: insertOrder.repairType || "",
-      trialApproval: insertOrder.trialApproval || false,
-      reapirInstructions: insertOrder.reapirInstructions || ""
-    };
+    const orderData = {};
+    orderData.refId = insertOrder.refId || null;
+    orderData.orderId = insertOrder.orderId || null;
+    orderData.category = insertOrder.category || null;
+    orderData.type = insertOrder.type || null;
+    orderData.firstName = insertOrder.firstName || null;
+    orderData.lastName = insertOrder.lastName || null;
+    orderData.age = insertOrder.age || null;
+    orderData.sex = insertOrder.sex || null;
+    orderData.caseHandledBy = insertOrder.caseHandledBy || null;
+    orderData.doctorMobile = insertOrder.doctorMobile || null;
+    orderData.consultingDoctor = insertOrder.consultingDoctor || null;
+    orderData.consultingDoctorMobile = insertOrder.consultingDoctorMobile || null;
+    orderData.orderMethod = insertOrder.orderMethod || null;
+    orderData.prescriptionType = insertOrder.prescriptionType || null;
+    orderData.subcategoryType = insertOrder.subcategoryType || null;
+    orderData.restorationType = insertOrder.restorationType || null;
+    orderData.productSelection = insertOrder.productSelection || null;
+    orderData.orderType = insertOrder.orderType || null;
+    orderData.selectedFileType = insertOrder.selectedFileType || null;
+    orderData.selectedTeeth = Array.isArray(insertOrder.selectedTeeth) && insertOrder.selectedTeeth.length > 0 ? insertOrder.selectedTeeth : null;
+    orderData.toothGroups = Array.isArray(insertOrder.toothGroups) && insertOrder.toothGroups.length > 0 ? insertOrder.toothGroups : null;
+    orderData.toothNumbers = Array.isArray(insertOrder.toothNumbers) && insertOrder.toothNumbers.length > 0 ? insertOrder.toothNumbers : null;
+    orderData.abutmentDetails = insertOrder.abutmentDetails || null;
+    orderData.abutmentType = insertOrder.abutmentType || null;
+    orderData.restorationProducts = Array.isArray(insertOrder.restorationProducts) && insertOrder.restorationProducts.length > 0 ? insertOrder.restorationProducts : null;
+    orderData.clinicId = insertOrder.clinicId || null;
+    orderData.ponticDesign = insertOrder.ponticDesign || null;
+    orderData.occlusalStaining = insertOrder.occlusalStaining || null;
+    orderData.shadeInstruction = insertOrder.shadeInstruction || null;
+    orderData.clearance = insertOrder.clearance || null;
+    orderData.accessories = Array.isArray(insertOrder.accessories) && insertOrder.accessories.length > 0 ? insertOrder.accessories : null;
+    orderData.otherAccessory = insertOrder.otherAccessory || null;
+    orderData.returnAccessories = Boolean(insertOrder.returnAccessories);
+    orderData.notes = insertOrder.notes || null;
+    orderData.files = Array.isArray(insertOrder.files) && insertOrder.files.length > 0 ? insertOrder.files : null;
+    orderData.expectedDeliveryDate = insertOrder.expectedDeliveryDate ? new Date(insertOrder.expectedDeliveryDate) : null;
+    orderData.pickupDate = insertOrder.pickupDate ? new Date(insertOrder.pickupDate) : null;
+    orderData.pickupTime = insertOrder.pickupTime || null;
+    orderData.pickupRemarks = insertOrder.pickupRemarks || null;
+    orderData.scanBooking = insertOrder.scanBooking || null;
+    orderData.previousOrderId = insertOrder.previousOrderId || null;
+    orderData.repairOrderId = insertOrder.repairOrderId || null;
+    orderData.issueDescription = insertOrder.issueDescription || null;
+    orderData.repairType = insertOrder.repairType || null;
+    orderData.returnWithTrial = Boolean(insertOrder.returnWithTrial);
+    orderData.teethEditedByUser = Boolean(insertOrder.teethEditedByUser);
+    orderData.intraOralScans = insertOrder.intraOralScans || null;
+    orderData.faceScans = insertOrder.faceScans || null;
+    orderData.patientPhotos = insertOrder.patientPhotos || null;
+    orderData.referralFiles = insertOrder.referralFiles || null;
+    orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
+    orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
+    orderData.shadeNotes = insertOrder.shadeNotes || null;
+    orderData.trial = insertOrder.trial || null;
+    orderData.implantPhoto = insertOrder.implantPhoto || null;
+    orderData.implantCompany = insertOrder.implantCompany || null;
+    orderData.implantRemark = insertOrder.implantRemark || null;
+    orderData.issueCategory = insertOrder.issueCategory || null;
+    orderData.trialApproval = Boolean(insertOrder.trialApproval);
+    orderData.reapirInstructions = insertOrder.reapirInstructions || null;
+    orderData.additionalNotes = insertOrder.additionalNotes || null;
+    orderData.selectedCompany = insertOrder.selectedCompany || null;
+    orderData.handlingType = insertOrder.handlingType || null;
+    orderData.id = uuidv4();
     const [order] = await db2.insert(orderSchema).values(orderData).returning();
     return order;
   }
   async getOrders() {
     return await db2.select().from(orderSchema);
+  }
+  async getOrdersByClinicId(clinicId) {
+    return await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, clinicId));
   }
   async getOrdersWithFilters(filters) {
     const whereClauses = [];
@@ -1231,8 +1269,8 @@ var OrderStorage = class {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       whereClauses.push(
         or3(
-          sql3`LOWER(${orderSchema.patientFirstName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.patientLastName}) LIKE ${searchTerm}`,
+          sql3`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
+          sql3`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`
@@ -1676,11 +1714,11 @@ var setupClinicRoutes = (app2) => {
 };
 
 // server/src/lifeCycle/lifeCycleSchema.ts
-import { date as date7, pgTable as pgTable10, text as text10, timestamp as timestamp9, uuid as uuid10 } from "drizzle-orm/pg-core";
+import { date as date8, pgTable as pgTable10, text as text10, timestamp as timestamp9, uuid as uuid10 } from "drizzle-orm/pg-core";
 var lifecycleStages = pgTable10("lifecycle_stages", {
   id: uuid10("id").primaryKey().defaultRandom(),
   title: text10("title").notNull(),
-  date: date7("date"),
+  date: date8("date"),
   time: text10("time"),
   person: text10("person").notNull(),
   role: text10("role").notNull(),
@@ -1731,6 +1769,7 @@ var setupOrderRoutes = (app2) => {
       const order = await orderStorage.createOrder(req.body);
       res.status(201).json(order);
     } catch (error) {
+      console.log("order", error);
       res.status(400).json({ error: "Failed to create order" });
     }
   });
@@ -1804,7 +1843,7 @@ var setupOrderRoutes = (app2) => {
         return res.status(400).json({ error: "Clinic ID is required" });
       }
       const { patientName, prescription, reference_id, order_id } = req.query;
-      let orders = await orderStorage.getOrders(clinicId);
+      let orders = await orderStorage.getOrdersByClinicId(clinicId);
       if (patientName) {
         const name = String(patientName).toLowerCase();
         orders = orders.filter(

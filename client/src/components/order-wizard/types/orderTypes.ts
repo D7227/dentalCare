@@ -29,6 +29,7 @@ export interface SelectedTooth {
   type: "abutment" | "pontic";
   toothNumber: number;
   prescriptionType: "implant" | "crown-bridge";
+  subcategoryType: string;
   productName: string[];
   shadeDetails: string;
   occlusalStaining: string;
@@ -65,6 +66,7 @@ export interface ToothDetail {
 export interface ToothGroup {
   groupType: "bridge" | "joint" | "separate" | "individual";
   prescriptionType: PrescriptionType;
+  subcategoryType: string;
   shadeDetails: string;
   occlusalStaining: string;
   shadeGuide: ShadeGuide | null;
@@ -100,6 +102,8 @@ export interface LegacyToothGroup {
 }
 
 export interface FormData {
+  orderId:string;
+  refId:string;
   category: OrderCategoryType;
   type: OrderCategoryType;
   firstName: string; // Patient

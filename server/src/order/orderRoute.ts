@@ -107,7 +107,7 @@ export const setupOrderRoutes = (app: Express) => {
       }
       const { patientName, prescription, reference_id, order_id } = req.query;
       // Start with all orders for this clinic
-      let orders = await orderStorage.getOrders(clinicId);
+      let orders = await orderStorage.getOrdersByClinicId(clinicId);
       // Filter by patient name if provided
       if (patientName) {
         const name = String(patientName).toLowerCase();

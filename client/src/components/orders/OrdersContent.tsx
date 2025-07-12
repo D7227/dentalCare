@@ -47,14 +47,34 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const [detailsHeight, setDetailsHeight] = useState(600);
   const orderDetailRef = useRef(null);
 
+  // Debug logging for clinic ID
+  console.log("Current user:", user);
+  console.log("Clinic ID:", user?.clinicId);
+
   const {
     data: dbOrders = [],
     isLoading,
     error,
   } = useQuery<any[]>({
-    queryKey: [`/api/orders/${user?.clinicId}`],
+    queryKey: [`/api/orders/filter/${user?.clinicId}`],
+    queryFn: async () => {
+      if (!user?.clinicId) {
+        console.warn('No clinic ID available');
+        return [];
+      }
+      console.log('Fetching orders for clinic ID:', user.clinicId);
+      const response = await fetch(`/api/orders/filter/${user.clinicId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+      const data = await response.json();
+      console.log('Orders fetched:', data);
+      return data;
+    },
+    enabled: !!user?.clinicId,
     refetchInterval: 30000,
   });
+
 
   console.log("dbOrders", dbOrders);
 
@@ -319,6 +339,47 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       <Card>
         <CardContent className="flex items-center justify-center h-64">
           <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              Error Loading Orders
+            </h3>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : 'Failed to load orders'}
+            </p>
+            {!user?.clinicId && (
+              <p className="text-sm text-red-500 mt-2">
+                No clinic ID available. Please check your authentication.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user?.clinicId) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              No Clinic ID Available
+            </h3>
+            <p className="text-muted-foreground">
+              Please ensure you are properly authenticated with a clinic ID.
+            </p>
+          </div>
         </CardContent>
       </Card>
     );

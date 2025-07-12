@@ -206,6 +206,7 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [configuredTeeth],
+            subcategoryType:formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: true,
           });
@@ -216,6 +217,7 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [unconfiguredTeeth],
+            subcategoryType:formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: false,
           });
@@ -539,6 +541,7 @@ const ProductSelection = ({
               return {
                 ...g,
                 teethDetails: updatedTeethDetails,
+                subcategoryType:formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
@@ -626,6 +629,7 @@ const ProductSelection = ({
               return {
                 ...group,
                 teethDetails: updatedTeethDetails,
+                subcategoryType:formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
