@@ -178,7 +178,6 @@ const PlaceOrder = () => {
   };
 
   const hasSelectedTeeth = getHasSelectedTeeth();
-  console.log("hasSelectedTeeth--", hasSelectedTeeth);
   const steps = getStepsForCategory(orderCategory, hasSelectedTeeth);
   const maxSteps = steps.length - 1;
 
@@ -209,7 +208,7 @@ const PlaceOrder = () => {
 
   const handleSaveOrder = (orderData: any) => {
     // This function will be called from NewOrderFlow when user wants to save the order
-    console.log("Saving comprehensive order:", orderData);
+    // console.log("Saving comprehensive order:", orderData);
     // You can implement the save logic here or call the existing handleSubmit
     handleSubmit(new Event('submit') as any);
   };
@@ -220,11 +219,11 @@ const PlaceOrder = () => {
       return;
     }
     setIsSubmitting(true);
-    if(formData.clinicId === ''){
+    if (formData.clinicId === '') {
       formData.clinicId = clinicId || '';
     }
 
-    console.log("Form data at submission:", JSON.stringify(formData, null, 2));
+    // console.log("Form data at submission:", JSON.stringify(formData, null, 2));
 
     try {
       if (orderCategory === "repair") {
@@ -232,7 +231,6 @@ const PlaceOrder = () => {
         formData.type = "repair";
         // No need to set firstName, lastName, age, sex again
         const orderData = createOrderObject(formData, user?.clinicId || '');
-        console.log("Order data:", orderData);
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
           method: 'PUT',
           headers: {
@@ -395,11 +393,6 @@ const PlaceOrder = () => {
       description: "Your order has been cancelled and unsaved changes were discarded.",
     });
   };
-
-  useEffect(() => {
-    console.log('orderCategory', orderCategory)
-    console.log('formData', formData)
-  }, [formData, orderCategory])
 
   const renderStepContent = () => {
     if (currentStep === 0) {
