@@ -18,6 +18,7 @@ import { DoctorInfo } from '../shared/DoctorInfo';
 import { ToothSummary } from '../shared/ToothSummary';
 import BillingPageStatsCard from './BillingPageStatsCard';
 import { useOrders } from '../../hooks/shared/useOrders';
+import BillingOverview from '../dashboard/BillingOverview';
 
 const BillingContent = () => {
   const [activeTab, setActiveTab] = useState('outstanding');
@@ -147,7 +148,8 @@ const BillingContent = () => {
       </div> */}
 
       {/* Billing Page Stats */}
-      <BillingPageStatsCard />
+      {/* <BillingPageStatsCard /> */}
+      <BillingOverview />
 
       {/* Tabs and Content */}
       <Card className="hover:shadow-lg transition-all duration-200">

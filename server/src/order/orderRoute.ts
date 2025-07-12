@@ -5,7 +5,19 @@ import { chatStorage } from "../chat/chatController";
 export const setupOrderRoutes = (app: Express) => {
   app.get("/api/orders/:id", async (req, res) => {
     try {
-      const order = await orderStorage.getOrder(req.params.id);
+      const order = await orderStorage.getOrdersByClinicId(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const order = await orderStorage.getOrders();
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
@@ -105,7 +117,7 @@ export const setupOrderRoutes = (app: Express) => {
       if (!clinicId) {
         return res.status(400).json({ error: "Clinic ID is required" });
       }
-      const { patientName, prescription, reference_id, order_id } = req.query;
+      const { patientName, prescription, refId, order_id } = req.query;
       // Start with all orders for this clinic
       let orders = await orderStorage.getOrdersByClinicId(clinicId);
       // Filter by patient name if provided
@@ -129,9 +141,9 @@ export const setupOrderRoutes = (app: Express) => {
         );
       }
       // Filter by reference_id if provided
-      if (reference_id) {
+      if (refId) {
         orders = orders.filter(
-          (order) => order.reference_id && order.reference_id == reference_id
+          (order) => order.reference_id && order.reference_id == refId
         );
       }
       // Filter by order_id if provided

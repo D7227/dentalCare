@@ -1231,11 +1231,11 @@ var OrderStorage = class {
       const searchTerm = `%${filters.search.toLowerCase()}%`;
       whereClauses.push(
         or3(
-          sql3`LOWER(${orderSchema.patientFirstName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.patientLastName}) LIKE ${searchTerm}`,
+          sql3`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
+          sql3`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`
+          sql3`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
         )
       );
     }
@@ -1273,7 +1273,7 @@ var OrderStorage = class {
           sql3`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
           sql3`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`
+          sql3`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
         )
       );
     }
@@ -1755,7 +1755,18 @@ var setupMessageRoutes = (app2) => {
 var setupOrderRoutes = (app2) => {
   app2.get("/api/orders/:id", async (req, res) => {
     try {
-      const order = await orderStorage.getOrder(req.params.id);
+      const order = await orderStorage.getOrdersByClinicId(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+  app2.get("/api/orders", async (req, res) => {
+    try {
+      const order = await orderStorage.getOrders();
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
@@ -1769,7 +1780,6 @@ var setupOrderRoutes = (app2) => {
       const order = await orderStorage.createOrder(req.body);
       res.status(201).json(order);
     } catch (error) {
-      console.log("order", error);
       res.status(400).json({ error: "Failed to create order" });
     }
   });
@@ -1842,7 +1852,7 @@ var setupOrderRoutes = (app2) => {
       if (!clinicId) {
         return res.status(400).json({ error: "Clinic ID is required" });
       }
-      const { patientName, prescription, reference_id, order_id } = req.query;
+      const { patientName, prescription, refId, order_id } = req.query;
       let orders = await orderStorage.getOrdersByClinicId(clinicId);
       if (patientName) {
         const name = String(patientName).toLowerCase();
@@ -1856,9 +1866,9 @@ var setupOrderRoutes = (app2) => {
           (order) => order.prescription && order.prescription.toLowerCase().includes(presc)
         );
       }
-      if (reference_id) {
+      if (refId) {
         orders = orders.filter(
-          (order) => order.reference_id && order.reference_id == reference_id
+          (order) => order.reference_id && order.reference_id == refId
         );
       }
       if (order_id) {

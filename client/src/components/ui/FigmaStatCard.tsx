@@ -63,7 +63,7 @@ const FigmaStatCard: React.FC<FigmaStatCardProps> = ({
           <div className="text-[28px] font-bold text-black leading-none">
             {value}
           </div>
-          <div className="bg-white rounded-[8px] flex justify-center items-center p-[8px] shadow-[0px_0px_4px_0px_rgba(0, 0, 0, 0.25)]">
+          <div className="bg-white rounded-[8px] flex justify-center items-center p-[8px] shadow-md">
             <img src={eyeIcon} alt="Background" draggable={false} />
           </div>
         </div>

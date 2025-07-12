@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Phone } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAppSelector } from '@/store/hooks';
 
 interface CaseInfoCardProps {
   formData: any;
@@ -15,6 +17,8 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
     doctorMobile?: string;
     consultingDoctorMobile?: string;
   }>({});
+
+  const { user } = useAppSelector((state) => state.auth);
 
   const clinicDoctors = [{
     id: 'dr1',
@@ -67,6 +71,23 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
     }
   };
 
+  const clinicName = user?.clinicName;
+  console.log(clinicName)
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['/api/team-members?clinicName=', clinicName],
+    queryFn: async () => {
+      const response = await fetch(`/api/team-members?clinicName=${clinicName}`);
+      if (!response.ok) throw new Error('Failed to fetch team members');
+      return response.json();
+    }
+  });
+
+  const availableTeamMembers = teamMembers.filter((member: any) => {
+    const isCurrentUser = member.fullName === user?.fullName;
+    const isReceptionist = member.roleName?.toLowerCase() === "receptionist";
+    return !isCurrentUser && !isReceptionist;
+  });
+
   return (
     <Card>
       <CardHeader className="py-3">
@@ -90,9 +111,9 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
               <SelectValue placeholder="Select doctor" />
             </SelectTrigger>
             <SelectContent>
-              {clinicDoctors.map(doctor => (
-                <SelectItem key={doctor.id} value={doctor.name}>
-                  {doctor.name} ({doctor.role})
+              {availableTeamMembers.map((member: { id: string; fullName: string; roleName: string }) => (
+                <SelectItem key={member.id} value={member.fullName}>
+                  {member.fullName} ({member.roleName})
                 </SelectItem>
               ))}
             </SelectContent>

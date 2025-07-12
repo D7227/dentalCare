@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore, Wrench, FileText, Edit } from 'lucide-react';
-import { OrderCategory } from './types/orderTypes';
+import { OrderCategoryType } from './types/orderTypes';
 import ToothChart from './components/ToothChart';
 import { DoctorInfo } from '../shared/DoctorInfo';
 import { ToothSummary } from '../shared/ToothSummary';
@@ -11,7 +11,7 @@ import { convertToLegacyGroups } from './ToothSelector';
 
 interface OrderSummaryProps {
   formData: any;
-  orderCategory: OrderCategory;
+  orderCategory: OrderCategoryType;
   onEditSection?: (step: number) => void;
 }
 
@@ -129,7 +129,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
     restorationGroups.push({
       groupId: 'individual-group',
       teeth: individualTeeth.map((t: any) => t.toothNumber),
-      type: 'individual', // treat as separate for LegacyToothGroup compatibility
+      type: 'separate', // treat as separate for LegacyToothGroup compatibility
       productType: 'implant',
       notes: '',
       material: '',
@@ -241,12 +241,12 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
-              {formData.accessories ? (
+              {formData.selectedAccessories && Array.isArray(formData.selectedAccessories) && formData.selectedAccessories.length > 0 ? (
                 <div className="space-y-1">
-                  {Object.entries(formData.accessories).map(([key, value]: [string, any]) => (
-                    <div key={key} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 text-base">{value}</span>
-                      <span className="text-gray-900 capitalize text-base">{key.replace(/_/g, ' ')}</span>
+                  {formData.selectedAccessories.map((accessory: any, index: number) => (
+                    <div key={accessory.id || index} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-900 capitalize text-base">{accessory.name}</span>
+                      <span className="text-gray-600 text-base">Qty: {accessory.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -414,18 +414,81 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
-              {formData.files?.length > 0 ? (
-                <div className="space-y-1">
-                  {formData.files.map((file: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-900 truncate max-w-[160px] block">{file.fileName}</span>
-                      <span className="text-gray-600">{(file.size / (1024 * 1024)).toFixed(2)} Mb</span>
+              {/* Helper function to get all files from different sources */}
+              {(() => {
+                const allFiles: Array<{fileName: string, size?: number, type: string}> = [];
+                
+                // Add files from different sources with their types
+                if (formData.files && Array.isArray(formData.files)) {
+                  formData.files.forEach((file: any) => {
+                    allFiles.push({
+                      fileName: file.fileName || file.name || 'Unknown File',
+                      size: file.size,
+                      type: 'General Files'
+                    });
+                  });
+                }
+                
+                if (formData.referralFiles && Array.isArray(formData.referralFiles)) {
+                  formData.referralFiles.forEach((file: any) => {
+                    allFiles.push({
+                      fileName: file.fileName || file.name || 'Unknown File',
+                      size: file.size,
+                      type: 'Referral Files'
+                    });
+                  });
+                }
+                
+                if (formData.intraOralScans && Array.isArray(formData.intraOralScans)) {
+                  formData.intraOralScans.forEach((file: any) => {
+                    allFiles.push({
+                      fileName: file.fileName || file.name || 'Unknown File',
+                      size: file.size,
+                      type: 'Intra-Oral Scans'
+                    });
+                  });
+                }
+                
+                if (formData.faceScans && Array.isArray(formData.faceScans)) {
+                  formData.faceScans.forEach((file: any) => {
+                    allFiles.push({
+                      fileName: file.fileName || file.name || 'Unknown File',
+                      size: file.size,
+                      type: 'Face Scans'
+                    });
+                  });
+                }
+                
+                if (formData.patientPhotos && Array.isArray(formData.patientPhotos)) {
+                  formData.patientPhotos.forEach((file: any) => {
+                    allFiles.push({
+                      fileName: file.fileName || file.name || 'Unknown File',
+                      size: file.size,
+                      type: 'Patient Photos'
+                    });
+                  });
+                }
+                
+                if (allFiles.length > 0) {
+                  return (
+                    <div className="space-y-2">
+                      {allFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm">
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 truncate max-w-[160px] block">{file.fileName}</span>
+                            <span className="text-xs text-gray-500">{file.type}</span>
+                          </div>
+                          <span className="text-gray-600">
+                            {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} Mb` : 'Size unknown'}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 italic">No files uploaded</div>
-              )}
+                  );
+                } else {
+                  return <div className="text-sm text-gray-500 italic">No files uploaded</div>;
+                }
+              })()}
             </CardContent>
           </Card>
         </div>

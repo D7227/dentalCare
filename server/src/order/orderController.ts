@@ -172,11 +172,11 @@ export class OrderStorage implements orderStore {
           const searchTerm = `%${filters.search.toLowerCase()}%`;
           whereClauses.push(
             or(
-              sql`LOWER(${orderSchema.patientFirstName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.patientLastName}) LIKE ${searchTerm}`,
+              sql`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
+              sql`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`
+              sql`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
             )
           );
         }
@@ -227,7 +227,7 @@ export class OrderStorage implements orderStore {
               sql`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
               sql`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.referenceId}) LIKE ${searchTerm}`
+              sql`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
             )
           );
         }
@@ -302,7 +302,7 @@ export class OrderStorage implements orderStore {
           // Example:
           // await this.createOrder({
           //   clinicId: "sample-clinic-id",
-          //   referenceId: "REF001",
+          //   refId: "REF001",
           //   type: "crown",
           //   status: "pending",
           //   // ... other required fields

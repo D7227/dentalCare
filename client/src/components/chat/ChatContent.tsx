@@ -110,6 +110,8 @@ const ChatContent = () => {
     }
   });
 
+  console.log(orders ,"orders data")
+
   // Create new chat mutation
   const createChatMutation = useMutation({
     mutationFn: async (chatData: any) => {
@@ -412,7 +414,7 @@ const ChatContent = () => {
                       return (
                         <SelectItem key={order.id} value={order.id.toString()} disabled={disabled}>
                           {/* ORD-{order.id.toString().padStart(4, '0')} - */}
-                          {order.orderId || order.referenceId}
+                          {order.orderId || order.refId}
                           {disabled && ' (Chat Exists)'}
                         </SelectItem>
                       );

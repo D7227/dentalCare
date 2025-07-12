@@ -66,8 +66,9 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   });
 
   // Fetch team members for participant selection
+  const clinicName = user?.clinicName;
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['/api/team-members'],
+    queryKey: ['/api/team-members?clinicName=', clinicName],
     queryFn: async () => {
       const response = await fetch('/api/team-members');
       if (!response.ok) throw new Error('Failed to fetch team members');
@@ -231,12 +232,11 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   };
 
   // Filter team members so only members from the main_doctor's clinic are available
-  const clinicName = user?.clinicName;
+ 
   const availableTeamMembers = teamMembers.filter((member: any) => {
     const isAlreadyParticipant = chatDetails?.participants?.includes(member.fullName);
     const isCurrentUser = member.fullName === userData?.fullName;
-    const isSameClinic = member.clinicName === clinicName;
-    return !isAlreadyParticipant && !isCurrentUser && isSameClinic;
+    return !isAlreadyParticipant && !isCurrentUser;
   });
 
 
