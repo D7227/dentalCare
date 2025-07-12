@@ -40,7 +40,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     priority: formData.isUrgent ? "urgent" : "standard",
     urgency: formData.isUrgent ? "urgent" : "standard",
     paymentStatus: formData.paymentStatus || "pending",
-    clinicId: clinicId,
+    clinicId: formData.clinicId || "",
 
     // Patient Information
     firstName: formData.firstName || "",
@@ -59,7 +59,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     subcategoryType: formData.subcategoryType || "",
     orderType: formData.orderType || "",
     orderMethod: formData.orderMethod || "",
-    restorationType: formData.restorationType || "",
+     restorationType: formData.restorationType || "",
 
     // Teeth Configuration - Store as separate fields for database
     toothGroups: formData.toothGroups || [],

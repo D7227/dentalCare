@@ -44,17 +44,18 @@ export const setupOrderRoutes = (app: Express) => {
       }
       res.json(order);
     } catch (error) {
+      console.log(error,"order update error")
       res.status(500).json({ error: "Failed to update order" });
     }
   });
 
   app.patch("/api/orders/:id/status", async (req, res) => {
     try {
-      const { status } = req.body;
-      if (!status) {
+      const { orderStatus } = req.body;
+      if (!orderStatus) {
         return res.status(400).json({ error: "Status is required" });
       }
-      const order = await orderStorage.updateOrderStatus(req.params.id, status);
+      const order = await orderStorage.updateOrderStatus(req.params.id, orderStatus);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }

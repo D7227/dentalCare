@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Phone } from 'lucide-react';
+import { Phone, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppSelector } from '@/store/hooks';
 
@@ -12,11 +12,21 @@ interface CaseInfoCardProps {
   setFormData: (data: any) => void;
 }
 
+interface Clinic {
+  id: string;
+  clinicName: string;
+  firstname: string;
+  lastname: string;
+}
+
 const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const [errors, setErrors] = useState<{
     doctorMobile?: string;
     consultingDoctorMobile?: string;
   }>({});
+  const [clinicSearchTerm, setClinicSearchTerm] = useState('');
+  const [isClinicDropdownOpen, setIsClinicDropdownOpen] = useState(false);
+  const endPort = window.location.pathname;
 
   const { user } = useAppSelector((state) => state.auth);
 
@@ -82,11 +92,30 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
     }
   });
 
+  // Fetch all clinics for the search dropdown
+  const { data: clinics = [], isLoading: clinicsLoading, error: clinicsError } = useQuery({
+    queryKey: ['/api/clinics'],
+    queryFn: async () => {
+      const response = await fetch('/api/clinics');
+      if (!response.ok) throw new Error('Failed to fetch clinics');
+      return response.json();
+    }
+  });
+
   const availableTeamMembers = teamMembers.filter((member: any) => {
     const isCurrentUser = member.fullName === user?.fullName;
     const isReceptionist = member.roleName?.toLowerCase() === "receptionist";
     return !isCurrentUser && !isReceptionist;
   });
+
+  const handleClinicSelect = (clinic:Clinic) => {
+    setFormData({
+      ...formData,
+      clinicId: clinic.id
+    });
+    setClinicSearchTerm(clinic.clinicName);
+    setIsClinicDropdownOpen(false);
+  };
 
   return (
     <Card>
@@ -94,6 +123,61 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
         <CardTitle className="text-xl font-semibold">Clinic Information</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {
+          endPort === "/qa-dashboard/place-order" &&
+          <div className="relative">
+            <Label className="text-sm font-medium mb-2 block">Clinic Name *</Label>
+            <div className="relative">
+              <Input
+                placeholder={
+                  clinicsLoading ? "Loading clinics..." : "Search and select clinic"
+                }
+                value={clinicSearchTerm}
+                onChange={(e) => setClinicSearchTerm(e.target.value)}
+                onFocus={() => setIsClinicDropdownOpen(true)}
+                className="pl-8"
+                disabled={clinicsLoading}
+              />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
+
+            {/* Dropdown */}
+            {isClinicDropdownOpen && (
+              <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto shadow-lg">
+                <CardContent className="p-0">
+                  {clinicsLoading ? (
+                    <div className="p-3 text-sm text-gray-500 text-center">
+                      Loading clinics...
+                    </div>
+                  ) : clinicsError ? (
+                    <div className="p-3 text-sm text-red-500 text-center">
+                      Failed to load clinics
+                    </div>
+                  ) : clinics.length > 0 ? (
+                    clinics.map((clinic: Clinic) => (
+                      <div
+                        key={clinic.id}
+                        className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleClinicSelect(clinic)}
+                      >
+                        <div className="font-medium text-sm text-gray-900">
+                          {clinic.clinicName}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {clinic.firstname} {clinic.lastname}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 text-sm text-gray-500 text-center">
+                      {clinicSearchTerm ? "No clinics found" : "No clinics available"}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        }
         <div>
           <Label htmlFor="caseHandledBy">Case Handled By *</Label>
           <Select
@@ -167,7 +251,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
               onChange={e => handleMobileNumberChange('consultingDoctorMobile', e.target.value)}
               className="mt-1 pl-10"
               placeholder="Enter mobile number (numbers only)"
-              error={!!errors.consultingDoctorMobile}
+              error={!!errors.doctorMobile}
               errorMessage={errors.consultingDoctorMobile}
             />
           </div>

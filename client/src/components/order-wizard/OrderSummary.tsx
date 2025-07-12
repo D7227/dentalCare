@@ -13,6 +13,7 @@ interface OrderSummaryProps {
   formData: any;
   orderCategory: OrderCategoryType;
   onEditSection?: (step: number) => void;
+  userType?: string;
 }
 
 // Helper to build deduplicated, prioritized group list for summary
@@ -76,7 +77,7 @@ const noopGroupsChange = (groups: any[]) => { };
 const noopSetSelectedTeeth = (fn: any) => { };
 const noopDragConnection = (teeth: number[] | number, splitData?: any) => { };
 
-const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryProps) => {
+const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: OrderSummaryProps) => {
   // Use convertToLegacyGroups for correct group conversion
   const selectedGroups = convertToLegacyGroups(formData.toothGroups || []);
   const selectedTeeth = (formData.selectedTeeth || []).map((t: any) => ({
@@ -172,11 +173,16 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-center w-full">
-          <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
-        </div>
-      </div>
+      {
+        userType === "Qa" ?
+          null
+          :
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-center w-full">
+              <h1 className="text-2xl font-bold text-gray-900 print:text-xl">Review and Submit Order</h1>
+            </div>
+          </div>
+      }
       <div className="flex flex-col md:flex-row gap-4 md:gap-6">
         {/* Left: Tooth Chart with Quadrant Labels */}
         <div className="space-y-4 print:space-y-3 w-full md:w-[350px] flex-shrink-0">
@@ -911,36 +917,42 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
       </div>
       {/* Confirmation/Info Box */}
       {/* Additional Notes */}
-      <Card className="shadow-sm mb-3 p-3">
-        <CardHeader className="pb-3 print:pb-2 p-0">
-          <div className="flex items-center justify-between">
-            <div className='flex items-center gap-2'>
-              <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
-                <Edit2 className="h-4 w-4" />
+      {
+        userType !== "Qa" &&
+        <Card className="shadow-sm mb-3 p-3">
+          <CardHeader className="pb-3 print:pb-2 p-0">
+            <div className="flex items-center justify-between">
+              <div className='flex items-center gap-2'>
+                <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
+                  <Edit2 className="h-4 w-4" />
+                </div>
+                <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
               </div>
-              <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="text-sm text-gray-600 p-2 rounded min-h-[40px] mt-4">
+              {formData.notes || <span className="italic text-gray-400">No additional notes</span>}
+            </div>
+          </CardContent>
+        </Card>
+      }
+      {
+        userType !== "Qa" &&
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 print:p-3 print:bg-transparent print:border-gray-300">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 print:h-4 print:w-4" />
+            <div>
+              <p className="text-emerald-800 font-medium text-sm print:text-xs">
+                Please review all details carefully before submitting your {orderCategory} request.
+              </p>
+              <p className="text-emerald-700 text-xs mt-1 print:hidden">
+                Once submitted, the lab will begin processing your order according to the specified requirements.
+              </p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="text-sm text-gray-600 p-2 rounded min-h-[40px] mt-4">
-            {formData.notes || <span className="italic text-gray-400">No additional notes</span>}
-          </div>
-        </CardContent>
-      </Card>
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 print:p-3 print:bg-transparent print:border-gray-300">
-        <div className="flex items-start gap-3">
-          <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5 print:h-4 print:w-4" />
-          <div>
-            <p className="text-emerald-800 font-medium text-sm print:text-xs">
-              Please review all details carefully before submitting your {orderCategory} request.
-            </p>
-            <p className="text-emerald-700 text-xs mt-1 print:hidden">
-              Once submitted, the lab will begin processing your order according to the specified requirements.
-            </p>
-          </div>
         </div>
-      </div>
+      }
     </div>
   );
 };

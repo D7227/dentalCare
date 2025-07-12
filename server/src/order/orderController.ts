@@ -280,23 +280,118 @@ export class OrderStorage implements orderStore {
     //     return chat;
     //   }
 
-      async updateOrderStatus(id: string, status: string): Promise<any | undefined> {
+      async updateOrderStatus(id: string, orderStatus: string): Promise<any | undefined> {
         const [order] = await db
           .update(orderSchema)
-          .set({ status })
+          .set({ orderStatus })
           .where(eq(orderSchema.id, id))
           .returning();
         return order;
       }
 
       async updateOrder(id: string, updates: Partial<any>): Promise<any | undefined> {
-        const updateData = {
-          ...updates,
-          updatedAt: new Date()
-        };
+
+        const orderData: any = {};
+        
+        orderData.refId = updates.refId || null;
+        orderData.orderId = updates.orderId || null;
+        orderData.category = updates.category || null;
+        orderData.type = updates.type || null;
+        orderData.firstName = updates.firstName || null;
+        orderData.lastName = updates.lastName || null;
+        orderData.age = updates.age || null;
+        orderData.sex = updates.sex || null;
+        orderData.caseHandledBy = updates.caseHandledBy || null;
+        orderData.doctorMobile = updates.doctorMobile || null;
+        orderData.consultingDoctor = updates.consultingDoctor || null;
+        orderData.consultingDoctorMobile = updates.consultingDoctorMobile || null;
+        orderData.orderMethod = updates.orderMethod || null;
+        orderData.prescriptionType = updates.prescriptionType || null;
+        orderData.subcategoryType = updates.subcategoryType || null;
+        orderData.restorationType = updates.restorationType || null;
+        orderData.productSelection = updates.productSelection || null;
+        orderData.orderType = updates.orderType || null;
+        orderData.selectedFileType = updates.selectedFileType || null;
+        
+        // Handle JSON fields - use null for empty arrays to avoid PostgreSQL array literal issues
+        orderData.selectedTeeth = Array.isArray(updates.selectedTeeth) && updates.selectedTeeth.length > 0 ? updates.selectedTeeth : null;
+        orderData.toothGroups = Array.isArray(updates.toothGroups) && updates.toothGroups.length > 0 ? updates.toothGroups : null;
+        orderData.toothNumbers = Array.isArray(updates.toothNumbers) && updates.toothNumbers.length > 0 ? updates.toothNumbers : null;
+        orderData.abutmentDetails = updates.abutmentDetails || null;
+        orderData.abutmentType = updates.abutmentType || null;
+        orderData.restorationProducts = Array.isArray(updates.restorationProducts) && updates.restorationProducts.length > 0 ? updates.restorationProducts : null;
+        
+        orderData.clinicId = updates.clinicId || null;
+        orderData.ponticDesign = updates.ponticDesign || null;
+        orderData.occlusalStaining = updates.occlusalStaining || null;
+        orderData.shadeInstruction = updates.shadeInstruction || null;
+        orderData.clearance = updates.clearance || null;
+        
+        orderData.accessories = Array.isArray(updates.accessories) && updates.accessories.length > 0 ? updates.accessories : null;
+        orderData.otherAccessory = updates.otherAccessory || null;
+        orderData.returnAccessories = Boolean(updates.returnAccessories);
+        
+        orderData.notes = updates.notes || null;
+        orderData.files = Array.isArray(updates.files) && updates.files.length > 0 ? updates.files : null;
+        
+        // Handle date fields properly - convert to Date objects or null
+        orderData.expectedDeliveryDate = updates.expectedDeliveryDate ? new Date(updates.expectedDeliveryDate) : null;
+        orderData.pickupDate = updates.pickupDate ? new Date(updates.pickupDate) : null;
+        orderData.pickupTime = updates.pickupTime || null;
+        orderData.pickupRemarks = updates.pickupRemarks || null;
+        
+        orderData.scanBooking = updates.scanBooking || null;
+        orderData.previousOrderId = updates.previousOrderId || null;
+        orderData.repairOrderId = updates.repairOrderId || null;
+        orderData.issueDescription = updates.issueDescription || null;
+        orderData.repairType = updates.repairType || null;
+        orderData.returnWithTrial = Boolean(updates.returnWithTrial);
+        orderData.teethEditedByUser = Boolean(updates.teethEditedByUser);
+        
+        // Handle JSON scan fields
+        orderData.intraOralScans = updates.intraOralScans || null;
+        orderData.faceScans = updates.faceScans || null;
+        orderData.patientPhotos = updates.patientPhotos || null;
+        orderData.referralFiles = updates.referralFiles || null;
+        
+        // --- Handle new fields from order table ---
+        orderData.quantity = updates.quantity || 1;
+        orderData.patientName = updates.patientName || null;
+        orderData.teethNo = updates.teethNo || null;
+        orderData.orderDate = updates.orderDate || null;
+        orderData.orderCategory = updates.orderCategory || null;
+        orderData.orderStatus = updates.orderStatus || null;
+        orderData.statusLabel = updates.statusLabel || null;
+        orderData.percentage = updates.percentage || 0;
+        orderData.chatConnection = Boolean(updates.chatConnection);
+        orderData.unreadMessages = updates.unreadMessages || 0;
+        orderData.messages = Array.isArray(updates.messages) && updates.messages.length > 0 ? updates.messages : null;
+        orderData.isUrgent = Boolean(updates.isUrgent);
+        orderData.currency = updates.currency || 'INR';
+        orderData.exportQuality = updates.exportQuality || 'Standard';
+        orderData.paymentStatus = updates.paymentStatus || 'pending';
+        
+        // Additional fields from frontend that might not be in schema
+        orderData.shade = Array.isArray(updates.shade) && updates.shade.length > 0 ? updates.shade : null;
+        orderData.shadeGuide = Array.isArray(updates.shadeGuide) && updates.shadeGuide.length > 0 ? updates.shadeGuide : null;
+        orderData.shadeNotes = updates.shadeNotes || null;
+        orderData.trial = updates.trial || null;
+        orderData.implantPhoto = updates.implantPhoto || null;
+        orderData.implantCompany = updates.implantCompany || null;
+        orderData.implantRemark = updates.implantRemark || null;
+        orderData.issueCategory = updates.issueCategory || null;
+        orderData.trialApproval = Boolean(updates.trialApproval);
+        orderData.reapirInstructions = updates.reapirInstructions || null;
+        orderData.additionalNotes = updates.additionalNotes || null;
+        orderData.selectedCompany = updates.selectedCompany || null;
+        orderData.handlingType = updates.handlingType || null;
+        orderData.crateNo = updates.crateNo || null;
+        orderData.additionalNote = updates.additionalNote || null;
+        orderData.rejectionReason = updates.rejectionReason || null;
+
         const [order] = await db
           .update(orderSchema)
-          .set(updateData as any)
+          .set(orderData as any)
           .where(eq(orderSchema.id, id))
           .returning();
         return order;

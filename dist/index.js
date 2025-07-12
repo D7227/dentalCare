@@ -96,6 +96,9 @@ var orderSchema = pgTable("orders", {
   repairOrderId: text("repair_order_id"),
   issueDescription: text("issue_description"),
   repairType: text("repair_type"),
+  crateNo: text("crate_no"),
+  additionalNote: text("additional_note"),
+  rejectionReason: text("rejection_reason"),
   returnWithTrial: boolean("return_with_trial"),
   teethEditedByUser: boolean("teeth_edited_by_user"),
   intraOralScans: jsonb("intra_oral_scans").$type(),
@@ -1325,16 +1328,94 @@ var OrderStorage = class {
   //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
   //     return chat;
   //   }
-  async updateOrderStatus(id, status) {
-    const [order] = await db2.update(orderSchema).set({ status }).where(eq7(orderSchema.id, id)).returning();
+  async updateOrderStatus(id, orderStatus) {
+    const [order] = await db2.update(orderSchema).set({ orderStatus }).where(eq7(orderSchema.id, id)).returning();
     return order;
   }
   async updateOrder(id, updates) {
-    const updateData = {
-      ...updates,
-      updatedAt: /* @__PURE__ */ new Date()
-    };
-    const [order] = await db2.update(orderSchema).set(updateData).where(eq7(orderSchema.id, id)).returning();
+    const orderData = {};
+    orderData.refId = updates.refId || null;
+    orderData.orderId = updates.orderId || null;
+    orderData.category = updates.category || null;
+    orderData.type = updates.type || null;
+    orderData.firstName = updates.firstName || null;
+    orderData.lastName = updates.lastName || null;
+    orderData.age = updates.age || null;
+    orderData.sex = updates.sex || null;
+    orderData.caseHandledBy = updates.caseHandledBy || null;
+    orderData.doctorMobile = updates.doctorMobile || null;
+    orderData.consultingDoctor = updates.consultingDoctor || null;
+    orderData.consultingDoctorMobile = updates.consultingDoctorMobile || null;
+    orderData.orderMethod = updates.orderMethod || null;
+    orderData.prescriptionType = updates.prescriptionType || null;
+    orderData.subcategoryType = updates.subcategoryType || null;
+    orderData.restorationType = updates.restorationType || null;
+    orderData.productSelection = updates.productSelection || null;
+    orderData.orderType = updates.orderType || null;
+    orderData.selectedFileType = updates.selectedFileType || null;
+    orderData.selectedTeeth = Array.isArray(updates.selectedTeeth) && updates.selectedTeeth.length > 0 ? updates.selectedTeeth : null;
+    orderData.toothGroups = Array.isArray(updates.toothGroups) && updates.toothGroups.length > 0 ? updates.toothGroups : null;
+    orderData.toothNumbers = Array.isArray(updates.toothNumbers) && updates.toothNumbers.length > 0 ? updates.toothNumbers : null;
+    orderData.abutmentDetails = updates.abutmentDetails || null;
+    orderData.abutmentType = updates.abutmentType || null;
+    orderData.restorationProducts = Array.isArray(updates.restorationProducts) && updates.restorationProducts.length > 0 ? updates.restorationProducts : null;
+    orderData.clinicId = updates.clinicId || null;
+    orderData.ponticDesign = updates.ponticDesign || null;
+    orderData.occlusalStaining = updates.occlusalStaining || null;
+    orderData.shadeInstruction = updates.shadeInstruction || null;
+    orderData.clearance = updates.clearance || null;
+    orderData.accessories = Array.isArray(updates.accessories) && updates.accessories.length > 0 ? updates.accessories : null;
+    orderData.otherAccessory = updates.otherAccessory || null;
+    orderData.returnAccessories = Boolean(updates.returnAccessories);
+    orderData.notes = updates.notes || null;
+    orderData.files = Array.isArray(updates.files) && updates.files.length > 0 ? updates.files : null;
+    orderData.expectedDeliveryDate = updates.expectedDeliveryDate ? new Date(updates.expectedDeliveryDate) : null;
+    orderData.pickupDate = updates.pickupDate ? new Date(updates.pickupDate) : null;
+    orderData.pickupTime = updates.pickupTime || null;
+    orderData.pickupRemarks = updates.pickupRemarks || null;
+    orderData.scanBooking = updates.scanBooking || null;
+    orderData.previousOrderId = updates.previousOrderId || null;
+    orderData.repairOrderId = updates.repairOrderId || null;
+    orderData.issueDescription = updates.issueDescription || null;
+    orderData.repairType = updates.repairType || null;
+    orderData.returnWithTrial = Boolean(updates.returnWithTrial);
+    orderData.teethEditedByUser = Boolean(updates.teethEditedByUser);
+    orderData.intraOralScans = updates.intraOralScans || null;
+    orderData.faceScans = updates.faceScans || null;
+    orderData.patientPhotos = updates.patientPhotos || null;
+    orderData.referralFiles = updates.referralFiles || null;
+    orderData.quantity = updates.quantity || 1;
+    orderData.patientName = updates.patientName || null;
+    orderData.teethNo = updates.teethNo || null;
+    orderData.orderDate = updates.orderDate || null;
+    orderData.orderCategory = updates.orderCategory || null;
+    orderData.orderStatus = updates.orderStatus || null;
+    orderData.statusLabel = updates.statusLabel || null;
+    orderData.percentage = updates.percentage || 0;
+    orderData.chatConnection = Boolean(updates.chatConnection);
+    orderData.unreadMessages = updates.unreadMessages || 0;
+    orderData.messages = Array.isArray(updates.messages) && updates.messages.length > 0 ? updates.messages : null;
+    orderData.isUrgent = Boolean(updates.isUrgent);
+    orderData.currency = updates.currency || "INR";
+    orderData.exportQuality = updates.exportQuality || "Standard";
+    orderData.paymentStatus = updates.paymentStatus || "pending";
+    orderData.shade = Array.isArray(updates.shade) && updates.shade.length > 0 ? updates.shade : null;
+    orderData.shadeGuide = Array.isArray(updates.shadeGuide) && updates.shadeGuide.length > 0 ? updates.shadeGuide : null;
+    orderData.shadeNotes = updates.shadeNotes || null;
+    orderData.trial = updates.trial || null;
+    orderData.implantPhoto = updates.implantPhoto || null;
+    orderData.implantCompany = updates.implantCompany || null;
+    orderData.implantRemark = updates.implantRemark || null;
+    orderData.issueCategory = updates.issueCategory || null;
+    orderData.trialApproval = Boolean(updates.trialApproval);
+    orderData.reapirInstructions = updates.reapirInstructions || null;
+    orderData.additionalNotes = updates.additionalNotes || null;
+    orderData.selectedCompany = updates.selectedCompany || null;
+    orderData.handlingType = updates.handlingType || null;
+    orderData.crateNo = updates.crateNo || null;
+    orderData.additionalNote = updates.additionalNote || null;
+    orderData.rejectionReason = updates.rejectionReason || null;
+    const [order] = await db2.update(orderSchema).set(orderData).where(eq7(orderSchema.id, id)).returning();
     return order;
   }
   async initializeData() {
@@ -1721,6 +1802,14 @@ var setupClinicRoutes = (app2) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  app2.get("/api/clinics", async (req, res) => {
+    try {
+      const clinics = await clinicStorage.getClinics();
+      res.json(clinics);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   app2.get("/api/clinics/:id", async (req, res) => {
     console.log("clinic name by id", req.params.id);
     try {
@@ -1815,16 +1904,17 @@ var setupOrderRoutes = (app2) => {
       }
       res.json(order);
     } catch (error) {
+      console.log(error, "order update error");
       res.status(500).json({ error: "Failed to update order" });
     }
   });
   app2.patch("/api/orders/:id/status", async (req, res) => {
     try {
-      const { status } = req.body;
-      if (!status) {
+      const { orderStatus } = req.body;
+      if (!orderStatus) {
         return res.status(400).json({ error: "Status is required" });
       }
-      const order = await orderStorage.updateOrderStatus(req.params.id, status);
+      const order = await orderStorage.updateOrderStatus(req.params.id, orderStatus);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }

@@ -28,6 +28,7 @@ import { setUser } from "@/store/slices/authSlice";
 import { useToast } from "@/components/ui/use-toast";
 import Register from "./pages/authentication/register";
 import OrderTable from "./components/orders/OrderTable";
+import QaDashboard from "./qaScreen/screen/QaDashboard";
 
 
 
@@ -312,9 +313,11 @@ const App = () => (
         <SocketProvider>
           <Router>
             <Route path="/" component={DashboardLayout} />
+            <Route path="/qa-dashboard" component={QaDashboard} />
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
             <Route path="/place-order" component={PlaceOrder} />
+            <Route path="/qa-dashboard/place-order" component={PlaceOrder} />
             <Route path="/order/:orderId" component={OrderDetails} />
             <Route path="/resubmit-order/:orderId" component={ResubmitOrder} />
             <Route component={NotFound} />

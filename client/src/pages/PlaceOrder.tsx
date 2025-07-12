@@ -163,14 +163,14 @@ const PlaceOrder = () => {
   });
 
   // Update clinicId when Redux data becomes available
-  useEffect(() => {
-    if (clinicId) {
-      setFormData((prev) => ({
-        ...prev,
-        clinicId: clinicId,
-      }));
-    }
-  }, [clinicId]);
+  // useEffect(() => {
+  //   if (clinicId || clinicId === '') {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       clinicId: clinicId,
+  //     }));
+  //   }
+  // }, [clinicId]);
 
   const getHasSelectedTeeth = () => {
     if (orderCategory !== "repeat") return false;
@@ -220,6 +220,9 @@ const PlaceOrder = () => {
       return;
     }
     setIsSubmitting(true);
+    if(formData.clinicId === ''){
+      formData.clinicId = clinicId || '';
+    }
 
     console.log("Form data at submission:", JSON.stringify(formData, null, 2));
 
@@ -246,7 +249,7 @@ const PlaceOrder = () => {
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
         });
-        setLocation('/');
+        window.history.back();
         setIsSubmitting(false);
         return;
       }
@@ -281,7 +284,7 @@ const PlaceOrder = () => {
           title: "Order updated successfully!",
           description: `Order #${updatedOrder.id} has been updated.`,
         });
-        setLocation('/');
+        window.history.back();
         setIsSubmitting(false);
         return;
       }
@@ -346,7 +349,7 @@ const PlaceOrder = () => {
         description: `Order #${order.id} has been sent to the lab for processing.`
       });
       // Redirect to dashboard after successful order placement
-      setLocation('/');
+      window.history.back();
     } catch (error) {
       console.error('Order submission error:', error);
       toast({

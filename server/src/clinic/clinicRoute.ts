@@ -87,6 +87,14 @@ export const setupClinicRoutes = (app: Express) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+  app.get("/api/clinics", async (req, res) => {
+    try {
+      const clinics = await clinicStorage.getClinics();
+      res.json(clinics);
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
 
   // Get clinic name by clinic id
   app.get("/api/clinics/:id", async (req, res) => {
