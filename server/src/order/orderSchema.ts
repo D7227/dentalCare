@@ -72,29 +72,19 @@ export const orderSchema = pgTable("orders", {
   repairType: text("repair_type"),
   returnWithTrial: boolean("return_with_trial"),
   teethEditedByUser: boolean("teeth_edited_by_user"),
-
   intraOralScans: jsonb("intra_oral_scans").$type<any>(),
   faceScans: jsonb("face_scans").$type<any>(),
   patientPhotos: jsonb("patient_photos").$type<any>(),
   referralFiles: jsonb("referral_files").$type<any>(),
 
-  // --- Added fields from order table ---
-  quantity: integer("quantity"),
-  patientName: text("patient_name"),
-  teethNo: text("teeth_no"),
-  orderDate: text("order_date"),
-  orderCategory: text("order_category"),
-  orderStatus: text("order_status"),
-  statusLabel: text("status_label"),
+  
   percentage: integer("percentage"),
-  chatConnection: boolean("chat_connection"),
-  unreadMessages: integer("unread_messages"),
-  messages: jsonb("messages").$type<any[]>(),
   isUrgent: boolean("is_urgent"),
   currency: text("currency"),
+  orderStatus: text("order_status"),
+  totalAmount: text("total_amount"),
   exportQuality: text("export_quality"),
   paymentStatus: text("payment_status"),
-
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

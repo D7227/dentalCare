@@ -154,7 +154,8 @@ export const setupOrderRoutes = (app: Express) => {
       }
       res.json(orders);
     } catch (error) {
-      res.status(500).json({ error: "Failed to filter orders" });
+      console.log("order data " , error)
+      res.status(500).json({ error: error });
     }
   });
 

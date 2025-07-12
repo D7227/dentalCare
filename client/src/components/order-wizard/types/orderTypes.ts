@@ -176,22 +176,13 @@ export interface FormData {
   referralFiles: any[];
   
   // --- Order display fields (for OrderCard) ---
-  orderCategory: string | null;
-  orderStatus: string | null;
-  statusLabel: string | null;
   percentage: number;
-  chatConnection: boolean;
-  unreadMessages: number;
-  messages: Message[];
   isUrgent: boolean;
   currency: string;
   exportQuality: string;
   paymentStatus: string;
-  quantity: number;
-  patientName: string | null;
-  teethNo: string | null;
-  orderDate: string | null;
-  createdAt: string | null;
+  orderStatus: string | null;
+  totalAmount:string | null;
 }
 
 export interface Step {

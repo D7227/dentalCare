@@ -102,20 +102,11 @@ var orderSchema = pgTable("orders", {
   faceScans: jsonb("face_scans").$type(),
   patientPhotos: jsonb("patient_photos").$type(),
   referralFiles: jsonb("referral_files").$type(),
-  // --- Added fields from order table ---
-  quantity: integer("quantity"),
-  patientName: text("patient_name"),
-  teethNo: text("teeth_no"),
-  orderDate: text("order_date"),
-  orderCategory: text("order_category"),
-  orderStatus: text("order_status"),
-  statusLabel: text("status_label"),
   percentage: integer("percentage"),
-  chatConnection: boolean("chat_connection"),
-  unreadMessages: integer("unread_messages"),
-  messages: jsonb("messages").$type(),
   isUrgent: boolean("is_urgent"),
   currency: text("currency"),
+  orderStatus: text("order_status"),
+  totalAmount: text("total_amount"),
   exportQuality: text("export_quality"),
   paymentStatus: text("payment_status"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
@@ -1911,7 +1902,8 @@ var setupOrderRoutes = (app2) => {
       }
       res.json(orders);
     } catch (error) {
-      res.status(500).json({ error: "Failed to filter orders" });
+      console.log("order data ", error);
+      res.status(500).json({ error });
     }
   });
   app2.get("/api/orders/:orderId/chat", async (req, res) => {

@@ -139,22 +139,13 @@ const PlaceOrder = () => {
     referralFiles: [],
 
     // --- Order display fields (for OrderCard) ---
-    orderCategory: null,
     orderStatus: null,
-    statusLabel: null,
     percentage: 0,
-    chatConnection: false,
-    unreadMessages: 0,
-    messages: [],
     isUrgent: false,
     currency: 'INR',
     exportQuality: 'Standard',
     paymentStatus: 'pending',
-    quantity: 1,
-    patientName: null,
-    teethNo: null,
-    orderDate: null,
-    createdAt: null
+    totalAmount: "6565",
   });
 
   // Update clinicId when Redux data becomes available

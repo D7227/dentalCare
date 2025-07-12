@@ -56,25 +56,10 @@ interface OverviewTabProps {
 const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFile }) => {
   console.log("order attachments", attachments)
   console.log(data)
-  const groupedTeeth = new Set<number>(data?.order?.toothGroups.flatMap((g: any) => g.teeth || []));
-  const individualTeeth = (data?.order?.selectedTeeth || []).map((t: any) => ({
-    ...t,
-    selectedProducts: t.selectedProducts || [],
-    productDetails: t.productDetails || {},
-  })).filter((t: any) => !groupedTeeth.has(t.toothNumber));
-
-  let allGroups = [...(data?.order?.toothGroups || [])];
-
-  if (individualTeeth.length > 0) {
-    allGroups.push({
-      groupId: 'individual-group',
-      teeth: individualTeeth.map((t: any) => t.toothNumber),
-      type: 'individual',
-      selectedProducts: individualTeeth[0]?.selectedProducts || [],
-      productDetails: individualTeeth[0]?.productDetails || {},
-      prescriptionType: data?.order?.prescriptionType
-    });
-  }
+  // Merge teeth from both toothGroups and selectedTeeth, deduplicate
+  const groupTeeth = (data?.order?.toothGroups ?? []).flatMap((g: any) => g.teeth ?? []);
+  const individualTeeth = (data?.order?.selectedTeeth ?? []).map((t: any) => t.toothNumber);
+  const allSelectedTeeth = Array.from(new Set([...groupTeeth, ...individualTeeth]));
 
   const isGroupConfigured = (group: any) => {
     if (group.groupId === 'individual-group') {
@@ -87,7 +72,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
       group.productDetails;
   };
 
-  const allGroupsConfigured = data?.order?.toothGroups.length > 0 && data?.order?.toothGroups.every((group: any) => isGroupConfigured(group));
+  const allGroupsConfigured = data?.order?.toothGroups?.length > 0 && data?.order?.toothGroups.every((group: any) => isGroupConfigured(group));
 
   return (
     <>
@@ -270,6 +255,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-y-4 px-4 pb-4 pt-2">
+          {/* New: Show all selected teeth merged from both sources */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">All Selected Teeth:</p>
+            <p className="text-sm font-medium">
+              {allSelectedTeeth.length > 0 ? allSelectedTeeth.join(", ") : "No teeth selected"}
+            </p>
+          </div>
           {data?.details?.restorationType && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Type of Restoration</p>
@@ -283,56 +275,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
             <div>
               <p className="text-xs text-muted-foreground mb-1">Teeth (Group 1):</p>
               <p className="text-sm font-medium">
-                {/* {Array.isArray(data?.details?.toothGroups) && data.details.toothGroups.length > 0 ? (
-                  (() => {
-                    const typeMap: Record<string, number[]> = {};
-                    data.details.toothGroups.forEach((g: any) => {
-                      const gtype = g?.type || 'individual';
-                      if (!typeMap[gtype]) typeMap[gtype] = [];
-                      typeMap[gtype].push(...(g?.teeth || []));
-                    });
-                    return Object.entries(typeMap).map(([gtype, teeth]) => (
-                      <div key={gtype}>
-                        <span className="capitalize">{gtype}:</span>{' '}
-                        {teeth.length > 0 ? teeth.join(', ') : 'None'}
-                      </div>
-                    ));
-                  })()
-                ) : (
-                  <span>No teeth selected</span>
-                )} */}
-                {
-                  allGroupsConfigured && (
-                    (Object.entries(
-                      allGroups.reduce((acc: any, group: any) => {
-                        const type = group.prescriptionType || data?.order?.prescriptionType;
-                        if (!acc[type]) acc[type] = [];
-                        acc[type].push(group);
-                        return acc;
-                      }, {})
-                    ) as [string, any[]][]).map(([type, groups], idx) => {
-                      return (
-                        <>
-                          {(() => {
-                            // Group teeth numbers by group type
-                            const typeMap: Record<string, number[]> = {};
-                            groups.forEach((g: any) => {
-                              const gtype = g.type || 'individual';
-                              if (!typeMap[gtype]) typeMap[gtype] = [];
-                              typeMap[gtype].push(...(g.teeth || []));
-                            });
-                            return Object.entries(typeMap).map(([gtype, teeth]) => (
-                              <div key={gtype}>
-                                <span className="capitalize">{gtype}:</span> {teeth.join(', ')}
-                              </div>
-                            ));
-                          })()}
-                        </>
-                      )
-                    })
-
-                  )
-                }
+                {groupTeeth.length > 0 ? groupTeeth.join(", ") : "No group teeth selected"}
               </p>
             </div>
           )}
