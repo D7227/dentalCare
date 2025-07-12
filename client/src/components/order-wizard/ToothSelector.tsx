@@ -6,12 +6,13 @@ import ToothChart from "./components/ToothChart";
 import SelectedToothGroups from "./components/SelectedToothGroups";
 import ToothTypeDialog from "./components/ToothTypeDialog";
 import ToothUnselectDialog from "./components/ToothUnselectDialog";
+import ImplantDetailsModal from "./components/ImplantDetailsModal";
+import { ToothGroup, ToothDetail, LegacyToothGroup } from "./types/tooth";
 import { CrownBridgeTeeth, ImpantTeeth } from "@/assets/svg";
 import RadioCardGroup from "../common/RadioCardGroup";
-import { ToothGroup, ToothDetail, SelectedTooth, PrescriptionType, LegacyToothGroup } from "./types/orderTypes";
 
 interface ToothSelectorProps {
-  prescriptionType: PrescriptionType;
+  prescriptionType: "implant" | "crown-bridge" | "splints-guards";
   selectedGroups: ToothGroup[];
   selectedTeeth: SelectedTooth[];
   onGroupsChange?: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
@@ -19,6 +20,14 @@ interface ToothSelectorProps {
   onProductComplete?: () => void;
   subcategoryType?: string;
   formData?: any;
+}
+
+interface SelectedTooth {
+  prescriptionType: "implant" | "crown-bridge";
+  toothNumber: number;
+  type: "abutment" | "pontic";
+  selectedProducts?: any[];
+  productDetails?: any;
 }
 
 // Helper functions to convert between new and legacy formats
@@ -67,7 +76,6 @@ const convertToNewGroups = (legacyGroups: LegacyToothGroup[]): ToothGroup[] => {
         teethNumber: toothNumber,
         productName: [group.material],
         productQuantity: 1,
-        selectedProducts: [], // Added to fix missing property error
         // shadeDetails: group.shade || "",
         // occlusalStaining: group.occlusalStaining || "",
         // shadeGuide: [],
@@ -168,13 +176,25 @@ const ToothSelector = ({
     "clear-aligner",
     "retainer",
     "full-dentures",
-    "sleep-apnea"
+    "sleep-apnea",
+    "implant-full-arch"
   ].includes(subcategoryType || formData?.subcategoryType || "");
+
+  // State for implant full arch workflow
+  const [selectedArchTeeth, setSelectedArchTeeth] = useState<number[]>([]);
+  const [showImplantSelection, setShowImplantSelection] = useState(false);
+  const [selectedImplantTeeth, setSelectedImplantTeeth] = useState<number[]>([]);
+  const [implantDetailsData, setImplantDetailsData] = useState<Record<number, any>>({});
+  const [currentImplantToothForDetails, setCurrentImplantToothForDetails] = useState<number | null>(null);
+  const [showImplantDetailsModal, setShowImplantDetailsModal] = useState(false);
 
   // Define arch teeth groups
   const upperArchTeeth = [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28];
   const lowerArchTeeth = [31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48];
   const allArchTeeth = [...upperArchTeeth, ...lowerArchTeeth];
+
+  // Check if this is implant full arch
+  const isImplantFullArch = subcategoryType === "implant-full-arch" || formData?.subcategoryType === "implant-full-arch";
 
   // Arch selection handlers
   const handleArchSelection = (archType: 'upper' | 'lower' | 'both') => {
@@ -192,14 +212,112 @@ const ToothSelector = ({
         break;
     }
 
-    // Clear existing selections and add new arch selection
-    const newTeeth = teethToSelect.map(toothNumber => ({
-      toothNumber,
-      type: "abutment" as const,
-      prescriptionType,
-    }));
+    if (isImplantFullArch) {
+      // For implant full arch, show implant selection step
+      setSelectedArchTeeth(teethToSelect);
+      setShowImplantSelection(true);
+      setSelectedImplantTeeth([]);
+    } else {
+      // For other types, directly select all teeth as abutments
+      const newTeeth = teethToSelect.map(toothNumber => ({
+        toothNumber,
+        type: "abutment" as const,
+        prescriptionType,
+      }));
 
-    updateSelection([], newTeeth);
+      updateSelection([], newTeeth);
+    }
+  };
+
+  // Handle implant tooth selection
+  const handleImplantToothToggle = (toothNumber: number) => {
+    if (selectedImplantTeeth.includes(toothNumber)) {
+      // If already selected, remove from selection and clear details
+      setSelectedImplantTeeth(prev => prev.filter(t => t !== toothNumber));
+      setImplantDetailsData(prev => {
+        const newData = { ...prev };
+        delete newData[toothNumber];
+        return newData;
+      });
+    } else {
+      // If not selected, open details modal for this tooth
+      setCurrentImplantToothForDetails(toothNumber);
+      setShowImplantDetailsModal(true);
+    }
+  };
+
+  // Handle implant details save from modal
+  const handleImplantDetailsSaveForSelection = (implantDetails: any) => {
+    if (currentImplantToothForDetails !== null) {
+      // Add tooth to selected implants
+      setSelectedImplantTeeth(prev => [...prev, currentImplantToothForDetails]);
+
+      // Store implant details
+      setImplantDetailsData(prev => ({
+        ...prev,
+        [currentImplantToothForDetails]: implantDetails
+      }));
+
+      // Close modal and reset current tooth
+      setShowImplantDetailsModal(false);
+      setCurrentImplantToothForDetails(null);
+    }
+  };
+
+  // Confirm implant selection and create bridge
+  const handleConfirmImplantSelection = () => {
+    if (selectedImplantTeeth.length === 0) {
+      console.log("No implant teeth selected");
+      return;
+    }
+
+    // Create tooth details for all arch teeth
+    const teethDetails: ToothDetail[] = selectedArchTeeth
+      .sort((a, b) => a - b)
+      .map((toothNumber) => ({
+        teethNumber: toothNumber,
+        type: selectedImplantTeeth.includes(toothNumber) ? "abutment" : "pontic",
+        productName: [],
+        productDetails: {
+          shade: 'B1 - Vita Classic',
+          productName: [],
+          notes: '',
+          ponticDesign: '',
+          occlusalStaining: 'medium',
+        },
+        selectedProducts: [],
+        shadeGuide: [],
+        shadeNotes: '',
+        shadeDetails: '',
+        productQuantity: 1,
+        occlusalStaining: '',
+        trialRequirements: '',
+        // Add implant details if this is an implant tooth
+        implantDetails: selectedImplantTeeth.includes(toothNumber)
+          ? implantDetailsData[toothNumber]
+          : undefined,
+      }));
+
+    // Create a bridge group
+    const newGroup: ToothGroup = {
+      groupType: "bridge",
+      teethDetails: [teethDetails],
+    };
+
+    updateSelection([newGroup], []);
+    setShowImplantSelection(false);
+    setSelectedArchTeeth([]);
+    setSelectedImplantTeeth([]);
+  };
+
+  // Cancel implant selection
+  const handleCancelImplantSelection = () => {
+    setShowImplantSelection(false);
+    setSelectedArchTeeth([]);
+    setSelectedImplantTeeth([]);
+    setImplantDetailsData({});
+    setCurrentImplantToothForDetails(null);
+    setShowImplantDetailsModal(false);
   };
 
   // Check if a tooth is allowed for selection
@@ -775,6 +893,7 @@ const ToothSelector = ({
       trialRequirements: '',
       implantDetails: prescriptionType === 'implant' ? details : undefined,
     };
+
     updateSelection(
       localSelectedGroups,
       localSelectedTeeth.concat({
@@ -787,6 +906,7 @@ const ToothSelector = ({
         implantDetails: prescriptionType === 'implant' ? details : undefined,
       }),
     );
+
     setShowTypeDialog(false);
     setClickedTooth(null);
   };
@@ -1039,7 +1159,17 @@ const ToothSelector = ({
                 (t) => t.toothNumber === toothNumber,
               );
               if (individualTooth) {
-                return getFullToothDetail(toothNumber, individualTooth.type, localSelectedTeeth);
+                return {
+                  teethNumber: toothNumber,
+                  productName: [],
+                  productQuantity: 1,
+                  shadeDetails: "",
+                  occlusalStaining: "",
+                  shadeGuide: [],
+                  shadeNotes: "",
+                  trialRequirements: "",
+                  type: individualTooth.type,
+                };
               }
 
               // New tooth, default to abutment
@@ -1250,7 +1380,17 @@ const ToothSelector = ({
           (t) => t.toothNumber === toothNumber,
         );
         if (individualTooth) {
-          return getFullToothDetail(toothNumber, individualTooth.type, localSelectedTeeth);
+          return {
+            teethNumber: toothNumber,
+            productName: [],
+            productQuantity: 1,
+            shadeDetails: "",
+            occlusalStaining: "",
+            shadeGuide: [],
+            shadeNotes: "",
+            trialRequirements: "",
+            type: individualTooth.type,
+          };
         } else {
           // Check if tooth exists in groups
           for (const group of involvedGroups) {
@@ -1355,7 +1495,6 @@ const ToothSelector = ({
             toothNumber: tooth.teethNumber,
             type: tooth.type,
             prescriptionType,
-            subcategoryType,
             selectedProducts: [],
             productDetails: {},
           }) as SelectedTooth,
@@ -1462,10 +1601,10 @@ const ToothSelector = ({
             <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">
               Instructions
             </h4>
-            {needsArchSelection && (
+            {needsArchSelection && !showImplantSelection && (
               <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-xs font-medium text-blue-800 mb-2">
-                  Quick Arch Selection:
+                  {isImplantFullArch ? "Select Arch for Implant Full Arch:" : "Quick Arch Selection:"}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -1488,6 +1627,58 @@ const ToothSelector = ({
                     className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
                   >
                     Both Arches
+                  </button>
+                </div>
+              </div>
+            )}
+            {showImplantSelection && (
+              <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                <p className="text-sm font-medium text-orange-800 mb-3">
+                  Select Implant Teeth (others will be pontics):
+                </p>
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {selectedArchTeeth.sort((a, b) => a - b).map((toothNumber) => (
+                    <button
+                      key={toothNumber}
+                      type="button"
+                      onClick={() => handleImplantToothToggle(toothNumber)}
+                      className={`px-2 py-1 text-xs rounded border transition-colors ${selectedImplantTeeth.includes(toothNumber)
+                          ? 'bg-blue-500 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                        }`}
+                    >
+                      {toothNumber}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-600 mb-3">
+                  <p>
+                    <span className="font-medium">Selected Implants:</span> {selectedImplantTeeth.sort((a, b) => a - b).join(', ') || 'None'}
+                  </p>
+                  <p>
+                    <span className="font-medium">Pontics:</span> {selectedArchTeeth.filter(t => !selectedImplantTeeth.includes(t)).sort((a, b) => a - b).join(', ') || 'None'}
+                  </p>
+                  {selectedImplantTeeth.length > 0 && (
+                    <p className="mt-1">
+                      <span className="font-medium">Implant Details Collected:</span> {selectedImplantTeeth.filter(t => implantDetailsData[t]).length}/{selectedImplantTeeth.length}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmImplantSelection}
+                    disabled={selectedImplantTeeth.length === 0}
+                    className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Confirm Selection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelImplantSelection}
+                    className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -1581,6 +1772,15 @@ const ToothSelector = ({
         toothNumber={clickedTooth || 0}
         onUnselect={handleToothUnselect}
         onAddPontic={handleAddPontic}
+      />
+      <ImplantDetailsModal
+        isOpen={showImplantDetailsModal}
+        onClose={() => {
+          setShowImplantDetailsModal(false);
+          setCurrentImplantToothForDetails(null);
+        }}
+        toothNumber={currentImplantToothForDetails || 0}
+        onSave={handleImplantDetailsSaveForSelection}
       />
     </div>
   );

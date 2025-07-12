@@ -144,7 +144,8 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
         isSelected ? "ring-2 ring-[#00A3C8]" : ""
       )}
       style={{
-        background: statusStyle?.gradient,
+        // background: statusStyle?.gradient,
+        background: 'white'
         // minHeight: "294px",
       }}
     >

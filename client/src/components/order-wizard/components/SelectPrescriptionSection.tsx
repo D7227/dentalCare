@@ -74,8 +74,39 @@ const getSubcategoriesForPrescription = (prescriptionType: string) => {
                 {
                     id: "implant-full-arch",
                     name: "Implant Full Arch",
-                    description: "Implant placement guides",
-                    icon: <img src={Surgical_GuideIcon} />,
+                    description: "Complete arch implant restoration",
+                    icon: (
+                        <svg
+                            className="w-10 h-10"
+                            viewBox="0 0 100 100"
+                            fill="none"
+                        >
+                            <path
+                                d="M15 45 Q25 35 35 40 Q45 45 55 40 Q65 35 75 40 Q85 45 85 50 Q85 55 75 60 Q65 65 55 60 Q45 55 35 60 Q25 65 15 60 Q15 55 15 50 Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                fill="none"
+                            />
+                            <circle cx="25" cy="48" r="3" fill="currentColor" />
+                            <circle cx="35" cy="46" r="3" fill="currentColor" />
+                            <circle cx="45" cy="45" r="3" fill="currentColor" />
+                            <circle cx="55" cy="45" r="3" fill="currentColor" />
+                            <circle cx="65" cy="46" r="3" fill="currentColor" />
+                            <circle cx="75" cy="48" r="3" fill="currentColor" />
+                            <path
+                                d="M20 30 L80 30"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeDasharray="2,2"
+                            />
+                            <path
+                                d="M20 70 L80 70"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeDasharray="2,2"
+                            />
+                        </svg>
+                    ),
                 },
             ];
         case "splints-guards":

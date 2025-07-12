@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductSearch from "./ProductSearch";
-import ShadeSelector, {  shadeOptions } from "./ShadeSelector";
+import ShadeSelector, { shadeOptions } from "./ShadeSelector";
 import FormField from "@/components/shared/FormField";
 import TrialSelector from "./components/TrialSelector";
 import ShadeGuideSection from "./components/ShadeGuideSection";
@@ -206,7 +206,7 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [configuredTeeth],
-            subcategoryType:formData.subcategoryType,
+            subcategoryType: formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: true,
           });
@@ -217,7 +217,7 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [unconfiguredTeeth],
-            subcategoryType:formData.subcategoryType,
+            subcategoryType: formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: false,
           });
@@ -387,12 +387,28 @@ const ProductSelection = ({
       } = productDetails;
       let updatedGroups = [...allGroups];
       let updatedSelectedTeeth = [...formData.selectedTeeth];
-
       // Remove any synthetic 'individual' group before saving
       updatedGroups = updatedGroups.filter(
         (g: any) => g.groupType !== "individual",
       );
-
+      // --- Ensure abutmentDetails and all details are saved on each implant tooth ---
+      const abutmentDetails = formData.abutmentDetails || null;
+      // Helper to add details to a tooth
+      const addImplantDetailsToTooth = (tooth: any) => {
+        if (formData.prescriptionType === 'implant') {
+          return {
+            ...tooth,
+            abutmentDetails,
+            shadeGuide: shadeGuide || tooth.shadeGuide,
+            shadeNotes: shadeNotes || tooth.shadeNotes,
+            trialRequirements: trial || tooth.trialRequirements,
+            occlusalStaining: occlusalStaining || tooth.occlusalStaining,
+            // Add more fields as needed
+          };
+        }
+        return tooth;
+      };
+      // When adding products for selected teeth
       if (
         isAddingProductForSelectedTeeth &&
         selectedTeethForProducts.length > 0
@@ -401,21 +417,13 @@ const ProductSelection = ({
           const updatedTeethDetails = group.teethDetails.map((arr: any) =>
             arr.map((tooth: any) => {
               const toothNumber = tooth.toothNumber || tooth.teethNumber;
-              // Only update if this tooth is in selectedTeethForProducts
               if (selectedTeethForProducts.includes(toothNumber)) {
-                const existingProducts = tooth.selectedProducts || [];
-                const newProducts = selectedProducts.filter(
-                  (newProd: any) =>
-                    !existingProducts.some(
-                      (existing: any) => existing.id === newProd.id,
-                    ),
-                );
-                return {
+                let newTooth = {
                   ...tooth,
-                  selectedProducts: [...existingProducts, ...newProducts],
+                  selectedProducts: [...(tooth.selectedProducts || []), ...selectedProducts],
                   productName: [
                     ...(tooth.productName || []),
-                    ...newProducts.map((p: any) => p.name),
+                    ...selectedProducts.map((p: any) => p.name),
                   ],
                   shadeGuide: shadeGuide,
                   shadeNotes: shadeNotes,
@@ -436,13 +444,10 @@ const ProductSelection = ({
                         ? 1
                         : selectedTeethForProducts.length || 1;
                     })(),
-                    shade:
-                      productDetails.shade[0] ||
-                      tooth.productDetails?.shade ||
-                      "",
+                    shade: productDetails.shade[0] || tooth.productDetails?.shade || "",
                     productName: [
                       ...(tooth.productDetails?.productName || []),
-                      ...newProducts.map((p: any) => p.name),
+                      ...selectedProducts.map((p: any) => p.name),
                     ],
                     shadeGuide: shadeGuide,
                     shadeNotes: shadeNotes,
@@ -450,10 +455,12 @@ const ProductSelection = ({
                     occlusalStaining: occlusalStaining,
                   },
                 };
+                // Add abutmentDetails and other implant fields
+                newTooth = addImplantDetailsToTooth(newTooth);
+                return newTooth;
               }
-              // Otherwise, leave the tooth unchanged
               return tooth;
-            }),
+            })
           );
           return {
             ...group,
@@ -462,7 +469,6 @@ const ProductSelection = ({
         });
       } else {
         if (typeof editingGroupIndex === "number") {
-          // Only update the group at editingGroupIndex if it is implant or joint/bridge
           updatedGroups = updatedGroups.map((g: any, idx: number) => {
             if (
               idx === editingGroupIndex &&
@@ -473,9 +479,8 @@ const ProductSelection = ({
               const updatedTeethDetails = g.teethDetails.map((arr: any) =>
                 arr.map((tooth: any) => {
                   const toothNumber = tooth.toothNumber || tooth.teethNumber;
-                  // Only update if this tooth is in editingTeethNumbers
                   if (editingTeethNumbers.includes(toothNumber)) {
-                    return {
+                    let newTooth = {
                       ...tooth,
                       selectedProducts: [...selectedProducts],
                       productName: selectedProducts.map((p: any) => p.name),
@@ -492,13 +497,11 @@ const ProductSelection = ({
                             "dentures",
                             "sleep-accessories",
                           ];
-
                           if (
                             archBasedPrescriptionTypes.includes(
                               formData.prescriptionType || "",
                             )
                           ) {
-                            // Calculate quantity based on arch selection for editing teeth
                             const upperArchTeeth = [
                               11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
                               25, 26, 27, 28,
@@ -507,22 +510,19 @@ const ProductSelection = ({
                               31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
                               45, 46, 47, 48,
                             ];
-
                             const hasUpperTeeth = editingTeethNumbers.some(
                               (tooth) => upperArchTeeth.includes(tooth),
                             );
                             const hasLowerTeeth = editingTeethNumbers.some(
                               (tooth) => lowerArchTeeth.includes(tooth),
                             );
-
                             if (hasUpperTeeth && hasLowerTeeth) {
-                              return 2; // Both arches
+                              return 2;
                             } else if (hasUpperTeeth || hasLowerTeeth) {
-                              return 1; // Single arch
+                              return 1;
                             }
-                            return 1; // Default fallback
+                            return 1;
                           }
-
                           return editingTeethNumbers.length || 1;
                         })(),
                         shade: productDetails.shade[0] || "",
@@ -533,27 +533,27 @@ const ProductSelection = ({
                         occlusalStaining: occlusalStaining,
                       },
                     };
+                    // Add abutmentDetails and other implant fields
+                    newTooth = addImplantDetailsToTooth(newTooth);
+                    return newTooth;
                   }
-                  // Otherwise, leave the tooth unchanged
                   return tooth;
-                }),
+                })
               );
               return {
                 ...g,
                 teethDetails: updatedTeethDetails,
-                subcategoryType:formData.subcategoryType,
+                subcategoryType: formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
             return g;
           });
         } else {
-          // null: update all groups of the same type (as before)
           const typeToEdit = formData.prescriptionType;
           updatedGroups = updatedGroups.map((group: any) => {
             if (
-              (group.prescriptionType || formData.prescriptionType) ===
-              typeToEdit &&
+              (group.prescriptionType || formData.prescriptionType) === typeToEdit &&
               (group.groupType === "joint" ||
                 group.groupType === "bridge" ||
                 group.groupType === "implant")
@@ -561,9 +561,8 @@ const ProductSelection = ({
               const updatedTeethDetails = group.teethDetails.map((arr: any) =>
                 arr.map((tooth: any) => {
                   const toothNumber = tooth.toothNumber || tooth.teethNumber;
-                  // Only update if this tooth is in editingTeethNumbers
                   if (editingTeethNumbers.includes(toothNumber)) {
-                    return {
+                    let newTooth = {
                       ...tooth,
                       selectedProducts: [...selectedProducts],
                       productName: selectedProducts.map((p: any) => p.name),
@@ -580,13 +579,11 @@ const ProductSelection = ({
                             "dentures",
                             "sleep-accessories",
                           ];
-
                           if (
                             archBasedPrescriptionTypes.includes(
                               formData.prescriptionType || "",
                             )
                           ) {
-                            // Calculate quantity based on arch selection for editing teeth
                             const upperArchTeeth = [
                               11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
                               25, 26, 27, 28,
@@ -595,22 +592,19 @@ const ProductSelection = ({
                               31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
                               45, 46, 47, 48,
                             ];
-
                             const hasUpperTeeth = editingTeethNumbers.some(
                               (tooth) => upperArchTeeth.includes(tooth),
                             );
                             const hasLowerTeeth = editingTeethNumbers.some(
                               (tooth) => lowerArchTeeth.includes(tooth),
                             );
-
                             if (hasUpperTeeth && hasLowerTeeth) {
-                              return 2; // Both arches
+                              return 2;
                             } else if (hasUpperTeeth || hasLowerTeeth) {
-                              return 1; // Single arch
+                              return 1;
                             }
-                            return 1; // Default fallback
+                            return 1;
                           }
-
                           return editingTeethNumbers.length || 1;
                         })(),
                         shade: productDetails.shade[0] || "",
@@ -621,15 +615,17 @@ const ProductSelection = ({
                         occlusalStaining: occlusalStaining,
                       },
                     };
+                    // Add abutmentDetails and other implant fields
+                    newTooth = addImplantDetailsToTooth(newTooth);
+                    return newTooth;
                   }
-                  // Otherwise, leave the tooth unchanged
                   return tooth;
-                }),
+                })
               );
               return {
                 ...group,
                 teethDetails: updatedTeethDetails,
-                subcategoryType:formData.subcategoryType,
+                subcategoryType: formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
@@ -640,26 +636,28 @@ const ProductSelection = ({
               tooth.prescriptionType === typeToEdit &&
               editingTeethNumbers.includes(tooth.toothNumber)
             ) {
-              return {
+              let newTooth = {
                 ...tooth,
                 selectedProducts: [...selectedProducts],
                 productName: selectedProducts.map((p: any) => p.name),
-                // shadeGuide: shadeGuide,
-                // shadeNotes: shadeNotes,
-                // trialRequirements: trial,
-                // occlusalStaining: occlusalStaining,
-                // productDetails: {
-                //   ...productDetailsWithoutExtras,
-                //   shade: productDetails.shade[0] || "",
-                //   productName: selectedProducts.map((p: any) => p.name),
-                //   shadeGuide: shadeGuide,
-                //   shadeNotes: shadeNotes,
-                //   trial: trial,
-                //   occlusalStaining: occlusalStaining,
-                // },
+                shadeGuide: shadeGuide,
+                shadeNotes: shadeNotes,
+                trialRequirements: trial,
+                occlusalStaining: occlusalStaining,
+                productDetails: {
+                  ...productDetailsWithoutExtras,
+                  quantity: editingTeethNumbers.length || 1,
+                  shade: productDetails.shade[0] || "",
+                  productName: selectedProducts.map((p: any) => p.name),
+                  shadeGuide: shadeGuide,
+                  shadeNotes: shadeNotes,
+                  trial: trial,
+                  occlusalStaining: occlusalStaining,
+                },
               };
+              newTooth = addImplantDetailsToTooth(newTooth);
+              return newTooth;
             }
-            // Otherwise, leave the tooth unchanged
             return tooth;
           });
         }
@@ -945,6 +943,21 @@ const ProductSelection = ({
   const [implantSelections, setImplantSelections] = useState<ImplantSelectionsState>({
     retentionType: null,
     abutmentType: null,
+  });
+
+  // Find all prescription types in both toothGroups and selectedTeeth
+  const prescriptionTypes = Array.from(new Set([
+    ...(formData.toothGroups || []).map((g: any) => g.prescriptionType),
+    ...(formData.selectedTeeth || []).map((t: any) => t.prescriptionType),
+  ])).filter(Boolean);
+
+  // For each prescriptionType, merge groups and individual teeth
+  const summaryGroupsByType = prescriptionTypes.map((prescriptionType) => {
+    // Groups from toothGroups
+    const groups = (allGroups || []).filter((g: any) => g.prescriptionType === prescriptionType);
+    // Individual teeth from selectedTeeth
+    const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => t.prescriptionType === prescriptionType);
+    return { prescriptionType, groups, individualTeeth };
   });
 
   return (
@@ -1948,12 +1961,14 @@ const ProductSelection = ({
           )}
           <div className="flex justify-end mt-4 gap-2">
             <Button
+              type="button"
               variant="outline"
               onClick={() => setIsProductModalOpen(false)}
             >
               Cancel
             </Button>
             <Button
+              type="button"
               onClick={handleSaveProductsToTeeth}
               disabled={modalSelectedProducts.length === 0}
               className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"

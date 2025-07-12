@@ -71,10 +71,10 @@ function getSummaryToothType(toothNumber: number, summaryGroups: any[], selected
 }
 
 // Helper: Safe no-op handlers for read-only summary
-const noopToothClick = (toothNumber: number, event: React.MouseEvent) => {};
-const noopGroupsChange = (groups: any[]) => {};
-const noopSetSelectedTeeth = (fn: any) => {};
-const noopDragConnection = (teeth: number[] | number, splitData?: any) => {};
+const noopToothClick = (toothNumber: number, event: React.MouseEvent) => { };
+const noopGroupsChange = (groups: any[]) => { };
+const noopSetSelectedTeeth = (fn: any) => { };
+const noopDragConnection = (teeth: number[] | number, splitData?: any) => { };
 
 const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryProps) => {
   // Use convertToLegacyGroups for correct group conversion
@@ -83,6 +83,61 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
     toothNumber: t.toothNumber,
     type: t.type || 'abutment',
   }));
+
+  // --- Unified group logic for both toothGroups and selectedTeeth ---
+  const selectedTeethGroups = (formData.selectedTeeth || []).length > 0
+    ? Object.values(
+        (formData.selectedTeeth || []).reduce((acc: any, tooth: any) => {
+          const type = tooth.prescriptionType || formData.prescriptionType || "unknown";
+          if (!acc[type]) acc[type] = { prescriptionType: type, groupType: "individual", teethDetails: [[]] };
+          acc[type].teethDetails[0].push(tooth);
+          return acc;
+        }, {})
+      )
+    : [];
+
+  const allGroups = [
+    ...(formData.toothGroups || []),
+    ...selectedTeethGroups
+  ];
+
+  const configuredGroups = allGroups.filter((group: any) => {
+    const allTeeth = group.teethDetails?.flat() || [];
+    return allTeeth.length > 0 && allTeeth.every((t: any) => {
+      const hasSelectedProducts = t.selectedProducts && t.selectedProducts.length > 0;
+      const hasProductName = t.productName && t.productName.length > 0;
+      return hasSelectedProducts || hasProductName;
+    });
+  });
+
+  const groupedByType = configuredGroups.reduce((acc: any, group: any) => {
+    const type = group.prescriptionType || formData.prescriptionType || "unknown";
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(group);
+    return acc;
+  }, {});
+
+  const uniqueTypes = Array.from(new Set((formData.toothGroups || []).map((g: any) => g.prescriptionType)));
+  const typeLabel = uniqueTypes.length > 1
+    ? uniqueTypes.map(t => t === 'implant' ? 'Implant' : 'Crown & Bridge').join(', ')
+    : (uniqueTypes[0] === 'implant' ? 'Implant' : 'Crown & Bridge');
+
+  // Aggregate details from toothGroups
+  const allTeeth = (formData.toothGroups || []).flatMap((g: any) => g.teethDetails?.flat() || []);
+  const pontics = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.ponticDesign).filter(Boolean)));
+  const trials = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.trial).filter(Boolean)));
+  const occlusalStainings = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.occlusalStaining).filter(Boolean)));
+  const shades = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean)));
+
+  const shadeGuides = Array.from(new Set(
+    allTeeth
+      .flatMap((t: any) =>
+        (t.productDetails?.shadeGuide && Array.isArray(t.productDetails.shadeGuide))
+          ? t.productDetails.shadeGuide
+          : (Array.isArray(t.shadeGuide) ? t.shadeGuide : [])
+      )
+      .filter(Boolean)
+  ));
 
   const getCategoryTitle = () => {
     switch (orderCategory) {
@@ -113,76 +168,6 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
       Edit
     </Button>
   );
-
-  // Group restoration data by teeth groups
-  let restorationGroups = convertToLegacyGroups(formData.toothGroups || []);
-
-  // Find all teeth already included in groups
-  const groupedTeeth = new Set(restorationGroups.flatMap(g => g.teeth));
-
-  // Find individual teeth (not in any group)
-  const individualTeeth = (formData.selectedTeeth || [])
-    .filter((t: any) => !groupedTeeth.has(t.toothNumber));
-
-  // If there are individual teeth, add them as a group
-  if (individualTeeth.length > 0) {
-    restorationGroups.push({
-      groupId: 'individual-group',
-      teeth: individualTeeth.map((t: any) => t.toothNumber),
-      type: 'separate', // treat as separate for LegacyToothGroup compatibility
-      productType: 'implant',
-      notes: '',
-      material: '',
-      shade: '',
-    });
-  }
-
-  let allGroups = [...formData.toothGroups];
-  if (formData.selectedTeeth.length > 0) {
-    allGroups.push({
-      groupId: 'individual-group',
-      teeth: formData.selectedTeeth.map((t: any) => t.toothNumber),
-      type: 'individual',
-      material: '',
-      shade: '',
-      notes: '',
-    });
-  }
-
-  const isGroupConfigured = (group: any) => {
-    if (group.groupId === 'individual-group') {
-      // Check if all individual teeth have products configured
-      const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => group.teeth.includes(t.toothNumber));
-      return individualTeeth.length > 0 && individualTeeth.every((t: any) => t.selectedProducts && t.selectedProducts.length > 0);
-    }
-    return group.selectedProducts &&
-      group.selectedProducts.length > 0 &&
-      group.productDetails;
-  };
-
-  const unconfiguredGroups = allGroups.filter((group: any) => !isGroupConfigured(group));
-
-  const uniqueTypes = Array.from(new Set((formData.toothGroups || []).map((g: any) => g.prescriptionType)));
-  const typeLabel = uniqueTypes.length > 1
-    ? uniqueTypes.map(t => t === 'implant' ? 'Implant' : 'Crown & Bridge').join(', ')
-    : (uniqueTypes[0] === 'implant' ? 'Implant' : 'Crown & Bridge');
-
-  // Aggregate details from toothGroups
-  const allTeeth = (formData.toothGroups || []).flatMap((g: any) => g.teethDetails?.flat() || []);
-  const pontics = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.ponticDesign).filter(Boolean)));
-  const trials = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.trial).filter(Boolean)));
-  const occlusalStainings = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.occlusalStaining).filter(Boolean)));
-  const shades = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean)));
-
-  const shadeGuides = Array.from(new Set(
-    allTeeth
-      .flatMap((t: any) =>
-        (t.productDetails?.shadeGuide && Array.isArray(t.productDetails.shadeGuide))
-          ? t.productDetails.shadeGuide
-          : (Array.isArray(t.shadeGuide) ? t.shadeGuide : [])
-      )
-      .filter(Boolean)
-  ));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
@@ -218,7 +203,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 selectedTeeth={selectedTeeth}
                 onToothClick={noopToothClick}
                 isToothSelected={() => false}
-                getToothType={(toothNumber) => getSummaryToothType(toothNumber, restorationGroups, selectedTeeth)}
+                getToothType={(toothNumber) => getSummaryToothType(toothNumber, allGroups, selectedTeeth)}
                 onGroupsChange={noopGroupsChange}
                 setSelectedTeeth={noopSetSelectedTeeth}
                 onDragConnection={noopDragConnection}
@@ -321,81 +306,314 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                   </div>
                   <CardTitle className="text-sm font-semibold text-gray-900">Restoration & Treatment Details</CardTitle>
                 </div>
+                <EditButton onClick={() => onEditSection?.(3)} label="Edit" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-2 print:space-y-1 p-0">
-              <div className="text-xs text-gray-500">Type of Restoration</div>
+            <CardContent className="space-y-4 print:space-y-3 p-0">
+              {/* Type of Restoration */}
+              <div>
+                <div className="text-xs text-gray-500 mb-2">Type of Restoration</div>
               <div className='flex items-center gap-2'>
                 <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
                   {formData.category === "implant" ? (
-                    <img src={ImpantTeeth} alt="CrownBridgeTeeth" />
+                      <img src={ImpantTeeth} alt="ImplantTeeth" />
                   ) : (
                     <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
                   )}
                 </div>
                 <div className='font-medium text-gray-900'>{typeLabel}</div>
               </div>
-              <div className="text-xs text-gray-500 mt-4 mb-1">Teeth</div>
-              {restorationGroups.length > 0 && (
-                <div className="flex flex-wrap gap-2 items-center">
-                  {restorationGroups.map((group: any, index: number) => {
+              </div>
+
+              {/* Configured Groups Detail Cards - Show all configured groups */}
+              {Object.entries(groupedByType).map(([type, groups]) => {
+                const groupsArray = groups as any[];
                     return (
-                      <div key={index} className={`flex border h-fit items-center px-3 py-2 text-white ${group.type === 'individual' ? 'bg-[#1D4ED8] border-[#4574F9]' : group.type === 'joint' ? 'bg-[#0B8043] border-[#10A457]' : 'bg-[#EA580C] border-[#FF7730]'} rounded-lg w-fit`}>
-                        <span className="text-xs text-[10px]">{group.type}:</span>
-                        <span className=" ml-2 text-[10px]">
-                          {group.teeth?.join(', ')}
+                  <Card key={type} className="border border-green-200 bg-gray-50 mb-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium capitalize">
+                            {type}
                         </span>
+                        </div>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
-                    );
+
+                      {/* Teeth Information */}
+                      <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div>
+                          <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                          <div className="text-gray-600">
+                            {["bridge", "joint", "individual"].map((groupType) => {
+                              const groupsOfType = groupsArray.filter((g: any) => g.groupType === groupType);
+                              if (groupsOfType.length === 0) return null;
+                              const teethNumbers = groupsOfType
+                                .flatMap((g: any) => g.teethDetails?.flat() || [])
+                                .map((t: any) => t.toothNumber ?? t.teethNumber)
+                                .filter((n: any) => n !== undefined && n !== null && n !== "")
+                                .join(", ");
+                              return teethNumbers ? (
+                                <div key={groupType} className="flex items-center gap-2 mb-1">
+                                  <div className={`w-2 h-2 rounded-full ${groupType === 'individual' ? 'bg-[#1D4ED8]' : groupType === 'joint' ? 'bg-[#0B8043]' : 'bg-[#EA580C]'}`}></div>
+                                  <span className="font-semibold capitalize text-xs">{groupType}:</span>
+                                  <span className="text-xs">{teethNumbers}</span>
+                                </div>
+                              ) : null;
                   })}
                 </div>
-              )}
-              <div className="flex flex-wrap mt-4">
-                {Array.isArray(formData.restorationProducts) && formData.restorationProducts.length > 0 && (
-                  <div className='flex-1 gap-2 min-w-[120px]'>
-                    <div className="text-[12px] text-gray-500">Product Selection</div>
-                    <div className="font-medium text-gray-900 text-xs">
-                      {formData.restorationProducts.map((product: any, idx: number) => (
-                        <span key={idx}>{product.product}{idx < formData.restorationProducts.length - 1 ? ', ' : ''}</span>
+                        </div>
+
+                        {/* Products Information */}
+                        <div>
+                          <p className="font-medium text-gray-900 mb-1">Products:</p>
+                          <div className="text-gray-600 space-y-1">
+                            {(() => {
+                              const toothProductList: { tooth: number; products: string[] }[] = [];
+                              groupsArray.forEach((group: any) => {
+                                group.teethDetails?.flat().forEach((tooth: any) => {
+                                  let productNames: string[] = [];
+                                  if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
+                                    productNames = tooth.selectedProducts.map((p: any) => p.name);
+                                  } else if (tooth.productName && Array.isArray(tooth.productName)) {
+                                    productNames = [...tooth.productName];
+                                  } else if (tooth.productDetails && tooth.productDetails.productName && tooth.productDetails.productName.length > 0) {
+                                    productNames = [...tooth.productDetails.productName];
+                                  }
+                                  if (productNames.length > 0) {
+                                    toothProductList.push({
+                                      tooth: tooth.teethNumber || tooth.toothNumber,
+                                      products: productNames,
+                                    });
+                                  }
+                                });
+                              });
+                              toothProductList.sort((a, b) => a.tooth - b.tooth);
+                              return toothProductList.map((item, i) => (
+                                <div key={i} className="text-xs">
+                                  <span className="font-semibold">Tooth {item.tooth}:</span> {item.products.join(", ")}
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                    </div>
+                  </div>
+
+                      {/* Implant Details for implant type */}
+                      {type === "implant" && (() => {
+                        const implantTeeth = groupsArray.flatMap((g: any) => g.teethDetails?.flat() || [])
+                          .filter((tooth: any) => tooth.implantDetails);
+
+                        if (implantTeeth.length > 0) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-2">Implant Details:</p>
+                              <div className="space-y-2">
+                                {implantTeeth.map((tooth: any, idx: number) => (
+                                  <div key={idx} className="border rounded-md p-2 bg-gray-50">
+                                    <div className="font-semibold text-sm text-gray-800 mb-1">
+                                      Tooth {tooth.toothNumber || tooth.teethNumber}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      {tooth.implantDetails?.companyName && (
+                                        <div>
+                                          <span className="font-semibold text-gray-700">Company:</span>
+                                          <span className="ml-1 text-gray-600">{tooth.implantDetails.companyName}</span>
+                  </div>
+                )}
+                                      {tooth.implantDetails?.systemName && (
+                                        <div>
+                                          <span className="font-semibold text-gray-700">System:</span>
+                                          <span className="ml-1 text-gray-600">{tooth.implantDetails.systemName}</span>
+                  </div>
+                )}
+                                      {tooth.implantDetails?.remarks && (
+                                        <div className="col-span-2">
+                                          <span className="font-semibold text-gray-700">Remarks:</span>
+                                          <span className="ml-1 text-gray-600">{tooth.implantDetails.remarks}</span>
+                  </div>
+                )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Shade and Treatment Details */}
+                      <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                        <div>
+                          <p className="font-medium text-gray-900 mb-1">Shade:</p>
+                          <p className="text-gray-600">
+                            {(() => {
+                              const shadeDetails = groupsArray.find((g: any) => g.shadeDetails)?.shadeDetails;
+                              return shadeDetails || "Not specified";
+                            })()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
+                          <p className="text-gray-600 capitalize">
+                            {(() => {
+                              const occlusalStaining = groupsArray.find((g: any) => g.occlusalStaining)?.occlusalStaining;
+                              return occlusalStaining || "Not specified";
+                            })()}
+                          </p>
+                        </div>
+                  </div>
+
+                      {/* Shade Guide */}
+                      {(() => {
+                        const shadeGuide = groupsArray.find((g: any) => g.shadeGuide && g.shadeGuide.type && g.shadeGuide.shades && g.shadeGuide.shades.length > 0)?.shadeGuide;
+                        if (shadeGuide) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-1">Shade Guide:</p>
+                              <div className="text-gray-600 capitalize">
+                                <span className="font-semibold">
+                                  {shadeGuide.type === "anterior" ? "Anterior" : "Posterior"}:
+                                </span>
+                                <div className="mt-1">
+                                  {shadeGuide.shades.map((shade: string, idx: number) => (
+                                    <div key={idx} className="text-xs">{shade}</div>
                       ))}
                     </div>
                   </div>
-                )}
-                {pontics.length > 0 && (
-                  <div className='flex-1 gap-2 min-w-[120px]'>
-                    <div className="text-[12px] text-gray-500">Pontic</div>
-                    <div className="font-medium text-gray-900 text-xs">{pontics.join(', ')}</div>
-                  </div>
-                )}
-                {trials.length > 0 && (
-                  <div className='flex-1 gap-2 min-w-[120px]'>
-                    <div className="text-[12px] text-gray-500">Trial</div>
-                    <div className="font-medium text-gray-900 text-xs">{trials.join(', ')}</div>
-                  </div>
-                )}
-                {occlusalStainings.length > 0 && (
-                  <div className='flex-1 gap-2 min-w-[120px]'>
-                    <div className="text-[12px] text-gray-500">Occlusal Staining</div>
-                    <div className="font-medium text-gray-900 text-xs">{occlusalStainings.join(', ')}</div>
-                  </div>
-                )}
-                {shades.length > 0 && (
-                  <div className='mt-4 mr-3'>
-                    <div className="text-[12px] text-gray-500">Shade</div>
-                    <div className="font-medium text-gray-900 text-xs">{shades.join(', ')}</div>
-                  </div>
-                )}
-                {shadeGuides.length > 0 && (
-                  <div className='mt-4'>
-                    <div className="text-[12px] text-gray-500">Shade Guide</div>
-                    <div className="font-medium text-gray-900 text-xs flex flex-col">
-                      {(shadeGuides as string[]).map((guide, idx) => (
-                        <div key={idx}>{guide}</div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Trial Requirements */}
+                      {(() => {
+                        const trialRequirements = groupsArray.find((g: any) => g.trialRequirements)?.trialRequirements;
+                        if (trialRequirements) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-1">Trial Requirements:</p>
+                              <p className="text-gray-600 capitalize text-sm">
+                                {trialRequirements}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Shade Notes */}
+                      {(() => {
+                        const shadeNotes = groupsArray.find((g: any) => g.shadeNotes)?.shadeNotes;
+                        if (shadeNotes) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-1">Shade Notes:</p>
+                              <p className="text-gray-600 text-sm italic">
+                                {shadeNotes}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Pontic Design */}
+                      {(() => {
+                        const ponticDesign = groupsArray.find((g: any) => g.ponticDesign)?.ponticDesign;
+                        if (ponticDesign) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-1">Pontic Design:</p>
+                              <div className="text-gray-600 text-sm">
+                                {ponticDesign}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Additional Notes */}
+                      {(() => {
+                        const notes = groupsArray.flatMap((g: any) =>
+                          g.teethDetails?.flat()
+                            .map((t: any) => t.productDetails?.notes)
+                            .filter(Boolean)
+                        );
+                        if (notes.length > 0) {
+                          return (
+                            <div className="mt-3">
+                              <p className="font-medium text-gray-900 mb-1">Notes:</p>
+                              <p className="text-gray-600 italic text-xs leading-relaxed">
+                                {notes.join(" | ")}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Product Quantities Summary */}
+              {(() => {
+                const productMap: Record<string, number> = {};
+                (formData.toothGroups || []).forEach((group: any) => {
+                  group.teethDetails?.flat().forEach((tooth: any) => {
+                    let counted = false;
+                    if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
+                      tooth.selectedProducts.forEach((prod: any) => {
+                        if (prod && prod.name) {
+                          productMap[prod.name] = (productMap[prod.name] || 0) + 1;
+                          counted = true;
+                        }
+                      });
+                    }
+                    if (!counted && tooth.productName && Array.isArray(tooth.productName)) {
+                      tooth.productName.forEach((name: string) => {
+                        if (name) {
+                          productMap[name] = (productMap[name] || 0) + 1;
+                        }
+                      });
+                    }
+                  });
+                });
+
+                const productQuantities = Object.entries(productMap).map(([name, quantity]) => ({
+                  name,
+                  quantity,
+                }));
+
+                if (productQuantities.length > 0) {
+                  return (
+                    <Card className="border border-gray-200 bg-gray-50">
+                      <CardContent className="p-4">
+                        <h6 className="text-sm font-semibold mb-3 text-gray-900">
+                          Product Quantities Summary
+                        </h6>
+                        <div className="space-y-2">
+                          {productQuantities.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between p-2 bg-white rounded border border-gray-100">
+                              <span className="text-sm font-medium text-gray-700">
+                                {item.name}
+                              </span>
+                              <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                X {item.quantity}
+                              </span>
+                            </div>
+                          ))}
               </div>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+                return null;
+              })()}
             </CardContent>
           </Card>
           {/* File Upload Summary */}
@@ -404,7 +622,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               <div className="flex items-center justify-between">
                 <div className='flex items-center gap-2'>
                   <div className="p-2 border bg-[#A1620726] text-[#A16207] border-[#A16207] h-[32px] w-[32px] rounded-[6px]">
-                    <FileText  className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-sm font-semibold text-gray-900">File Upload Summary</CardTitle>
                 </div>
@@ -416,7 +634,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
               {/* Helper function to get all files from different sources */}
               {(() => {
-                const allFiles: Array<{fileName: string, size?: number, type: string}> = [];
+                const allFiles: Array<{ fileName: string, size?: number, type: string }> = [];
                 
                 // Add files from different sources with their types
                 if (formData.files && Array.isArray(formData.files)) {
@@ -475,8 +693,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                       {allFiles.map((file, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm">
                           <div className="flex flex-col">
-                            <span className="text-gray-900 truncate max-w-[160px] block">{file.fileName}</span>
-                            <span className="text-xs text-gray-500">{file.type}</span>
+                            <span className="text-xs text-gray-900">{file.type}</span>
+                            <span className="text-gray-500 truncate max-w-[160px] block">{file.fileName}</span>
                           </div>
                           <span className="text-gray-600">
                             {file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} Mb` : 'Size unknown'}
@@ -500,7 +718,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
           <div className="flex items-center justify-between">
             <div className='flex items-center gap-2'>
               <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
-                <Edit2  className="h-4 w-4" />
+                <Edit2 className="h-4 w-4" />
               </div>
               <CardTitle className="text-sm font-semibold text-gray-900">Additional Notes</CardTitle>
             </div>

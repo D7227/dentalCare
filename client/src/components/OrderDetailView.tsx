@@ -22,6 +22,7 @@ import OverviewTab from "./orders/tabs/OverviewTab";
 import PickupTab from "./orders/tabs/PickupTab";
 import PaymentTab from "./orders/tabs/PaymentTab";
 import { useAppSelector } from "@/store/hooks";
+import { getLifecycleStages } from "./shared/progress/lifecycleData";
 
 interface OrderDetailViewProps {
   isOpen: boolean;
@@ -115,16 +116,12 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     });
   };
 
-  const stages = [
-    { label: "Submitted", date: order.createdAt, completed: true },
-    { label: "Picked Up", date: order.createdAt, completed: true },
-    { label: "Lab Received", date: order.createdAt, completed: true },
-    { label: "Lab-Approval", date: order.createdAt, completed: true },
-    { label: "In Progress", date: order.createdAt, completed: order.statusLabel !== "pending" },
-    { label: "Final Review", date: order.dueDate, completed: order.statusLabel === "dispatched" || order.statusLabel === "delivered" },
-    { label: "Dispatched", date: order.dueDate, completed: order.statusLabel === "dispatched" || order.statusLabel === "delivered" },
-    { label: "Delivered", date: order.dueDate, completed: order.statusLabel === "delivered" },
-  ];
+  const rawStages = getLifecycleStages(order.statusLabel);
+  const stages = rawStages.map(stage => ({
+    label: stage.title,
+    date: stage.timestamp,
+    completed: stage.status === 'completed',
+  }));
 
   const details = {
     restorationType: order.restorationType,

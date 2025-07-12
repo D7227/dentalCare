@@ -119,10 +119,11 @@ const EditProductModel = (
           />
         )}
         <div className="flex justify-end mt-4 gap-2">
-          <Button variant="outline" onClick={() => setEditField(null)}>
+          <Button type="button" variant="outline" onClick={() => setEditField(null)}>
             Cancel
           </Button>
           <Button
+            type="button"
             className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
             onClick={() => {
               if (editField) {

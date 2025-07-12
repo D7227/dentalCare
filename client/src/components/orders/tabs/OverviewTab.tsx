@@ -254,86 +254,205 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ data, attachments, onRemoveFi
             Restoration & Treatment Details
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-y-4 px-4 pb-4 pt-2">
-          {/* New: Show all selected teeth merged from both sources */}
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">All Selected Teeth:</p>
-            <p className="text-sm font-medium">
-              {allSelectedTeeth.length > 0 ? allSelectedTeeth.join(", ") : "No teeth selected"}
-            </p>
-          </div>
-          {data?.details?.restorationType && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Type of Restoration</p>
-              <p className="text-sm font-medium flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-teal-600" />
-                {data?.details.restorationType}
-              </p>
-            </div>
-          )}
-          {data?.order?.toothGroups && data?.order?.toothGroups.length > 0 && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Teeth (Group 1):</p>
-              <p className="text-sm font-medium">
-                {groupTeeth.length > 0 ? groupTeeth.join(", ") : "No group teeth selected"}
-              </p>
-            </div>
-          )}
-          {(data?.details?.productSelection?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Product Selection</p>
-              {(data?.details?.productSelection ?? []).map((item: { name: string; count?: number }, idx: number) => (
-                <p key={idx} className="text-sm font-medium">
-                  {item.name}
-                  {item.count && (
-                    <span className="text-blue-600 font-semibold ml-1">X {item.count}</span>
-                  )}
-                </p>
-              ))}
-            </div>
-          )}
-          {(data?.details?.accessories?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Accessories</p>
-              <p className="text-sm font-medium">
-                {(data?.details?.accessories ?? []).map((item: { name: string; count?: number | null }, idx: number) => (
-                  <span key={idx}>
-                    {item.name}
-                    {item.count && (
-                      <span className="text-blue-600 font-semibold ml-1">X {item.count}</span>
-                    )}
-                    {idx < ((data?.details?.accessories?.length ?? 0) - 1) && ", "}
-                  </span>
-                ))}
-              </p>
-            </div>
-          )}
-          {data?.details?.pontic && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Pontic</p>
-              <p className="text-sm font-medium">{data?.details.pontic}</p>
-            </div>
-          )}
-          {data?.details?.trial && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Trial</p>
-              <p className="text-sm font-medium">{data?.details.trial} Trial</p>
-            </div>
-          )}
-          {data?.details?.occlusalStaining && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Occlusal Staining</p>
-              <p className="text-sm font-medium">{data?.details.occlusalStaining}</p>
-            </div>
-          )}
-          {(data?.details?.shade?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Shade</p>
-              {(data?.details?.shade ?? []).map((item: string, idx: number) => (
-                <p key={idx} className="text-sm font-medium">{item}</p>
-              ))}
-            </div>
-          )}
+        <CardContent className="flex flex-col gap-4 px-4 pb-4 pt-2">
+          {/* Merge and group by prescriptionType, like in OrderSummary */}
+          {(() => {
+            // 1. Normalize selectedTeeth into group-like objects
+            const selectedTeethGroups = (data?.order?.selectedTeeth || []).length > 0
+              ? Object.values(
+                  (data?.order?.selectedTeeth || []).reduce((acc: any, tooth: any) => {
+                    const type = tooth.prescriptionType || data?.order?.prescriptionType || "unknown";
+                    if (!acc[type]) acc[type] = { prescriptionType: type, groupType: "individual", teethDetails: [[]] };
+                    acc[type].teethDetails[0].push(tooth);
+                    return acc;
+                  }, {})
+                )
+              : [];
+            // 2. Combine with toothGroups
+            const allGroups = [
+              ...(data?.order?.toothGroups || []),
+              ...selectedTeethGroups
+            ];
+            // 3. Filter for configured groups
+            const configuredGroups = allGroups.filter((group: any) => {
+              const allTeeth = group.teethDetails?.flat() || [];
+              return allTeeth.length > 0 && allTeeth.every((t: any) => {
+                const hasSelectedProducts = t.selectedProducts && t.selectedProducts.length > 0;
+                const hasProductName = t.productName && t.productName.length > 0;
+                return hasSelectedProducts || hasProductName;
+              });
+            });
+            // 4. Group by prescriptionType
+            const groupedByType = configuredGroups.reduce((acc: any, group: any) => {
+              const type = group.prescriptionType || data?.order?.prescriptionType || "unknown";
+              if (!acc[type]) acc[type] = [];
+              acc[type].push(group);
+              return acc;
+            }, {});
+            // 5. Render a card for each prescriptionType
+            return Object.entries(groupedByType).map(([type, groups]) => {
+              const groupsArray = groups as any[];
+              return (
+                <Card key={type} className="border border-green-200 bg-gray-50 mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium capitalize">
+                          {type}
+                        </span>
+                      </div>
+                      <Check className="w-4 h-4 text-green-600" />
+                    </div>
+                    {/* Teeth Information */}
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1">Teeth:</p>
+                        <div className="text-gray-600">
+                          {["bridge", "joint", "individual"].map((groupType) => {
+                            const groupsOfType = groupsArray.filter((g: any) => g.groupType === groupType);
+                            if (groupsOfType.length === 0) return null;
+                            const teethNumbers = groupsOfType
+                              .flatMap((g: any) => g.teethDetails?.flat() || [])
+                              .map((t: any) => t.toothNumber ?? t.teethNumber)
+                              .filter((n: any) => n !== undefined && n !== null && n !== "")
+                              .join(", ");
+                            return teethNumbers ? (
+                              <div key={groupType} className="flex items-center gap-2 mb-1">
+                                <div className={`w-2 h-2 rounded-full ${groupType === 'individual' ? 'bg-[#1D4ED8]' : groupType === 'joint' ? 'bg-[#0B8043]' : 'bg-[#EA580C]'}`}></div>
+                                <span className="font-semibold capitalize text-xs">{groupType}:</span>
+                                <span className="text-xs">{teethNumbers}</span>
+                              </div>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                      {/* Products Information */}
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1">Products:</p>
+                        <div className="text-gray-600 space-y-1">
+                          {(() => {
+                            const toothProductList: { tooth: number; products: string[] }[] = [];
+                            groupsArray.forEach((group: any) => {
+                              group.teethDetails?.flat().forEach((tooth: any) => {
+                                let productNames: string[] = [];
+                                if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
+                                  productNames = tooth.selectedProducts.map((p: any) => p.name);
+                                } else if (tooth.productName && Array.isArray(tooth.productName)) {
+                                  productNames = [...tooth.productName];
+                                } else if (tooth.productDetails && tooth.productDetails.productName && tooth.productDetails.productName.length > 0) {
+                                  productNames = [...tooth.productDetails.productName];
+                                }
+                                if (productNames.length > 0) {
+                                  toothProductList.push({
+                                    tooth: tooth.teethNumber || tooth.toothNumber,
+                                    products: productNames,
+                                  });
+                                }
+                              });
+                            });
+                            toothProductList.sort((a, b) => a.tooth - b.tooth);
+                            return toothProductList.map((item, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-semibold">Tooth {item.tooth}:</span> {item.products.join(", ")}
+                              </div>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Shade and Treatment Details */}
+                    <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1">Shade:</p>
+                        <p className="text-gray-600">
+                          {(() => {
+                            const shadeDetails = groupsArray.find((g: any) => g.shadeDetails)?.shadeDetails;
+                            return shadeDetails || "Not specified";
+                          })()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
+                        <p className="text-gray-600 capitalize">
+                          {(() => {
+                            const occlusalStaining = groupsArray.find((g: any) => g.occlusalStaining)?.occlusalStaining;
+                            return occlusalStaining || "Not specified";
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Shade Guide */}
+                    {(() => {
+                      const shadeGuide = groupsArray.find((g: any) => g.shadeGuide && g.shadeGuide.type && g.shadeGuide.shades && g.shadeGuide.shades.length > 0)?.shadeGuide;
+                      if (shadeGuide) {
+                        return (
+                          <div className="mt-3">
+                            <p className="font-medium text-gray-900 mb-1">Shade Guide:</p>
+                            <div className="text-gray-600 capitalize">
+                              <span className="font-semibold">
+                                {shadeGuide.type === "anterior" ? "Anterior" : "Posterior"}:
+                              </span>
+                              <div className="mt-1">
+                                {shadeGuide.shades.map((shade: string, idx: number) => (
+                                  <div key={idx} className="text-xs">{shade}</div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {/* Trial Requirements */}
+                    {(() => {
+                      const trialRequirements = groupsArray.find((g: any) => g.trialRequirements)?.trialRequirements;
+                      if (trialRequirements) {
+                        return (
+                          <div className="mt-3">
+                            <p className="font-medium text-gray-900 mb-1">Trial Requirements:</p>
+                            <p className="text-gray-600 capitalize text-sm">
+                              {trialRequirements}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {/* Shade Notes */}
+                    {(() => {
+                      const shadeNotes = groupsArray.find((g: any) => g.shadeNotes)?.shadeNotes;
+                      if (shadeNotes) {
+                        return (
+                          <div className="mt-3">
+                            <p className="font-medium text-gray-900 mb-1">Shade Notes:</p>
+                            <p className="text-gray-600 text-sm italic">
+                              {shadeNotes}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {/* Pontic Design */}
+                    {(() => {
+                      const ponticDesign = groupsArray.find((g: any) => g.ponticDesign)?.ponticDesign;
+                      if (ponticDesign) {
+                        return (
+                          <div className="mt-3">
+                            <p className="font-medium text-gray-900 mb-1">Pontic Design:</p>
+                            <div className="text-gray-600 text-sm">
+                              {ponticDesign}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </CardContent>
+                </Card>
+              );
+            });
+          })()}
         </CardContent>
       </Card>
 
