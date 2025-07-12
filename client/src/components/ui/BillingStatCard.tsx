@@ -1,13 +1,13 @@
 interface BillingStatCardProps {
-  title: string;
-  icon: React.ReactNode;
-  value: string;
-  valueClassName: string;
+  title?: string;
+  icon?: React.ReactNode;
+  value?: string;
+  valueClassName?: string;
   subtext?: string;
   subvalue?: string;
   actions?: React.ReactNode;
-  gradient: string;
-  borderColor: string;
+  gradient?: string;
+  borderColor?: string;
   isTotalDue?: boolean; // NEW
 }
 

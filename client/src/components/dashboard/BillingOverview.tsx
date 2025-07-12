@@ -53,6 +53,7 @@ const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
       title: "Invoice Amount",
       icon: <FileText className="text-purple-600" />,
       value: "₹35,000",
+      valueClassName: 'text-purple-600',
       subtext: "Pending Invoice",
       subvalue: "3",
       gradient:
@@ -64,6 +65,7 @@ const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
       title: "Invoice Amount",
       icon: <IndianRupee className="text-orange-500" />,
       value: "₹17,000",
+      valueClassName: 'text-orange-500',
       subtext: "No. of Invoice",
       subvalue: "3",
       gradient:
@@ -75,6 +77,7 @@ const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
       title: "Order Amount",
       icon: <Receipt className="text-yellow-500" />,
       value: "₹20,000",
+      valueClassName: 'text-yellow-500',
       subtext: "Delivered Order",
       subvalue: "5",
       gradient:
@@ -86,6 +89,7 @@ const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
       title: "Payment Done",
       icon: <CheckCircle className="text-green-600" />,
       value: "₹17,000",
+      valueClassName: 'text-green-600',
       subtext: "Total Invoice Done",
       subvalue: "5",
       gradient:
@@ -97,6 +101,7 @@ const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
       title: "Paid Amount",
       icon: <CreditCard className="text-purple-600" />,
       value: "₹17,000",
+      valueClassName: 'text-purple-600',
       subtext: "No. of Payment",
       subvalue: "5",
       gradient:
