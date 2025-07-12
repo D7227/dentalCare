@@ -57,7 +57,7 @@ const CustomStatusLabel: React.FC<CustomStatusLabelProps> = ({
   if (rounded) {
     return (
       <div
-        className={`inline-flex items-center justify-center px-3 py-2 border text-12/16 rounded-full font-semibold  ${colorClass} ${className}`}
+        className={`inline-flex items-center justify-center px-3 py-2 border text-12/16 rounded-full capitalize font-semibold  ${colorClass} ${className}`}
       >
         {label}
       </div>
@@ -66,7 +66,7 @@ const CustomStatusLabel: React.FC<CustomStatusLabelProps> = ({
 
   return (
     <div
-      className={`inline-flex items-center gap-2 px-4 py-2 border text-[14px] rounded-[8px] font-medium ${colorClass} ${className}`}
+      className={`inline-flex items-center gap-2 px-4 py-2 border text-[14px] rounded-[8px] capitalize font-medium ${colorClass} ${className}`}
     >
       {status === "trial" ? (
         <img src={teethProcess} alt="status-icon" className="w-4 h-4" />

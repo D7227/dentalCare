@@ -182,10 +182,17 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
           <Label htmlFor="caseHandledBy">Case Handled By *</Label>
           <Select
             value={formData.caseHandledBy}
-            onValueChange={value => setFormData({
-              ...formData,
-              caseHandledBy: value
-            })}
+            onValueChange={value => {
+              // Find the selected team member to get their mobile number
+              const selectedMember = availableTeamMembers.find((member: any) => member.fullName === value);
+              
+              setFormData({
+                ...formData,
+                caseHandledBy: value,
+                // Automatically set the doctor's mobile number if available
+                doctorMobile: selectedMember?.contactNumber || formData.doctorMobile
+              });
+            }}
           >
             <SelectTrigger className="mt-1"
               style={{
@@ -195,7 +202,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
               <SelectValue placeholder="Select doctor" />
             </SelectTrigger>
             <SelectContent>
-              {availableTeamMembers.map((member: { id: string; fullName: string; roleName: string }) => (
+              {availableTeamMembers.map((member: { id: string; fullName: string; roleName: string; contactNumber?: string }) => (
                 <SelectItem key={member.id} value={member.fullName}>
                   {member.fullName} ({member.roleName})
                 </SelectItem>

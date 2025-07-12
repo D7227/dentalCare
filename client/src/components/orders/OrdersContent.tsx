@@ -197,14 +197,16 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const mapApiOrderToDentalOrder = (order: any): DentalOrder & any => {
     // Map status to statusLabel/orderStatus for UI
     let statusLabel: DentalOrder["statusLabel"] = "pending";
-    let orderStatus: DentalOrder["orderStatus"] = "pending";
+    let orderStatus: DentalOrder["orderStatus"] = order.orderStatus;
     // Map API status/orderType to UI enums
     switch (order.orderStatus) {
       case "pending_approval":
         statusLabel = "pending";
         orderStatus = "pending";
         break;
-      case "approved":
+      case "active":
+        statusLabel = "active";
+        orderStatus = "active";
       case "in_process":
         statusLabel = "active";
         orderStatus = "active";
