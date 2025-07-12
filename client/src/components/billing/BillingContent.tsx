@@ -3,10 +3,10 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DollarSign, 
-  FileText, 
-  CheckCircle, 
+import {
+  DollarSign,
+  FileText,
+  CheckCircle,
   Clock,
   CreditCard,
   Download,
@@ -14,14 +14,15 @@ import {
 } from 'lucide-react';
 import CashCollectionModal from './CashCollectionModal';
 import InvoiceDetailModal from './InvoiceDetailModal';
+import StatementContent from './StatementContent';
 import { DoctorInfo } from '../shared/DoctorInfo';
 import { ToothSummary } from '../shared/ToothSummary';
-import BillingPageStatsCard from './BillingPageStatsCard';
-import { useOrders } from '../../hooks/shared/useOrders';
 import BillingOverview from '../dashboard/BillingOverview';
+import { useOrders } from '../../hooks/shared/useOrders';
 
 const BillingContent = () => {
   const [activeTab, setActiveTab] = useState('outstanding');
+  const [showStatement, setShowStatement] = useState(false);
   const [cashCollectionModalOpen, setCashCollectionModalOpen] = useState(false);
   const [selectedBillForCollection, setSelectedBillForCollection] = useState<any>(null);
   const [invoiceDetailModalOpen, setInvoiceDetailModalOpen] = useState(false);
@@ -31,28 +32,28 @@ const BillingContent = () => {
 
   // Filter and calculate billing statistics from orders
   const billingData = useMemo(() => {
-    const outstandingOrders = orders.filter((order: any) => 
+    const outstandingOrders = orders.filter((order: any) =>
       order.paymentStatus === 'pending' || order.paymentStatus === 'partial'
     );
-    
-    const overdueOrders = orders.filter((order: any) => 
+
+    const overdueOrders = orders.filter((order: any) =>
       order.paymentStatus === 'pending' && order.dueDate && new Date(order.dueDate) < new Date()
     );
-    
+
     const thisMonthPaidOrders = orders.filter((order: any) => {
       const orderDate = new Date(order.updatedAt);
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      return order.paymentStatus === 'paid' && 
-             orderDate.getMonth() === currentMonth && 
-             orderDate.getFullYear() === currentYear;
+      return order.paymentStatus === 'paid' &&
+        orderDate.getMonth() === currentMonth &&
+        orderDate.getFullYear() === currentYear;
     });
 
-    const totalOutstanding = outstandingOrders.reduce((sum: number, order: any) => 
+    const totalOutstanding = outstandingOrders.reduce((sum: number, order: any) =>
       sum + parseInt(order.outstandingAmount || '0'), 0
     );
-    
-    const thisMonthPaid = thisMonthPaidOrders.reduce((sum: number, order: any) => 
+
+    const thisMonthPaid = thisMonthPaidOrders.reduce((sum: number, order: any) =>
       sum + parseInt(order.paidAmount || '0'), 0
     );
 
@@ -132,10 +133,17 @@ const BillingContent = () => {
   };
 
   const tabs = [
-    { id: 'outstanding', label: 'Outstanding Bills', count: 2 },
-    { id: 'history', label: 'Payment History', count: null },
-    { id: 'all', label: 'All Bills', count: null }
+    { id: 'outstanding', label: 'Outstanding Invoices', count: 2 },
+    { id: 'statement', label: 'Statement', count: null },
+    { id: 'all', label: 'All Invoices', count: null }
   ];
+
+  // Show Statement page if requested
+  if (showStatement) {
+    return <StatementContent onBack={() => setShowStatement(false)} />;
+  }
+
+  console.log('outstandingBills', outstandingBills)
 
   return (
     <div className="space-y-6">
@@ -147,9 +155,8 @@ const BillingContent = () => {
         </div>
       </div> */}
 
-      {/* Billing Page Stats */}
-      {/* <BillingPageStatsCard /> */}
-      <BillingOverview />
+      {/* Billing Overview Cards */}
+      <BillingOverview onStatementClick={() => setShowStatement(true)} />
 
       {/* Tabs and Content */}
       <Card className="hover:shadow-lg transition-all duration-200">
@@ -159,11 +166,10 @@ const BillingContent = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
               >
                 {tab.label}
                 {tab.count && (
@@ -181,11 +187,10 @@ const BillingContent = () => {
               {outstandingBills.map((bill) => (
                 <div
                   key={bill.id}
-                  className={`border rounded-lg p-4 ${
-                    bill.status === 'overdue' 
-                      ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10' 
-                      : 'border-gray-200 dark:border-gray-700'
-                  }`}
+                  className={`border rounded-lg p-4 ${bill.status === 'overdue'
+                    ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10'
+                    : 'border-gray-200 dark:border-gray-700'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -219,26 +224,17 @@ const BillingContent = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="btn-pay-now"
                       onClick={() => handlePayNow(bill)}
                     >
                       <CreditCard className="h-4 w-4 mr-1" />
                       Pay Now - ₹{bill.dueAmount.toLocaleString()}
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="btn-outline"
-                      onClick={() => handleRequestCashCollection(bill)}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Request Cash Collection
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       className="btn-ghost"
                       onClick={() => handleViewInvoice(bill)}
                     >
@@ -251,15 +247,110 @@ const BillingContent = () => {
             </div>
           )}
 
-          {activeTab !== 'outstanding' && (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No data available</h3>
-              <p className="text-sm text-muted-foreground">
-                {activeTab === 'history' ? 'No payment history found' : 'No bills found'}
-              </p>
+          {activeTab === 'statement' && (
+            <StatementContent onBack={() => setActiveTab('outstanding')} />
+          )}
+
+          {activeTab === 'all' && (
+            <div className="space-y-4">
+              {orders.map((order) => {
+                const bill = {
+                  id: `INV-${order.id}`,
+                  orderNumber: order.orderId || order.referenceId,
+                  patient: `${order.patientFirstName || ''} ${order.patientLastName || ''}`.trim(),
+                  totalAmount: parseInt(order.totalAmount || '0'),
+                  paidAmount: parseInt(order.paidAmount || '0'),
+                  dueAmount: parseInt(order.outstandingAmount || '0'),
+                  dueDate: order.dueDate || new Date().toISOString().split('T')[0],
+                  status: order.paymentStatus === 'paid' ? 'paid' :
+                    (order.paymentStatus === 'partial' ? 'partial' :
+                      (new Date(order.dueDate || Date.now()) < new Date() ? 'overdue' : 'unpaid'))
+                };
+
+                return (
+                  <div
+                    key={bill.id}
+                    className={`border rounded-lg p-4 ${bill.status === 'overdue'
+                      ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-900/10'
+                      : bill.status === 'paid'
+                        ? 'border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-900/10'
+                        : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{bill.id}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Order: {bill.orderNumber} - {bill.patient}
+                        </p>
+                      </div>
+                      <Badge className={
+                        bill.status === 'paid' ? 'bg-green-100 text-green-800 border-green-200' :
+                          bill.status === 'partial' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                            bill.status === 'overdue' ? 'bg-red-100 text-red-800 border-red-200' :
+                              'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      }>
+                        {bill.status === 'paid' ? 'Paid' :
+                          bill.status === 'partial' ? 'Partial' :
+                            bill.status === 'overdue' ? 'Overdue' : 'Unpaid'}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Amount</p>
+                        <p className="font-semibold">₹{bill.totalAmount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Paid Amount</p>
+                        <p className="font-semibold">₹{bill.paidAmount.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Due Amount</p>
+                        <p className={`font-semibold ${bill.dueAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          ₹{bill.dueAmount.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Due Date</p>
+                        <p className="font-semibold">{bill.dueDate}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {bill.status !== 'paid' && bill.dueAmount > 0 && (
+                        <Button
+                          size="sm"
+                          className="btn-pay-now"
+                          onClick={() => handlePayNow(bill)}
+                        >
+                          <CreditCard className="h-4 w-4 mr-1" />
+                          Pay Now - ₹{bill.dueAmount.toLocaleString()}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="btn-ghost"
+                        onClick={() => handleViewInvoice(bill)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Invoice
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {orders.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-4">
+                    <FileText className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No invoices found</h3>
+                  <p className="text-sm text-muted-foreground">No invoices available</p>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

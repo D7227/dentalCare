@@ -197,41 +197,48 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const mapApiOrderToDentalOrder = (order: any): DentalOrder & any => {
     // Map status to statusLabel/orderStatus for UI
     let statusLabel: DentalOrder["statusLabel"] = "pending";
-    let orderStatus: DentalOrder["orderStatus"] = "new";
+    let orderStatus: DentalOrder["orderStatus"] = "pending";
     // Map API status/orderType to UI enums
-    switch (order.status) {
+    switch (order.orderStatus) {
       case "pending_approval":
         statusLabel = "pending";
+        orderStatus = "pending";
         break;
       case "approved":
       case "in_process":
         statusLabel = "active";
+        orderStatus = "active";
         break;
       case "trial_ready":
         statusLabel = "trial";
+        orderStatus = "trial";
         break;
       case "completed":
         statusLabel = "dispatched";
+        orderStatus = "dispatched";
         break;
       case "delivered":
         statusLabel = "delivered";
+        orderStatus = "delivered";
         break;
       case "rejected":
         statusLabel = "rejected";
+        orderStatus = "rejected";
         break;
       default:
         statusLabel = "pending";
+        orderStatus = "pending";
     }
-    switch (order.orderType) {
-      case "repeat":
-        orderStatus = "repeat";
-        break;
-      case "repair":
-        orderStatus = "repair";
-        break;
-      default:
-        orderStatus = "new";
-    }
+    // switch (order.orderType) {
+    //   case "repeat":
+    //     orderStatus = "repeat";
+    //     break;
+    //   case "repair":
+    //     orderStatus = "repair";
+    //     break;
+    //   default:
+    //     orderStatus = "new";
+    // }
     // Payment status mapping
     let paymentStatus: DentalOrder["paymentStatus"] = "pending";
     if (order.paymentStatus === "paid") paymentStatus = "paid";
@@ -295,6 +302,8 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       category,
     };
   };
+
+  console.log('filteredOrders dashbored', filteredOrders)
 
   // Use filteredOrders (from API) and map to DentalOrder for rendering
   const dentalOrders = filteredOrders.map(mapApiOrderToDentalOrder);

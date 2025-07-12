@@ -30,6 +30,7 @@ import CustomStatusLabel from "../common/customStatusLabel";
 import OptionsMenu from "../common/OptionsMenu";
 import CircularProgress from "../common/CircularProgress";
 import { useAppSelector } from '@/store/hooks';
+import { useApiGet } from "@/hooks/useApi";
 
 interface OrderTableProps {
   onViewOrder?: (order: any) => void;
@@ -50,37 +51,38 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
   const { user } = useAppSelector(state => state.auth);
   const clinicId = user?.clinicId;
+  console.log('clinicId', clinicId)
   const {
     data: dbOrders = [],
     isLoading,
-    error,
-  } = useQuery<any[]>({
-    queryKey: ["/api/orders/filter", clinicId],
-    queryFn: async () => {
-      if (!clinicId) return [];
-      const response = await fetch(`/api/orders/filter/${clinicId}`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      return await response.json();
-    },
+    isError: error,
+    errorMessage,
+    refetch,
+  } = useApiGet<any[]>(`/api/orders/filter/${user?.clinicId}`, {
+    enabled: !!user?.clinicId,
     refetchInterval: 30000,
+    onSuccess: (data) => console.log('Orders fetched:', data),
+    onError: (error) => console.error('Failed to fetch orders:', error),
   });
 
+  console.log('dbOrders   ---table', dbOrders)
 
-//   const clinicId = user?.clinicId;
-// const filters = {
-//   patientName: "Jane",
-//   prescription: "Bridge",
-//   reference_id: "REF123",
-//   order_id: "ORD456"
-// };
 
-// const params = new URLSearchParams();
-// Object.entries(filters).forEach(([key, value]) => {
-//   if (value) params.append(key, value);
-// });
+  //   const clinicId = user?.clinicId;
+  // const filters = {
+  //   patientName: "Jane",
+  //   prescription: "Bridge",
+  //   reference_id: "REF123",
+  //   order_id: "ORD456"
+  // };
 
-// const response = await fetch(`/api/orders/filter/${clinicId}?${params.toString()}`);
-// const data = await response.json();
+  // const params = new URLSearchParams();
+  // Object.entries(filters).forEach(([key, value]) => {
+  //   if (value) params.append(key, value);
+  // });
+
+  // const response = await fetch(`/api/orders/filter/${clinicId}?${params.toString()}`);
+  // const data = await response.json();
   // Orders page shows all orders - no filtering needed
 
   const { data: patients = [] } = useQuery<any[]>({
@@ -305,6 +307,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     );
   });
 
+
+  console.log('filteredOrders', filteredOrders)
+
   const handleViewOrder = (order: any, tab: string = "overview") => {
     setSelectedOrder(order);
     setOrderDetailTab(tab);
@@ -500,15 +505,14 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 </div>
               )}
           </div>
-
         </div>
-          <Button
-            onClick={() => setLocation("/place-order")}
-            className="flex items-center gap-2"
-          >
-            <Plus size={16} />
-            New Order
-          </Button>
+        <Button
+          onClick={() => setLocation("/place-order")}
+          className="flex items-center gap-2"
+        >
+          <Plus size={16} />
+          New Order
+        </Button>
       </div>
 
       <Card>
@@ -547,10 +551,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                         >
                           <td className="p-3 text-sm">{formatDate(order?.createdAt)}</td>
                           <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview")}>
-                            {order?.orderId || order?.referenceId}
+                            {order?.orderId || order?.refId}
                           </td>
-                          <td className="p-3 text-sm">{order?.patientFirstName} {order?.patientLastName}</td>
-                          <td className="p-3 text-sm">Crown & Bridge</td>
+                          <td className="p-3 text-sm">{order?.firstName} {order?.lastName}</td>
+                          <td className="p-3 text-sm capitalize">{order?.prescriptionType}</td>
                           <td className="p-3 text-sm">
                             {orderTeeth.length > 0 && (
                               <div>
@@ -572,14 +576,14 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                               <CircularProgress value={order?.percentage ?? 0} size={48} />
                             </div>
                           </td>
-                          <td className="p-3 text-center">
+                          <td className="p-3 text-center capitalize">
                             {order?.orderMethod}
                           </td>
                           <td className="p-3 text-center ">
                             <CustomStatusBatch label={order?.category} variant='outline' className='m-auto' />
                           </td>
                           <td className="p-3 text-center">
-                            <CustomStatusLabel label={order?.status} status={order?.status} rounded={true} />
+                            <CustomStatusLabel label={order?.orderStatus} status={order?.orderStatus} rounded={true} />
                           </td>
                           <td className="p-3 text-center">
                             {/* Message Icon in rounded box with badge */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -8,20 +8,17 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProductSearch from "./ProductSearch";
-import ShadeSelector, { shadeOptions } from "./ShadeSelector";
+import ShadeSelector, { ShadeOption } from "./ShadeSelector";
 import FormField from "@/components/shared/FormField";
 import TrialSelector from "./components/TrialSelector";
-import ShadeGuideSection from "./components/ShadeGuideSection";
+import ShadeGuideSection, { ShadeGuide } from "./components/ShadeGuideSection";
 import { CheckCircle, Plus, Pencil } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import BaseModal from "@/components/shared/BaseModal";
-import PonticSelector from "./components/ponticSelector";
+import PonticSelector from "./components/PonticSelector";
 import React from "react";
-import { Product, ShadeGuide } from "./types/orderTypes";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import EditProductModel from "./components/EditProductModel";
-import ImplantTypeSelector, { ImplantSelectionsState } from "./components/ImplantTypeSelector";
+import ImplantTypeSelector from "./components/ImplantTypeSelector";
 
 interface ProductSelectionProps {
   formData: any;
@@ -29,8 +26,16 @@ interface ProductSelectionProps {
   onAddMoreProducts?: () => void;
 }
 
-// Define ProductDetails type for local state (not in orderTypes.ts)
-type ProductDetails = {
+interface SelectedProduct {
+  id: string;
+  name: string;
+  category: string;
+  material: string;
+  description: string;
+  quantity: number;
+}
+
+interface ProductDetails {
   shade: string[];
   occlusalStaining: string;
   ponticDesign: string;
@@ -40,44 +45,28 @@ type ProductDetails = {
   additionalNotes?: string;
   shadeGuide?: ShadeGuide | null;
   productName: string[];
-};
-
-// Helper type for compatibility with ProductSearch
-type SelectedProduct = Omit<Product, 'category'> & { category: string; quantity: number };
-
-// Convert Product[] to SelectedProduct[] (default quantity 1 if missing)
-function toSelectedProducts(products: Product[]): SelectedProduct[] {
-  return products.map((p: Product) => ({ ...p, category: String(p.category), quantity: p.quantity ?? 1 }));
 }
 
-// Convert SelectedProduct[] to Product[] (strip quantity, cast category back to PrescriptionType)
-function toProducts(selected: SelectedProduct[]): Product[] {
-  return selected.map(({ quantity, category, ...rest }) => ({ ...rest, category: category as import("./types/orderTypes").PrescriptionType, quantity }));
-}
-
-// SafeImagePreview: Safely renders an image from a File or string URL
-function SafeImagePreview({ fileOrUrl, ...props }: { fileOrUrl: File | string, [key: string]: any }) {
-  const url = useMemo(() => {
-    if (fileOrUrl instanceof File) {
-      return URL.createObjectURL(fileOrUrl);
-    }
-    if (typeof fileOrUrl === "string") {
-      return fileOrUrl;
-    }
-    return null;
-  }, [fileOrUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (fileOrUrl instanceof File && url) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [fileOrUrl, url]);
-
-  if (!url) return null;
-  return <img src={url} {...props} />;
-}
+const shadeOptions: ShadeOption[] = [
+  { value: "a1", label: "A1 - Vita Classic", family: "Vita Classic" },
+  { value: "a2", label: "A2 - Vita Classic", family: "Vita Classic" },
+  { value: "a3", label: "A3 - Vita Classic", family: "Vita Classic" },
+  { value: "a3.5", label: "A3.5 - Vita Classic", family: "Vita Classic" },
+  { value: "b1", label: "B1 - Vita Classic", family: "Vita Classic" },
+  { value: "b2", label: "B2 - Vita Classic", family: "Vita Classic" },
+  { value: "b3", label: "B3 - Vita Classic", family: "Vita Classic" },
+  { value: "c1", label: "C1 - Vita Classic", family: "Vita Classic" },
+  { value: "c2", label: "C2 - Vita Classic", family: "Vita Classic" },
+  { value: "d2", label: "D2 - Vita Classic", family: "Vita Classic" },
+  { value: "1m1", label: "1M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "1m2", label: "1M2 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2l1.5", label: "2L1.5 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2l2.5", label: "2L2.5 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2m1", label: "2M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2m2", label: "2M2 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "3m1", label: "3M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "3m2", label: "3M2 - Vita 3D Master", family: "Vita 3D Master" },
+];
 
 const ProductSelection = ({
   formData,
@@ -85,7 +74,9 @@ const ProductSelection = ({
   onAddMoreProducts,
 }: ProductSelectionProps) => {
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(
+    [],
+  );
   const [productDetails, setProductDetails] = useState<ProductDetails>({
     shade: [],
     occlusalStaining: "medium",
@@ -111,7 +102,7 @@ const ProductSelection = ({
   const { toast } = useToast();
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [modalSelectedProducts, setModalSelectedProducts] = useState<
-    Product[]
+    SelectedProduct[]
   >([]);
 
   // --- 1. Add edit modal state for group/field ---
@@ -120,6 +111,20 @@ const ProductSelection = ({
     groupIdx: number;
   }>(null);
   const [editFieldValue, setEditFieldValue] = useState<any>("");
+
+  // Provider popup state
+  const [showProviderPopup, setShowProviderPopup] = useState(false);
+  const [selectedItemType, setSelectedItemType] = useState<
+    "retention" | "abutment" | null
+  >(null);
+  const [selectedItemValue, setSelectedItemValue] = useState<string>("");
+  const [implantSelections, setImplantSelections] = useState<{
+    retentionType: { value: string; provider: string; quantity: number } | null;
+    abutmentType: { value: string; provider: string; quantity: number } | null;
+  }>({
+    retentionType: null,
+    abutmentType: null,
+  });
 
   const isMobile = useIsMobile();
   const [providerPopupOpen, setProviderPopupOpen] = useState(false);
@@ -161,7 +166,7 @@ const ProductSelection = ({
       .map((t: any) => ({
         ...t,
         selectedProducts: t.selectedProducts || [],
-        // productDetails: t.productDetails || {},
+        productDetails: t.productDetails || {},
       }))
       .filter((t: any) => !groupedTeeth.has(t.toothNumber));
 
@@ -206,7 +211,6 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [configuredTeeth],
-            subcategoryType: formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: true,
           });
@@ -217,7 +221,6 @@ const ProductSelection = ({
           allGroups.push({
             groupType: "individual",
             teethDetails: [unconfiguredTeeth],
-            subcategoryType: formData.subcategoryType,
             prescriptionType: prescriptionType,
             isConfigured: false,
           });
@@ -387,28 +390,12 @@ const ProductSelection = ({
       } = productDetails;
       let updatedGroups = [...allGroups];
       let updatedSelectedTeeth = [...formData.selectedTeeth];
+
       // Remove any synthetic 'individual' group before saving
       updatedGroups = updatedGroups.filter(
         (g: any) => g.groupType !== "individual",
       );
-      // --- Ensure abutmentDetails and all details are saved on each implant tooth ---
-      const abutmentDetails = formData.abutmentDetails || null;
-      // Helper to add details to a tooth
-      const addImplantDetailsToTooth = (tooth: any) => {
-        if (formData.prescriptionType === 'implant') {
-          return {
-            ...tooth,
-            abutmentDetails,
-            shadeGuide: shadeGuide || tooth.shadeGuide,
-            shadeNotes: shadeNotes || tooth.shadeNotes,
-            trialRequirements: trial || tooth.trialRequirements,
-            occlusalStaining: occlusalStaining || tooth.occlusalStaining,
-            // Add more fields as needed
-          };
-        }
-        return tooth;
-      };
-      // When adding products for selected teeth
+
       if (
         isAddingProductForSelectedTeeth &&
         selectedTeethForProducts.length > 0
@@ -417,13 +404,21 @@ const ProductSelection = ({
           const updatedTeethDetails = group.teethDetails.map((arr: any) =>
             arr.map((tooth: any) => {
               const toothNumber = tooth.toothNumber || tooth.teethNumber;
+              // Only update if this tooth is in selectedTeethForProducts
               if (selectedTeethForProducts.includes(toothNumber)) {
-                let newTooth = {
+                const existingProducts = tooth.selectedProducts || [];
+                const newProducts = selectedProducts.filter(
+                  (newProd: any) =>
+                    !existingProducts.some(
+                      (existing: any) => existing.id === newProd.id,
+                    ),
+                );
+                return {
                   ...tooth,
-                  selectedProducts: [...(tooth.selectedProducts || []), ...selectedProducts],
+                  selectedProducts: [...existingProducts, ...newProducts],
                   productName: [
                     ...(tooth.productName || []),
-                    ...selectedProducts.map((p: any) => p.name),
+                    ...newProducts.map((p: any) => p.name),
                   ],
                   shadeGuide: shadeGuide,
                   shadeNotes: shadeNotes,
@@ -444,10 +439,13 @@ const ProductSelection = ({
                         ? 1
                         : selectedTeethForProducts.length || 1;
                     })(),
-                    shade: productDetails.shade[0] || tooth.productDetails?.shade || "",
+                    shade:
+                      productDetails.shade[0] ||
+                      tooth.productDetails?.shade ||
+                      "",
                     productName: [
                       ...(tooth.productDetails?.productName || []),
-                      ...selectedProducts.map((p: any) => p.name),
+                      ...newProducts.map((p: any) => p.name),
                     ],
                     shadeGuide: shadeGuide,
                     shadeNotes: shadeNotes,
@@ -455,12 +453,10 @@ const ProductSelection = ({
                     occlusalStaining: occlusalStaining,
                   },
                 };
-                // Add abutmentDetails and other implant fields
-                newTooth = addImplantDetailsToTooth(newTooth);
-                return newTooth;
               }
+              // Otherwise, leave the tooth unchanged
               return tooth;
-            })
+            }),
           );
           return {
             ...group,
@@ -469,6 +465,7 @@ const ProductSelection = ({
         });
       } else {
         if (typeof editingGroupIndex === "number") {
+          // Only update the group at editingGroupIndex if it is implant or joint/bridge
           updatedGroups = updatedGroups.map((g: any, idx: number) => {
             if (
               idx === editingGroupIndex &&
@@ -479,8 +476,9 @@ const ProductSelection = ({
               const updatedTeethDetails = g.teethDetails.map((arr: any) =>
                 arr.map((tooth: any) => {
                   const toothNumber = tooth.toothNumber || tooth.teethNumber;
+                  // Only update if this tooth is in editingTeethNumbers
                   if (editingTeethNumbers.includes(toothNumber)) {
-                    let newTooth = {
+                    return {
                       ...tooth,
                       selectedProducts: [...selectedProducts],
                       productName: selectedProducts.map((p: any) => p.name),
@@ -497,11 +495,13 @@ const ProductSelection = ({
                             "dentures",
                             "sleep-accessories",
                           ];
+
                           if (
                             archBasedPrescriptionTypes.includes(
                               formData.prescriptionType || "",
                             )
                           ) {
+                            // Calculate quantity based on arch selection for editing teeth
                             const upperArchTeeth = [
                               11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
                               25, 26, 27, 28,
@@ -510,19 +510,22 @@ const ProductSelection = ({
                               31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
                               45, 46, 47, 48,
                             ];
+
                             const hasUpperTeeth = editingTeethNumbers.some(
                               (tooth) => upperArchTeeth.includes(tooth),
                             );
                             const hasLowerTeeth = editingTeethNumbers.some(
                               (tooth) => lowerArchTeeth.includes(tooth),
                             );
+
                             if (hasUpperTeeth && hasLowerTeeth) {
-                              return 2;
+                              return 2; // Both arches
                             } else if (hasUpperTeeth || hasLowerTeeth) {
-                              return 1;
+                              return 1; // Single arch
                             }
-                            return 1;
+                            return 1; // Default fallback
                           }
+
                           return editingTeethNumbers.length || 1;
                         })(),
                         shade: productDetails.shade[0] || "",
@@ -533,27 +536,26 @@ const ProductSelection = ({
                         occlusalStaining: occlusalStaining,
                       },
                     };
-                    // Add abutmentDetails and other implant fields
-                    newTooth = addImplantDetailsToTooth(newTooth);
-                    return newTooth;
                   }
+                  // Otherwise, leave the tooth unchanged
                   return tooth;
-                })
+                }),
               );
               return {
                 ...g,
                 teethDetails: updatedTeethDetails,
-                subcategoryType: formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
             return g;
           });
         } else {
+          // null: update all groups of the same type (as before)
           const typeToEdit = formData.prescriptionType;
           updatedGroups = updatedGroups.map((group: any) => {
             if (
-              (group.prescriptionType || formData.prescriptionType) === typeToEdit &&
+              (group.prescriptionType || formData.prescriptionType) ===
+              typeToEdit &&
               (group.groupType === "joint" ||
                 group.groupType === "bridge" ||
                 group.groupType === "implant")
@@ -561,8 +563,9 @@ const ProductSelection = ({
               const updatedTeethDetails = group.teethDetails.map((arr: any) =>
                 arr.map((tooth: any) => {
                   const toothNumber = tooth.toothNumber || tooth.teethNumber;
+                  // Only update if this tooth is in editingTeethNumbers
                   if (editingTeethNumbers.includes(toothNumber)) {
-                    let newTooth = {
+                    return {
                       ...tooth,
                       selectedProducts: [...selectedProducts],
                       productName: selectedProducts.map((p: any) => p.name),
@@ -579,11 +582,13 @@ const ProductSelection = ({
                             "dentures",
                             "sleep-accessories",
                           ];
+
                           if (
                             archBasedPrescriptionTypes.includes(
                               formData.prescriptionType || "",
                             )
                           ) {
+                            // Calculate quantity based on arch selection for editing teeth
                             const upperArchTeeth = [
                               11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24,
                               25, 26, 27, 28,
@@ -592,19 +597,22 @@ const ProductSelection = ({
                               31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44,
                               45, 46, 47, 48,
                             ];
+
                             const hasUpperTeeth = editingTeethNumbers.some(
                               (tooth) => upperArchTeeth.includes(tooth),
                             );
                             const hasLowerTeeth = editingTeethNumbers.some(
                               (tooth) => lowerArchTeeth.includes(tooth),
                             );
+
                             if (hasUpperTeeth && hasLowerTeeth) {
-                              return 2;
+                              return 2; // Both arches
                             } else if (hasUpperTeeth || hasLowerTeeth) {
-                              return 1;
+                              return 1; // Single arch
                             }
-                            return 1;
+                            return 1; // Default fallback
                           }
+
                           return editingTeethNumbers.length || 1;
                         })(),
                         shade: productDetails.shade[0] || "",
@@ -615,17 +623,14 @@ const ProductSelection = ({
                         occlusalStaining: occlusalStaining,
                       },
                     };
-                    // Add abutmentDetails and other implant fields
-                    newTooth = addImplantDetailsToTooth(newTooth);
-                    return newTooth;
                   }
+                  // Otherwise, leave the tooth unchanged
                   return tooth;
-                })
+                }),
               );
               return {
                 ...group,
                 teethDetails: updatedTeethDetails,
-                subcategoryType: formData.subcategoryType,
                 prescriptionType: formData.prescriptionType,
               };
             }
@@ -636,7 +641,7 @@ const ProductSelection = ({
               tooth.prescriptionType === typeToEdit &&
               editingTeethNumbers.includes(tooth.toothNumber)
             ) {
-              let newTooth = {
+              return {
                 ...tooth,
                 selectedProducts: [...selectedProducts],
                 productName: selectedProducts.map((p: any) => p.name),
@@ -646,7 +651,6 @@ const ProductSelection = ({
                 occlusalStaining: occlusalStaining,
                 productDetails: {
                   ...productDetailsWithoutExtras,
-                  quantity: editingTeethNumbers.length || 1,
                   shade: productDetails.shade[0] || "",
                   productName: selectedProducts.map((p: any) => p.name),
                   shadeGuide: shadeGuide,
@@ -655,9 +659,8 @@ const ProductSelection = ({
                   occlusalStaining: occlusalStaining,
                 },
               };
-              newTooth = addImplantDetailsToTooth(newTooth);
-              return newTooth;
             }
+            // Otherwise, leave the tooth unchanged
             return tooth;
           });
         }
@@ -937,34 +940,11 @@ const ProductSelection = ({
     }));
   };
 
-  // const renderHeadetr
-
-  // Add implantSelections state
-  const [implantSelections, setImplantSelections] = useState<ImplantSelectionsState>({
-    retentionType: null,
-    abutmentType: null,
-  });
-
-  // Find all prescription types in both toothGroups and selectedTeeth
-  const prescriptionTypes = Array.from(new Set([
-    ...(formData.toothGroups || []).map((g: any) => g.prescriptionType),
-    ...(formData.selectedTeeth || []).map((t: any) => t.prescriptionType),
-  ])).filter(Boolean);
-
-  // For each prescriptionType, merge groups and individual teeth
-  const summaryGroupsByType = prescriptionTypes.map((prescriptionType) => {
-    // Groups from toothGroups
-    const groups = (allGroups || []).filter((g: any) => g.prescriptionType === prescriptionType);
-    // Individual teeth from selectedTeeth
-    const individualTeeth = (formData.selectedTeeth || []).filter((t: any) => t.prescriptionType === prescriptionType);
-    return { prescriptionType, groups, individualTeeth };
-  });
-
   return (
     <div className="space-y-6 bg-transparent">
       {renderableGroups.length > 0 ? (
         <>
-          {/* Completion Status, in summart part Heading */}
+          {/* Completion Status */}
           {allGroupsConfigured && (
             <Card className="border border-green-200 bg-green-50">
               <CardContent className="p-4">
@@ -1009,9 +989,26 @@ const ProductSelection = ({
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium capitalize`}
+                          className={`px-2 py-1 ${type === "implant" ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"} text-xs rounded-full font-medium`}
                         >
-                          {type}
+                          {(() => {
+                            switch (type) {
+                              case "implant":
+                                return "Implant Solution";
+                              case "fixed-restoration":
+                                return "Fixed Restoration";
+                              case "splints-guards":
+                                return "Splints, Guards & TMJ";
+                              case "ortho":
+                                return "Ortho";
+                              case "dentures":
+                                return "Dentures";
+                              case "sleep-accessories":
+                                return "Sleep Accessories";
+                              default:
+                                return "Crown & Bridge";
+                            }
+                          })()}
                         </span>
                       </div>
                       {/* Edit button for all groups at once (per type) */}
@@ -1029,39 +1026,155 @@ const ProductSelection = ({
                         >
                           <Plus className="w-4 h-4" />
                         </button>
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        {/* <button
+                          type="button"
+                          className="p-1 text-gray-400 hover:text-blue-600"
+                          onClick={() => {
+                            if (isConfiguring && editingGroupIndex === idx) {
+                              setIsConfiguring(false);
+                              setEditingGroupIndex(null);
+                              return;
+                            }
+                            setIsConfiguring(false);
+                            setTimeout(() => {
+                              setEditingGroupIndex(idx);
+                              setIsConfiguring(true);
+                              // Calculate actual product quantities based on tooth count for each unique product
+                              const productQuantityMap: Record<string, { product: any; count: number }> = {};
+                              groups[idx].teethDetails?.flat().forEach((tooth: any) => {
+                                if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+                                  tooth.selectedProducts.forEach((product: any) => {
+                                    if (productQuantityMap[product.id]) {
+                                      productQuantityMap[product.id].count += 1;
+                                    } else {
+                                      productQuantityMap[product.id] = {
+                                        product: { ...product },
+                                        count: 1,
+                                      };
+                                    }
+                                  });
+                                }
+                              });
+                              const productsWithCorrectQuantities = Object.values(productQuantityMap).map((item) => ({
+                                ...item.product,
+                                quantity: item.count,
+                              }));
+                              // Use first tooth's product details for editing
+                              const firstTooth = groups[idx]?.teethDetails?.flat()[0];
+                              setSelectedProducts(productsWithCorrectQuantities);
+                              setProductDetails({
+                                shade: firstTooth?.productDetails?.shade ? [firstTooth.productDetails.shade] : [],
+                                occlusalStaining: firstTooth?.productDetails?.occlusalStaining || "medium",
+                                ponticDesign: firstTooth?.productDetails?.ponticDesign || "",
+                                notes: firstTooth?.productDetails?.notes || "",
+                                trial: firstTooth?.productDetails?.trial || "",
+                                shadeNotes: firstTooth?.productDetails?.shadeNotes || "",
+                                additionalNotes: firstTooth?.productDetails?.additionalNotes || "",
+                                shadeGuide: (firstTooth?.productDetails?.shadeGuide ?? firstTooth?.shadeGuide) || null,
+                                productName: firstTooth?.productDetails?.productName || [],
+                              });
+                            }, 0);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button> */}
+                        <button
+                          type="button"
+                          className="p-1 text-gray-400 hover:text-green-600"
+                          onClick={() => {
+                            toast({
+                              title: "Group already configured",
+                              description:
+                                "This group has already been configured. You can edit it using the pencil icon.",
+                            });
+                          }}
+                          aria-label="Group already configured"
+                        >
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </button>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="font-medium text-gray-900 mb-1">Teeth:</p>
                         <div className="text-gray-600">
-                          {["bridge", "joint", "individual"].map(
-                            (groupType) => {
-                              const groupsOfType = groups.filter(
-                                (g: any) => g.groupType === groupType,
+                          {(() => {
+                            // Check if this is an arch-based prescription type
+                            const archBasedPrescriptionTypes = [
+                              "splints-guards",
+                              "ortho",
+                              "dentures",
+                              "sleep-accessories"
+                            ];
+
+                            const isArchBased = archBasedPrescriptionTypes.includes(
+                              type || formData.prescriptionType || ""
+                            );
+
+                            if (isArchBased) {
+                              // For arch-based prescriptions, show arch information
+                              const upperArchTeeth = [
+                                11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28,
+                              ];
+                              const lowerArchTeeth = [
+                                31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
+                              ];
+
+                              const allTeethInGroups = groups.flatMap(
+                                (g: any) => g.teethDetails?.flat() || [],
+                              ).map((t: any) => t.toothNumber ?? t.teethNumber);
+
+                              const hasUpperTeeth = allTeethInGroups.some(tooth =>
+                                upperArchTeeth.includes(tooth)
                               );
-                              if (groupsOfType.length === 0) return null;
-                              const teethNumbers = groupsOfType
-                                .flatMap(
-                                  (g: any) => g.teethDetails?.flat() || [],
-                                )
-                                .map((t: any) => t.toothNumber ?? t.teethNumber)
-                                .filter(
-                                  (n: any) =>
-                                    n !== undefined && n !== null && n !== "",
-                                )
-                                .join(", ");
-                              return teethNumbers ? (
-                                <div key={groupType}>
-                                  <span className="font-semibold capitalize">
-                                    {groupType}:
-                                  </span>{" "}
-                                  {teethNumbers}
+                              const hasLowerTeeth = allTeethInGroups.some(tooth =>
+                                lowerArchTeeth.includes(tooth)
+                              );
+
+                              return (
+                                <div>
+                                  {hasUpperTeeth && (
+                                    <div>
+                                      <span className="font-semibold">Upper Arch</span>
+                                    </div>
+                                  )}
+                                  {hasLowerTeeth && (
+                                    <div>
+                                      <span className="font-semibold">Lower Arch</span>
+                                    </div>
+                                  )}
                                 </div>
-                              ) : null;
-                            },
-                          )}
+                              );
+                            } else {
+                              // For fixed-restoration and implant, show individual teeth
+                              return ["bridge", "joint", "individual"].map(
+                                (groupType) => {
+                                  const groupsOfType = groups.filter(
+                                    (g: any) => g.groupType === groupType,
+                                  );
+                                  if (groupsOfType.length === 0) return null;
+                                  const teethNumbers = groupsOfType
+                                    .flatMap(
+                                      (g: any) => g.teethDetails?.flat() || [],
+                                    )
+                                    .map((t: any) => t.toothNumber ?? t.teethNumber)
+                                    .filter(
+                                      (n: any) =>
+                                        n !== undefined && n !== null && n !== "",
+                                    )
+                                    .join(", ");
+                                  return teethNumbers ? (
+                                    <div key={groupType}>
+                                      <span className="font-semibold capitalize">
+                                        {groupType}:
+                                      </span>{" "}
+                                      {teethNumbers}
+                                    </div>
+                                  ) : null;
+                                },
+                              );
+                            }
+                          })()}
                         </div>
 
                         {/* Show implant details if this is an implant prescription */}
@@ -1070,50 +1183,104 @@ const ProductSelection = ({
                             <p className="font-medium text-gray-900 mb-2">
                               Implant Details:
                             </p>
-                            <Accordion type="multiple" className="w-full ">
-                              {groups
-                                .flatMap((g: any) => g.teethDetails?.flat() || [])
-                                .filter((tooth: any) => tooth.implantDetails)
-                                .map((tooth: any, idx: number) => (
-                                  <AccordionItem key={idx} value={`tooth-${tooth.toothNumber || tooth.teethNumber}`} className="border-none mb-2">
-                                    <AccordionTrigger className="p-0 text-sm font-normal border border-gray-400 px-2 py-1 rounded-sm">
-                                      Tooth {tooth.toothNumber || tooth.teethNumber}
-                                    </AccordionTrigger>
-                                    <AccordionContent>
-                                      <div className="border rounded-md p-2 bg-gray-50 mb-2 flex flex-col gap-2">
-                                        {tooth.implantDetails?.companyName && (
-                                          <div className="flex gap-2 items-baseline">
-                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Company:</span>
-                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.companyName}</span>
-                                          </div>
-                                        )}
-                                        {tooth.implantDetails?.systemName && (
-                                          <div className="flex gap-2 items-baseline">
-                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">System:</span>
-                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.systemName}</span>
-                                          </div>
-                                        )}
-                                        {tooth.implantDetails?.remarks && (
-                                          <div className="flex gap-2 items-baseline">
-                                            <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Remarks:</span>
-                                            <span className="text-gray-700 text-sm">{tooth.implantDetails.remarks}</span>
-                                          </div>
-                                        )}
-                                        {tooth.implantDetails?.photo && (
-                                          <div className="flex flex-col gap-1">
-                                            <span className="font-semibold text-sm text-gray-800">Photo:</span>
-                                            <SafeImagePreview
-                                              fileOrUrl={tooth.implantDetails.photo}
-                                              alt="Implant Photo"
-                                              className="w-28 h-28 object-cover rounded border border-gray-300 bg-white"
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
-                                    </AccordionContent>
-                                  </AccordionItem>
-                                ))}
-                            </Accordion>
+                            {(() => {
+                              // Get all teeth with implant details from bridge/joint groups
+                              const groupTeethWithImplantDetails = groups
+                                .flatMap((g: any) => {
+                                  // Check if group has teethDetails structure (bridge/joint)
+                                  if (g.teethDetails && Array.isArray(g.teethDetails)) {
+                                    return g.teethDetails.flat();
+                                  }
+                                  return [];
+                                })
+                                .filter((tooth: any) => {
+                                  // Check if tooth has implant details
+                                  return tooth && tooth.implantDetails &&
+                                    typeof tooth.implantDetails === 'object' &&
+                                    Object.keys(tooth.implantDetails).length > 0 &&
+                                    (tooth.implantDetails.companyName || tooth.implantDetails.systemName || tooth.implantDetails.remarks);
+                                });
+
+                              // Also check individual teeth with implant prescription type
+                              const individualTeethWithImplantDetails = (formData.selectedTeeth || [])
+                                .filter((tooth: any) =>
+                                  tooth.prescriptionType === "implant" &&
+                                  tooth.implantDetails &&
+                                  typeof tooth.implantDetails === 'object' &&
+                                  Object.keys(tooth.implantDetails).length > 0 &&
+                                  (tooth.implantDetails.companyName || tooth.implantDetails.systemName || tooth.implantDetails.remarks)
+                                );
+
+                              // Create a map to avoid duplicates by tooth number
+                              const teethMap = new Map();
+
+                              // Add group teeth first (bridge/joint implant teeth)
+                              groupTeethWithImplantDetails.forEach((tooth: any) => {
+                                const toothNumber = tooth.toothNumber || tooth.teethNumber;
+                                if (toothNumber && !teethMap.has(toothNumber)) {
+                                  teethMap.set(toothNumber, tooth);
+                                }
+                              });
+
+                              // Add individual teeth only if not already in map
+                              individualTeethWithImplantDetails.forEach((tooth: any) => {
+                                const toothNumber = tooth.toothNumber || tooth.teethNumber;
+                                if (toothNumber && !teethMap.has(toothNumber)) {
+                                  teethMap.set(toothNumber, tooth);
+                                }
+                              });
+
+                              // Convert map to array and sort by tooth number
+                              const allImplantTeeth = Array.from(teethMap.values()).sort((a: any, b: any) => {
+                                const aNum = a.toothNumber || a.teethNumber;
+                                const bNum = b.toothNumber || b.teethNumber;
+                                return aNum - bNum;
+                              });
+
+                              if (allImplantTeeth.length === 0) {
+                                return (
+                                  <div className="text-sm text-gray-500 italic">
+                                    No implant details available
+                                  </div>
+                                );
+                              }
+
+                              return allImplantTeeth.map((tooth: any, idx: number) => (
+                                <div
+                                  key={`implant-${tooth.toothNumber || tooth.teethNumber}-${idx}`}
+                                  className="bg-gray-50 p-2 rounded mb-2 text-xs"
+                                >
+                                  <div className="font-semibold text-gray-800 mb-1">
+                                    Tooth{" "}
+                                    {tooth.toothNumber || tooth.teethNumber}
+                                  </div>
+                                  {tooth.implantDetails?.companyName && (
+                                    <div>
+                                      <span className="font-medium">
+                                        Company:
+                                      </span>{" "}
+                                      {tooth.implantDetails.companyName}
+                                    </div>
+                                  )}
+                                  {tooth.implantDetails?.systemName && (
+                                    <div>
+                                      <span className="font-medium">
+                                        System:
+                                      </span>{" "}
+                                      {tooth.implantDetails.systemName}
+                                    </div>
+                                  )}
+                                  {tooth.implantDetails?.remarks && (
+                                    <div>
+                                      <span className="font-medium">
+                                        Remarks:
+                                      </span>{" "}
+                                      {tooth.implantDetails.remarks}
+                                    </div>
+                                  )}
+                                </div>
+                              ));
+                            })()}
                           </div>
                         )}
                       </div>
@@ -1165,89 +1332,201 @@ const ProductSelection = ({
                             </p>
                           </div>
                         </div>
-                        {/* Product checkboxes for each tooth: label always visible, checkbox only if toggled */}
+                        {/* Product display logic for arch-based vs individual teeth */}
                         <div className="text-gray-600 space-y-1 mt-2">
                           {(() => {
-                            const toothProductList: {
-                              tooth: number;
-                              products: string[];
-                              shadeGuide?: string[];
-                              shadeNotes?: string;
-                              trialRequirements?: string;
-                              occlusalStaining?: string;
-                            }[] = [];
-                            groups.forEach((group: any) => {
-                              group.teethDetails
-                                ?.flat()
-                                .forEach((tooth: any) => {
-                                  let productNames: string[] = [];
-                                  if (
-                                    tooth.selectedProducts &&
-                                    tooth.selectedProducts.length > 0
-                                  ) {
-                                    productNames = tooth.selectedProducts.map(
-                                      (p: any) => p.name,
-                                    );
-                                  } else if (
-                                    tooth.productName &&
-                                    tooth.productName.length > 0
-                                  ) {
-                                    productNames = [...tooth.productName];
-                                  } else if (
-                                    tooth.productDetails &&
-                                    tooth.productDetails.productName &&
-                                    tooth.productDetails.productName.length > 0
-                                  ) {
-                                    productNames = [
-                                      ...tooth.productDetails.productName,
-                                    ];
-                                  }
-                                  if (productNames.length > 0) {
-                                    toothProductList.push({
-                                      tooth:
-                                        tooth.teethNumber || tooth.toothNumber,
-                                      products: productNames,
-                                      shadeGuide: tooth.shadeGuide,
-                                      shadeNotes: tooth.shadeNotes,
-                                      trialRequirements:
-                                        tooth.trialRequirements,
-                                      occlusalStaining: tooth.occlusalStaining,
-                                    });
-                                  }
-                                });
-                            });
-                            toothProductList.sort((a, b) => a.tooth - b.tooth);
-                            return toothProductList.map((item, i) => (
-                              <div
-                                key={i}
-                                className="flex items-center gap-2 text-sm"
-                              >
-                                {showProductCheckboxes?.[type] && (
-                                  <input
-                                    type="checkbox"
-                                    className="w-3 h-3 rounded border-gray-300"
-                                    checked={selectedTeethForProducts.includes(
-                                      item.tooth,
-                                    )}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedTeethForProducts((prev) => [
-                                          ...prev,
-                                          item.tooth,
-                                        ]);
-                                      } else {
-                                        setSelectedTeethForProducts((prev) =>
-                                          prev.filter((t) => t !== item.tooth),
-                                        );
-                                      }
-                                    }}
-                                  />
-                                )}
-                                <span>
-                                  Tooth {item.tooth}: {item.products.join(", ")}
-                                </span>
-                              </div>
-                            ));
+                            // Check if this is an arch-based prescription type
+                            const archBasedPrescriptionTypes = [
+                              "splints-guards",
+                              "ortho",
+                              "dentures",
+                              "sleep-accessories"
+                            ];
+
+                            const isArchBased = archBasedPrescriptionTypes.includes(
+                              type || formData.prescriptionType || ""
+                            );
+
+                            if (isArchBased) {
+                              // For arch-based prescriptions, show products by arch
+                              const upperArchTeeth = [
+                                11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28,
+                              ];
+                              const lowerArchTeeth = [
+                                31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
+                              ];
+
+                              const allTeethWithProducts = groups.flatMap(
+                                (g: any) => g.teethDetails?.flat() || [],
+                              );
+
+                              const upperArchProducts = new Set<string>();
+                              const lowerArchProducts = new Set<string>();
+
+                              allTeethWithProducts.forEach((tooth: any) => {
+                                const toothNum = tooth.toothNumber || tooth.teethNumber;
+                                let productNames: string[] = [];
+
+                                if (tooth.selectedProducts && tooth.selectedProducts.length > 0) {
+                                  productNames = tooth.selectedProducts.map((p: any) => p.name);
+                                } else if (tooth.productName && tooth.productName.length > 0) {
+                                  productNames = [...tooth.productName];
+                                } else if (tooth.productDetails?.productName && tooth.productDetails.productName.length > 0) {
+                                  productNames = [...tooth.productDetails.productName];
+                                }
+
+                                if (upperArchTeeth.includes(toothNum)) {
+                                  productNames.forEach(name => upperArchProducts.add(name));
+                                } else if (lowerArchTeeth.includes(toothNum)) {
+                                  productNames.forEach(name => lowerArchProducts.add(name));
+                                }
+                              });
+
+                              return (
+                                <>
+                                  {upperArchProducts.size > 0 && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      {showProductCheckboxes?.[type] && (
+                                        <input
+                                          type="checkbox"
+                                          className="w-3 h-3 rounded border-gray-300"
+                                          checked={
+                                            allTeethWithProducts
+                                              .filter(t => upperArchTeeth.includes(t.toothNumber || t.teethNumber))
+                                              .every(t => selectedTeethForProducts.includes(t.toothNumber || t.teethNumber))
+                                          }
+                                          onChange={(e) => {
+                                            const upperTeeth = allTeethWithProducts
+                                              .filter(t => upperArchTeeth.includes(t.toothNumber || t.teethNumber))
+                                              .map(t => t.toothNumber || t.teethNumber);
+
+                                            if (e.target.checked) {
+                                              setSelectedTeethForProducts(prev => [...new Set([...prev, ...upperTeeth])]);
+                                            } else {
+                                              setSelectedTeethForProducts(prev => prev.filter(t => !upperTeeth.includes(t)));
+                                            }
+                                          }}
+                                        />
+                                      )}
+                                      <span>
+                                        Upper Arch: {Array.from(upperArchProducts).join(", ")}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {lowerArchProducts.size > 0 && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      {showProductCheckboxes?.[type] && (
+                                        <input
+                                          type="checkbox"
+                                          className="w-3 h-3 rounded border-gray-300"
+                                          checked={
+                                            allTeethWithProducts
+                                              .filter(t => lowerArchTeeth.includes(t.toothNumber || t.teethNumber))
+                                              .every(t => selectedTeethForProducts.includes(t.toothNumber || t.teethNumber))
+                                          }
+                                          onChange={(e) => {
+                                            const lowerTeeth = allTeethWithProducts
+                                              .filter(t => lowerArchTeeth.includes(t.toothNumber || t.teethNumber))
+                                              .map(t => t.toothNumber || t.teethNumber);
+
+                                            if (e.target.checked) {
+                                              setSelectedTeethForProducts(prev => [...new Set([...prev, ...lowerTeeth])]);
+                                            } else {
+                                              setSelectedTeethForProducts(prev => prev.filter(t => !lowerTeeth.includes(t)));
+                                            }
+                                          }}
+                                        />
+                                      )}
+                                      <span>
+                                        Lower Arch: {Array.from(lowerArchProducts).join(", ")}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            } else {
+                              // For fixed-restoration and implant, show individual teeth products
+                              const toothProductList: {
+                                tooth: number;
+                                products: string[];
+                                shadeGuide?: string[];
+                                shadeNotes?: string;
+                                trialRequirements?: string;
+                                occlusalStaining?: string;
+                              }[] = [];
+                              groups.forEach((group: any) => {
+                                group.teethDetails
+                                  ?.flat()
+                                  .forEach((tooth: any) => {
+                                    let productNames: string[] = [];
+                                    if (
+                                      tooth.selectedProducts &&
+                                      tooth.selectedProducts.length > 0
+                                    ) {
+                                      productNames = tooth.selectedProducts.map(
+                                        (p: any) => p.name,
+                                      );
+                                    } else if (
+                                      tooth.productName &&
+                                      tooth.productName.length > 0
+                                    ) {
+                                      productNames = [...tooth.productName];
+                                    } else if (
+                                      tooth.productDetails &&
+                                      tooth.productDetails.productName &&
+                                      tooth.productDetails.productName.length > 0
+                                    ) {
+                                      productNames = [
+                                        ...tooth.productDetails.productName,
+                                      ];
+                                    }
+                                    if (productNames.length > 0) {
+                                      toothProductList.push({
+                                        tooth:
+                                          tooth.teethNumber || tooth.toothNumber,
+                                        products: productNames,
+                                        shadeGuide: tooth.shadeGuide,
+                                        shadeNotes: tooth.shadeNotes,
+                                        trialRequirements:
+                                          tooth.trialRequirements,
+                                        occlusalStaining: tooth.occlusalStaining,
+                                      });
+                                    }
+                                  });
+                              });
+                              toothProductList.sort((a, b) => a.tooth - b.tooth);
+                              return toothProductList.map((item, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-center gap-2 text-sm"
+                                >
+                                  {showProductCheckboxes?.[type] && (
+                                    <input
+                                      type="checkbox"
+                                      className="w-3 h-3 rounded border-gray-300"
+                                      checked={selectedTeethForProducts.includes(
+                                        item.tooth,
+                                      )}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedTeethForProducts((prev) => [
+                                            ...prev,
+                                            item.tooth,
+                                          ]);
+                                        } else {
+                                          setSelectedTeethForProducts((prev) =>
+                                            prev.filter((t) => t !== item.tooth),
+                                          );
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                  <span>
+                                    Tooth {item.tooth}: {item.products.join(", ")}
+                                  </span>
+                                </div>
+                              ));
+                            }
                           })()}
                         </div>
                         {selectedTeethForProducts.length > 0 && (
@@ -1258,18 +1537,52 @@ const ProductSelection = ({
                               className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
                             >
                               <Plus className="w-4 h-4" />
-                              Add product for {
-                                selectedTeethForProducts.length
-                              }{" "}
-                              selected{" "}
-                              {selectedTeethForProducts.length === 1
-                                ? "tooth"
-                                : "teeth"}
+                              {(() => {
+                                const archBasedPrescriptionTypes = [
+                                  "splints-guards",
+                                  "ortho",
+                                  "dentures",
+                                  "sleep-accessories"
+                                ];
+
+                                const isArchBased = archBasedPrescriptionTypes.includes(
+                                  type || formData.prescriptionType || ""
+                                );
+
+                                if (isArchBased) {
+                                  const upperArchTeeth = [
+                                    11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28,
+                                  ];
+                                  const lowerArchTeeth = [
+                                    31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
+                                  ];
+
+                                  const hasUpperSelected = selectedTeethForProducts.some(tooth =>
+                                    upperArchTeeth.includes(tooth)
+                                  );
+                                  const hasLowerSelected = selectedTeethForProducts.some(tooth =>
+                                    lowerArchTeeth.includes(tooth)
+                                  );
+
+                                  if (hasUpperSelected && hasLowerSelected) {
+                                    return "Add product for both arches";
+                                  } else if (hasUpperSelected) {
+                                    return "Add product for upper arch";
+                                  } else if (hasLowerSelected) {
+                                    return "Add product for lower arch";
+                                  } else {
+                                    return "Add product for selected arch";
+                                  }
+                                } else {
+                                  return `Add product for ${selectedTeethForProducts.length} selected ${selectedTeethForProducts.length === 1 ? "tooth" : "teeth"}`;
+                                }
+                              })()}
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
+                    {/* Shade and Treatment Details */}
                     <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
                       <div>
                         <p className="font-medium text-gray-900 mb-1 flex items-center">
@@ -1288,27 +1601,37 @@ const ProductSelection = ({
                             <Pencil className="w-4 h-4" />
                           </button>
                         </p>
-                        <p className="text-gray-600">
-                          {group?.shadeDetails ? (
-                            group.shadeDetails
-                          ) : (
-                            <span
-                              className="text-blue-600 cursor-pointer"
-                              onClick={() => {
-                                setEditField({
-                                  field: "shadeDetails",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue("");
-                              }}
-                            >
-                              Add Shade
-                            </span>
-                          )}
+                        <p className="text-gray-600 uppercase">
+                          {(() => {
+                            // First check group level, then tooth level
+                            let shadeDetails = group?.shadeDetails;
+                            if (!shadeDetails) {
+                              // Check first tooth's shade details
+                              const firstTooth = groups.flatMap((g: any) => g.teethDetails?.flat() || [])[0];
+                              shadeDetails = firstTooth?.productDetails?.shade || firstTooth?.shadeDetails;
+                            }
+                            return shadeDetails ? (
+                              shadeDetails
+                            ) : (
+                              <span
+                                className="text-blue-600 cursor-pointer"
+                                onClick={() => {
+                                  setEditField({
+                                    field: "shadeDetails",
+                                    groupIdx: idx,
+                                  });
+                                  setEditFieldValue("");
+                                }}
+                              >
+                                Add Shade
+                              </span>
+                            );
+                          })()}
                         </p>
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 mb-1 flex items-center">
+                          {" "}
                           Occlusal Staining:
                           <button
                             type="button"
@@ -1325,22 +1648,31 @@ const ProductSelection = ({
                           </button>
                         </p>
                         <p className="text-gray-600 capitalize">
-                          {group?.occlusalStaining ? (
-                            group.occlusalStaining
-                          ) : (
-                            <span
-                              className="text-blue-600 cursor-pointer"
-                              onClick={() => {
-                                setEditField({
-                                  field: "occlusalStaining",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue("");
-                              }}
-                            >
-                              Add Occlusal Staining
-                            </span>
-                          )}
+                          {(() => {
+                            // First check group level, then tooth level
+                            let occlusalStaining = group?.occlusalStaining;
+                            if (!occlusalStaining) {
+                              // Check first tooth's occlusal staining
+                              const firstTooth = groups.flatMap((g: any) => g.teethDetails?.flat() || [])[0];
+                              occlusalStaining = firstTooth?.productDetails?.occlusalStaining || firstTooth?.occlusalStaining;
+                            }
+                            return occlusalStaining ? (
+                              occlusalStaining
+                            ) : (
+                              <span
+                                className="text-blue-600 cursor-pointer"
+                                onClick={() => {
+                                  setEditField({
+                                    field: "occlusalStaining",
+                                    groupIdx: idx,
+                                  });
+                                  setEditFieldValue("");
+                                }}
+                              >
+                                Add Occlusal Staining
+                              </span>
+                            );
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -1418,185 +1750,221 @@ const ProductSelection = ({
 
                     <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
                       <div>
-                        {group?.shadeGuide &&
-                          group.shadeGuide.type &&
-                          group.shadeGuide.shades &&
-                          group.shadeGuide.shades.length > 0 ? (
-                          <>
-                            <p className="font-medium text-gray-900 mb-1 flex items-center">
-                              Shade Guide:
-                              <button
-                                type="button"
-                                className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                                onClick={() => {
-                                  setEditField({
-                                    field: "shadeGuide",
-                                    groupIdx: idx,
-                                  });
-                                  setEditFieldValue(group.shadeGuide);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                            </p>
-                            <div className="text-gray-600 capitalize flex flex-col">
-                              <span className="font-semibold">
-                                {group.shadeGuide.type === "anterior"
-                                  ? "Anterior"
-                                  : "Posterior"}
-                                :
-                              </span>
-                              {/* <span>{group.shadeGuide.shades.join(', ')}</span> */}
-                              <div className="text-gray-600 capitalize flex flex-col">
-                                {group.shadeGuide.shades.map(
-                                  (shade: string, idx: number) => (
-                                    <div key={idx}>{shade}</div>
-                                  ),
-                                )}
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <p className="font-medium text-gray-900 mb-1 flex items-center">
-                            Shade Guide:
-                            <button
-                              type="button"
-                              className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                              onClick={() => {
-                                setEditField({
-                                  field: "shadeGuide",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue(null);
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <span
-                              className="text-blue-600 cursor-pointer ml-2"
-                              onClick={() => {
-                                setEditField({
-                                  field: "shadeGuide",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue(null);
-                              }}
-                            >
-                              Add Shade Guide
-                            </span>
-                          </p>
-                        )}
+                        {(() => {
+                          // Check group level first, then tooth level
+                          let shadeGuide = group?.shadeGuide;
+                          if (!shadeGuide || !shadeGuide.type || !shadeGuide.shades || shadeGuide.shades.length === 0) {
+                            // Check first tooth's shade guide
+                            const firstTooth = groups.flatMap((g: any) => g.teethDetails?.flat() || [])[0];
+                            shadeGuide = firstTooth?.shadeGuide;
+                          }
+
+                          if (shadeGuide && shadeGuide.type && shadeGuide.shades && shadeGuide.shades.length > 0) {
+                            return (
+                              <>
+                                <p className="font-medium text-gray-900 mb-1 flex items-center">
+                                  Shade Guide:
+                                  <button
+                                    type="button"
+                                    className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                    onClick={() => {
+                                      setEditField({
+                                        field: "shadeGuide",
+                                        groupIdx: idx,
+                                      });
+                                      setEditFieldValue(shadeGuide);
+                                    }}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                </p>
+                                <div className="text-gray-600 capitalize flex flex-col">
+                                  <span className="font-semibold">
+                                    {shadeGuide.type === "anterior"
+                                      ? "Anterior"
+                                      : "Posterior"}
+                                    :
+                                  </span>
+                                  <div className="text-gray-600 capitalize flex flex-col">
+                                    {shadeGuide.shades.map(
+                                      (shade: string, shadeIdx: number) => (
+                                        <div key={shadeIdx}>{shade}</div>
+                                      ),
+                                    )}
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          } else {
+                            return (
+                              <p className="font-medium text-gray-900 mb-1 flex items-center">
+                                Shade Guide:
+                                <button
+                                  type="button"
+                                  className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                  onClick={() => {
+                                    setEditField({
+                                      field: "shadeGuide",
+                                      groupIdx: idx,
+                                    });
+                                    setEditFieldValue(null);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <span
+                                  className="text-blue-600 cursor-pointer ml-2"
+                                  onClick={() => {
+                                    setEditField({
+                                      field: "shadeGuide",
+                                      groupIdx: idx,
+                                    });
+                                    setEditFieldValue(null);
+                                  }}
+                                >
+                                  Add Shade Guide
+                                </span>
+                              </p>
+                            );
+                          }
+                        })()}
                       </div>
                       <div>
-                        {group?.trialRequirements ? (
-                          <>
-                            <p className="font-medium text-gray-900 mb-1 flex items-center">
-                              Trial Requirements:
-                              <button
-                                type="button"
-                                className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                                onClick={() => {
-                                  setEditField({
-                                    field: "trialRequirements",
-                                    groupIdx: idx,
-                                  });
-                                  setEditFieldValue(
-                                    group?.trialRequirements || "",
-                                  );
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                            </p>
-                            <p className="text-gray-600 capitalize">
-                              {group.trialRequirements}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="font-medium text-gray-900 mb-1 flex items-center">
-                            Trial Requirements:
-                            <button
-                              type="button"
-                              className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                              onClick={() => {
-                                setEditField({
-                                  field: "trialRequirements",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue("");
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                            <span
-                              className="text-blue-600 cursor-pointer ml-2"
-                              onClick={() => {
-                                setEditField({
-                                  field: "trialRequirements",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue("");
-                              }}
-                            >
-                              Add Trial Requirements
-                            </span>
-                          </p>
-                        )}
+                        {(() => {
+                          // Check group level first, then tooth level
+                          let trialRequirements = group?.trialRequirements;
+                          if (!trialRequirements) {
+                            // Check first tooth's trial requirements
+                            const firstTooth = groups.flatMap((g: any) => g.teethDetails?.flat() || [])[0];
+                            trialRequirements = firstTooth?.trialRequirements;
+                          }
+
+                          if (trialRequirements) {
+                            return (
+                              <>
+                                <p className="font-medium text-gray-900 mb-1 flex items-center">
+                                  Trial Requirements:
+                                  <button
+                                    type="button"
+                                    className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                    onClick={() => {
+                                      setEditField({
+                                        field: "trialRequirements",
+                                        groupIdx: idx,
+                                      });
+                                      setEditFieldValue(trialRequirements);
+                                    }}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                </p>
+                                <p className="text-gray-600 capitalize">
+                                  {trialRequirements}
+                                </p>
+                              </>
+                            );
+                          } else {
+                            return (
+                              <p className="font-medium text-gray-900 mb-1 flex items-center">
+                                Trial Requirements:
+                                <button
+                                  type="button"
+                                  className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                  onClick={() => {
+                                    setEditField({
+                                      field: "trialRequirements",
+                                      groupIdx: idx,
+                                    });
+                                    setEditFieldValue("");
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <span
+                                  className="text-blue-600 cursor-pointer ml-2"
+                                  onClick={() => {
+                                    setEditField({
+                                      field: "trialRequirements",
+                                      groupIdx: idx,
+                                    });
+                                    setEditFieldValue("");
+                                  }}
+                                >
+                                  Add Trial Requirements
+                                </span>
+                              </p>
+                            );
+                          }
+                        })()}
                       </div>
                     </div>
                     <div className="mt-3">
-                      {group?.shadeNotes ? (
-                        <>
-                          <p className="font-medium text-gray-900 mb-1 flex items-center">
-                            Shade Notes:
-                            <button
-                              type="button"
-                              className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                              onClick={() => {
-                                setEditField({
-                                  field: "shadeNotes",
-                                  groupIdx: idx,
-                                });
-                                setEditFieldValue(group?.shadeNotes || "");
-                              }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </button>
-                          </p>
-                          <p className="text-gray-600 capitalize">
-                            {group.shadeNotes}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="font-medium text-gray-900 mb-1 flex items-center">
-                          Shade Notes:
-                          <button
-                            type="button"
-                            className="ml-2 p-1 text-gray-400 hover:text-blue-600"
-                            onClick={() => {
-                              setEditField({
-                                field: "shadeNotes",
-                                groupIdx: idx,
-                              });
-                              setEditFieldValue("");
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <span
-                            className="text-blue-600 cursor-pointer ml-2"
-                            onClick={() => {
-                              setEditField({
-                                field: "shadeNotes",
-                                groupIdx: idx,
-                              });
-                              setEditFieldValue("");
-                            }}
-                          >
-                            Add Shade Notes
-                          </span>
-                        </p>
-                      )}
+                      {(() => {
+                        // Check group level first, then tooth level
+                        let shadeNotes = group?.shadeNotes;
+                        if (!shadeNotes) {
+                          // Check first tooth's shade notes
+                          const firstTooth = groups.flatMap((g: any) => g.teethDetails?.flat() || [])[0];
+                          shadeNotes = firstTooth?.shadeNotes;
+                        }
+
+                        if (shadeNotes) {
+                          return (
+                            <>
+                              <p className="font-medium text-gray-900 mb-1 flex items-center">
+                                Shade Notes:
+                                <button
+                                  type="button"
+                                  className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                  onClick={() => {
+                                    setEditField({
+                                      field: "shadeNotes",
+                                      groupIdx: idx,
+                                    });
+                                    setEditFieldValue(shadeNotes);
+                                  }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              </p>
+                              <p className="text-gray-600 capitalize">
+                                {shadeNotes}
+                              </p>
+                            </>
+                          );
+                        } else {
+                          return (
+                            <p className="font-medium text-gray-900 mb-1 flex items-center">
+                              Shade Notes:
+                              <button
+                                type="button"
+                                className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                                onClick={() => {
+                                  setEditField({
+                                    field: "shadeNotes",
+                                    groupIdx: idx,
+                                  });
+                                  setEditFieldValue("");
+                                }}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <span
+                                className="text-blue-600 cursor-pointer ml-2"
+                                onClick={() => {
+                                  setEditField({
+                                    field: "shadeNotes",
+                                    groupIdx: idx,
+                                  });
+                                  setEditFieldValue("");
+                                }}
+                              >
+                                Add Shade Notes
+                              </span>
+                            </p>
+                          );
+                        }
+                      })()}
                     </div>
                     <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
                       <div>
@@ -1731,8 +2099,8 @@ const ProductSelection = ({
                   {!providerPopupOpen && (
                     <>
                       <ProductSearch
-                        selectedProducts={toSelectedProducts(selectedProducts)}
-                        onProductsChange={(products) => setSelectedProducts(toProducts(products))}
+                        selectedProducts={selectedProducts}
+                        onProductsChange={setSelectedProducts}
                         selectedTeeth={
                           isAddingProductForSelectedTeeth
                             ? selectedTeethForProducts
@@ -1939,8 +2307,8 @@ const ProductSelection = ({
       >
         <div className="flex flex-col h-full justify-between">
           <ProductSearch
-            selectedProducts={toSelectedProducts(modalSelectedProducts)}
-            onProductsChange={(products) => setModalSelectedProducts(toProducts(products))}
+            selectedProducts={modalSelectedProducts}
+            onProductsChange={setModalSelectedProducts}
             selectedTeeth={selectedTeethForProducts}
             restorationType="separate"
             prescriptionType={formData.prescriptionType}
@@ -1961,14 +2329,12 @@ const ProductSelection = ({
           )}
           <div className="flex justify-end mt-4 gap-2">
             <Button
-              type="button"
               variant="outline"
               onClick={() => setIsProductModalOpen(false)}
             >
               Cancel
             </Button>
             <Button
-              type="button"
               onClick={handleSaveProductsToTeeth}
               disabled={modalSelectedProducts.length === 0}
               className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
@@ -1979,21 +2345,235 @@ const ProductSelection = ({
         </div>
       </BaseModal>
 
+      {/* Provider Selection Popup
+      <BaseModal
+        isOpen={showProviderPopup}
+        onClose={() => setShowProviderPopup(false)}
+        title={`Choose Provider for ${selectedItemType === "retention" ? "Retention Type" : "Abutment Type"}`}
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-600 mb-4">
+            Who will provide the {selectedItemValue}?
+          </p>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                const quantity = editingTeethNumbers.length || 1;
+                const newSelection = {
+                  value: selectedItemValue,
+                  provider: "Provided by Doctor",
+                  quantity: quantity,
+                };
+
+                setImplantSelections((prev) => ({
+                  ...prev,
+                  [selectedItemType + "Type"]: newSelection,
+                }));
+
+                setFormData({
+                  ...formData,
+                  [selectedItemType + "Type"]: selectedItemValue,
+                });
+
+                setShowProviderPopup(false);
+              }}
+              className="w-full p-3 border rounded-lg text-left hover:bg-blue-50 transition-colors border-blue-200"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">
+                  Provided by Doctor
+                </span>
+                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  Doctor
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Doctor will supply the {selectedItemValue}
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const quantity = editingTeethNumbers.length || 1;
+                const newSelection = {
+                  value: selectedItemValue,
+                  provider: "Provided by Lab",
+                  quantity: quantity,
+                };
+
+                setImplantSelections((prev) => ({
+                  ...prev,
+                  [selectedItemType + "Type"]: newSelection,
+                }));
+
+                setFormData({
+                  ...formData,
+                  [selectedItemType + "Type"]: selectedItemValue,
+                });
+
+                setShowProviderPopup(false);
+              }}
+              className="w-full p-3 border rounded-lg text-left hover:bg-green-50 transition-colors border-green-200"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">
+                  Provided by Lab
+                </span>
+                <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                  Lab
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Lab will supply the {selectedItemValue}
+              </p>
+            </button>
+          </div>
+
+          <div className="flex justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowProviderPopup(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </BaseModal> */}
+
       {/* Modal for editing a single field */}
       {/* --- 3. Edit Modal for group-level fields --- */}
-      <EditProductModel
+      <BaseModal
         isOpen={!!editField}
         onClose={() => setEditField(null)}
         title={`Edit ${editField?.field ? editField.field.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()) : ""}`}
-        editField={editField}
-        setEditField={setEditField}
-        editFieldValue={editFieldValue}
-        setEditFieldValue={setEditFieldValue}
-        formData={formData}
-        setFormData={setFormData}
-      />
+      >
+        <div className="flex flex-col h-full justify-between">
+          {editField?.field === "shadeDetails" && (
+            <ShadeSelector
+              value={
+                shadeOptions.find(
+                  (opt) =>
+                    opt.label ===
+                    (typeof editFieldValue === "string"
+                      ? editFieldValue
+                      : editFieldValue[0]),
+                ) || null
+              }
+              onValueChange={(value) =>
+                setEditFieldValue(value ? value.label : "")
+              }
+              label="Shade"
+              placeholder="Select Shade"
+            />
+          )}
+          {editField?.field === "occlusalStaining" && (
+            <FormField
+              id="occlusalStaining"
+              label="Occlusal Staining"
+              type="select"
+              value={editFieldValue as string}
+              onChange={(value) => setEditFieldValue(value)}
+              options={[
+                { value: "light", label: "Light" },
+                { value: "medium", label: "Medium" },
+                { value: "heavy", label: "Heavy" },
+              ]}
+            />
+          )}
+          {editField?.field === "shadeGuide" && (
+            <ShadeGuideSection
+              selectedGroups={[]}
+              onShadeGuideChange={(guide) => setEditFieldValue(guide)}
+              selectedGuide={editFieldValue as ShadeGuide | null}
+            />
+          )}
+          {editField?.field === "ponticDesign" && (
+            <PonticSelector
+              value={editFieldValue as string}
+              onChange={(val) => setEditFieldValue(val)}
+            />
+          )}
+          {editField?.field === "notes" && (
+            <FormField
+              id="notes"
+              label="Notes"
+              type="textarea"
+              value={editFieldValue as string}
+              onChange={(value) => setEditFieldValue(value)}
+              placeholder="Any special instructions for notes..."
+              rows={3}
+            />
+          )}
+          {editField?.field === "trialRequirements" && (
+            <TrialSelector
+              productType={
+                formData.prescriptionType === "implant"
+                  ? "implant"
+                  : "crown-bridge"
+              }
+              selectedTrials={[editFieldValue as string]}
+              onTrialsChange={(trials) =>
+                setEditFieldValue(trials && trials.length > 0 ? trials[0] : "")
+              }
+            />
+          )}
+          {editField?.field === "shadeNotes" && (
+            <FormField
+              id="shadeNotes"
+              label="Shade Notes"
+              type="textarea"
+              value={editFieldValue as string}
+              onChange={(value) => setEditFieldValue(value)}
+              placeholder="Any special instructions for shade..."
+              rows={2}
+            />
+          )}
+          <div className="flex justify-end mt-4 gap-2">
+            <Button variant="outline" onClick={() => setEditField(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#11AB93] hover:bg-[#0F9A82] text-white"
+              onClick={() => {
+                if (editField) {
+                  const updatedTeethGroups = [...formData.toothGroups];
+                  // Store at group level
+                  updatedTeethGroups[editField.groupIdx] = {
+                    ...updatedTeethGroups[editField.groupIdx],
+                    [editField.field]: editFieldValue,
+                  };
+                  // Remove from all teeth in this group
+                  updatedTeethGroups[editField.groupIdx].teethDetails =
+                    updatedTeethGroups[editField.groupIdx].teethDetails.map(
+                      (arr: any) =>
+                        (arr as any[]).map((tooth: any) => {
+                          const {
+                            shadeDetails,
+                            shadeGuide,
+                            shadeNotes,
+                            occlusalStaining,
+                            trialRequirements,
+                            ponticDesign,
+                            ...rest
+                          } = tooth;
+                          return rest;
+                        }),
+                    );
+                  setFormData({ ...formData, toothGroups: updatedTeethGroups });
+                  setEditField(null);
+                }
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </BaseModal>
     </div>
   );
 };
 
-export default ProductSelection
+export default ProductSelection;

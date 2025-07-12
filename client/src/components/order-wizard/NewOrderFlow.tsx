@@ -420,8 +420,8 @@ const NewOrderFlow = ({
                   <div className="mt-2 space-y-1">
                     {(formData.intraOralScans || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
-                        {file.name}
-                      </div>
+                          {file.name}
+                        </div>
                     ))}
                   </div>
                 </div>
@@ -437,8 +437,8 @@ const NewOrderFlow = ({
                   <div className="mt-2 space-y-1">
                     {(formData.faceScans || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
-                        {file.name}
-                      </div>
+                          {file.name}
+                        </div>
                     ))}
                   </div>
                 </div>
@@ -454,8 +454,8 @@ const NewOrderFlow = ({
                   <div className="mt-2 space-y-1">
                     {(formData.patientPhotos || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
-                        {file.name}
-                      </div>
+                          {file.name}
+                        </div>
                     ))}
                   </div>
                 </div>
@@ -471,8 +471,8 @@ const NewOrderFlow = ({
                   <div className="mt-2 space-y-1">
                     {(formData.referralFiles || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
-                        {file.name}
-                      </div>
+                          {file.name}
+                        </div>
                     ))}
                   </div>
                 </div>

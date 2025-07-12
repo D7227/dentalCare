@@ -1,31 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import OrderCategoryStep from '@/components/order-wizard/OrderCategoryStep';
-import NewOrderFlow from '@/components/order-wizard/NewOrderFlow';
-import RepeatOrderFlow from '@/components/order-wizard/RepeatOrderFlow';
-import RepairOrderFlow from '@/components/order-wizard/RepairOrderFlow';
-import AccessoryTagging from '@/components/order-wizard/AccessoryTagging';
-import OrderSummary from '@/components/order-wizard/OrderSummary';
-import WizardProgress from '@/components/order-wizard/WizardProgress';
-import { useOrderValidation } from '@/components/order-wizard/hooks/useOrderValidation';
-import { useOrderSteps } from '@/components/order-wizard/hooks/useOrderSteps';
-import { OrderCategoryType, FormData } from '@/components/order-wizard/types/orderTypes';
-import CustomButton from '@/components/common/customButtom';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { setUser } from '@/store/slices/authSlice';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { createOrderObject } from '@/utils/orderHelper';
+import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import OrderCategoryStep from "@/components/order-wizard/OrderCategoryStep";
+import NewOrderFlow, {
+  // createOrderObject,
+  // createOrderObject,
+} from "@/components/order-wizard/NewOrderFlow";
+import RepeatOrderFlow from "@/components/order-wizard/RepeatOrderFlow";
+import RepairOrderFlow from "@/components/order-wizard/RepairOrderFlow";
+import AccessoryTagging from "@/components/order-wizard/AccessoryTagging";
+import OrderSummary from "@/components/order-wizard/OrderSummary";
+import WizardProgress from "@/components/order-wizard/WizardProgress";
+import { useOrderValidation } from "@/components/order-wizard/hooks/useOrderValidation";
+import { useOrderSteps } from "@/components/order-wizard/hooks/useOrderSteps";
+import {
+  OrderCategoryType,
+  FormData,
+} from "@/components/order-wizard/types/orderTypes";
+import CustomButton from "@/components/common/customButtom";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { setUser } from "@/store/slices/authSlice";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { createOrderObject } from "@/utils/orderHelper";
 
 interface ToothGroup {
   groupId: string;
   teeth: number[];
-  type: 'individual' | 'connected';
+  type: "individual" | "connected";
   notes: string;
   material: string;
   shade: string;
@@ -37,10 +49,12 @@ const PlaceOrder = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [orderCategory, setOrderCategory] = useState<OrderCategoryType>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stepValidationErrors, setStepValidationErrors] = useState<Record<number, string[]>>({});
+  const [stepValidationErrors, setStepValidationErrors] = useState<
+    Record<number, string[]>
+  >({});
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
@@ -56,19 +70,19 @@ const PlaceOrder = () => {
   // Check authentication and restore user data from localStorage on component mount
   useEffect(() => {
     if (!isAuthenticated) {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
           dispatch(setUser(userData));
         } catch (error) {
-          console.error('Error parsing stored user data:', error);
+          console.error("Error parsing stored user data:", error);
           // If stored data is invalid, redirect to login
-          setLocation('/login');
+          setLocation("/login");
         }
       } else {
         // No stored user data, redirect to login
-        setLocation('/login');
+        setLocation("/login");
       }
     }
     setIsAuthChecking(false);
@@ -139,8 +153,8 @@ const PlaceOrder = () => {
     referralFiles: [],
 
     // --- Order display fields (for OrderCard) ---
-    orderStatus: null,
-    percentage: 0,
+    orderStatus: 'pending',
+    percentage: 10,
     isUrgent: false,
     currency: 'INR',
     exportQuality: 'Standard',
@@ -151,41 +165,26 @@ const PlaceOrder = () => {
   // Update clinicId when Redux data becomes available
   useEffect(() => {
     if (clinicId) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        clinicId: clinicId
+        clinicId: clinicId,
       }));
     }
   }, [clinicId]);
 
   const getHasSelectedTeeth = () => {
-    if (orderCategory !== 'repeat') return false;
+    if (orderCategory !== "repeat") return false;
     return formData.teethEditedByUser === true;
   };
 
   const hasSelectedTeeth = getHasSelectedTeeth();
+  console.log("hasSelectedTeeth--", hasSelectedTeeth);
   const steps = getStepsForCategory(orderCategory, hasSelectedTeeth);
   const maxSteps = steps.length - 1;
 
   const validateCurrentStep = (): boolean => {
     const errors = validateStep(currentStep, orderCategory, formData);
-    setStepValidationErrors(prev => ({ ...prev, [currentStep]: errors }));
-    if (errors.length > 0) {
-      toast({
-        title: 'Validation Error',
-        description: (
-          <ul className="space-y-1 sm:space-y-2 mt-1">
-            {errors.map((error, index) => (
-              <li key={index} className="text-xs sm:text-sm text-red-700 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
-                {error}
-              </li>
-            ))}
-          </ul>
-        ),
-        variant: 'destructive',
-      });
-    }
+    setStepValidationErrors((prev) => ({ ...prev, [currentStep]: errors }));
     return errors.length === 0;
   };
 
@@ -225,8 +224,9 @@ const PlaceOrder = () => {
     console.log("Form data at submission:", JSON.stringify(formData, null, 2));
 
     try {
-      if (orderCategory === 'repair') {
-        formData.category = 'repair';
+      if (orderCategory === "repair") {
+        formData.category = "repair";
+        formData.type = "repair";
         // No need to set firstName, lastName, age, sex again
         const orderData = createOrderObject(formData, user?.clinicId || '');
         console.log("Order data:", orderData);
@@ -262,12 +262,13 @@ const PlaceOrder = () => {
           return;
         }
         // Use the existing firstName, lastName, age, sex fields instead of patient* fields
-        formData.category = 'repeat';
-        const orderData = createOrderObject(formData, user?.clinicId || '');
+        formData.category = "repeat";
+        formData.type = "repeat";
+        const orderData = createOrderObject(formData, user?.clinicId || "");
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
-          method: 'PUT',
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(orderData),
         });
@@ -285,8 +286,11 @@ const PlaceOrder = () => {
         return;
       }
       formData.accessories = [];
-      // Create the order using the comprehensive order object
-      const orderData = createOrderObject(formData, user?.clinicId || '');
+      formData.orderStatus = 'pending';
+      formData.percentage = 10;
+      formData.type = formData.type || "new";
+      // Create the order using the database-compatible order object
+      const orderData = createOrderObject(formData, user?.clinicId || "");
 
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
@@ -305,22 +309,14 @@ const PlaceOrder = () => {
       // Create tooth groups for the order
       if (formData.toothGroups && formData.toothGroups.length > 0) {
         for (const toothGroup of formData.toothGroups) {
-          // Type guard for LegacyToothGroup
-          const groupId = (toothGroup as any).groupId || `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const teeth = (toothGroup as any).teeth || [];
-          const type = (toothGroup as any).type || '';
-          const notes = (toothGroup as any).notes || '';
-          const material = (toothGroup as any).material || '';
-          const shade = (toothGroup as any).shade || '';
-
           const toothGroupData = {
             orderId: order.id,
-            groupId,
-            teeth,
-            type,
-            notes,
-            material,
-            shade,
+            groupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            teeth: toothGroup.teethDetails?.flat().map(detail => detail.teethNumber) || [],
+            type: toothGroup.groupType || "separate",
+            notes: toothGroup.shadeNotes || "",
+            material: toothGroup.selectedProducts?.[0]?.material || "",
+            shade: toothGroup.shadeDetails || "",
           };
 
           try {
@@ -477,7 +473,7 @@ const PlaceOrder = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#FFFFFF]">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
         <div className='max-w-7xl mx-auto'>
@@ -567,10 +563,35 @@ const PlaceOrder = () => {
           )}
 
           {/* Main Content Area */}
-          <div className={`flex-1 min-w-0 order-1 ${orderCategory ? 'lg:order-1' : 'lg:order-2'}`}>
-            <Card className="shadow-sm border !border-customPrimery-200 bg-custonLightGray-100">
-              <CardContent className="p-4 sm:p-6 ">
+          <div
+            className={`flex-1 min-w-0 bg-transparent order-1 ${orderCategory ? "lg:order-1" : "lg:order-2"}`}
+          >
+            <Card className="shadow-sm border bg-[#F5F9F8] !border-customPrimery-200">
+              <CardContent className="p-4 sm:p-6">
                 {/* Validation Errors */}
+                {currentStepErrors.length > 0 && (
+                  <Card className="mb-4 sm:mb-6 border-red-200 bg-red-50">
+                    <CardContent className="p-3 sm:p-4">
+                      <h4 className="font-semibold text-red-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
+                        <span className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-xs font-bold">
+                          !
+                        </span>
+                        Please fix the following errors:
+                      </h4>
+                      <ul className="space-y-1 sm:space-y-2">
+                        {currentStepErrors.map((error, index) => (
+                          <li
+                            key={index}
+                            className="text-xs sm:text-sm text-red-700 flex items-center gap-2"
+                          >
+                            <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
+                            {error}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Step Content */}
                 <form onSubmit={handleSubmit}>

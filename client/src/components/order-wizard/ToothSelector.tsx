@@ -173,12 +173,12 @@ const ToothSelector = ({
 
   // Check if current subcategory needs arch selection
   const needsArchSelection = isSplints || [
-    "clear-aligner",
-    "retainer",
-    "full-dentures",
-    "sleep-apnea",
+      "clear-aligner",
+      "retainer",
+      "full-dentures",
+      "sleep-apnea",
     "implant-full-arch"
-  ].includes(subcategoryType || formData?.subcategoryType || "");
+    ].includes(subcategoryType || formData?.subcategoryType || "");
 
   // State for implant full arch workflow
   const [selectedArchTeeth, setSelectedArchTeeth] = useState<number[]>([]);
@@ -216,7 +216,11 @@ const ToothSelector = ({
       // For implant full arch, show implant selection step
       setSelectedArchTeeth(teethToSelect);
       setShowImplantSelection(true);
-      setSelectedImplantTeeth([]);
+      // Don't reset selectedImplantTeeth and implantDetailsData to preserve existing details
+      // Only reset if no existing data
+      if (selectedImplantTeeth.length === 0) {
+        setSelectedImplantTeeth([]);
+      }
     } else {
       // For other types, directly select all teeth as abutments
       const newTeeth = teethToSelect.map(toothNumber => ({
@@ -276,7 +280,10 @@ const ToothSelector = ({
       .sort((a, b) => a - b)
       .map((toothNumber) => ({
         teethNumber: toothNumber,
-        type: selectedImplantTeeth.includes(toothNumber) ? "abutment" : "pontic",
+        toothNumber: toothNumber, // Add compatibility field
+        type: selectedImplantTeeth.includes(toothNumber)
+          ? "abutment"
+          : "pontic",
         productName: [],
         productDetails: {
           shade: 'B1 - Vita Classic',
@@ -304,7 +311,11 @@ const ToothSelector = ({
       teethDetails: [teethDetails],
     };
 
-    updateSelection([newGroup], []);
+    // Preserve existing groups and teeth by adding to them instead of replacing
+    const updatedGroups = [...localSelectedGroups, newGroup];
+    const updatedTeeth = [...localSelectedTeeth];
+
+    updateSelection(updatedGroups, updatedTeeth);
     setShowImplantSelection(false);
     setSelectedArchTeeth([]);
     setSelectedImplantTeeth([]);
@@ -314,8 +325,8 @@ const ToothSelector = ({
   const handleCancelImplantSelection = () => {
     setShowImplantSelection(false);
     setSelectedArchTeeth([]);
-    setSelectedImplantTeeth([]);
-    setImplantDetailsData({});
+    // Don't clear selectedImplantTeeth and implantDetailsData to preserve existing details
+    // Only clear if user explicitly wants to start over
     setCurrentImplantToothForDetails(null);
     setShowImplantDetailsModal(false);
   };
@@ -546,8 +557,8 @@ const ToothSelector = ({
             const arch = isUpper ? upperArch : isLower ? lowerArch : null;
             const sortedTeeth = arch
               ? abutmentTeeth
-                .slice()
-                .sort((a, b) => arch.indexOf(a) - arch.indexOf(b))
+                  .slice()
+                  .sort((a, b) => arch.indexOf(a) - arch.indexOf(b))
               : abutmentTeeth.slice().sort((a, b) => a - b);
             const fragments: number[][] = [];
             let currentFragment = sortedTeeth.length ? [sortedTeeth[0]] : [];
@@ -1161,6 +1172,7 @@ const ToothSelector = ({
               if (individualTooth) {
                 return {
                   teethNumber: toothNumber,
+                  toothNumber: toothNumber, // Add compatibility field
                   productName: [],
                   productQuantity: 1,
                   shadeDetails: "",
@@ -1169,12 +1181,14 @@ const ToothSelector = ({
                   shadeNotes: "",
                   trialRequirements: "",
                   type: individualTooth.type,
+                  implantDetails: individualTooth ? individualTooth.implantDetails : undefined,
                 };
               }
 
               // New tooth, default to abutment
               return {
                 teethNumber: toothNumber,
+                toothNumber: toothNumber, // Add compatibility field
                 productName: [],
                 productQuantity: 1,
                 // shadeDetails: "",
@@ -1257,11 +1271,11 @@ const ToothSelector = ({
                   teethNumber: tooth2,
                   productName: [],
                   productQuantity: 1,
-                  // shadeDetails: "",
-                  // occlusalStaining: "",
-                  // shadeGuide: [],
-                  // shadeNotes: "",
-                  // trialRequirements: "",
+                  shadeDetails: "",
+                  occlusalStaining: "",
+                  shadeGuide: [],
+                  shadeNotes: "",
+                  trialRequirements: "",
                   type: individualTooth ? individualTooth.type : "abutment",
                 };
 
@@ -1329,11 +1343,11 @@ const ToothSelector = ({
                   teethNumber: tooth1,
                   productName: [],
                   productQuantity: 1,
-                  // shadeDetails: "",
-                  // occlusalStaining: "",
-                  // shadeGuide: [],
-                  // shadeNotes: "",
-                  // trialRequirements: "",
+                  shadeDetails: "",
+                  occlusalStaining: "",
+                  shadeGuide: [],
+                  shadeNotes: "",
+                  trialRequirements: "",
                   type: individualTooth ? individualTooth.type : "abutment",
                 };
 
@@ -1382,6 +1396,7 @@ const ToothSelector = ({
         if (individualTooth) {
           return {
             teethNumber: toothNumber,
+            toothNumber: toothNumber, // Add compatibility field
             productName: [],
             productQuantity: 1,
             shadeDetails: "",
@@ -1390,6 +1405,7 @@ const ToothSelector = ({
             shadeNotes: "",
             trialRequirements: "",
             type: individualTooth.type,
+            implantDetails: individualTooth.implantDetails,
           };
         } else {
           // Check if tooth exists in groups
@@ -1404,6 +1420,7 @@ const ToothSelector = ({
           // New tooth, default to abutment
           return {
             teethNumber: toothNumber,
+            toothNumber: toothNumber, // Add compatibility field
             productName: [],
             productQuantity: 1,
             shadeDetails: "",
@@ -1638,18 +1655,18 @@ const ToothSelector = ({
                 </p>
                 <div className="grid grid-cols-4 gap-2 mb-3">
                   {selectedArchTeeth.sort((a, b) => a - b).map((toothNumber) => (
-                    <button
-                      key={toothNumber}
-                      type="button"
-                      onClick={() => handleImplantToothToggle(toothNumber)}
+                      <button
+                        key={toothNumber}
+                        type="button"
+                        onClick={() => handleImplantToothToggle(toothNumber)}
                       className={`px-2 py-1 text-xs rounded border transition-colors ${selectedImplantTeeth.includes(toothNumber)
                           ? 'bg-blue-500 text-white border-blue-600'
                           : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                         }`}
-                    >
-                      {toothNumber}
-                    </button>
-                  ))}
+                      >
+                        {toothNumber}
+                      </button>
+                    ))}
                 </div>
                 <div className="text-xs text-gray-600 mb-3">
                   <p>
@@ -1672,6 +1689,16 @@ const ToothSelector = ({
                     className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                   >
                     Confirm Selection
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImplantTeeth([]);
+                      setImplantDetailsData({});
+                    }}
+                    className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors"
+                  >
+                    Clear All
                   </button>
                   <button
                     type="button"

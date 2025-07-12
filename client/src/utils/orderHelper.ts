@@ -29,17 +29,17 @@ export const createOrderObject = (formData: any, clinicId: string) => {
 
   return {
     // Order basic info
-    refId: `REF-${Date.now()}-${Math.random()
+    refId: formData.refId || `REF-${Date.now()}-${Math.random()
       .toString(36)
       .substr(2, 4)
       .toUpperCase()}`,
-    orderId: "",
+    orderId: formData.orderId || "",
     type: getOrderTypeBasedOnSubcategory(),
     category: formData.category || "new",
-    status: "pending",
-    priority: "standard",
-    urgency: "standard",
-    paymentStatus: "pending",
+    orderStatus: formData.orderStatus || "pending",
+    priority: formData.isUrgent ? "urgent" : "standard",
+    urgency: formData.isUrgent ? "urgent" : "standard",
+    paymentStatus: formData.paymentStatus || "pending",
     clinicId: clinicId,
 
     // Patient Information
@@ -50,7 +50,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
 
     // Case Information
     caseHandledBy: formData.caseHandledBy || "",
-    doctorMobile:formData.doctorMobile || "",
+    doctorMobile: formData.doctorMobile || "",
     consultingDoctor: formData.consultingDoctor || "",
     consultingDoctorMobile: formData.consultingDoctorMobile || "",
 
@@ -64,13 +64,14 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     // Teeth Configuration - Store as separate fields for database
     toothGroups: formData.toothGroups || [],
     selectedTeeth: formData.selectedTeeth || [],
+    toothNumbers: formData.toothNumbers || [],
 
     // Product Information
-    restorationProducts:
-      formData.restoration_products || formData.restorationProducts || [],
+    restorationProducts: formData.restorationProducts || [],
 
     // Implant Specific Fields
     abutmentType: formData.abutmentType || "",
+    abutmentDetails: formData.abutmentDetails || null,
     implantPhoto: formData.implantPhoto || "",
     implantCompany: formData.implantCompany || "",
     implantRemark: formData.implantRemark || "",
@@ -78,7 +79,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     // Design Specifications
     pontic: formData.pontic || "Ridge Lap",
     ponticDesign: formData.ponticDesign || "",
-    occlusalStaining: formData.occlusalStaining || "",
+    occlusalStaining: formData.occlusalStaining || "medium",
     trial: formData.trial || "",
     expectedDeliveryDate: formData.expectedDeliveryDate || "",
 
@@ -104,6 +105,7 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     accessories: formData.accessories || [],
     otherAccessory: formData.otherAccessory || "",
     handlingType: formData.handlingType || "",
+    returnAccessories: formData.returnAccessories || false,
 
     // Pickup/Delivery Information
     pickupDate: formData.pickupDate || "",
@@ -111,7 +113,14 @@ export const createOrderObject = (formData: any, clinicId: string) => {
     pickupRemarks: formData.pickupRemarks || "",
 
     // Scan Booking Information
-    scanBooking: formData.scanBooking || {},
+    scanBooking: formData.scanBooking || {
+      areaManagerId: '',
+      scanDate: '',
+      scanTime: '',
+      notes: '',
+      trackingId: '',
+      courierName: ''
+    },
 
     // Repair/Issue Information
     issueDescription: formData.issueDescription || "",
@@ -131,6 +140,13 @@ export const createOrderObject = (formData: any, clinicId: string) => {
 
     // Technical Specifications
     teethEditedByUser: formData.teethEditedByUser || false,
+
+    // Order display fields
+    percentage: formData.percentage || 10,
+    isUrgent: formData.isUrgent || false,
+    currency: formData.currency || "INR",
+    exportQuality: formData.exportQuality || "Standard",
+    totalAmount: formData.totalAmount || "0",
 
     // Timestamps
     createdAt: new Date().toISOString(),

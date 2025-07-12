@@ -24,19 +24,19 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
   // Add bridge groups first, but only if teeth are not in selectedTeeth
   toothGroups.filter(g => g.type === 'bridge').forEach(group => {
     const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
-    if (teeth.length > 0) {
-      summaryGroups.push({ ...group, teeth });
-      teeth.forEach((t: number) => usedTeeth.add(t));
-    }
-  });
+      if (teeth.length > 0) {
+        summaryGroups.push({ ...group, teeth });
+        teeth.forEach((t: number) => usedTeeth.add(t));
+      }
+    });
   // Then joint groups, but only if teeth are not in selectedTeeth
   toothGroups.filter(g => g.type === 'joint').forEach(group => {
     const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t) && !selectedTeeth.some((st: any) => st.toothNumber === t));
-    if (teeth.length > 0) {
-      summaryGroups.push({ ...group, teeth });
-      teeth.forEach((t: number) => usedTeeth.add(t));
-    }
-  });
+      if (teeth.length > 0) {
+        summaryGroups.push({ ...group, teeth });
+        teeth.forEach((t: number) => usedTeeth.add(t));
+      }
+    });
   // Then individual teeth
   const individualTeeth = selectedTeeth.filter((t: any) => !usedTeeth.has(t.toothNumber));
   if (individualTeeth.length > 0) {
@@ -86,7 +86,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
 
   // --- Unified group logic for both toothGroups and selectedTeeth ---
   const selectedTeethGroups = (formData.selectedTeeth || []).length > 0
-    ? Object.values(
+      ? Object.values(
         (formData.selectedTeeth || []).reduce((acc: any, tooth: any) => {
           const type = tooth.prescriptionType || formData.prescriptionType || "unknown";
           if (!acc[type]) acc[type] = { prescriptionType: type, groupType: "individual", teethDetails: [[]] };
@@ -94,7 +94,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
           return acc;
         }, {})
       )
-    : [];
+      : [];
 
   const allGroups = [
     ...(formData.toothGroups || []),
@@ -105,8 +105,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
     const allTeeth = group.teethDetails?.flat() || [];
     return allTeeth.length > 0 && allTeeth.every((t: any) => {
       const hasSelectedProducts = t.selectedProducts && t.selectedProducts.length > 0;
-      const hasProductName = t.productName && t.productName.length > 0;
-      return hasSelectedProducts || hasProductName;
+        const hasProductName = t.productName && t.productName.length > 0;
+        return hasSelectedProducts || hasProductName;
     });
   });
 
@@ -130,12 +130,12 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
   const shades = Array.from(new Set(allTeeth.map((t: any) => t.productDetails?.shade).filter(Boolean)));
 
   const shadeGuides = Array.from(new Set(
-    allTeeth
-      .flatMap((t: any) =>
+      allTeeth
+        .flatMap((t: any) =>
         (t.productDetails?.shadeGuide && Array.isArray(t.productDetails.shadeGuide))
-          ? t.productDetails.shadeGuide
+            ? t.productDetails.shadeGuide
           : (Array.isArray(t.shadeGuide) ? t.shadeGuide : [])
-      )
+        )
       .filter(Boolean)
   ));
 
@@ -199,11 +199,28 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
             </CardHeader>
             <CardContent className="pt-0">
               <ToothChart
-                selectedGroups={selectedGroups}
+                selectedGroups={convertToLegacyGroups(allGroups)}
                 selectedTeeth={selectedTeeth}
                 onToothClick={noopToothClick}
-                isToothSelected={() => false}
-                getToothType={(toothNumber) => getSummaryToothType(toothNumber, allGroups, selectedTeeth)}
+                isToothSelected={(toothNumber) => {
+                  // Check if tooth is in any group or individual teeth
+                  const inGroups = allGroups.some((group) =>
+                    group.teethDetails
+                      ?.flat()
+                      .some(
+                        (tooth: any) =>
+                          tooth.teethNumber === toothNumber ||
+                          tooth.toothNumber === toothNumber,
+                      ),
+                  );
+                  const inIndividual = selectedTeeth.some(
+                    (t: any) => t.toothNumber === toothNumber,
+                  );
+                  return inGroups || inIndividual;
+                }}
+                getToothType={(toothNumber) =>
+                  getSummaryToothType(toothNumber, allGroups, selectedTeeth)
+                }
                 onGroupsChange={noopGroupsChange}
                 setSelectedTeeth={noopSetSelectedTeeth}
                 onDragConnection={noopDragConnection}
@@ -232,7 +249,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     <div key={accessory.id || index} className="flex items-center justify-between text-sm">
                       <span className="text-gray-900 capitalize text-base">{accessory.name}</span>
                       <span className="text-gray-600 text-base">Qty: {accessory.quantity}</span>
-                    </div>
+                      </div>
                   ))}
                 </div>
               ) : (
@@ -240,6 +257,109 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               )}
             </CardContent>
           </Card>
+
+          {/* Product Quantities Summary */}
+          {(() => {
+            const productMap: Record<string, number> = {};
+            (formData.toothGroups || []).forEach((group: any) => {
+              group.teethDetails?.flat().forEach((tooth: any) => {
+                let counted = false;
+                if (
+                  tooth.selectedProducts &&
+                  Array.isArray(tooth.selectedProducts) &&
+                  tooth.selectedProducts.length > 0
+                ) {
+                  tooth.selectedProducts.forEach((prod: any) => {
+                    if (prod && prod.name) {
+                      productMap[prod.name] = (productMap[prod.name] || 0) + 1;
+                      counted = true;
+                    }
+                  });
+                }
+                if (
+                  !counted &&
+                  tooth.productName &&
+                  Array.isArray(tooth.productName)
+                ) {
+                  tooth.productName.forEach((name: string) => {
+                    if (name) {
+                      productMap[name] = (productMap[name] || 0) + 1;
+                    }
+                  });
+                }
+              });
+            });
+
+            // Also count from selectedTeeth for individual teeth
+            (formData.selectedTeeth || []).forEach((tooth: any) => {
+              if (
+                tooth.selectedProducts &&
+                Array.isArray(tooth.selectedProducts)
+              ) {
+                tooth.selectedProducts.forEach((prod: any) => {
+                  if (prod && prod.name) {
+                    productMap[prod.name] = (productMap[prod.name] || 0) + 1;
+                  }
+                });
+              } else if (
+                tooth.productName &&
+                Array.isArray(tooth.productName)
+              ) {
+                tooth.productName.forEach((name: string) => {
+                  if (name) {
+                    productMap[name] = (productMap[name] || 0) + 1;
+                  }
+                });
+              }
+            });
+
+            const productQuantities = Object.entries(productMap).map(
+              ([name, quantity]) => ({
+                name,
+                quantity,
+              }),
+            );
+
+            if (productQuantities.length > 0) {
+              return (
+                <Card className="shadow-sm w-full md:w-[350px] p-3">
+                  <CardHeader className="print:pb-2 p-0 pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]">
+                          <FileChartColumnIncreasing className="h-4 w-4" />
+                        </div>
+                        <CardTitle className="text-sm font-semibold text-gray-900">
+                          Product Quantities
+                        </CardTitle>
+                      </div>
+                      <div className="h-8 w-8 text-center border border-[#DEDDDD] rounded-sm flex items-center justify-center">
+                        <Edit2 size={12} />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
+                    <div className="space-y-2">
+                      {productQuantities.map((item) => (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-100"
+                        >
+                          <span className="text-sm font-medium text-gray-700">
+                            {item.name}
+                          </span>
+                          <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            X {item.quantity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            }
+            return null;
+          })()}
         </div>
 
         {/* Right: Stacked Info Cards */}
@@ -314,28 +434,28 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               <div>
                 <div className="text-xs text-gray-500 mb-2">Type of Restoration</div>
               <div className='flex items-center gap-2'>
-                <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
-                  {formData.category === "implant" ? (
+                  <div className="w-7 h-7 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
+                    {formData.category === "implant" ? (
                       <img src={ImpantTeeth} alt="ImplantTeeth" />
-                  ) : (
-                    <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
-                  )}
-                </div>
+                    ) : (
+                      <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
+                    )}
+                  </div>
                 <div className='font-medium text-gray-900'>{typeLabel}</div>
-              </div>
+                </div>
               </div>
 
               {/* Configured Groups Detail Cards - Show all configured groups */}
               {Object.entries(groupedByType).map(([type, groups]) => {
                 const groupsArray = groups as any[];
-                    return (
+                return (
                   <Card key={type} className="border border-green-200 bg-gray-50 mb-4">
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium capitalize">
                             {type}
-                        </span>
+                          </span>
                         </div>
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
@@ -347,21 +467,21 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                           <div className="text-gray-600">
                             {["bridge", "joint", "individual"].map((groupType) => {
                               const groupsOfType = groupsArray.filter((g: any) => g.groupType === groupType);
-                              if (groupsOfType.length === 0) return null;
-                              const teethNumbers = groupsOfType
+                                if (groupsOfType.length === 0) return null;
+                                const teethNumbers = groupsOfType
                                 .flatMap((g: any) => g.teethDetails?.flat() || [])
                                 .map((t: any) => t.toothNumber ?? t.teethNumber)
                                 .filter((n: any) => n !== undefined && n !== null && n !== "")
-                                .join(", ");
-                              return teethNumbers ? (
+                                  .join(", ");
+                                return teethNumbers ? (
                                 <div key={groupType} className="flex items-center gap-2 mb-1">
                                   <div className={`w-2 h-2 rounded-full ${groupType === 'individual' ? 'bg-[#1D4ED8]' : groupType === 'joint' ? 'bg-[#0B8043]' : 'bg-[#EA580C]'}`}></div>
                                   <span className="font-semibold capitalize text-xs">{groupType}:</span>
                                   <span className="text-xs">{teethNumbers}</span>
-                                </div>
-                              ) : null;
+                                  </div>
+                                ) : null;
                   })}
-                </div>
+                          </div>
                         </div>
 
                         {/* Products Information */}
@@ -372,21 +492,21 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                               const toothProductList: { tooth: number; products: string[] }[] = [];
                               groupsArray.forEach((group: any) => {
                                 group.teethDetails?.flat().forEach((tooth: any) => {
-                                  let productNames: string[] = [];
+                                    let productNames: string[] = [];
                                   if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
                                     productNames = tooth.selectedProducts.map((p: any) => p.name);
                                   } else if (tooth.productName && Array.isArray(tooth.productName)) {
-                                    productNames = [...tooth.productName];
+                                      productNames = [...tooth.productName];
                                   } else if (tooth.productDetails && tooth.productDetails.productName && tooth.productDetails.productName.length > 0) {
                                     productNames = [...tooth.productDetails.productName];
-                                  }
-                                  if (productNames.length > 0) {
-                                    toothProductList.push({
+                                    }
+                                    if (productNames.length > 0) {
+                                      toothProductList.push({
                                       tooth: tooth.teethNumber || tooth.toothNumber,
-                                      products: productNames,
-                                    });
-                                  }
-                                });
+                                        products: productNames,
+                                      });
+                                    }
+                                  });
                               });
                               toothProductList.sort((a, b) => a.tooth - b.tooth);
                               return toothProductList.map((item, i) => (
@@ -396,52 +516,52 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                               ));
                             })()}
                           </div>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
 
                       {/* Implant Details for implant type */}
                       {type === "implant" && (() => {
                         const implantTeeth = groupsArray.flatMap((g: any) => g.teethDetails?.flat() || [])
-                          .filter((tooth: any) => tooth.implantDetails);
+                            .filter((tooth: any) => tooth.implantDetails);
 
-                        if (implantTeeth.length > 0) {
-                          return (
-                            <div className="mt-3">
+                          if (implantTeeth.length > 0) {
+                            return (
+                              <div className="mt-3">
                               <p className="font-medium text-gray-900 mb-2">Implant Details:</p>
-                              <div className="space-y-2">
+                                <div className="space-y-2">
                                 {implantTeeth.map((tooth: any, idx: number) => (
                                   <div key={idx} className="border rounded-md p-2 bg-gray-50">
-                                    <div className="font-semibold text-sm text-gray-800 mb-1">
+                                        <div className="font-semibold text-sm text-gray-800 mb-1">
                                       Tooth {tooth.toothNumber || tooth.teethNumber}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
                                       {tooth.implantDetails?.companyName && (
-                                        <div>
+                                              <div>
                                           <span className="font-semibold text-gray-700">Company:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.companyName}</span>
-                  </div>
-                )}
-                                      {tooth.implantDetails?.systemName && (
-                                        <div>
+                                              </div>
+                                            )}
+                                          {tooth.implantDetails?.systemName && (
+                                            <div>
                                           <span className="font-semibold text-gray-700">System:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.systemName}</span>
-                  </div>
-                )}
-                                      {tooth.implantDetails?.remarks && (
-                                        <div className="col-span-2">
+                                            </div>
+                                          )}
+                                          {tooth.implantDetails?.remarks && (
+                                            <div className="col-span-2">
                                           <span className="font-semibold text-gray-700">Remarks:</span>
                                           <span className="ml-1 text-gray-600">{tooth.implantDetails.remarks}</span>
-                  </div>
-                )}
-                                    </div>
-                                  </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
                                 ))}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
+                            );
+                          }
+                          return null;
+                        })()}
 
                       {/* Shade and Treatment Details */}
                       <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
@@ -449,7 +569,23 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                           <p className="font-medium text-gray-900 mb-1">Shade:</p>
                           <p className="text-gray-600">
                             {(() => {
-                              const shadeDetails = groupsArray.find((g: any) => g.shadeDetails)?.shadeDetails;
+                              // Check for shade in tooth productDetails first
+                              const toothWithShade = groupsArray
+                                .flatMap(
+                                  (g: any) => g.teethDetails?.flat() || [],
+                                )
+                                .find(
+                                  (tooth: any) => tooth.productDetails?.shade,
+                                );
+
+                              if (toothWithShade?.productDetails?.shade) {
+                                return toothWithShade.productDetails.shade;
+                              }
+
+                              // Fallback to group level
+                              const shadeDetails = groupsArray.find(
+                                (g: any) => g.shadeDetails,
+                              )?.shadeDetails;
                               return shadeDetails || "Not specified";
                             })()}
                           </p>
@@ -458,16 +594,85 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                           <p className="font-medium text-gray-900 mb-1">Occlusal Staining:</p>
                           <p className="text-gray-600 capitalize">
                             {(() => {
-                              const occlusalStaining = groupsArray.find((g: any) => g.occlusalStaining)?.occlusalStaining;
-                              return occlusalStaining || "Not specified";
+                              // Check for occlusal staining in tooth productDetails first
+                              const toothWithStaining = groupsArray
+                                .flatMap(
+                                  (g: any) => g.teethDetails?.flat() || [],
+                                )
+                                .find(
+                                  (tooth: any) =>
+                                    tooth.productDetails?.occlusalStaining,
+                                );
+
+                              if (
+                                toothWithStaining?.productDetails
+                                  ?.occlusalStaining
+                              ) {
+                                return toothWithStaining.productDetails
+                                  .occlusalStaining;
+                              }
+
+                              // Fallback to group level or selectedTeeth level
+                              const groupStaining = groupsArray.find(
+                                (g: any) => g.occlusalStaining,
+                              )?.occlusalStaining;
+
+                              if (groupStaining) return groupStaining;
+
+                              // Check in selectedTeeth for individual teeth
+                              const selectedToothStaining = (
+                                formData.selectedTeeth || []
+                              ).find(
+                                (tooth: any) => tooth.occlusalStaining,
+                              )?.occlusalStaining;
+
+                              return selectedToothStaining || "Not specified";
                             })()}
                           </p>
                         </div>
-                  </div>
+                      </div>
 
                       {/* Shade Guide */}
                       {(() => {
-                        const shadeGuide = groupsArray.find((g: any) => g.shadeGuide && g.shadeGuide.type && g.shadeGuide.shades && g.shadeGuide.shades.length > 0)?.shadeGuide;
+                        // Check for shade guide in tooth productDetails first
+                        const toothWithShadeGuide = groupsArray
+                          .flatMap((g: any) => g.teethDetails?.flat() || [])
+                          .find(
+                            (tooth: any) =>
+                              tooth.productDetails?.shadeGuide &&
+                              tooth.productDetails.shadeGuide.type &&
+                              tooth.productDetails.shadeGuide.shades &&
+                              tooth.productDetails.shadeGuide.shades.length > 0,
+                          );
+
+                        let shadeGuide =
+                          toothWithShadeGuide?.productDetails?.shadeGuide;
+
+                        if (!shadeGuide) {
+                          // Fallback to group level
+                          shadeGuide = groupsArray.find(
+                            (g: any) =>
+                              g.shadeGuide &&
+                              g.shadeGuide.type &&
+                              g.shadeGuide.shades &&
+                              g.shadeGuide.shades.length > 0,
+                          )?.shadeGuide;
+                        }
+
+                        if (!shadeGuide) {
+                          // Check in selectedTeeth for individual teeth
+                          const selectedToothWithGuide = (
+                            formData.selectedTeeth || []
+                          ).find(
+                            (tooth: any) =>
+                              tooth.shadeGuide &&
+                              tooth.shadeGuide.type &&
+                              tooth.shadeGuide.shades &&
+                              tooth.shadeGuide.shades.length > 0,
+                          );
+                          shadeGuide = selectedToothWithGuide?.shadeGuide;
+                        }
+
                         if (shadeGuide) {
                           return (
                             <div className="mt-3">
@@ -480,8 +685,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                                   {shadeGuide.shades.map((shade: string, idx: number) => (
                                     <div key={idx} className="text-xs">{shade}</div>
                       ))}
-                    </div>
-                  </div>
+                                </div>
+                              </div>
                             </div>
                           );
                         }
@@ -490,7 +695,31 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
 
                       {/* Trial Requirements */}
                       {(() => {
-                        const trialRequirements = groupsArray.find((g: any) => g.trialRequirements)?.trialRequirements;
+                        // Check for trial requirements in tooth productDetails first
+                        const toothWithTrial = groupsArray
+                          .flatMap((g: any) => g.teethDetails?.flat() || [])
+                          .find((tooth: any) => tooth.productDetails?.trial);
+
+                        let trialRequirements =
+                          toothWithTrial?.productDetails?.trial;
+
+                        if (!trialRequirements) {
+                          // Fallback to group level
+                          trialRequirements = groupsArray.find(
+                            (g: any) => g.trialRequirements,
+                          )?.trialRequirements;
+                        }
+
+                        if (!trialRequirements) {
+                          // Check in selectedTeeth for individual teeth
+                          const selectedToothTrial = (
+                            formData.selectedTeeth || []
+                          ).find(
+                            (tooth: any) => tooth.trialRequirements,
+                          )?.trialRequirements;
+                          trialRequirements = selectedToothTrial;
+                        }
+
                         if (trialRequirements) {
                           return (
                             <div className="mt-3">
@@ -506,7 +735,31 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
 
                       {/* Shade Notes */}
                       {(() => {
-                        const shadeNotes = groupsArray.find((g: any) => g.shadeNotes)?.shadeNotes;
+                        // Check for shade notes in tooth productDetails first
+                        const toothWithShadeNotes = groupsArray
+                          .flatMap((g: any) => g.teethDetails?.flat() || [])
+                          .find(
+                            (tooth: any) => tooth.productDetails?.shadeNotes,
+                          );
+
+                        let shadeNotes =
+                          toothWithShadeNotes?.productDetails?.shadeNotes;
+
+                        if (!shadeNotes) {
+                          // Fallback to group level
+                          shadeNotes = groupsArray.find(
+                            (g: any) => g.shadeNotes,
+                          )?.shadeNotes;
+                        }
+
+                        if (!shadeNotes) {
+                          // Check in selectedTeeth for individual teeth
+                          const selectedToothShadeNotes = (
+                            formData.selectedTeeth || []
+                          ).find((tooth: any) => tooth.shadeNotes)?.shadeNotes;
+                          shadeNotes = selectedToothShadeNotes;
+                        }
+
                         if (shadeNotes) {
                           return (
                             <div className="mt-3">
@@ -559,61 +812,6 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                   </Card>
                 );
               })}
-
-              {/* Product Quantities Summary */}
-              {(() => {
-                const productMap: Record<string, number> = {};
-                (formData.toothGroups || []).forEach((group: any) => {
-                  group.teethDetails?.flat().forEach((tooth: any) => {
-                    let counted = false;
-                    if (tooth.selectedProducts && Array.isArray(tooth.selectedProducts) && tooth.selectedProducts.length > 0) {
-                      tooth.selectedProducts.forEach((prod: any) => {
-                        if (prod && prod.name) {
-                          productMap[prod.name] = (productMap[prod.name] || 0) + 1;
-                          counted = true;
-                        }
-                      });
-                    }
-                    if (!counted && tooth.productName && Array.isArray(tooth.productName)) {
-                      tooth.productName.forEach((name: string) => {
-                        if (name) {
-                          productMap[name] = (productMap[name] || 0) + 1;
-                        }
-                      });
-                    }
-                  });
-                });
-
-                const productQuantities = Object.entries(productMap).map(([name, quantity]) => ({
-                  name,
-                  quantity,
-                }));
-
-                if (productQuantities.length > 0) {
-                  return (
-                    <Card className="border border-gray-200 bg-gray-50">
-                      <CardContent className="p-4">
-                        <h6 className="text-sm font-semibold mb-3 text-gray-900">
-                          Product Quantities Summary
-                        </h6>
-                        <div className="space-y-2">
-                          {productQuantities.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between p-2 bg-white rounded border border-gray-100">
-                              <span className="text-sm font-medium text-gray-700">
-                                {item.name}
-                              </span>
-                              <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                X {item.quantity}
-                              </span>
-                            </div>
-                          ))}
-              </div>
-                      </CardContent>
-                    </Card>
-                  );
-                }
-                return null;
-              })()}
             </CardContent>
           </Card>
           {/* File Upload Summary */}
@@ -635,7 +833,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
               {/* Helper function to get all files from different sources */}
               {(() => {
                 const allFiles: Array<{ fileName: string, size?: number, type: string }> = [];
-                
+
                 // Add files from different sources with their types
                 if (formData.files && Array.isArray(formData.files)) {
                   formData.files.forEach((file: any) => {
@@ -646,7 +844,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     });
                   });
                 }
-                
+
                 if (formData.referralFiles && Array.isArray(formData.referralFiles)) {
                   formData.referralFiles.forEach((file: any) => {
                     allFiles.push({
@@ -656,7 +854,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     });
                   });
                 }
-                
+
                 if (formData.intraOralScans && Array.isArray(formData.intraOralScans)) {
                   formData.intraOralScans.forEach((file: any) => {
                     allFiles.push({
@@ -666,7 +864,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     });
                   });
                 }
-                
+
                 if (formData.faceScans && Array.isArray(formData.faceScans)) {
                   formData.faceScans.forEach((file: any) => {
                     allFiles.push({
@@ -676,7 +874,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     });
                   });
                 }
-                
+
                 if (formData.patientPhotos && Array.isArray(formData.patientPhotos)) {
                   formData.patientPhotos.forEach((file: any) => {
                     allFiles.push({
@@ -686,7 +884,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                     });
                   });
                 }
-                
+
                 if (allFiles.length > 0) {
                   return (
                     <div className="space-y-2">

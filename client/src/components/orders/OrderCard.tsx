@@ -128,15 +128,15 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
   onResubmit,
   isSelected = false,
 }) => {
-  const statusStyle = statusConfig[order?.statusLabel as keyof typeof statusConfig];
+  const statusStyle = statusConfig[order?.orderStatus as keyof typeof statusConfig];
   const orderStatusStyle = orderStatusConfig[order?.orderStatus as keyof typeof orderStatusConfig];
 
   console.log('order[0]', order)
 
   const isPaymentCompleted =
-    order?.paymentStatus === "paid" || order?.statusLabel === "delivered";
+    order?.paymentStatus === "paid" || order?.orderStatus === "delivered";
   const isRejected =
-    order?.statusLabel === "rejected" || order?.paymentStatus === "rejected";
+    order?.orderStatus === "rejected" || order?.paymentStatus === "rejected";
   return (
     <Card
       className={cn(
@@ -241,7 +241,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
               <div className="text-base text-gray-600 font-semibold mb-1">
                 {order?.firstName && order?.lastName
                   ? `${order.firstName} ${order.lastName}`.trim()
-                  : order?.patientName || 'Unknown Patient'}
+                  : order?.firstName || 'Unknown Patient'}
               </div>
               <div className="text-sm text-gray-600">
                 Teeth No :{" "}
@@ -275,11 +275,11 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                 E-max 10 year x {order?.quantity}
               </div>
               <div className="flex items-center my-2">
-                <CustomStatusBatch label={order?.orderStatus as "new" | "repair" | "repeat"} />
+                <CustomStatusBatch label={order?.type as "new" | "repair" | "repeat"} />
               </div>
               <CustomStatusLabel
-                label={order?.statusLabel || ""}
-                status={order?.statusLabel || ""}
+                label={order?.orderStatus || ""}
+                status={order?.orderStatus || ""}
               />
             </div>
           </div>
@@ -379,14 +379,14 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
               size="sm"
               className={cn(
                 "flex-1",
-                order?.statusLabel === "delivered"
+                order?.orderStatus === "delivered"
                   ? "bg-teal-500 hover:bg-teal-600 text-white"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               )}
-              disabled={order?.statusLabel !== "delivered"}
+              disabled={order?.orderStatus !== "delivered"}
               onClick={(e) => {
                 e.stopPropagation();
-                if (order?.statusLabel === "delivered") {
+                if (order?.orderStatus === "delivered") {
                   onPayNow?.(order?.id);
                 }
               }}

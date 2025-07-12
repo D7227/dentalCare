@@ -14,7 +14,11 @@ import {
 import CustomButton from "../common/customButtom";
 import SettlementModal from "./SettlementModal";
 
-const BillingOverview = () => {
+interface BillingOverviewProps {
+  onStatementClick?: () => void;
+}
+
+const BillingOverview = ({ onStatementClick }: BillingOverviewProps = {}) => {
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
 
   const stats = [
@@ -49,7 +53,6 @@ const BillingOverview = () => {
       title: "Invoice Amount",
       icon: <FileText className="text-purple-600" />,
       value: "₹35,000",
-      valueClassName:'text-purple-600',
       subtext: "Pending Invoice",
       subvalue: "3",
       gradient:
@@ -61,7 +64,6 @@ const BillingOverview = () => {
       title: "Invoice Amount",
       icon: <IndianRupee className="text-orange-500" />,
       value: "₹17,000",
-      valueClassName:'text-orange-500',
       subtext: "No. of Invoice",
       subvalue: "3",
       gradient:
@@ -73,7 +75,6 @@ const BillingOverview = () => {
       title: "Order Amount",
       icon: <Receipt className="text-yellow-500" />,
       value: "₹20,000",
-      valueClassName:'text-yellow-500',
       subtext: "Delivered Order",
       subvalue: "5",
       gradient:
@@ -85,7 +86,6 @@ const BillingOverview = () => {
       title: "Payment Done",
       icon: <CheckCircle className="text-green-600" />,
       value: "₹17,000",
-      valueClassName:'text-green-600',
       subtext: "Total Invoice Done",
       subvalue: "5",
       gradient:
@@ -97,7 +97,6 @@ const BillingOverview = () => {
       title: "Paid Amount",
       icon: <CreditCard className="text-purple-600" />,
       value: "₹17,000",
-      valueClassName:'text-purple-600',
       subtext: "No. of Payment",
       subvalue: "5",
       gradient:
@@ -113,14 +112,26 @@ const BillingOverview = () => {
         <h2 className="text-[20px] leading-[28px] font-semibold">
           Billing Overview
         </h2>
-        <CustomButton
-          variant="primary"
-          leftIcon={FileChartColumnIncreasing}
-          className="w-fit"
-          onClick={() => setIsSettlementModalOpen(true)}
-        >
-          Settlement
-        </CustomButton>
+        <div className="flex gap-2">
+          {onStatementClick && (
+            <CustomButton
+              variant="outline"
+              leftIcon={FileText}
+              className="w-fit"
+              onClick={onStatementClick}
+            >
+              Download Statement
+            </CustomButton>
+          )}
+          <CustomButton
+            variant="primary"
+            leftIcon={FileChartColumnIncreasing}
+            className="w-fit"
+            onClick={() => setIsSettlementModalOpen(true)}
+          >
+            Settlement
+          </CustomButton>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
