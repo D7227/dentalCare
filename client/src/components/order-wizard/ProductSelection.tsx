@@ -19,6 +19,7 @@ import BaseModal from "@/components/shared/BaseModal";
 import PonticSelector from "./components/PonticSelector";
 import React from "react";
 import ImplantTypeSelector from "./components/ImplantTypeSelector";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 interface ProductSelectionProps {
   formData: any;
@@ -1245,41 +1246,50 @@ const ProductSelection = ({
                                 );
                               }
 
-                              return allImplantTeeth.map((tooth: any, idx: number) => (
-                                <div
-                                  key={`implant-${tooth.toothNumber || tooth.teethNumber}-${idx}`}
-                                  className="bg-gray-50 p-2 rounded mb-2 text-xs"
-                                >
-                                  <div className="font-semibold text-gray-800 mb-1">
-                                    Tooth{" "}
-                                    {tooth.toothNumber || tooth.teethNumber}
-                                  </div>
-                                  {tooth.implantDetails?.companyName && (
-                                    <div>
-                                      <span className="font-medium">
-                                        Company:
-                                      </span>{" "}
-                                      {tooth.implantDetails.companyName}
-                                    </div>
-                                  )}
-                                  {tooth.implantDetails?.systemName && (
-                                    <div>
-                                      <span className="font-medium">
-                                        System:
-                                      </span>{" "}
-                                      {tooth.implantDetails.systemName}
-                                    </div>
-                                  )}
-                                  {tooth.implantDetails?.remarks && (
-                                    <div>
-                                      <span className="font-medium">
-                                        Remarks:
-                                      </span>{" "}
-                                      {tooth.implantDetails.remarks}
-                                    </div>
-                                  )}
-                                </div>
-                              ));
+                              // Use Accordion UI for each tooth (like previous section)
+                              return (
+                                <Accordion type="multiple" className="w-full ">
+                                  {allImplantTeeth.map((tooth: any, idx: number) => (
+                                    <AccordionItem key={idx} value={`tooth-${tooth.toothNumber || tooth.teethNumber}`} className="border-none mb-2">
+                                      <AccordionTrigger className="p-0 text-sm font-normal border border-gray-400 px-2 py-1 rounded-sm">
+                                        Tooth {tooth.toothNumber || tooth.teethNumber}
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="border rounded-md p-2 bg-gray-50 mb-2 flex flex-col gap-2">
+                                          {tooth.implantDetails?.companyName && (
+                                            <div className="flex gap-2 items-baseline">
+                                              <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Company:</span>
+                                              <span className="text-gray-700 text-sm">{tooth.implantDetails.companyName}</span>
+                                            </div>
+                                          )}
+                                          {tooth.implantDetails?.systemName && (
+                                            <div className="flex gap-2 items-baseline">
+                                              <span className="font-semibold text-sm text-gray-800 min-w-[80px]">System:</span>
+                                              <span className="text-gray-700 text-sm">{tooth.implantDetails.systemName}</span>
+                                            </div>
+                                          )}
+                                          {tooth.implantDetails?.remarks && (
+                                            <div className="flex gap-2 items-baseline">
+                                              <span className="font-semibold text-sm text-gray-800 min-w-[80px]">Remarks:</span>
+                                              <span className="text-gray-700 text-sm">{tooth.implantDetails.remarks}</span>
+                                            </div>
+                                          )}
+                                          {tooth.implantDetails?.photo && (
+                                            <div className="flex flex-col gap-1">
+                                              <span className="font-semibold text-sm text-gray-800">Photo:</span>
+                                              <img
+                                                src={tooth.implantDetails.photo}
+                                                alt="Implant Photo"
+                                                className="w-28 h-28 object-cover rounded border border-gray-300 bg-white"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                                </Accordion>
+                              );
                             })()}
                           </div>
                         )}

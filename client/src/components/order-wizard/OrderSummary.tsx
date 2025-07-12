@@ -58,7 +58,8 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
 function getSummaryToothType(toothNumber: number, summaryGroups: any[], selectedTeeth: any[]) {
   // Check bridge and joint groups first
   for (const group of summaryGroups) {
-    if (group.type === 'bridge' || group.type === 'joint') {
+    const type = group.type || group.groupType;
+    if (type === 'bridge' || type === 'joint') {
       if (group.teeth.includes(toothNumber)) {
         if (group.pontics && group.pontics.includes(toothNumber)) return 'pontic';
         return 'abutment';
@@ -170,6 +171,8 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
     </Button>
   );
 
+  const legacyGroups = convertToLegacyGroups(allGroups);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6 print:space-y-4">
       {/* Header */}
@@ -205,19 +208,13 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
             </CardHeader>
             <CardContent className="pt-0">
               <ToothChart
-                selectedGroups={convertToLegacyGroups(allGroups)}
+                selectedGroups={legacyGroups}
                 selectedTeeth={selectedTeeth}
                 onToothClick={noopToothClick}
                 isToothSelected={(toothNumber) => {
                   // Check if tooth is in any group or individual teeth
-                  const inGroups = allGroups.some((group) =>
-                    group.teethDetails
-                      ?.flat()
-                      .some(
-                        (tooth: any) =>
-                          tooth.teethNumber === toothNumber ||
-                          tooth.toothNumber === toothNumber,
-                      ),
+                  const inGroups = legacyGroups.some((group) =>
+                    group.teeth?.includes(toothNumber)
                   );
                   const inIndividual = selectedTeeth.some(
                     (t: any) => t.toothNumber === toothNumber,
@@ -225,7 +222,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType }: Orde
                   return inGroups || inIndividual;
                 }}
                 getToothType={(toothNumber) =>
-                  getSummaryToothType(toothNumber, allGroups, selectedTeeth)
+                  getSummaryToothType(toothNumber, legacyGroups, selectedTeeth)
                 }
                 onGroupsChange={noopGroupsChange}
                 setSelectedTeeth={noopSetSelectedTeeth}
