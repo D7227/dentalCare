@@ -29,6 +29,11 @@ export class PatientStorage implements PatientStorage {
   async deletePatient(id: string): Promise<void> {
     await db.delete(patients).where(eq(patients.id, id));
   }
+
+  async updatePatient(id: string, updates: Partial<Patient>): Promise<Patient | undefined> {
+    const [patient] = await db.update(patients).set(updates).where(eq(patients.id, id)).returning();
+    return patient;
+  }
 }
 
 export const patientStorage = new PatientStorage();

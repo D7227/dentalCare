@@ -23,6 +23,11 @@ export class TeethGroupStorage implements TeethGroupStore {
     return await db.select().from(teethGroups);
   }
 
+  async updateTeethGroup(id: string, updates: Partial<any>): Promise<any | undefined> {
+    const [teethGroup] = await db.update(teethGroups).set(updates).where(eq(teethGroups.id, id)).returning();
+    return teethGroup;
+  }
+
   async deleteTeethGroup(id: string): Promise<void> {
     await db.delete(teethGroups).where(eq(teethGroups.id, id));
   }

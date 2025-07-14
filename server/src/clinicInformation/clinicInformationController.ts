@@ -23,6 +23,11 @@ export class ClinicInformationStorage implements ClinicInformationStore {
     return await db.select().from(clinicInformation);
   }
 
+  async updateClinicInformation(id: string, updates: Partial<any>): Promise<any | undefined> {
+    const [info] = await db.update(clinicInformation).set(updates).where(eq(clinicInformation.id, id)).returning();
+    return info;
+  }
+
   async deleteClinicInformation(id: string): Promise<void> {
     await db.delete(clinicInformation).where(eq(clinicInformation.id, id));
   }
