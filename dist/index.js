@@ -40,79 +40,45 @@ import { relations } from "drizzle-orm";
 
 // server/src/order/orderSchema.ts
 import {
-  boolean,
-  integer,
   jsonb,
   pgTable,
   text,
   timestamp,
-  uuid,
-  date
+  uuid
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 var orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  orderId: text("order_id"),
-  refId: text("ref_id"),
-  category: text("category"),
-  type: text("type"),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  age: text("age"),
-  sex: text("sex"),
-  caseHandledBy: text("case_handled_by"),
-  doctorMobile: text("doctor_mobile"),
-  consultingDoctor: text("consulting_doctor"),
-  consultingDoctorMobile: text("consulting_doctor_mobile"),
+  patientId: text("patient_id"),
+  clinicInformationId: text("clinic_information_id"),
   orderMethod: text("order_method"),
-  prescriptionType: text("prescription_type"),
-  subcategoryType: text("subcategory_type"),
-  restorationType: text("restoration_type"),
-  productSelection: text("product_selection"),
-  orderType: text("order_type"),
-  selectedFileType: text("selected_file_type"),
-  selectedTeeth: jsonb("selected_teeth").$type(),
-  toothGroups: jsonb("tooth_groups").$type(),
-  toothNumbers: jsonb("tooth_numbers").$type(),
-  abutmentDetails: jsonb("abutment_details").$type(),
-  abutmentType: text("abutment_type"),
-  restorationProducts: jsonb("restoration_products").$type(),
-  clinicId: text("clinic_id"),
-  ponticDesign: text("pontic_design"),
-  occlusalStaining: text("occlusal_staining"),
-  shadeInstruction: text("shade_instruction"),
-  clearance: text("clearance"),
-  accessories: jsonb("accessories").$type(),
-  otherAccessory: text("other_accessory"),
-  returnAccessories: boolean("return_accessories"),
-  notes: text("notes"),
-  files: jsonb("files").$type(),
-  expectedDeliveryDate: date("expected_delivery_date"),
-  pickupDate: date("pickup_date"),
-  pickupTime: text("pickup_time"),
-  pickupRemarks: text("pickup_remarks"),
-  scanBooking: jsonb("scan_booking").$type(),
-  previousOrderId: text("previous_order_id"),
-  repairOrderId: text("repair_order_id"),
-  issueDescription: text("issue_description"),
-  repairType: text("repair_type"),
+  prescriptionTypesId: text("prescription_types_id").array(),
+  subPrescriptionTypesId: text("sub_prescription_types_id").array(),
+  selectedTeethId: text("selected_teeth_id"),
+  files: jsonb("files"),
+  accessorios: jsonb("accessorios"),
+  handllingType: text("handlling_type"),
+  pickupData: jsonb("pickup_data"),
+  courierData: jsonb("courier_data"),
+  resonOfReject: text("reson_of_reject"),
+  resonOfRescan: text("reson_of_rescan"),
+  rejectNote: text("reject_note"),
+  orderId: text("order_id"),
   crateNo: text("crate_no"),
-  additionalNote: text("additional_note"),
-  rejectionReason: text("rejection_reason"),
-  returnWithTrial: boolean("return_with_trial"),
-  teethEditedByUser: boolean("teeth_edited_by_user"),
-  intraOralScans: jsonb("intra_oral_scans").$type(),
-  faceScans: jsonb("face_scans").$type(),
-  patientPhotos: jsonb("patient_photos").$type(),
-  referralFiles: jsonb("referral_files").$type(),
-  percentage: integer("percentage"),
-  isUrgent: boolean("is_urgent"),
-  currency: text("currency"),
+  qaNote: text("qa_note"),
+  orderBy: text("order_by"),
+  acpectedDileveryData: timestamp("acpected_dilevery_data"),
+  lifeCycle: jsonb("life_cycle"),
   orderStatus: text("order_status"),
+  refId: text("ref_id"),
+  orderDate: timestamp("order_date"),
+  updateDate: timestamp("update_date"),
   totalAmount: text("total_amount"),
-  exportQuality: text("export_quality"),
-  paymentStatus: text("payment_status"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+  paymentType: text("payment_type"),
+  doctorNote: text("doctor_note"),
+  orderType: text("order_type"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
 var insertOrderSchema = createInsertSchema(orderSchema).omit({
   id: true,
@@ -272,24 +238,17 @@ var insertCompanySchema = createInsertSchema3(companies).omit({
 
 // server/src/patient/patientSchema.ts
 import {
+  integer as integer3,
   pgTable as pgTable4,
   text as text4,
-  timestamp as timestamp3,
   uuid as uuid4
 } from "drizzle-orm/pg-core";
-import { createInsertSchema as createInsertSchema4 } from "drizzle-zod";
-var patients = pgTable4("patients", {
+var patients = pgTable4("patient", {
   id: uuid4("id").primaryKey().defaultRandom(),
   firstName: text4("first_name").notNull(),
   lastName: text4("last_name").notNull(),
-  age: text4("age"),
-  sex: text4("sex"),
-  contact: text4("contact"),
-  createdAt: timestamp3("created_at").defaultNow()
-});
-var insertPatientSchema = createInsertSchema4(patients).omit({
-  id: true,
-  createdAt: true
+  age: integer3("age").notNull(),
+  sex: text4("sex").notNull()
 });
 
 // server/database/db.ts
@@ -330,14 +289,16 @@ var PatientStorage = class {
   }
   async createPatient(insertPatient) {
     const patientData = {
-      ...insertPatient,
-      id: String(Math.floor(Math.random() * 1e6) + 1)
+      ...insertPatient
     };
     const [patient] = await db2.insert(patients).values(patientData).returning();
     return patient;
   }
   async getPatients() {
     return await db2.select().from(patients);
+  }
+  async deletePatient(id) {
+    await db2.delete(patients).where(eq(patients.id, id));
   }
 };
 var patientStorage = new PatientStorage();
@@ -422,20 +383,6 @@ var DatabaseStorage = class {
   async initializeData() {
     const patients2 = await patientStorage.getPatients();
     const companies2 = await this.getCompanies();
-    if (patients2.length === 0) {
-      await patientStorage.createPatient({
-        firstName: "John",
-        lastName: "Doe",
-        age: "35",
-        sex: "male"
-      });
-      await patientStorage.createPatient({
-        firstName: "Jane",
-        lastName: "Smith",
-        age: "28",
-        sex: "female"
-      });
-    }
     if (companies2.length === 0) {
       await this.createCompany({ name: "Nobel Biocare" });
       await this.createCompany({ name: "Straumann" });
@@ -450,7 +397,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 
 // server/src/clinic/clinicSchema.ts
-import { pgTable as pgTable5, text as text5, timestamp as timestamp4, jsonb as jsonb3, uuid as uuid5 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable5, text as text5, timestamp as timestamp3, jsonb as jsonb3, uuid as uuid5 } from "drizzle-orm/pg-core";
 import { z as z3 } from "zod";
 var clinic = pgTable5("clinic", {
   id: uuid5("id").primaryKey().defaultRandom(),
@@ -477,8 +424,8 @@ var clinic = pgTable5("clinic", {
   password: text5("password").notNull(),
   roleId: uuid5("role_id").notNull(),
   permissions: jsonb3("permissions").$type().default([]),
-  createdAt: timestamp4("created_at").defaultNow(),
-  updatedAt: timestamp4("updated_at").defaultNow()
+  createdAt: timestamp3("created_at").defaultNow(),
+  updatedAt: timestamp3("updated_at").defaultNow()
 });
 var insertClinicSchema2 = z3.object({
   firstname: z3.string(),
@@ -545,12 +492,12 @@ import { eq as eq4 } from "drizzle-orm";
 
 // server/src/role/roleSchema.ts
 import { pgTable as pgTable6, text as text6, uuid as uuid6 } from "drizzle-orm/pg-core";
-import { createInsertSchema as createInsertSchema5 } from "drizzle-zod";
+import { createInsertSchema as createInsertSchema4 } from "drizzle-zod";
 var role = pgTable6("role", {
   id: uuid6("id").primaryKey().defaultRandom(),
   name: text6("name").notNull().unique()
 });
-var insertRoleSchema = createInsertSchema5(role).omit({
+var insertRoleSchema = createInsertSchema4(role).omit({
   id: true
 });
 
@@ -571,8 +518,8 @@ var RolesStorage = new RoleStorage();
 import { eq as eq5 } from "drizzle-orm";
 
 // server/src/teamMember/teamMemberschema.ts
-import { pgTable as pgTable7, text as text7, timestamp as timestamp6, jsonb as jsonb5, uuid as uuid7 } from "drizzle-orm/pg-core";
-import { createInsertSchema as createInsertSchema6 } from "drizzle-zod";
+import { pgTable as pgTable7, text as text7, timestamp as timestamp5, jsonb as jsonb5, uuid as uuid7 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema5 } from "drizzle-zod";
 var teamMembers = pgTable7("team_members", {
   id: uuid7("id").primaryKey().defaultRandom(),
   fullName: text7("full_name").notNull(),
@@ -583,13 +530,13 @@ var teamMembers = pgTable7("team_members", {
   permissions: jsonb5("permissions").$type().default([]),
   status: text7("status").default("active"),
   password: text7("password"),
-  joinDate: timestamp6("join_date").defaultNow(),
-  lastLogin: timestamp6("last_login"),
-  createdAt: timestamp6("created_at").defaultNow(),
-  updatedAt: timestamp6("updated_at").defaultNow(),
+  joinDate: timestamp5("join_date").defaultNow(),
+  lastLogin: timestamp5("last_login"),
+  createdAt: timestamp5("created_at").defaultNow(),
+  updatedAt: timestamp5("updated_at").defaultNow(),
   clinicName: text7("clinic_name")
 });
-var insertTeamMemberSchema = createInsertSchema6(teamMembers).omit({
+var insertTeamMemberSchema = createInsertSchema5(teamMembers).omit({
   id: true,
   joinDate: true,
   lastLogin: true
@@ -971,13 +918,13 @@ var setupAuthenticationRoutes = (app2) => {
 import { eq as eq6 } from "drizzle-orm";
 
 // server/src/chat/chatSchema.ts
-import { createInsertSchema as createInsertSchema8 } from "drizzle-zod";
-import { pgTable as pgTable9, text as text9, boolean as boolean7, timestamp as timestamp8, jsonb as jsonb7, uuid as uuid9 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema7 } from "drizzle-zod";
+import { pgTable as pgTable9, text as text9, boolean as boolean7, timestamp as timestamp7, jsonb as jsonb7, uuid as uuid9 } from "drizzle-orm/pg-core";
 import { relations as relations2 } from "drizzle-orm";
 
 // server/src/message/messageSchema.ts
-import { createInsertSchema as createInsertSchema7 } from "drizzle-zod";
-import { pgTable as pgTable8, text as text8, timestamp as timestamp7, jsonb as jsonb6, uuid as uuid8 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema6 } from "drizzle-zod";
+import { pgTable as pgTable8, text as text8, timestamp as timestamp6, jsonb as jsonb6, uuid as uuid8 } from "drizzle-orm/pg-core";
 var messages = pgTable8("messages", {
   id: uuid8("id").primaryKey().defaultRandom(),
   chatId: uuid8("chat_id"),
@@ -990,10 +937,10 @@ var messages = pgTable8("messages", {
   messageType: text8("message_type").default("text"),
   attachments: jsonb6("attachments").$type().default([]),
   readBy: jsonb6("read_by").$type().default([]),
-  createdAt: timestamp7("created_at").defaultNow(),
+  createdAt: timestamp6("created_at").defaultNow(),
   sender_id: uuid8("sender_id")
 });
-var insertMessageSchema = createInsertSchema7(messages).omit({
+var insertMessageSchema = createInsertSchema6(messages).omit({
   id: true,
   createdAt: true
 });
@@ -1006,8 +953,8 @@ var chats = pgTable9("chats", {
   title: text9("title"),
   participants: jsonb7("participants").$type().default([]),
   createdBy: text9("created_by"),
-  createdAt: timestamp8("created_at").defaultNow(),
-  updatedAt: timestamp8("updated_at").defaultNow(),
+  createdAt: timestamp7("created_at").defaultNow(),
+  updatedAt: timestamp7("updated_at").defaultNow(),
   clinicId: uuid9("clinic_id").notNull(),
   isActive: boolean7("is_active").notNull().default(true)
 });
@@ -1028,7 +975,7 @@ var messagesRelations = relations2(messages, ({ one }) => ({
     references: [orderSchema.id]
   })
 }));
-var insertChatSchema = createInsertSchema8(chats).omit({
+var insertChatSchema = createInsertSchema7(chats).omit({
   id: true,
   createdAt: true,
   updatedAt: true
@@ -1139,197 +1086,250 @@ var ChatStorage = class {
 var chatStorage = new ChatStorage();
 
 // server/src/order/orderController.ts
-import { eq as eq7, and as and3, or as or3, sql as sql3, gte as gte3, lte as lte3, inArray as inArray3 } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
+import { eq as eq9 } from "drizzle-orm";
+
+// server/src/clinicInformation/clinicInformationSchema.ts
+import { pgTable as pgTable10, text as text10, uuid as uuid10 } from "drizzle-orm/pg-core";
+var clinicInformation = pgTable10("clinic_information", {
+  id: uuid10("id").primaryKey().defaultRandom(),
+  clinicId: text10("clinic_id").notNull(),
+  caseHandleBy: text10("case_handle_by").notNull(),
+  doctorMobileNumber: text10("doctor_mobile_number").notNull(),
+  consultingDoctorName: text10("consulting_doctor_name").notNull(),
+  consultingDoctorMobileNumber: text10("consulting_doctor_mobile_number").notNull()
+});
+
+// server/src/clinicInformation/clinicInformationController.ts
+import { eq as eq7 } from "drizzle-orm";
+var ClinicInformationStorage = class {
+  async createClinicInformation(data) {
+    const [newClinicInformation] = await db2.insert(clinicInformation).values(data).returning();
+    return newClinicInformation;
+  }
+  async getClinicInformationById(id) {
+    const [info] = await db2.select().from(clinicInformation).where(eq7(clinicInformation.id, id));
+    return info;
+  }
+  async getClinicInformations() {
+    return await db2.select().from(clinicInformation);
+  }
+  async deleteClinicInformation(id) {
+    await db2.delete(clinicInformation).where(eq7(clinicInformation.id, id));
+  }
+};
+var clinicInformationStorage = new ClinicInformationStorage();
+
+// server/src/teethGroup/teethGroupSchema.ts
+import { jsonb as jsonb8, pgTable as pgTable11, uuid as uuid11 } from "drizzle-orm/pg-core";
+var teethGroups = pgTable11("teeth_group", {
+  id: uuid11("id").primaryKey().defaultRandom(),
+  teethGroup: jsonb8("teeth_group").notNull(),
+  selectedTeeth: jsonb8("selected_teeth").notNull()
+});
+
+// server/src/teethGroup/teethGroupcontroller.ts
+import { eq as eq8 } from "drizzle-orm";
+var TeethGroupStorage = class {
+  async createTeethGroup(data) {
+    const [newTeethGroup] = await db2.insert(teethGroups).values(data).returning();
+    return newTeethGroup;
+  }
+  async getTeethGroupById(id) {
+    const [teethGroup] = await db2.select().from(teethGroups).where(eq8(teethGroups.id, id));
+    return teethGroup;
+  }
+  async getTeethGroups() {
+    return await db2.select().from(teethGroups);
+  }
+  async deleteTeethGroup(id) {
+    await db2.delete(teethGroups).where(eq8(teethGroups.id, id));
+  }
+};
+var teethGroupStorage = new TeethGroupStorage();
+
+// server/src/order/orderController.ts
 var OrderStorage = class {
   async getOrder(id) {
-    const [order] = await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, id));
+    const [order] = await db2.select().from(orderSchema).where(eq9(orderSchema.id, id));
     return order;
   }
   async createOrder(insertOrder) {
-    const orderData = {};
-    orderData.refId = insertOrder.refId || null;
-    orderData.orderId = insertOrder.orderId || null;
-    orderData.category = insertOrder.category || null;
-    orderData.type = insertOrder.type || null;
-    orderData.firstName = insertOrder.firstName || null;
-    orderData.lastName = insertOrder.lastName || null;
-    orderData.age = insertOrder.age || null;
-    orderData.sex = insertOrder.sex || null;
-    orderData.caseHandledBy = insertOrder.caseHandledBy || null;
-    orderData.doctorMobile = insertOrder.doctorMobile || null;
-    orderData.consultingDoctor = insertOrder.consultingDoctor || null;
-    orderData.consultingDoctorMobile = insertOrder.consultingDoctorMobile || null;
-    orderData.orderMethod = insertOrder.orderMethod || null;
-    orderData.prescriptionType = insertOrder.prescriptionType || null;
-    orderData.subcategoryType = insertOrder.subcategoryType || null;
-    orderData.restorationType = insertOrder.restorationType || null;
-    orderData.productSelection = insertOrder.productSelection || null;
-    orderData.orderType = insertOrder.orderType || null;
-    orderData.selectedFileType = insertOrder.selectedFileType || null;
-    orderData.selectedTeeth = Array.isArray(insertOrder.selectedTeeth) && insertOrder.selectedTeeth.length > 0 ? insertOrder.selectedTeeth : null;
-    orderData.toothGroups = Array.isArray(insertOrder.toothGroups) && insertOrder.toothGroups.length > 0 ? insertOrder.toothGroups : null;
-    orderData.toothNumbers = Array.isArray(insertOrder.toothNumbers) && insertOrder.toothNumbers.length > 0 ? insertOrder.toothNumbers : null;
-    orderData.abutmentDetails = insertOrder.abutmentDetails || null;
-    orderData.abutmentType = insertOrder.abutmentType || null;
-    orderData.restorationProducts = Array.isArray(insertOrder.restorationProducts) && insertOrder.restorationProducts.length > 0 ? insertOrder.restorationProducts : null;
-    orderData.clinicId = insertOrder.clinicId || null;
-    orderData.ponticDesign = insertOrder.ponticDesign || null;
-    orderData.occlusalStaining = insertOrder.occlusalStaining || null;
-    orderData.shadeInstruction = insertOrder.shadeInstruction || null;
-    orderData.clearance = insertOrder.clearance || null;
-    orderData.accessories = Array.isArray(insertOrder.accessories) && insertOrder.accessories.length > 0 ? insertOrder.accessories : null;
-    orderData.otherAccessory = insertOrder.otherAccessory || null;
-    orderData.returnAccessories = Boolean(insertOrder.returnAccessories);
-    orderData.notes = insertOrder.notes || null;
-    orderData.files = Array.isArray(insertOrder.files) && insertOrder.files.length > 0 ? insertOrder.files : null;
-    orderData.expectedDeliveryDate = insertOrder.expectedDeliveryDate ? new Date(insertOrder.expectedDeliveryDate) : null;
-    orderData.pickupDate = insertOrder.pickupDate ? new Date(insertOrder.pickupDate) : null;
-    orderData.pickupTime = insertOrder.pickupTime || null;
-    orderData.pickupRemarks = insertOrder.pickupRemarks || null;
-    orderData.scanBooking = insertOrder.scanBooking || null;
-    orderData.previousOrderId = insertOrder.previousOrderId || null;
-    orderData.repairOrderId = insertOrder.repairOrderId || null;
-    orderData.issueDescription = insertOrder.issueDescription || null;
-    orderData.repairType = insertOrder.repairType || null;
-    orderData.returnWithTrial = Boolean(insertOrder.returnWithTrial);
-    orderData.teethEditedByUser = Boolean(insertOrder.teethEditedByUser);
-    orderData.intraOralScans = insertOrder.intraOralScans || null;
-    orderData.faceScans = insertOrder.faceScans || null;
-    orderData.patientPhotos = insertOrder.patientPhotos || null;
-    orderData.referralFiles = insertOrder.referralFiles || null;
-    orderData.quantity = insertOrder.quantity || 1;
-    orderData.patientName = insertOrder.patientName || null;
-    orderData.teethNo = insertOrder.teethNo || null;
-    orderData.orderDate = insertOrder.orderDate || null;
-    orderData.orderCategory = insertOrder.orderCategory || null;
-    orderData.orderStatus = insertOrder.orderStatus || null;
-    orderData.statusLabel = insertOrder.statusLabel || null;
-    orderData.percentage = insertOrder.percentage || 0;
-    orderData.chatConnection = Boolean(insertOrder.chatConnection);
-    orderData.unreadMessages = insertOrder.unreadMessages || 0;
-    orderData.messages = Array.isArray(insertOrder.messages) && insertOrder.messages.length > 0 ? insertOrder.messages : null;
-    orderData.isUrgent = Boolean(insertOrder.isUrgent);
-    orderData.currency = insertOrder.currency || "INR";
-    orderData.exportQuality = insertOrder.exportQuality || "Standard";
-    orderData.paymentStatus = insertOrder.paymentStatus || "pending";
-    orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
-    orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
-    orderData.shadeNotes = insertOrder.shadeNotes || null;
-    orderData.trial = insertOrder.trial || null;
-    orderData.implantPhoto = insertOrder.implantPhoto || null;
-    orderData.implantCompany = insertOrder.implantCompany || null;
-    orderData.implantRemark = insertOrder.implantRemark || null;
-    orderData.issueCategory = insertOrder.issueCategory || null;
-    orderData.trialApproval = Boolean(insertOrder.trialApproval);
-    orderData.reapirInstructions = insertOrder.reapirInstructions || null;
-    orderData.additionalNotes = insertOrder.additionalNotes || null;
-    orderData.selectedCompany = insertOrder.selectedCompany || null;
-    orderData.handlingType = insertOrder.handlingType || null;
-    orderData.id = uuidv4();
-    const [order] = await db2.insert(orderSchema).values(orderData).returning();
-    return order;
+    let insertPatient = null;
+    let clinicInformation2 = null;
+    let teethGroup = null;
+    try {
+      const patientData = {
+        firstName: insertOrder.firstName,
+        lastName: insertOrder.lastName,
+        age: insertOrder.age,
+        sex: insertOrder.sex
+      };
+      insertPatient = await patientStorage.createPatient(patientData);
+      if (!insertPatient) {
+        throw new Error("Failed to create patient record");
+      }
+      const clinicInformationData = {
+        clinicId: insertOrder.clinicId,
+        caseHandleBy: insertOrder.caseHandleBy,
+        doctorMobileNumber: insertOrder.doctorMobileNumber,
+        consultingDoctorName: insertOrder.consultingDoctorName,
+        consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber
+      };
+      clinicInformation2 = await clinicInformationStorage.createClinicInformation(clinicInformationData);
+      if (!clinicInformation2) {
+        throw new Error("Failed to create clinic information record");
+      }
+      const teethGroupData = {
+        selectedTeeth: insertOrder.selectedTeeth,
+        teethGroup: insertOrder.teethGroup
+      };
+      teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
+      const orderToInsert = {
+        ...insertOrder,
+        patientId: insertPatient.id,
+        clinicInformationId: clinicInformation2.id,
+        selectedTeethId: teethGroup.id
+        // teethGroupId: teethGroup?.id, // if used
+      };
+      if (orderToInsert.acpectedDileveryData && typeof orderToInsert.acpectedDileveryData === "string") {
+        orderToInsert.acpectedDileveryData = new Date(orderToInsert.acpectedDileveryData);
+      }
+      if (orderToInsert.orderDate && typeof orderToInsert.orderDate === "string") {
+        orderToInsert.orderDate = new Date(orderToInsert.orderDate);
+      }
+      if (orderToInsert.updateDate && typeof orderToInsert.updateDate === "string") {
+        orderToInsert.updateDate = new Date(orderToInsert.updateDate);
+      }
+      const [order] = await db2.insert(orderSchema).values(orderToInsert).returning();
+      return order;
+    } catch (error) {
+      if (insertPatient && insertPatient.id) {
+        await patientStorage.deletePatient(insertPatient.id);
+      }
+      if (clinicInformation2 && clinicInformation2.id) {
+        await clinicInformationStorage.deleteClinicInformation(clinicInformation2.id);
+      }
+      if (teethGroup && teethGroup.id) {
+        await teethGroupStorage.deleteTeethGroup(teethGroup.id);
+      }
+      throw error;
+    }
   }
   async getOrders() {
     return await db2.select().from(orderSchema);
   }
   async getOrdersByClinicId(clinicId) {
-    return await db2.select().from(orderSchema).where(eq7(orderSchema.clinicId, clinicId));
-  }
-  async getOrdersWithFilters(filters) {
-    const whereClauses = [];
-    if (filters.paymentStatus) {
-      whereClauses.push(eq7(orderSchema.paymentStatus, filters.paymentStatus));
+    const orders = await db2.select().from(orderSchema).where(eq9(orderSchema.id, clinicId));
+    if (!orders || orders.length === 0) return [];
+    const results = [];
+    for (const order of orders) {
+      let addProduct2 = function(name, qty) {
+        if (!name) return;
+        if (!productMap[name]) productMap[name] = 0;
+        productMap[name] += qty || 1;
+      };
+      var addProduct = addProduct2;
+      const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
+      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(order.clinicInformationId) : void 0;
+      const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
+      const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
+        (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
+      ) || [];
+      const selectedTeethNumbers = (teethGroup?.selectedTeeth || []).map(
+        (tooth) => tooth.toothNumber ?? tooth.teethNumber
+      ) || [];
+      const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+      const productMap = {};
+      if (teethGroup?.teethGroup) {
+        teethGroup.teethGroup.forEach((group) => {
+          (group.selectedProducts || []).forEach((prod) => {
+            addProduct2(prod.name, Number(prod.quantity) || 1);
+          });
+          (group.teethDetails || []).flat().forEach((tooth) => {
+            (tooth.selectedProducts || []).forEach((prod) => {
+              addProduct2(prod.name, Number(prod.quantity) || 1);
+            });
+            if (Array.isArray(tooth.productName)) {
+              tooth.productName.forEach((name) => addProduct2(name, Number(tooth.productQuantity) || 1));
+            } else if (tooth.productName) {
+              addProduct2(tooth.productName, Number(tooth.productQuantity) || 1);
+            }
+          });
+        });
+      }
+      if (teethGroup?.selectedTeeth) {
+        teethGroup.selectedTeeth.forEach((tooth) => {
+          (tooth.selectedProducts || []).forEach((prod) => {
+            addProduct2(prod.name, Number(prod.quantity) || 1);
+          });
+          if (Array.isArray(tooth.productName)) {
+            tooth.productName.forEach((name) => addProduct2(name, Number(tooth.productQuantity) || 1));
+          } else if (tooth.productName) {
+            addProduct2(tooth.productName, Number(tooth.productQuantity) || 1);
+          }
+        });
+      }
+      const productSummary = Object.entries(productMap).map(([name, qty]) => ({ name, qty }));
+      const orderData = {
+        firstName: patient?.firstName || "",
+        lastName: patient?.lastName || "",
+        age: patient?.age || 0,
+        sex: patient?.sex || "",
+        clinicId: clinicInformation2?.clinicId || "",
+        caseHandleBy: clinicInformation2?.caseHandleBy || "",
+        doctorMobileNumber: clinicInformation2?.doctorMobileNumber || "",
+        consultingDoctorName: clinicInformation2?.consultingDoctorName || "",
+        consultingDoctorMobileNumber: clinicInformation2?.consultingDoctorMobileNumber || "",
+        orderMethod: order.orderMethod || "",
+        accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
+        selectedTeeth: teethGroup?.selectedTeeth || [],
+        teethGroup: teethGroup?.teethGroup || [],
+        teethNumber: teethnumber || [],
+        products: productSummary || [],
+        AcpectedDileveryData: order.AcpectedDileveryData ? new Date(order.AcpectedDileveryData) : /* @__PURE__ */ new Date(),
+        prescriptionTypesId: order.prescriptionTypesId || [],
+        subPrescriptionTypesId: order.subPrescriptionTypesId || [],
+        files: {
+          addPatientPhotos: order.files?.addPatientPhotos || [],
+          faceScan: order.files?.faceScan || [],
+          intraOralScan: order.files?.intraOralScan || [],
+          referralImages: order.files?.referralImages || []
+        },
+        handllingType: order.handllingType || "",
+        pickupData: order.pickupData || [],
+        courierData: order.courierData || [],
+        resonOfReject: order.resonOfReject || "",
+        resonOfRescan: order.resonOfRescan || "",
+        rejectNote: order.rejectNote || "",
+        orderId: order.orderId || "",
+        crateNo: order.crateNo || "",
+        qaNote: order.qaNote || "",
+        orderBy: order.orderBy || "",
+        lifeCycle: order.lifeCycle || [],
+        orderStatus: order.orderStatus || "",
+        refId: order.refId || "",
+        orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+        updateDate: typeof order.updateDate === "string" ? order.updateDate : order.updateDate ? new Date(order.updateDate).toISOString() : "",
+        totalAmount: order.totalAmount || "",
+        paymentType: order.paymentType || "",
+        doctorNote: order.doctorNote || "",
+        orderType: order.orderType || ""
+        // ...add any other fields from OrderType with appropriate fallbacks
+      };
+      results.push(orderData);
     }
-    if (filters.type) {
-      whereClauses.push(eq7(orderSchema.type, filters.type));
-    }
-    if (filters.categories && filters.categories.length > 0) {
-      whereClauses.push(inArray3(orderSchema.category, filters.categories));
-    }
-    if (filters.dateFrom) {
-      whereClauses.push(gte3(orderSchema.createdAt, new Date(filters.dateFrom)));
-    }
-    if (filters.dateTo) {
-      whereClauses.push(lte3(orderSchema.createdAt, new Date(filters.dateTo)));
-    }
-    if (filters.search) {
-      const searchTerm = `%${filters.search.toLowerCase()}%`;
-      whereClauses.push(
-        or3(
-          sql3`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
-        )
-      );
-    }
-    let query = db2.select().from(orderSchema);
-    if (whereClauses.length > 0) {
-      query = query.where(and3(...whereClauses));
-    }
-    if (filters.page && filters.pageSize) {
-      query = query.limit(filters.pageSize).offset((filters.page - 1) * filters.pageSize);
-    }
-    return await query;
-  }
-  async getOrdersWithFiltersCount(filters) {
-    const whereClauses = [];
-    if (filters.paymentStatus) {
-      whereClauses.push(eq7(orderSchema.paymentStatus, filters.paymentStatus));
-    }
-    if (filters.type) {
-      whereClauses.push(eq7(orderSchema.type, filters.type));
-    }
-    if (filters.categories && filters.categories.length > 0) {
-      whereClauses.push(inArray3(orderSchema.category, filters.categories));
-    }
-    if (filters.dateFrom) {
-      whereClauses.push(gte3(orderSchema.createdAt, new Date(filters.dateFrom)));
-    }
-    if (filters.dateTo) {
-      whereClauses.push(lte3(orderSchema.createdAt, new Date(filters.dateTo)));
-    }
-    if (filters.search) {
-      const searchTerm = `%${filters.search.toLowerCase()}%`;
-      whereClauses.push(
-        or3(
-          sql3`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-          sql3`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
-        )
-      );
-    }
-    const query = db2.select({ count: sql3`COUNT(*)` }).from(orderSchema);
-    if (whereClauses.length > 0) {
-      const result = await query.where(and3(...whereClauses));
-      return Number(result[0]?.count || 0);
-    } else {
-      const result = await query;
-      return Number(result[0]?.count || 0);
-    }
-  }
-  async getOrdersByPatient(patientId) {
-    return await db2.select().from(orderSchema).where(
-      or3(
-        eq7(orderSchema.firstName, patientId),
-        eq7(orderSchema.lastName, patientId)
-      )
-    );
+    return results;
   }
   async getToothGroupsByOrder(orderId) {
     console.log("orderId", orderId);
-    return await db2.select().from(toothGroups).where(eq7(toothGroups.orderId, orderId));
+    return await db2.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
   }
   //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
   //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
   //     return chat;
   //   }
   async updateOrderStatus(id, orderStatus) {
-    const [order] = await db2.update(orderSchema).set({ orderStatus }).where(eq7(orderSchema.id, id)).returning();
+    const [order] = await db2.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
     return order;
   }
   async updateOrder(id, updates) {
@@ -1415,7 +1415,7 @@ var OrderStorage = class {
     orderData.crateNo = updates.crateNo || null;
     orderData.additionalNote = updates.additionalNote || null;
     orderData.rejectionReason = updates.rejectionReason || null;
-    const [order] = await db2.update(orderSchema).set(orderData).where(eq7(orderSchema.id, id)).returning();
+    const [order] = await db2.update(orderSchema).set(orderData).where(eq9(orderSchema.id, id)).returning();
     return order;
   }
   async initializeData() {
@@ -1436,7 +1436,7 @@ var OrderStorage = class {
 var orderStorage = new OrderStorage();
 
 // server/src/message/messageController.ts
-import { eq as eq8, asc as asc3 } from "drizzle-orm";
+import { eq as eq10, asc as asc3 } from "drizzle-orm";
 var MessageStorage = class {
   async createMessage(insertMessage) {
     console.log("insertMessage", insertMessage);
@@ -1450,12 +1450,12 @@ var MessageStorage = class {
     return message;
   }
   async getMessagesByOrder(orderId) {
-    const orderChats = await db2.select().from(chats).where(eq8(chats.orderId, orderId));
+    const orderChats = await db2.select().from(chats).where(eq10(chats.orderId, orderId));
     if (orderChats.length === 0) return [];
-    return await db2.select().from(messages).where(eq8(messages.chatId, orderChats[0].id));
+    return await db2.select().from(messages).where(eq10(messages.chatId, orderChats[0].id));
   }
   async getMessagesByChat(chatId) {
-    return await db2.select().from(messages).where(eq8(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
+    return await db2.select().from(messages).where(eq10(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
   }
   async initializeData() {
     console.log("Starting database initialization...");
@@ -1500,7 +1500,7 @@ var MessageStorage = class {
       console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
       return 0;
     }
-    const messageList = await db2.select().from(messages).where(eq8(messages.chatId, chatId));
+    const messageList = await db2.select().from(messages).where(eq10(messages.chatId, chatId));
     console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
     console.log("messageList", messageList);
     const unreadCount = messageList.filter((message) => {
@@ -1513,12 +1513,12 @@ var MessageStorage = class {
     return unreadCount;
   }
   async markAllMessagesAsRead(chatId, userId) {
-    const messageList = await db2.select().from(messages).where(eq8(messages.chatId, chatId));
+    const messageList = await db2.select().from(messages).where(eq10(messages.chatId, chatId));
     for (const messageItem of messageList) {
       const currentReadBy = messageItem.readBy || [];
       if (!currentReadBy.includes(userId)) {
         const updatedReadBy = [...currentReadBy, userId];
-        await db2.update(messages).set({ readBy: updatedReadBy }).where(eq8(messages.id, messageItem.id));
+        await db2.update(messages).set({ readBy: updatedReadBy }).where(eq10(messages.id, messageItem.id));
       }
     }
   }
@@ -1827,17 +1827,17 @@ var setupClinicRoutes = (app2) => {
 };
 
 // server/src/lifeCycle/lifeCycleSchema.ts
-import { date as date8, pgTable as pgTable10, text as text10, timestamp as timestamp9, uuid as uuid10 } from "drizzle-orm/pg-core";
-var lifecycleStages = pgTable10("lifecycle_stages", {
-  id: uuid10("id").primaryKey().defaultRandom(),
-  title: text10("title").notNull(),
+import { date as date8, pgTable as pgTable12, text as text11, timestamp as timestamp8, uuid as uuid12 } from "drizzle-orm/pg-core";
+var lifecycleStages = pgTable12("lifecycle_stages", {
+  id: uuid12("id").primaryKey().defaultRandom(),
+  title: text11("title").notNull(),
   date: date8("date"),
-  time: text10("time"),
-  person: text10("person").notNull(),
-  role: text10("role").notNull(),
-  icon: text10("icon"),
-  createdAt: timestamp9("created_at").defaultNow(),
-  updatedAt: timestamp9("updated_at").defaultNow()
+  time: text11("time"),
+  person: text11("person").notNull(),
+  role: text11("role").notNull(),
+  icon: text11("icon"),
+  createdAt: timestamp8("created_at").defaultNow(),
+  updatedAt: timestamp8("updated_at").defaultNow()
 });
 
 // server/src/lifeCycle/lifeCycleController.ts
@@ -1893,7 +1893,8 @@ var setupOrderRoutes = (app2) => {
       const order = await orderStorage.createOrder(req.body);
       res.status(201).json(order);
     } catch (error) {
-      res.status(400).json({ error: "Failed to create order" });
+      console.log(error);
+      res.status(400).json({ error });
     }
   });
   app2.put("/api/orders/:id", async (req, res) => {
@@ -1921,43 +1922,6 @@ var setupOrderRoutes = (app2) => {
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });
-    }
-  });
-  app2.get("/api/orders/filters/count", async (req, res) => {
-    try {
-      const { search, paymentStatus, type, dateFrom, dateTo, categories } = req.query;
-      const filters = {
-        search,
-        paymentStatus,
-        type,
-        dateFrom,
-        dateTo,
-        categories: categories ? Array.isArray(categories) ? categories : [categories] : void 0
-      };
-      const count = await orderStorage.getOrdersWithFiltersCount(filters);
-      res.json({ count });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get orders count" });
-    }
-  });
-  app2.get("/api/orders/patient/:patientId", async (req, res) => {
-    try {
-      const orders = await orderStorage.getOrdersByPatient(
-        req.params.patientId
-      );
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch orders for patient" });
-    }
-  });
-  app2.get("/api/orders/:id/tooth-groups", async (req, res) => {
-    try {
-      const toothGroups2 = await orderStorage.getToothGroupsByOrder(
-        req.params.id
-      );
-      res.json(toothGroups2);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch tooth groups for order" });
     }
   });
   app2.get("/api/orders/filter/:id", async (req, res) => {
@@ -2268,15 +2232,6 @@ var setupPatientRoute = async (app2) => {
       res.status(500).json({ error: "Failed to fetch patients" });
     }
   });
-  app2.post("/api/patients", async (req, res) => {
-    try {
-      const patientData = insertPatientSchema.parse(req.body);
-      const patient = await patientStorage.createPatient(patientData);
-      res.status(201).json(patient);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid patient data" });
-    }
-  });
 };
 
 // server/routes.ts
@@ -2481,7 +2436,7 @@ function serveStatic(app2) {
 }
 
 // server/index.ts
-import { eq as eq9 } from "drizzle-orm";
+import { eq as eq11 } from "drizzle-orm";
 import { createServer as createServer2 } from "http";
 import { Server } from "socket.io";
 import dotenv3 from "dotenv";
@@ -2565,7 +2520,7 @@ app.use((req, res, next) => {
           chatId: data.chatId
         });
         console.log("savedMessage", savedMessage);
-        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq9(chats.id, data.chatId));
+        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq11(chats.id, data.chatId));
         console.log("updatedChat");
         io.to(`chat-${data.chatId}`).emit("new-message", {
           chatId: data.chatId,

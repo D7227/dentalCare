@@ -5,30 +5,34 @@ import { toothGroups } from "../../../shared/schema";
 import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 import { orderSchema } from "./orderSchema";
 import { v4 as uuidv4 } from 'uuid';
+import { patientStorage } from "../patient/patientController";
+import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
+import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
+import { OrderType } from "@/types/orderType";
 
 export interface orderStore {
 getOrder(id: string): Promise<any | undefined>;
 createOrder(order: any): Promise<any>;
 getOrders(): Promise<any[]>;
 getOrdersByClinicId(clinicId: string): Promise<any[]>;
-getOrdersWithFilters(filters: {
-  search?: string;
-  paymentStatus?: string;
-  type?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  categories?: string[];
-  page?: number;
-  pageSize?: number;
-}): Promise<any[]>;
-getOrdersWithFiltersCount(filters: {
-  search?: string;
-  paymentStatus?: string;
-  type?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  categories?: string[];
-}): Promise<number>;
+// getOrdersWithFilters(filters: {
+//   search?: string;
+//   paymentStatus?: string;
+//   type?: string;
+//   dateFrom?: string;
+//   dateTo?: string;
+//   categories?: string[];
+//   page?: number;
+//   pageSize?: number;
+// }): Promise<any[]>;
+// getOrdersWithFiltersCount(filters: {
+//   search?: string;
+//   paymentStatus?: string;
+//   type?: string;
+//   dateFrom?: string;
+//   dateTo?: string;
+//   categories?: string[];
+// }): Promise<number>;
 getOrdersByPatient(patientId: string): Promise<any[]>;
 getToothGroupsByOrder(orderId: string): Promise<any[]>;
 updateOrderStatus(id: string, status: string): Promise<any | undefined>;
@@ -38,116 +42,76 @@ initializeData(): Promise<void>;
 
 export class OrderStorage implements orderStore {
     async getOrder(id: string): Promise<any | undefined> {
-        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.clinicId, id));
+        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
         return order;
       }
 
       async createOrder(insertOrder: any): Promise<any> {
-        // Clean and validate the data before insertion
-        const orderData: any = {};
-        
-        orderData.refId = insertOrder.refId || null;
-        orderData.orderId = insertOrder.orderId || null;
-        orderData.category = insertOrder.category || null;
-        orderData.type = insertOrder.type || null;
-        orderData.firstName = insertOrder.firstName || null;
-        orderData.lastName = insertOrder.lastName || null;
-        orderData.age = insertOrder.age || null;
-        orderData.sex = insertOrder.sex || null;
-        orderData.caseHandledBy = insertOrder.caseHandledBy || null;
-        orderData.doctorMobile = insertOrder.doctorMobile || null;
-        orderData.consultingDoctor = insertOrder.consultingDoctor || null;
-        orderData.consultingDoctorMobile = insertOrder.consultingDoctorMobile || null;
-        orderData.orderMethod = insertOrder.orderMethod || null;
-        orderData.prescriptionType = insertOrder.prescriptionType || null;
-        orderData.subcategoryType = insertOrder.subcategoryType || null;
-        orderData.restorationType = insertOrder.restorationType || null;
-        orderData.productSelection = insertOrder.productSelection || null;
-        orderData.orderType = insertOrder.orderType || null;
-        orderData.selectedFileType = insertOrder.selectedFileType || null;
-        
-        // Handle JSON fields - use null for empty arrays to avoid PostgreSQL array literal issues
-        orderData.selectedTeeth = Array.isArray(insertOrder.selectedTeeth) && insertOrder.selectedTeeth.length > 0 ? insertOrder.selectedTeeth : null;
-        orderData.toothGroups = Array.isArray(insertOrder.toothGroups) && insertOrder.toothGroups.length > 0 ? insertOrder.toothGroups : null;
-        orderData.toothNumbers = Array.isArray(insertOrder.toothNumbers) && insertOrder.toothNumbers.length > 0 ? insertOrder.toothNumbers : null;
-        orderData.abutmentDetails = insertOrder.abutmentDetails || null;
-        orderData.abutmentType = insertOrder.abutmentType || null;
-        orderData.restorationProducts = Array.isArray(insertOrder.restorationProducts) && insertOrder.restorationProducts.length > 0 ? insertOrder.restorationProducts : null;
-        
-        orderData.clinicId = insertOrder.clinicId || null;
-        orderData.ponticDesign = insertOrder.ponticDesign || null;
-        orderData.occlusalStaining = insertOrder.occlusalStaining || null;
-        orderData.shadeInstruction = insertOrder.shadeInstruction || null;
-        orderData.clearance = insertOrder.clearance || null;
-        
-        orderData.accessories = Array.isArray(insertOrder.accessories) && insertOrder.accessories.length > 0 ? insertOrder.accessories : null;
-        orderData.otherAccessory = insertOrder.otherAccessory || null;
-        orderData.returnAccessories = Boolean(insertOrder.returnAccessories);
-        
-        orderData.notes = insertOrder.notes || null;
-        orderData.files = Array.isArray(insertOrder.files) && insertOrder.files.length > 0 ? insertOrder.files : null;
-        
-        // Handle date fields properly - convert to Date objects or null
-        orderData.expectedDeliveryDate = insertOrder.expectedDeliveryDate ? new Date(insertOrder.expectedDeliveryDate) : null;
-        orderData.pickupDate = insertOrder.pickupDate ? new Date(insertOrder.pickupDate) : null;
-        orderData.pickupTime = insertOrder.pickupTime || null;
-        orderData.pickupRemarks = insertOrder.pickupRemarks || null;
-        
-        orderData.scanBooking = insertOrder.scanBooking || null;
-        orderData.previousOrderId = insertOrder.previousOrderId || null;
-        orderData.repairOrderId = insertOrder.repairOrderId || null;
-        orderData.issueDescription = insertOrder.issueDescription || null;
-        orderData.repairType = insertOrder.repairType || null;
-        orderData.returnWithTrial = Boolean(insertOrder.returnWithTrial);
-        orderData.teethEditedByUser = Boolean(insertOrder.teethEditedByUser);
-        
-        // Handle JSON scan fields
-        orderData.intraOralScans = insertOrder.intraOralScans || null;
-        orderData.faceScans = insertOrder.faceScans || null;
-        orderData.patientPhotos = insertOrder.patientPhotos || null;
-        orderData.referralFiles = insertOrder.referralFiles || null;
-        
-        // --- Handle new fields from order table ---
-        orderData.quantity = insertOrder.quantity || 1;
-        orderData.patientName = insertOrder.patientName || null;
-        orderData.teethNo = insertOrder.teethNo || null;
-        orderData.orderDate = insertOrder.orderDate || null;
-        orderData.orderCategory = insertOrder.orderCategory || null;
-        orderData.orderStatus = insertOrder.orderStatus || null;
-        orderData.statusLabel = insertOrder.statusLabel || null;
-        orderData.percentage = insertOrder.percentage || 0;
-        orderData.chatConnection = Boolean(insertOrder.chatConnection);
-        orderData.unreadMessages = insertOrder.unreadMessages || 0;
-        orderData.messages = Array.isArray(insertOrder.messages) && insertOrder.messages.length > 0 ? insertOrder.messages : null;
-        orderData.isUrgent = Boolean(insertOrder.isUrgent);
-        orderData.currency = insertOrder.currency || 'INR';
-        orderData.exportQuality = insertOrder.exportQuality || 'Standard';
-        orderData.paymentStatus = insertOrder.paymentStatus || 'pending';
-        
-        // Additional fields from frontend that might not be in schema
-        orderData.shade = Array.isArray(insertOrder.shade) && insertOrder.shade.length > 0 ? insertOrder.shade : null;
-        orderData.shadeGuide = Array.isArray(insertOrder.shadeGuide) && insertOrder.shadeGuide.length > 0 ? insertOrder.shadeGuide : null;
-        orderData.shadeNotes = insertOrder.shadeNotes || null;
-        orderData.trial = insertOrder.trial || null;
-        orderData.implantPhoto = insertOrder.implantPhoto || null;
-        orderData.implantCompany = insertOrder.implantCompany || null;
-        orderData.implantRemark = insertOrder.implantRemark || null;
-        orderData.issueCategory = insertOrder.issueCategory || null;
-        orderData.trialApproval = Boolean(insertOrder.trialApproval);
-        orderData.reapirInstructions = insertOrder.reapirInstructions || null;
-        orderData.additionalNotes = insertOrder.additionalNotes || null;
-        orderData.selectedCompany = insertOrder.selectedCompany || null;
-        orderData.handlingType = insertOrder.handlingType || null;
-        
-        // IMPORTANT: Remove timestamp fields that are auto-generated by the database
-        // Do NOT include createdAt or updatedAt as they are handled by the database
-        // The frontend sends these as strings, but the database auto-generates them
-        
-        // Generate UUID for the id field
-        orderData.id = uuidv4();
-        
-        const [order] = await db.insert(orderSchema).values(orderData).returning();
-        return order;
+        let insertPatient = null;
+        let clinicInformation = null;
+        let teethGroup = null;
+        try {
+          const patientData = {
+            firstName: insertOrder.firstName,
+            lastName: insertOrder.lastName,
+            age: insertOrder.age,
+            sex: insertOrder.sex,
+          };
+          insertPatient = await patientStorage.createPatient(patientData);
+          if (!insertPatient) {
+            throw new Error("Failed to create patient record");
+          }
+
+          const clinicInformationData = {
+            clinicId: insertOrder.clinicId,
+            caseHandleBy: insertOrder.caseHandleBy,
+            doctorMobileNumber: insertOrder.doctorMobileNumber,
+            consultingDoctorName: insertOrder.consultingDoctorName,
+            consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber,
+          };
+          clinicInformation = await clinicInformationStorage.createClinicInformation(clinicInformationData);
+          if (!clinicInformation) {
+            throw new Error("Failed to create clinic information record");
+          }
+
+          const teethGroupData = {
+            selectedTeeth: insertOrder.selectedTeeth,
+            teethGroup:insertOrder.teethGroup,
+          }
+          
+          teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
+
+          const orderToInsert = {
+            ...insertOrder,
+            patientId: insertPatient.id,
+            clinicInformationId: clinicInformation.id,
+            selectedTeethId:teethGroup.id,
+            // teethGroupId: teethGroup?.id, // if used
+          };
+          if (orderToInsert.acpectedDileveryData && typeof orderToInsert.acpectedDileveryData === 'string') {
+            orderToInsert.acpectedDileveryData = new Date(orderToInsert.acpectedDileveryData);
+          }
+          if (orderToInsert.orderDate && typeof orderToInsert.orderDate === 'string') {
+            orderToInsert.orderDate = new Date(orderToInsert.orderDate);
+          }
+          if (orderToInsert.updateDate && typeof orderToInsert.updateDate === 'string') {
+            orderToInsert.updateDate = new Date(orderToInsert.updateDate);
+          }
+          const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
+          return order;
+        } catch (error) {
+          // Rollback created records if error occurs
+          if (insertPatient && insertPatient.id) {
+            await patientStorage.deletePatient(insertPatient.id);
+          }
+          if (clinicInformation && clinicInformation.id) {
+            await clinicInformationStorage.deleteClinicInformation(clinicInformation.id);
+          }
+          if (teethGroup && teethGroup.id) {
+            await teethGroupStorage.deleteTeethGroup(teethGroup.id);
+          }
+          throw error;
+        }
       }
 
       async getOrders(): Promise<any[]> {
@@ -155,120 +119,123 @@ export class OrderStorage implements orderStore {
       }
 
       async getOrdersByClinicId(clinicId: string): Promise<any[]> {
-        return await db.select().from(orderSchema).where(eq(orderSchema.clinicId, clinicId));
+        // Fetch all orders for the given clinicId
+        const orders = await db.select().from(orderSchema).where(eq(orderSchema.id, clinicId));
+        if (!orders || orders.length === 0) return [];
+        const results = [];
+        for (const order of orders) {
+          // Fetch related data
+          const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : undefined;
+          const clinicInformation = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(order.clinicInformationId) : undefined;
+          const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : undefined;
+
+          // Extract all teeth numbers
+          const groupTeethNumbers = teethGroup?.teethGroup.flatMap((group: any) =>
+            (group.teethDetails || []).flat().map((tooth: any) => tooth.teethNumber)
+          ) || [];
+          const selectedTeethNumbers = (teethGroup?.selectedTeeth || []).map(
+            (tooth: any) => tooth.toothNumber ?? tooth.teethNumber
+          ) || [];
+          const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+
+          // --- Robust Product summary logic ---
+          const productMap: Record<string, number> = {};
+          const addProduct = (name: string, qty: number) => {
+            if (!name) return;
+            if (!productMap[name]) productMap[name] = 0;
+            productMap[name] += qty || 1;
+          };
+          // From teethGroup
+          if (teethGroup?.teethGroup) {
+            teethGroup.teethGroup.forEach((group: any) => {
+              // Group-level selectedProducts
+              (group.selectedProducts || []).forEach((prod: any) => {
+                addProduct(prod.name, Number(prod.quantity) || 1);
+              });
+              // Teeth details
+              (group.teethDetails || []).flat().forEach((tooth: any) => {
+                // Tooth-level selectedProducts
+                (tooth.selectedProducts || []).forEach((prod: any) => {
+                  addProduct(prod.name, Number(prod.quantity) || 1);
+                });
+                // Tooth-level productName(s)
+                if (Array.isArray(tooth.productName)) {
+                  tooth.productName.forEach((name: string) => addProduct(name, Number(tooth.productQuantity) || 1));
+                } else if (tooth.productName) {
+                  addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
+                }
+              });
+            });
+          }
+          // From selectedTeeth
+          if (teethGroup?.selectedTeeth) {
+            teethGroup.selectedTeeth.forEach((tooth: any) => {
+              // Tooth-level selectedProducts
+              (tooth.selectedProducts || []).forEach((prod: any) => {
+                addProduct(prod.name, Number(prod.quantity) || 1);
+              });
+              // Tooth-level productName(s)
+              if (Array.isArray(tooth.productName)) {
+                tooth.productName.forEach((name: string) => addProduct(name, Number(tooth.productQuantity) || 1));
+              } else if (tooth.productName) {
+                addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
+              }
+            });
+          }
+          const productSummary = Object.entries(productMap).map(([name, qty]) => ({ name, qty }));
+          // --- End product summary logic ---
+
+          const orderData: OrderType = {
+            firstName: patient?.firstName || '',
+            lastName: patient?.lastName || '',
+            age: patient?.age || 0,
+            sex: patient?.sex || '',
+            clinicId: clinicInformation?.clinicId || '',
+            caseHandleBy: clinicInformation?.caseHandleBy || '',
+            doctorMobileNumber: clinicInformation?.doctorMobileNumber || '',
+            consultingDoctorName: clinicInformation?.consultingDoctorName || '',
+            consultingDoctorMobileNumber: clinicInformation?.consultingDoctorMobileNumber || '',
+            orderMethod: order.orderMethod || '',
+            accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
+            selectedTeeth: teethGroup?.selectedTeeth || [],
+            teethGroup: teethGroup?.teethGroup || [],
+            teethNumber: teethnumber || [],
+            products: productSummary || [],
+            AcpectedDileveryData: order.AcpectedDileveryData ? new Date(order.AcpectedDileveryData) : new Date(),
+            prescriptionTypesId: order.prescriptionTypesId || [],
+            subPrescriptionTypesId: order.subPrescriptionTypesId || [],
+            files: {
+              addPatientPhotos: order.files?.addPatientPhotos || [],
+              faceScan: order.files?.faceScan || [],
+              intraOralScan: order.files?.intraOralScan || [],
+              referralImages: order.files?.referralImages || [],
+            },
+            handllingType: order.handllingType || '',
+            pickupData: order.pickupData || [],
+            courierData: order.courierData || [],
+            resonOfReject: order.resonOfReject || '',
+            resonOfRescan: order.resonOfRescan || '',
+            rejectNote: order.rejectNote || '',
+            orderId: order.orderId || '',
+            crateNo: order.crateNo || '',
+            qaNote: order.qaNote || '',
+            orderBy: order.orderBy || '',
+            lifeCycle: order.lifeCycle || [],
+            orderStatus: order.orderStatus || '',
+            refId: order.refId || '',
+            orderDate: typeof order.orderDate === 'string' ? order.orderDate : (order.orderDate ? new Date(order.orderDate).toISOString() : new Date().toISOString()),
+            updateDate: typeof order.updateDate === 'string' ? order.updateDate : (order.updateDate ? new Date(order.updateDate).toISOString() : ''),
+            totalAmount: order.totalAmount || '',
+            paymentType: order.paymentType || '',
+            doctorNote: order.doctorNote || '',
+            orderType: order.orderType || '',
+            // ...add any other fields from OrderType with appropriate fallbacks
+          };
+          results.push(orderData);
+        }
+        return results;
       }
 
-      async getOrdersWithFilters(filters: {
-        search?: string;
-        paymentStatus?: string;
-        type?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        categories?: string[];
-        page?: number;
-        pageSize?: number;
-      }): Promise<any[]> {
-        const whereClauses: any[] = [];
-
-        if (filters.paymentStatus) {
-          whereClauses.push(eq(orderSchema.paymentStatus, filters.paymentStatus));
-        }
-        if (filters.type) {
-          whereClauses.push(eq(orderSchema.type, filters.type));
-        }
-        if (filters.categories && filters.categories.length > 0) {
-          whereClauses.push(inArray(orderSchema.category, filters.categories));
-        }
-        if (filters.dateFrom) {
-          whereClauses.push(gte(orderSchema.createdAt, new Date(filters.dateFrom)));
-        }
-        if (filters.dateTo) {
-          whereClauses.push(lte(orderSchema.createdAt, new Date(filters.dateTo)));
-        }
-        if (filters.search) {
-          const searchTerm = `%${filters.search.toLowerCase()}%`;
-          whereClauses.push(
-            or(
-              sql`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
-            )
-          );
-        }
-
-        let query = db.select().from(orderSchema);
-
-        if (whereClauses.length > 0) {
-          query = (query as any).where(and(...whereClauses));
-        }
-
-        if (filters.page && filters.pageSize) {
-          query = (query as any).limit(filters.pageSize).offset((filters.page - 1) * filters.pageSize);
-        }
-
-        return await query;
-      }
-
-      async getOrdersWithFiltersCount(filters: {
-        search?: string;
-        paymentStatus?: string;
-        type?: string;
-        dateFrom?: string;
-        dateTo?: string;
-        categories?: string[];
-      }): Promise<number> {
-        const whereClauses: any[] = [];
-
-        if (filters.paymentStatus) {
-          whereClauses.push(eq(orderSchema.paymentStatus, filters.paymentStatus));
-        }
-        if (filters.type) {
-          whereClauses.push(eq(orderSchema.type, filters.type));
-        }
-        if (filters.categories && filters.categories.length > 0) {
-          whereClauses.push(inArray(orderSchema.category, filters.categories));
-        }
-        if (filters.dateFrom) {
-          whereClauses.push(gte(orderSchema.createdAt, new Date(filters.dateFrom)));
-        }
-        if (filters.dateTo) {
-          whereClauses.push(lte(orderSchema.createdAt, new Date(filters.dateTo)));
-        }
-        if (filters.search) {
-          const searchTerm = `%${filters.search.toLowerCase()}%`;
-          whereClauses.push(
-            or(
-              sql`LOWER(${orderSchema.firstName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.lastName}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.consultingDoctor}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.orderId}) LIKE ${searchTerm}`,
-              sql`LOWER(${orderSchema.refId}) LIKE ${searchTerm}`
-            )
-          );
-        }
-
-        const query = db.select({ count: sql`COUNT(*)` }).from(orderSchema);
-
-        if (whereClauses.length > 0) {
-          const result = await (query as any).where(and(...whereClauses));
-          return Number(result[0]?.count || 0);
-        } else {
-          const result = await query;
-          return Number(result[0]?.count || 0);
-        }
-      }
-
-      async getOrdersByPatient(patientId: string): Promise<any[]> {
-        // Since there's no patientId field in the schema, search by patient name
-        return await db.select().from(orderSchema).where(
-          or(
-            eq(orderSchema.firstName, patientId),
-            eq(orderSchema.lastName, patientId)
-          )
-        );
-      }
 
       async getToothGroupsByOrder(orderId: string): Promise<any[]> {
         console.log("orderId", orderId);

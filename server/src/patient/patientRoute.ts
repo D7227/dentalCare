@@ -1,5 +1,4 @@
-import { Server } from "http";
-import { insertPatientSchema } from "./patientSchema";
+import {  Patient, patients } from "./patientSchema";
 import type { Express } from "express";
 import { patientStorage } from "./patientController";
 
@@ -14,13 +13,13 @@ export const setupPatientRoute = async (app: Express) => {
     }
   });
 
-  app.post("/api/patients", async (req, res) => {
-    try {
-      const patientData = insertPatientSchema.parse(req.body);
-      const patient = await patientStorage.createPatient(patientData);
-      res.status(201).json(patient);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid patient data" });
-    }
-  });
+  // app.post("/api/patients", async (req, res) => {
+  //   try {
+  //     const patientData = Patient.parse(req.body);
+  //     const patient = await patientStorage.createPatient(patientData);
+  //     res.status(201).json(patient);
+  //   } catch (error) {
+  //     res.status(400).json({ error: "Invalid patient data" });
+  //   }
+  // });
 };

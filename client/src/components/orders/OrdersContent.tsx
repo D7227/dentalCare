@@ -66,20 +66,6 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
     refetchInterval: 30000,
   });
 
-  const { data: allToothGroups = [] } = useApiGet<any[]>("/api/tooth-groups/all", {
-    enabled: !!dbOrders && dbOrders.length > 0,
-    refetchInterval: 30000,
-    queryFn: async () => {
-      if (!dbOrders || dbOrders.length === 0) return [];
-      const toothGroupPromises = dbOrders.map(async (order: any) => {
-        const response = await fetch(`/api/orders/${order.id}/tooth-groups`);
-        const toothGroups = await response.json();
-        return { orderId: order.id, toothGroups };
-      });
-      return Promise.all(toothGroupPromises);
-    },
-  });
-
   const getPatientName = (patientId: number) => {
     const patient = patients.find((p: any) => p.id === patientId);
     return patient
@@ -87,30 +73,6 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       : "Unknown Patient";
   };
 
-  const getOrderTeeth = (orderId: number) => {
-    const orderToothGroups = allToothGroups.find(
-      (otg: any) => otg.orderId === orderId
-    );
-    if (!orderToothGroups || !orderToothGroups.toothGroups) return [];
-
-    const allTeeth: string[] = [];
-    orderToothGroups.toothGroups.forEach((group: any) => {
-      if (group.teeth && Array.isArray(group.teeth)) {
-        allTeeth.push(...group.teeth.map((tooth: any) => tooth.toString()));
-      }
-    });
-    return Array.from(new Set(allTeeth)).sort(
-      (a, b) => parseInt(a) - parseInt(b)
-    );
-  };
-
-  const getOrderToothGroups = (orderId: number) => {
-    const orderToothGroups = allToothGroups.find(
-      (otg: any) => otg.orderId === orderId
-    );
-    if (!orderToothGroups || !orderToothGroups.toothGroups) return [];
-    return orderToothGroups.toothGroups;
-  };
 
   const getOrderType = (orderId: number) => {
     const order = dbOrders.find((o: any) => o.id === orderId);

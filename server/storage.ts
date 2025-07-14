@@ -126,21 +126,6 @@ export class DatabaseStorage implements IStorage {
     const patients = await patientStorage.getPatients();
     const companies = await this.getCompanies();
 
-    if (patients.length === 0) {
-      await patientStorage.createPatient({
-        firstName: "John",
-        lastName: "Doe",
-        age: "35",
-        sex: "male"
-      });
-      await patientStorage.createPatient({
-        firstName: "Jane",
-        lastName: "Smith",
-        age: "28",
-        sex: "female"
-      });
-    }
-
     if (companies.length === 0) {
       await this.createCompany({ name: "Nobel Biocare" });
       await this.createCompany({ name: "Straumann" });

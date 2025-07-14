@@ -32,7 +32,8 @@ export const setupOrderRoutes = (app: Express) => {
       const order = await orderStorage.createOrder(req.body);
       res.status(201).json(order);
     } catch (error) {
-      res.status(400).json({ error: "Failed to create order" });
+      console.log(error);
+      res.status(400).json({ error: error });
     }
   });
 
@@ -65,52 +66,6 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
-  app.get("/api/orders/filters/count", async (req, res) => {
-    try {
-      const { search, paymentStatus, type, dateFrom, dateTo, categories } =
-        req.query;
-
-      const filters = {
-        search: search as string,
-        paymentStatus: paymentStatus as string,
-        type: type as string,
-        dateFrom: dateFrom as string,
-        dateTo: dateTo as string,
-        categories: categories
-          ? ((Array.isArray(categories)
-            ? categories
-            : [categories]) as string[])
-          : undefined,
-      };
-
-      const count = await orderStorage.getOrdersWithFiltersCount(filters);
-      res.json({ count });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get orders count" });
-    }
-  });
-
-  app.get("/api/orders/patient/:patientId", async (req, res) => {
-    try {
-      const orders = await orderStorage.getOrdersByPatient(
-        req.params.patientId
-      );
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch orders for patient" });
-    }
-  });
-
-  app.get("/api/orders/:id/tooth-groups", async (req, res) => {
-    try {
-      const toothGroups = await orderStorage.getToothGroupsByOrder(
-        req.params.id
-      );
-      res.json(toothGroups);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch tooth groups for order" });
-    }
-  });
 
   app.get("/api/orders/filter/:id", async (req, res) => {
     try {

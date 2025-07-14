@@ -15,81 +15,38 @@ import { z } from "zod";
 
 export const orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
-  orderId: text("order_id"),
-  refId: text("ref_id"),
-  category: text("category"),
-  type: text("type"),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  age: text("age"),
-  sex: text("sex"),
-
-  caseHandledBy: text("case_handled_by"),
-  doctorMobile: text("doctor_mobile"),
-  consultingDoctor: text("consulting_doctor"),
-  consultingDoctorMobile: text("consulting_doctor_mobile"),
-
+  patientId: text("patient_id"),
+  clinicInformationId: text("clinic_information_id"),
   orderMethod: text("order_method"),
-  prescriptionType: text("prescription_type"),
-  subcategoryType: text("subcategory_type"),
-  restorationType: text("restoration_type"),
-  productSelection: text("product_selection"),
-  orderType: text("order_type"),
-  selectedFileType: text("selected_file_type"),
-
-  selectedTeeth: jsonb("selected_teeth").$type<any[]>(),
-  toothGroups: jsonb("tooth_groups").$type<any[]>(),
-  toothNumbers: jsonb("tooth_numbers").$type<string[]>(),
-
-  abutmentDetails: jsonb("abutment_details").$type<any>(),
-  abutmentType: text("abutment_type"),
-  restorationProducts: jsonb("restoration_products").$type<any[]>(),
-
-  clinicId: text("clinic_id"),
-
-  ponticDesign: text("pontic_design"),
-  occlusalStaining: text("occlusal_staining"),
-  shadeInstruction: text("shade_instruction"),
-  clearance: text("clearance"),
-
-  accessories: jsonb("accessories").$type<string[]>(),
-  otherAccessory: text("other_accessory"),
-  returnAccessories: boolean("return_accessories"),
-
-  notes: text("notes"),
-  files: jsonb("files").$type<any[]>(),
-
-  expectedDeliveryDate: date("expected_delivery_date"),
-  pickupDate: date("pickup_date"),
-  pickupTime: text("pickup_time"),
-  pickupRemarks: text("pickup_remarks"),
-
-  scanBooking: jsonb("scan_booking").$type<any>(),
-
-  previousOrderId: text("previous_order_id"),
-  repairOrderId: text("repair_order_id"),
-  issueDescription: text("issue_description"),
-  repairType: text("repair_type"),
+  prescriptionTypesId: text("prescription_types_id").array(),
+  subPrescriptionTypesId: text("sub_prescription_types_id").array(),
+  selectedTeethId: text("selected_teeth_id"),
+  files: jsonb("files"),
+  accessorios: jsonb("accessorios"),
+  handllingType: text("handlling_type"),
+  pickupData: jsonb("pickup_data"),
+  courierData: jsonb("courier_data"),
+  resonOfReject: text("reson_of_reject"),
+  resonOfRescan: text("reson_of_rescan"),
+  rejectNote: text("reject_note"),
+  orderId: text("order_id"),
   crateNo: text("crate_no"),
-  additionalNote: text("additional_note"),
-  rejectionReason: text("rejection_reason"),
-  returnWithTrial: boolean("return_with_trial"),
-  teethEditedByUser: boolean("teeth_edited_by_user"),
-  intraOralScans: jsonb("intra_oral_scans").$type<any>(),
-  faceScans: jsonb("face_scans").$type<any>(),
-  patientPhotos: jsonb("patient_photos").$type<any>(),
-  referralFiles: jsonb("referral_files").$type<any>(),
-
-  
-  percentage: integer("percentage"),
-  isUrgent: boolean("is_urgent"),
-  currency: text("currency"),
+  qaNote: text("qa_note"),
+  orderBy: text("order_by"),
+  acpectedDileveryData: timestamp("acpected_dilevery_data"),
+  lifeCycle: jsonb("life_cycle"),
   orderStatus: text("order_status"),
+  refId: text("ref_id"),
+  orderDate: timestamp("order_date"),
+  updateDate: timestamp("update_date"),
   totalAmount: text("total_amount"),
-  exportQuality: text("export_quality"),
-  paymentStatus: text("payment_status"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  paymentType: text("payment_type"),
+  doctorNote: text("doctor_note"),
+  orderType: text("order_type"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
 });
+
 
 export const insertOrderSchema = createInsertSchema(orderSchema)
   .omit({
