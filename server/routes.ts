@@ -13,6 +13,7 @@ import { setupOrderRoutes } from "./src/order/orderRoute";
 import { setupTeamMemberRoutes } from "./src/teamMember/teamMemberRoute";
 import { setuRoleRoutes } from "./src/role/roleRoute";
 import { setupPatientRoute } from "./src/patient/patientRoute";
+import { setupDraftOrderRoutes } from "./src/draftOrder/draftOrderRoute";
 
 // Mapping from incoming snake_case keys to Drizzle schema field names
 const clinicFieldMap: { [key: string]: string } = {
@@ -153,6 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupTeamMemberRoutes(app);
   setuRoleRoutes(app);
   setupPatientRoute(app);
+  setupDraftOrderRoutes(app);
   
   const httpServer = createServer(app);
 

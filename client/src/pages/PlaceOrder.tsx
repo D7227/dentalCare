@@ -32,7 +32,7 @@ import CustomButton from "@/components/common/customButtom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/slices/authSlice";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { createOrderObject } from "@/utils/orderHelper";
+import { createOrderObject, createDraftOrderObject } from "@/utils/orderHelper";
 
 interface ToothGroup {
   groupId: string;
@@ -366,6 +366,40 @@ const PlaceOrder = () => {
     }
   };
 
+  const saveDraft = async () => {
+    setIsSubmitting(true);
+    try {
+      const draftData = { ...formData, orderStatus: 'draft', step: currentStep };
+      const draftOrderData = createDraftOrderObject(draftData, user?.clinicId || "");
+      const draftOrderResponse = await fetch('/api/draft-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(draftOrderData),
+      });
+      if (!draftOrderResponse.ok) {
+        throw new Error('Failed to save draft');
+      }
+      const draftOrder = await draftOrderResponse.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/draft-orders'] });
+      toast({
+        title: "Draft saved successfully!",
+        description: `Draft #${draftOrder.id} has been saved.`
+      });
+      window.history.back();
+    } catch (error) {
+      console.error('Draft save error:', error);
+      toast({
+        title: "Draft Error",
+        description: "There was an error saving your draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   const prevStep = () => {
     if (currentStep === 1 && orderCategory) {
       setCurrentStep(0);
@@ -612,15 +646,30 @@ const PlaceOrder = () => {
 
                     <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
                       {currentStep < maxSteps ? (
-                        <Button
-                          type="button"
-                          onClick={nextStep}
-                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
-                          disabled={isSubmitting}
-                        >
-                          Continue
-                          <ChevronRight size={16} />
-                        </Button>
+                        <>
+                          {
+                            orderCategory === 'new' && currentStep === 6
+                              ?
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={saveDraft}
+                                className="flex items-center justify-center gap-2 px-4 py-2 "
+                              >
+                                Save Draft
+                              </Button>
+                              : null
+                          }
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                            className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
+                            disabled={isSubmitting}
+                          >
+                            Continue
+                            <ChevronRight size={16} />
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           type="submit"

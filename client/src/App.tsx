@@ -29,7 +29,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Register from "./pages/authentication/register";
 import OrderTable from "./components/orders/OrderTable";
 import QaDashboard from "./qaScreen/screen/QaDashboard";
-
+import DraftOrders from './pages/DraftOrders';
 
 
 const DashboardLayout = () => {
@@ -224,8 +224,10 @@ const DashboardLayout = () => {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardContent onNewCase={handleNewCase} onSectionChange={handleSectionChange} />;
-      case 'orders':
+      case 'orders-all':
         return <OrderTable />;
+      case 'orders-draft':
+        return <DraftOrders />;
       case 'appointments':
         return <ScanBookingContent />;
       case 'pickup':
@@ -320,6 +322,7 @@ const App = () => (
             <Route path="/qa-dashboard/place-order" component={PlaceOrder} />
             <Route path="/order/:orderId" component={OrderDetails} />
             <Route path="/resubmit-order/:orderId" component={ResubmitOrder} />
+            <Route path="/draft-orders" component={DraftOrders} />
             <Route component={NotFound} />
           </Router>
         </SocketProvider>

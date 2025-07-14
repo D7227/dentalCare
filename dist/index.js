@@ -2279,6 +2279,130 @@ var setupPatientRoute = async (app2) => {
   });
 };
 
+// server/src/draftOrder/draftOrderSchema.ts
+import {
+  boolean as boolean9,
+  jsonb as jsonb9,
+  pgTable as pgTable11,
+  text as text11,
+  timestamp as timestamp10,
+  uuid as uuid11,
+  date as date9
+} from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema9 } from "drizzle-zod";
+var draftOrderSchema = pgTable11("draft_order", {
+  id: uuid11("id").primaryKey().defaultRandom(),
+  orderId: text11("order_id"),
+  refId: text11("ref_id"),
+  category: text11("category"),
+  type: text11("type"),
+  firstName: text11("first_name"),
+  lastName: text11("last_name"),
+  age: text11("age"),
+  sex: text11("sex"),
+  caseHandledBy: text11("case_handled_by"),
+  doctorMobile: text11("doctor_mobile"),
+  consultingDoctor: text11("consulting_doctor"),
+  consultingDoctorMobile: text11("consulting_doctor_mobile"),
+  orderMethod: text11("order_method"),
+  prescriptionType: text11("prescription_type"),
+  subcategoryType: text11("subcategory_type"),
+  restorationType: text11("restoration_type"),
+  productSelection: text11("product_selection"),
+  orderType: text11("order_type"),
+  selectedFileType: text11("selected_file_type"),
+  selectedTeeth: jsonb9("selected_teeth").$type(),
+  toothGroups: jsonb9("tooth_groups").$type(),
+  toothNumbers: jsonb9("tooth_numbers").$type(),
+  abutmentDetails: jsonb9("abutment_details").$type(),
+  abutmentType: text11("abutment_type"),
+  restorationProducts: jsonb9("restoration_products").$type(),
+  clinicId: text11("clinic_id"),
+  ponticDesign: text11("pontic_design"),
+  occlusalStaining: text11("occlusal_staining"),
+  shadeInstruction: text11("shade_instruction"),
+  clearance: text11("clearance"),
+  accessories: jsonb9("accessories").$type(),
+  otherAccessory: text11("other_accessory"),
+  returnAccessories: boolean9("return_accessories"),
+  notes: text11("notes"),
+  files: jsonb9("files").$type(),
+  expectedDeliveryDate: date9("expected_delivery_date"),
+  pickupDate: date9("pickup_date"),
+  pickupTime: text11("pickup_time"),
+  step: text11("step"),
+  pickupRemarks: text11("pickup_remarks"),
+  scanBooking: jsonb9("scan_booking").$type(),
+  intraOralScans: jsonb9("intra_oral_scans").$type(),
+  faceScans: jsonb9("face_scans").$type(),
+  patientPhotos: jsonb9("patient_photos").$type(),
+  referralFiles: jsonb9("referral_files").$type(),
+  createdAt: timestamp10("created_at", { withTimezone: true }).defaultNow()
+});
+var insertDraftOrderSchema = createInsertSchema9(draftOrderSchema).omit({
+  id: true,
+  createdAt: true
+}).partial();
+
+// server/src/draftOrder/draftOrderController.ts
+import { eq as eq9 } from "drizzle-orm";
+function buildDraftOrderData(data) {
+  return {
+    ...data,
+    selectedTeeth: Array.isArray(data.selectedTeeth) && data.selectedTeeth.length > 0 ? data.selectedTeeth : null,
+    toothGroups: Array.isArray(data.toothGroups) && data.toothGroups.length > 0 ? data.toothGroups : null,
+    toothNumbers: Array.isArray(data.toothNumbers) && data.toothNumbers.length > 0 ? data.toothNumbers : null,
+    restorationProducts: Array.isArray(data.restorationProducts) && data.restorationProducts.length > 0 ? data.restorationProducts : null,
+    accessories: Array.isArray(data.accessories) && data.accessories.length > 0 ? data.accessories : null,
+    files: Array.isArray(data.files) && data.files.length > 0 ? data.files : null,
+    scanBooking: data.scanBooking || null,
+    intraOralScans: data.intraOralScans || null,
+    faceScans: data.faceScans || null,
+    patientPhotos: data.patientPhotos || null,
+    referralFiles: data.referralFiles || null,
+    expectedDeliveryDate: data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate) : null,
+    pickupDate: data.pickupDate ? new Date(data.pickupDate) : null,
+    returnAccessories: Boolean(data.returnAccessories),
+    createdAt: void 0,
+    // let DB handle
+    id: void 0
+    // let DB handle
+  };
+}
+var DraftOrderStorage = class {
+  async createDraftOrder(data) {
+    const draftOrderData = buildDraftOrderData(data);
+    const [draftOrder] = await db2.insert(draftOrderSchema).values(draftOrderData).returning();
+    return draftOrder;
+  }
+  async getDraftOrdersByClinicId(clinicId) {
+    return await db2.select().from(draftOrderSchema).where(eq9(draftOrderSchema.clinicId, clinicId));
+  }
+};
+var draftOrderStorage = new DraftOrderStorage();
+
+// server/src/draftOrder/draftOrderRoute.ts
+var setupDraftOrderRoutes = (app2) => {
+  app2.post("/api/draft-orders", async (req, res) => {
+    try {
+      const draftOrderData = insertDraftOrderSchema.parse(req.body);
+      const draftOrder = await draftOrderStorage.createDraftOrder(draftOrderData);
+      res.status(201).json(draftOrder);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid draft order data", details: error instanceof Error ? error.message : error });
+    }
+  });
+  app2.get("/api/draft-orders/clinic/:clinicId", async (req, res) => {
+    try {
+      const { clinicId } = req.params;
+      const draftOrders = await draftOrderStorage.getDraftOrdersByClinicId(clinicId);
+      res.json(draftOrders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch draft orders" });
+    }
+  });
+};
+
 // server/routes.ts
 async function registerRoutes(app2) {
   passport.use(
@@ -2368,6 +2492,7 @@ async function registerRoutes(app2) {
   setupTeamMemberRoutes(app2);
   setuRoleRoutes(app2);
   setupPatientRoute(app2);
+  setupDraftOrderRoutes(app2);
   const httpServer2 = createServer(app2);
   return httpServer2;
 }
@@ -2481,7 +2606,7 @@ function serveStatic(app2) {
 }
 
 // server/index.ts
-import { eq as eq9 } from "drizzle-orm";
+import { eq as eq10 } from "drizzle-orm";
 import { createServer as createServer2 } from "http";
 import { Server } from "socket.io";
 import dotenv3 from "dotenv";
@@ -2565,7 +2690,7 @@ app.use((req, res, next) => {
           chatId: data.chatId
         });
         console.log("savedMessage", savedMessage);
-        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq9(chats.id, data.chatId));
+        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq10(chats.id, data.chatId));
         console.log("updatedChat");
         io.to(`chat-${data.chatId}`).emit("new-message", {
           chatId: data.chatId,

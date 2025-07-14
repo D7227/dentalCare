@@ -1,0 +1,85 @@
+import {
+    boolean,
+    integer,
+    jsonb,
+    numeric,
+    PgJsonBuilder,
+    pgTable,
+    text,
+    timestamp,
+    uuid,
+    date,
+  } from "drizzle-orm/pg-core";
+  import { createInsertSchema } from "drizzle-zod";
+  import { z } from "zod";
+  
+  export const draftOrderSchema = pgTable("draft_order", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderId: text("order_id"),
+    refId: text("ref_id"),
+    category: text("category"),
+    type: text("type"),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    age: text("age"),
+    sex: text("sex"),
+  
+    caseHandledBy: text("case_handled_by"),
+    doctorMobile: text("doctor_mobile"),
+    consultingDoctor: text("consulting_doctor"),
+    consultingDoctorMobile: text("consulting_doctor_mobile"),
+  
+    orderMethod: text("order_method"),
+    prescriptionType: text("prescription_type"),
+    subcategoryType: text("subcategory_type"),
+    restorationType: text("restoration_type"),
+    productSelection: text("product_selection"),
+    orderType: text("order_type"),
+    selectedFileType: text("selected_file_type"),
+  
+    selectedTeeth: jsonb("selected_teeth").$type<any[]>(),
+    toothGroups: jsonb("tooth_groups").$type<any[]>(),
+    toothNumbers: jsonb("tooth_numbers").$type<string[]>(),
+  
+    abutmentDetails: jsonb("abutment_details").$type<any>(),
+    abutmentType: text("abutment_type"),
+    restorationProducts: jsonb("restoration_products").$type<any[]>(),
+  
+    clinicId: text("clinic_id"),
+  
+    ponticDesign: text("pontic_design"),
+    occlusalStaining: text("occlusal_staining"),
+    shadeInstruction: text("shade_instruction"),
+    clearance: text("clearance"),
+  
+    accessories: jsonb("accessories").$type<string[]>(),
+    otherAccessory: text("other_accessory"),
+    returnAccessories: boolean("return_accessories"),
+  
+    notes: text("notes"),
+    files: jsonb("files").$type<any[]>(),
+  
+    expectedDeliveryDate: date("expected_delivery_date"),
+    pickupDate: date("pickup_date"),
+    pickupTime: text("pickup_time"),
+    step: text("step"),
+    pickupRemarks: text("pickup_remarks"),
+  
+    scanBooking: jsonb("scan_booking").$type<any>(),
+    intraOralScans: jsonb("intra_oral_scans").$type<any>(),
+    faceScans: jsonb("face_scans").$type<any>(),
+    patientPhotos: jsonb("patient_photos").$type<any>(),
+    referralFiles: jsonb("referral_files").$type<any>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  });
+
+  export const insertDraftOrderSchema = createInsertSchema(draftOrderSchema)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .partial();
+
+export type InsertDraftOrder = z.infer<typeof insertDraftOrderSchema>;
+
+export type DraftOrder = typeof draftOrderSchema.$inferSelect;
