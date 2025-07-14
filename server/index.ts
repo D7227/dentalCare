@@ -11,6 +11,7 @@ import { chats } from "./src/chat/chatSchema";
 import { messageStorage } from "./src/message/messageController";
 import { teamMemberStorage } from "./src/teamMember/teamMemberController";
 import { clinicStorage } from "./src/clinic/clinicController";
+import { authMiddleware } from "./src/middleWare/middleWare";
 dotenv.config();
 
 const app = express();
@@ -30,6 +31,9 @@ app.use(express.urlencoded({ extended: false }));
 
 // Attach userSocketMap to app for access in routes
 (app as any).userSocketMap = userSocketMap;
+
+// Apply JWT auth middleware to all /api routes except login/register
+app.use("/api", authMiddleware);
 
 app.use((req, res, next) => {
   const start = Date.now();

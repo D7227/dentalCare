@@ -460,6 +460,10 @@ var ClinicStorage = class {
     const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.id, id));
     return clinicData;
   }
+  async getClinicById(id) {
+    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.id, id));
+    return clinicData;
+  }
   async getClinicByEmail(email) {
     const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.email, email));
     return clinicData;
@@ -586,44 +590,19 @@ var TeamMemberStorage = class {
     const [teamMember] = await db2.select().from(teamMembers).where(eq5(teamMembers.contactNumber, mobileNumber));
     return teamMember;
   }
-  async getTeamMemberByFullName(fullName) {
-    const [member] = await db2.select().from(teamMembers).where(eq5(teamMembers.fullName, fullName));
+  async getTeamMemberById(id) {
+    const [member] = await db2.select().from(teamMembers).where(eq5(teamMembers.id, id));
     return member;
   }
 };
 var teamMemberStorage = new TeamMemberStorage();
 
 // server/src/authentication/authenticationRoute.ts
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 var setupAuthenticationRoutes = (app2) => {
-  app2.post("/api/clinic/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-      const clinic2 = await clinicStorage.getClinicByEmail(email);
-      if (!clinic2) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-      if (clinic2.password !== password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-      res.json({
-        id: clinic2.id,
-        firstname: clinic2.firstname,
-        lastname: clinic2.lastname,
-        email: clinic2.email,
-        phone: clinic2.phone,
-        clinicName: clinic2.clinicName,
-        roleId: clinic2.roleId,
-        permissions: clinic2.permissions
-      });
-    } catch (error) {
-      console.error("Clinic login error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  app2.post("/api/clinic/register", async (req, res) => {
+  const JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
+  app2.post("/api/register", async (req, res) => {
     try {
       const clinicData = insertClinicSchema2.parse(req.body);
       const existingClinic = await clinicStorage.getClinicByEmail(
@@ -649,30 +628,15 @@ var setupAuthenticationRoutes = (app2) => {
         "billing"
       ];
       const clinicRoleId = "2411f233-1e48-43ae-9af9-6d5ce0569278";
+      const hashedPassword = await bcrypt.hash(clinicData.password, 10);
       const newClinic = await clinicStorage.createClinic({
         ...clinicData,
+        password: hashedPassword,
         roleId: clinicRoleId,
         permissions: defaultPermissions
       });
-      let roleName = "";
-      try {
-        const role2 = await RolesStorage.getRoleById(clinicRoleId);
-        roleName = role2?.name || "";
-      } catch (error) {
-        console.log("Failed to fetch role name for clinic:", error);
-      }
-      res.status(201).json({
-        message: "Clinic registered successfully",
-        clinic: {
-          id: newClinic.id,
-          firstname: newClinic.firstname,
-          lastname: newClinic.lastname,
-          email: newClinic.email,
-          clinicName: newClinic.clinicName,
-          permissions: newClinic.permissions,
-          roleId: newClinic.roleId,
-          roleName
-        }
+      return res.status(201).json({
+        token: jwt.sign({ id: newClinic.id }, JWT_SECRET2, { expiresIn: "7d" })
       });
     } catch (error) {
       console.error("Clinic registration error:", error);
@@ -692,24 +656,11 @@ var setupAuthenticationRoutes = (app2) => {
         mobileNumber
       );
       if (teamMember) {
-        if (teamMember.password === password) {
-          let roleName = "";
-          if (teamMember.roleId) {
-            const role2 = await RolesStorage.getRoleById(teamMember.roleId);
-            roleName = role2?.name || "";
-          }
-          let clinicId = "";
-          if (teamMember.clinicName) {
-            const clinic3 = await clinicStorage.getClinicByName(
-              teamMember.clinicName
-            );
-            clinicId = clinic3?.id || "";
-          }
+        const pss = "$2a$10$nv9SquvlvuYDfr/eXc.Ltu4kKvHt6InAnew7/ARBZm0pNApMAK/sa";
+        const isPasswordValid = await bcrypt.compare(password, pss || "");
+        if (isPasswordValid) {
           return res.json({
-            ...teamMember,
-            userType: "teamMember",
-            roleName,
-            clinicId
+            token: jwt.sign({ id: teamMember.id }, JWT_SECRET2, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -717,17 +668,10 @@ var setupAuthenticationRoutes = (app2) => {
       }
       const clinic2 = await clinicStorage.getClinicByMobileNumber(mobileNumber);
       if (clinic2) {
-        if (clinic2.password === password) {
-          let roleName = "";
-          if (clinic2.roleId) {
-            const role2 = await RolesStorage.getRoleById(clinic2.roleId);
-            roleName = role2?.name || "";
-          }
+        const isPasswordValid = await bcrypt.compare(password, clinic2.password || "");
+        if (isPasswordValid) {
           return res.json({
-            ...clinic2,
-            userType: "clinic",
-            roleName,
-            clinicId: clinic2.id
+            token: jwt.sign({ id: clinic2.id }, JWT_SECRET2, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -739,177 +683,106 @@ var setupAuthenticationRoutes = (app2) => {
       res.status(500).json({ error: "Login failed" });
     }
   });
-  app2.get("/api/me", async (req, res) => {
+  app2.get("/api/userData/:id", async (req, res) => {
     try {
-      const mobileNumber = req.headers["x-mobile-number"];
-      if (!mobileNumber || typeof mobileNumber !== "string") {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-      let teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(
-        mobileNumber
-      );
-      let clinic2 = null;
-      let userType = "teamMember";
-      if (!teamMember) {
-        clinic2 = await clinicStorage.getClinicByMobileNumber(mobileNumber);
-        userType = "clinic";
-      }
-      if (!teamMember && !clinic2) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      let roleName = "";
-      const roleId = teamMember?.roleId || clinic2?.roleId;
-      if (roleId) {
-        try {
-          const role2 = await RolesStorage.getRoleById(roleId);
-          roleName = role2?.name || "";
-        } catch (error) {
-          console.log("Failed to fetch role name:", error);
+      const id = req.params.id;
+      let roleName;
+      let clinicId = "";
+      const clinicData = await clinicStorage.getClinicById(id);
+      let teamMemberData;
+      if (!clinicData) {
+        teamMemberData = await teamMemberStorage.getTeamMemberById(id);
+        if (!teamMemberData) {
+          return res.status(401).json({ error: "User Not Found" });
         }
+        if (teamMemberData.roleId) {
+          const role2 = await RolesStorage.getRoleById(teamMemberData.roleId);
+          roleName = role2?.name || "";
+        }
+        if (!roleName) {
+          return res.status(401).json({ error: "Role Not Found" });
+        }
+        if (teamMemberData.clinicName) {
+          const clinic2 = await clinicStorage.getClinicByName(
+            teamMemberData.clinicName
+          );
+          clinicId = clinic2?.id || "";
+        }
+        if (!clinicId) {
+          return res.status(401).json({ error: "Clinic Not Found" });
+        }
+        return res.json({
+          teamMemberData,
+          roleName,
+          clinicId
+        });
       }
-      const essentialUserData = {
-        id: userType === "clinic" ? clinic2.id : teamMember.id,
-        fullName: userType === "clinic" ? `${clinic2.firstname} ${clinic2.lastname}` : teamMember.fullName,
-        permissions: (userType === "clinic" ? clinic2.permissions : teamMember.permissions) || [],
-        contactNumber: userType === "clinic" ? clinic2.phone : teamMember.contactNumber,
-        roleId: roleId || "",
-        clinicName: (userType === "clinic" ? clinic2.clinicName : teamMember.clinicName) || "",
-        roleName,
-        userType,
-        clinicId: userType === "clinic" ? clinic2.id : ""
-      };
-      res.json(essentialUserData);
+      if (clinicData.roleId) {
+        clinicId = clinicData.id;
+        const role2 = await RolesStorage.getRoleById(clinicData.roleId);
+        roleName = role2?.name || "";
+      }
+      return res.json({ clinicData, roleName, clinicId });
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch user data" });
     }
   });
-  app2.get("/api/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) {
-        return next(err);
-      }
-      res.status(200).json({ message: "Logout successful" });
-    });
-  });
-  app2.get("/api/userData/:id", async (req, res) => {
+  app2.patch("/api/userUpdate/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      console.log("getUserData API called with ID:", id);
-      let clinic2 = await clinicStorage.getClinic(id);
-      console.log("Clinic lookup result:", clinic2 ? "Found" : "Not found");
+      let updatedUser;
+      const clinic2 = await clinicStorage.getClinicById(id);
       if (clinic2) {
-        console.log(
-          "Processing clinic data for:",
-          clinic2.firstname,
-          clinic2.lastname
-        );
-        let roleName = "";
-        if (clinic2.roleId) {
-          try {
-            const role2 = await RolesStorage.getRoleById(clinic2.roleId);
-            roleName = role2?.name || "";
-            console.log("Role name for clinic:", roleName);
-          } catch (error) {
-            console.log("Failed to fetch role name:", error);
-          }
+        let updates = { ...req.body };
+        if (updates.password) {
+          updates.password = await bcrypt.hash(updates.password, 10);
         }
-        let clinicAddress = {};
-        let billingInfo = {};
-        try {
-          if (clinic2.clinicAddress) {
-            clinicAddress = JSON.parse(clinic2.clinicAddress);
-          }
-        } catch (e) {
-          clinicAddress = { address: clinic2.clinicAddress || "" };
+        updatedUser = await clinicStorage.updateClinic(id, updates);
+        if (!updatedUser) {
+          return res.status(404).json({ error: "Clinic not found" });
         }
-        try {
-          if (clinic2.billingInfo) {
-            billingInfo = JSON.parse(clinic2.billingInfo);
-          }
-        } catch (e) {
-          billingInfo = {};
-        }
-        console.log("Clinic", clinic2);
-        const userData = {
-          id: clinic2.id,
-          firstName: clinic2.firstname,
-          lastName: clinic2.lastname,
-          email: clinic2.email,
-          phone: clinic2.phone,
-          clinicName: clinic2.clinicName,
-          licenseNumber: clinic2.clinicLicenseNumber,
-          clinicAddressLine1: clinic2.clinicAddressLine1 || "",
-          clinicAddressLine2: clinic2.clinicAddressLine2 || "",
-          clinicCity: clinic2.clinicCity || "",
-          clinicState: clinic2.clinicState || "",
-          clinicPincode: clinic2.clinicPincode || "",
-          clinicCountry: clinic2.clinicCountry || "",
-          billingAddressLine1: clinic2.billingAddressLine1 || "",
-          billingAddressLine2: clinic2.billingAddressLine2 || "",
-          billingCity: clinic2.billingCity || "",
-          billingState: clinic2.billingState || "",
-          billingPincode: clinic2.billingPincode || "",
-          billingCountry: clinic2.billingCountry || "",
-          gstNumber: clinic2.gstNumber || "",
-          panNumber: clinic2.panNumber || "",
-          roleName,
-          userType: "clinic",
-          permissions: clinic2.permissions || []
-        };
-        console.log("Returning clinic user data");
-        return res.json(userData);
+        return res.json({ userType: "clinic", updatedUser });
       }
-      let teamMember = await teamMemberStorage.getTeamMember(id);
-      console.log(
-        "Team member lookup result:",
-        teamMember ? "Found" : "Not found"
-      );
+      const teamMember = await teamMemberStorage.getTeamMember(id);
       if (teamMember) {
-        console.log("Processing team member data for:", teamMember.fullName);
-        let roleName = "";
-        if (teamMember.roleId) {
-          try {
-            const role2 = await RolesStorage.getRoleById(teamMember.roleId);
-            roleName = role2?.name || "";
-            console.log("Role name for team member:", roleName);
-          } catch (error) {
-            console.log("Failed to fetch role name:", error);
-          }
+        let updates = { ...req.body };
+        if (updates.password) {
+          updates.password = await bcrypt.hash(updates.password, 10);
         }
-        const userData = {
-          id: teamMember.id,
-          firstName: teamMember.fullName.split(" ")[0] || "",
-          lastName: teamMember.fullName.split(" ").slice(1).join(" ") || "",
-          email: teamMember.email,
-          phone: teamMember.contactNumber,
-          clinicName: teamMember.clinicName,
-          licenseNumber: "",
-          clinicAddressLine1: "",
-          clinicAddressLine2: "",
-          clinicCity: "",
-          clinicState: "",
-          clinicPincode: "",
-          clinicCountry: "India",
-          billingAddressLine1: "",
-          billingAddressLine2: "",
-          billingCity: "",
-          billingState: "",
-          billingPincode: "",
-          billingCountry: "India",
-          gstNumber: "",
-          panNumber: "",
-          roleName,
-          userType: "teamMember",
-          permissions: teamMember.permissions || []
-        };
-        console.log("Returning team member user data");
-        return res.json(userData);
+        updatedUser = await teamMemberStorage.updateTeamMember(id, updates);
+        if (!updatedUser) {
+          return res.status(404).json({ error: "Team member not found" });
+        }
+        return res.json({ userType: "teamMember", updatedUser });
       }
-      console.log("User not found in either clinic or team member tables");
       return res.status(404).json({ error: "User not found" });
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      res.status(500).json({ error: "Failed to fetch user data" });
+      console.error("User update error:", error);
+      res.status(500).json({ error: "Invalid user update data", details: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+  app2.patch("/api/forgotPassword/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        return res.status(400).json({ error: "New password is required" });
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const clinic2 = await clinicStorage.getClinicById(id);
+      if (clinic2) {
+        await clinicStorage.updateClinic(id, { password: hashedPassword });
+        return res.json({ message: "Password updated successfully for clinic" });
+      }
+      const teamMember = await teamMemberStorage.getTeamMember(id);
+      if (teamMember) {
+        await teamMemberStorage.updateTeamMember(id, { password: hashedPassword });
+        return res.json({ message: "Password updated successfully for team member" });
+      }
+      return res.status(404).json({ error: "User not found" });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ error: "Failed to reset password", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 };
@@ -1149,6 +1022,9 @@ var teethGroupStorage = new TeethGroupStorage();
 
 // server/src/order/orderController.ts
 var OrderStorage = class {
+  getOrdersByPatient(patientId) {
+    throw new Error("Method not implemented.");
+  }
   async getOrder(id) {
     const [order] = await db2.select().from(orderSchema).where(eq9(orderSchema.id, id));
     return order;
@@ -1223,12 +1099,6 @@ var OrderStorage = class {
     if (!orders || orders.length === 0) return [];
     const results = [];
     for (const order of orders) {
-      let addProduct2 = function(name, qty) {
-        if (!name) return;
-        if (!productMap[name]) productMap[name] = 0;
-        productMap[name] += qty || 1;
-      };
-      var addProduct = addProduct2;
       const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
       const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(order.clinicInformationId) : void 0;
       const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
@@ -1240,19 +1110,24 @@ var OrderStorage = class {
       ) || [];
       const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
       const productMap = {};
+      const addProduct = (name, qty) => {
+        if (!name) return;
+        if (!productMap[name]) productMap[name] = 0;
+        productMap[name] += qty || 1;
+      };
       if (teethGroup?.teethGroup) {
         teethGroup.teethGroup.forEach((group) => {
           (group.selectedProducts || []).forEach((prod) => {
-            addProduct2(prod.name, Number(prod.quantity) || 1);
+            addProduct(prod.name, Number(prod.quantity) || 1);
           });
           (group.teethDetails || []).flat().forEach((tooth) => {
             (tooth.selectedProducts || []).forEach((prod) => {
-              addProduct2(prod.name, Number(prod.quantity) || 1);
+              addProduct(prod.name, Number(prod.quantity) || 1);
             });
             if (Array.isArray(tooth.productName)) {
-              tooth.productName.forEach((name) => addProduct2(name, Number(tooth.productQuantity) || 1));
+              tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
             } else if (tooth.productName) {
-              addProduct2(tooth.productName, Number(tooth.productQuantity) || 1);
+              addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
             }
           });
         });
@@ -1260,12 +1135,12 @@ var OrderStorage = class {
       if (teethGroup?.selectedTeeth) {
         teethGroup.selectedTeeth.forEach((tooth) => {
           (tooth.selectedProducts || []).forEach((prod) => {
-            addProduct2(prod.name, Number(prod.quantity) || 1);
+            addProduct(prod.name, Number(prod.quantity) || 1);
           });
           if (Array.isArray(tooth.productName)) {
-            tooth.productName.forEach((name) => addProduct2(name, Number(tooth.productQuantity) || 1));
+            tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
           } else if (tooth.productName) {
-            addProduct2(tooth.productName, Number(tooth.productQuantity) || 1);
+            addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
           }
         });
       }
@@ -1974,50 +1849,19 @@ var setupOrderRoutes = (app2) => {
 };
 
 // server/src/teamMember/teamMemberRoute.ts
+import bcrypt2 from "bcrypt";
 var setupTeamMemberRoutes = (app2) => {
-  app2.get("/api/team-members", async (req, res) => {
+  app2.get("/api/team-members/:clinicId", async (req, res) => {
     try {
-      const { clinicName } = req.query;
-      if (clinicName && typeof clinicName === "string") {
-        const teamMembers2 = await teamMemberStorage.getTeamMembersByClinic(
-          clinicName
-        );
-        const teamMembersWithRoleName = await Promise.all(
-          teamMembers2.map(async (member) => {
-            let roleName = "";
-            if (member.roleId) {
-              const role2 = await RolesStorage.getRoleById(member.roleId);
-              roleName = role2?.name || "";
-            }
-            return {
-              ...member,
-              roleName
-            };
-          })
-        );
-        res.json(teamMembersWithRoleName);
-      } else {
-        const teamMembers2 = await teamMemberStorage.getTeamMembers();
-        const teamMembersWithRoleName = await Promise.all(
-          teamMembers2.map(async (member) => {
-            let roleName = "";
-            if (member.roleId) {
-              const role2 = await RolesStorage.getRoleById(member.roleId);
-              roleName = role2?.name || "";
-            }
-            return {
-              ...member,
-              roleName
-            };
-          })
-        );
-        res.json(teamMembersWithRoleName);
-      }
+      const clinicId = req.params.clinicId;
+      const clinicName = await clinicStorage.getClinicById(clinicId);
+      const teamMemberData = await teamMemberStorage.getTeamMembersByClinic(clinicName.clinicName);
+      return res.json(teamMemberData);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch team members" });
     }
   });
-  app2.get("/api/team-members/:id", async (req, res) => {
+  app2.get("/api/team-member/:id", async (req, res) => {
     try {
       const teamMember = await teamMemberStorage.getTeamMember(req.params.id);
       if (!teamMember) {
@@ -2028,7 +1872,7 @@ var setupTeamMemberRoutes = (app2) => {
       res.status(500).json({ error: "Failed to fetch team member" });
     }
   });
-  app2.post("/api/team-members", async (req, res) => {
+  app2.post("/api/create/team-members", async (req, res) => {
     try {
       const { roleName, ...teamMemberData } = req.body;
       const existingTeamMemberByMobile = await teamMemberStorage.getTeamMemberByMobileNumber(
@@ -2053,94 +1897,18 @@ var setupTeamMemberRoutes = (app2) => {
       } else {
         return res.status(400).json({ error: "Role name is required" });
       }
-      const teamMember = await teamMemberStorage.createTeamMember({
-        ...teamMemberData,
-        roleId
-      });
+      let teamMemberToSave = { ...teamMemberData, roleId };
+      if (teamMemberToSave.password) {
+        teamMemberToSave.password = await bcrypt2.hash(teamMemberToSave.password, 10);
+      }
+      const teamMember = await teamMemberStorage.createTeamMember(teamMemberToSave);
       res.status(201).json(teamMember);
     } catch (error) {
       console.error("Error creating team member:", error);
       res.status(400).json({ error: "Invalid team member data" });
     }
   });
-  app2.put("/api/team-members/:id", async (req, res) => {
-    try {
-      const { roleName, ...teamMemberData } = req.body;
-      const prevTeamMember = await teamMemberStorage.getTeamMember(
-        req.params.id
-      );
-      const prevFullName = prevTeamMember?.fullName;
-      if (roleName) {
-        const role2 = await RolesStorage.getRoleByName(roleName);
-        if (!role2) {
-          return res.status(400).json({ error: `Role '${roleName}' not found` });
-        }
-        teamMemberData.roleId = role2.id;
-      }
-      const teamMember = await teamMemberStorage.updateTeamMember(
-        req.params.id,
-        teamMemberData
-      );
-      if (!teamMember) {
-        return res.status(404).json({ error: "Team member not found" });
-      }
-      const io2 = req.app.get("io") || req.app.io;
-      const userSocketMap2 = global.userSocketMap || req.app.userSocketMap;
-      const memberId = teamMember.fullName;
-      console.log(teamMember.fullName, "teamMember.fullName");
-      console.log("Update request body:", req.body);
-      console.log(
-        "userSocketMap:",
-        Array.from(userSocketMap2?.entries?.() || [])
-      );
-      if (io2 && userSocketMap2 && memberId) {
-        const socketId = userSocketMap2.get(memberId);
-        if (socketId) {
-          io2.to(socketId).emit("permissions-updated");
-          console.log(
-            `Emitted permissions-updated to ${memberId} (${socketId})`
-          );
-        } else {
-          console.log(`No socketId found for memberId: ${memberId}`);
-        }
-      } else {
-        if (!io2) console.log("Socket.io instance not found");
-        if (!userSocketMap2) console.log("userSocketMap not found");
-        if (!memberId) console.log("memberId not found");
-      }
-      if (prevFullName && teamMember.fullName && prevFullName !== teamMember.fullName) {
-        const allChats = await chatStorage.getChats();
-        for (const chat of allChats) {
-          if (Array.isArray(chat.participants) && chat.participants.includes(prevFullName)) {
-            const updatedParticipants = chat.participants.map(
-              (p) => p === prevFullName ? teamMember.fullName : p
-            );
-            await chatStorage.updateChat(chat.id, {
-              participants: updatedParticipants
-            });
-            if (io2) {
-              io2.emit("participants-updated", {
-                chatId: chat.id,
-                participants: updatedParticipants,
-                newParticipants: [teamMember.fullName],
-                removedParticipants: [prevFullName],
-                updatedBy: "System"
-              });
-              console.log(
-                `Updated participants for chat ${chat.id} after name change:`,
-                updatedParticipants
-              );
-            }
-          }
-        }
-      }
-      res.json(teamMember);
-    } catch (error) {
-      console.error("Error updating team member:", error);
-      res.status(400).json({ error: "Invalid team member data" });
-    }
-  });
-  app2.delete("/api/team-members/:id", async (req, res) => {
+  app2.delete("/api/team-member/:id", async (req, res) => {
     try {
       const member = await teamMemberStorage.getTeamMember(req.params.id);
       const fullName = member?.fullName;
@@ -2168,26 +1936,9 @@ var setupTeamMemberRoutes = (app2) => {
           });
         }
       }
-      res.status(204).send();
+      res.status(200).send({ message: "team member delete successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete team member" });
-    }
-  });
-  app2.get("/api/team-members/mobile/:mobileNumber", async (req, res) => {
-    try {
-      const { mobileNumber } = req.params;
-      console.log("Finding team member by mobile number:", mobileNumber);
-      const teamMember = await teamMemberStorage.getTeamMemberByMobileNumber(
-        mobileNumber
-      );
-      if (!teamMember) {
-        return res.status(404).json({ message: "Team member not found" });
-      }
-      console.log("Team member found:", teamMember);
-      res.json(teamMember);
-    } catch (error) {
-      console.error("Error finding team member by mobile number:", error);
-      res.status(500).json({ message: "Internal server error" });
     }
   });
 };
@@ -2440,6 +2191,29 @@ import { eq as eq11 } from "drizzle-orm";
 import { createServer as createServer2 } from "http";
 import { Server } from "socket.io";
 import dotenv3 from "dotenv";
+
+// server/src/middleWare/middleWare.ts
+import jwt2 from "jsonwebtoken";
+var JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+function authMiddleware(req, res, next) {
+  if (req.path === "/login" || req.path === "/register") {
+    return next();
+  }
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Enter Authorization Token" });
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt2.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+// server/index.ts
 dotenv3.config();
 var app = express2();
 var httpServer = createServer2(app);
@@ -2454,6 +2228,7 @@ var activeChatUsers = /* @__PURE__ */ new Map();
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
 app.userSocketMap = userSocketMap;
+app.use("/api", authMiddleware);
 app.use((req, res, next) => {
   const start = Date.now();
   const path3 = req.path;

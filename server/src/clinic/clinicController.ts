@@ -4,6 +4,7 @@ import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface ClinicStore {
     getClinic(id: string): Promise<any | undefined>;
+    getClinicById(id: string): Promise<any | undefined>;
     getClinicByEmail(email: string): Promise<any | undefined>;
     getClinicByMobileNumber(mobileNumber: string): Promise<any | undefined>;
     createClinic(clinicData: any): Promise<any>;
@@ -18,6 +19,11 @@ export class ClinicStorage implements ClinicStore {
         return clinicData;
       }
     
+      async getClinicById(id: string): Promise<any | undefined> {
+        const [clinicData] = await db.select().from(clinic).where(eq(clinic.id, id));
+        return clinicData;
+      }
+
       async getClinicByEmail(email: string): Promise<any | undefined> {
         const [clinicData] = await db.select().from(clinic).where(eq(clinic.email, email));
         return clinicData;

@@ -87,7 +87,7 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch('/api/team-members', {
+      const response = await fetch('/api/create/team-members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

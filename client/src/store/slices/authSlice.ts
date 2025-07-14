@@ -175,15 +175,8 @@ export const findUserByMobile = createAsyncThunk(
 export const registerClinic = createAsyncThunk(
   'auth/registerClinic',
   async (clinicsData: any) => {
-    // const response = await fetch('/api/clinic/register', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(clinicsData),
-    // });
 
-    const response = await fetch('http://localhost:5000/api/clinic/register', {
+    const response = await fetch('http://localhost:5000/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -230,52 +223,6 @@ export const registerClinic = createAsyncThunk(
 );
 
 // Async thunk for clinic login
-export const loginClinic = createAsyncThunk(
-  'auth/loginClinic',
-  async ({ email, password }: { email: string; password: string }) => {
-    const response = await fetch('/api/clinic/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Login failed');
-    }
-    const clinic = await response.json();
-    if (!clinic.roleName && clinic.roleId) {
-      clinic.roleName = await fetchRoleNameById(clinic.roleId);
-    }
-    return {
-      id: clinic.id,
-      fullName: `${clinic.firstname} ${clinic.lastname}`,
-      permissions: clinic.permissions || [],
-      contactNumber: clinic.phone || '',
-      roleId: clinic.roleId || 'clinic-role',
-      clinicName: clinic.clinicName || '',
-      roleName: clinic.roleName || '',
-      userType: 'clinic',
-      clinicId: clinic.id || '',
-      clinicAddressLine1: clinic.clinicAddressLine1 || '',
-      clinicAddressLine2: clinic.clinicAddressLine2 || '',
-      clinicCity: clinic.clinicCity || '',
-      clinicState: clinic.clinicState || '',
-      clinicPincode: clinic.clinicPincode || '',
-      clinicCountry: clinic.clinicCountry || '',
-      billingAddressLine1: clinic.billingAddressLine1 || '',
-      billingAddressLine2: clinic.billingAddressLine2 || '',
-      billingCity: clinic.billingCity || '',
-      billingState: clinic.billingState || '',
-      billingPincode: clinic.billingPincode || '',
-      billingCountry: clinic.billingCountry || '',
-      gstNumber: clinic.gstNumber || '',
-      panNumber: clinic.panNumber || '',
-      email: clinic.email || '',
-    };
-  }
-);
 
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
@@ -363,20 +310,6 @@ const authSlice = createSlice({
       .addCase(registerClinic.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || 'Registration failed';
-      })
-      .addCase(loginClinic.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(loginClinic.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(loginClinic.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.error.message || 'Login failed';
       })
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;

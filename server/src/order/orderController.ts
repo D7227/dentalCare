@@ -41,6 +41,9 @@ initializeData(): Promise<void>;
 }
 
 export class OrderStorage implements orderStore {
+  getOrdersByPatient(patientId: string): Promise<any[]> {
+    throw new Error("Method not implemented.");
+  }
     async getOrder(id: string): Promise<any | undefined> {
         const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
         return order;
