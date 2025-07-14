@@ -18,7 +18,7 @@ const QaDashboard = () => {
   const [cases, setCases] = useState(initialCases);
   const [dailyReports, setDailyReports] = useState(initialReports);
   const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
-  
+
   const updateCase = (id: string, status: any, notes?: string) => {
     setCases(cases => cases.map(c => c.id === id ? {
       ...c,
@@ -27,7 +27,7 @@ const QaDashboard = () => {
       log: [...c.log, `${status} by Dr.Sagar on ${new Date().toLocaleString()}${notes ? ` — ${notes}` : ""}`]
     } : c));
   };
-  
+
   const handleSubmitDailyReport = (additionalNotes: string) => {
     const today = new Date().toISOString().split('T')[0];
     const todaysCases = cases.filter(c => c.receivedAt === today);
@@ -46,16 +46,16 @@ const QaDashboard = () => {
     };
     setDailyReports(prev => [newReport, ...prev]);
   };
-  
+
   const pendingCount = cases.filter(c => c.status === "Pending").length;
   const todayCases = cases.filter(c => c.receivedAt === new Date().toISOString().split('T')[0]).length;
-  
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <main className="flex-1 p-6">
-          {/* <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Dental ERP Dashboard – Dr. Sagar</h1>
             <div className="flex items-center gap-4">
               <Button onClick={() => setIsDailyReportModalOpen(true)} className="flex items-center gap-2">
@@ -64,7 +64,7 @@ const QaDashboard = () => {
               </Button>
               <SidebarTrigger />
             </div>
-          </div> */}
+          </div>
 
           {/* Quick Stats */}
           {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -109,29 +109,29 @@ const QaDashboard = () => {
               <TabsTrigger value="daily-reports">Daily Reports</TabsTrigger>
               <TabsTrigger value="reports">Reports & Logs</TabsTrigger>
             </TabsList>
-            
+
             {/* <TabsContent value="cases" className="mt-6">
               <CaseTable cases={cases} onUpdate={updateCase} />
             </TabsContent> */}
-            
+
             <TabsContent value="production" className="mt-6">
               <ProductionTable cases={cases} onUpdate={updateCase} />
             </TabsContent>
-            
+
             <TabsContent value="daily-reports" className="mt-6">
               <DailyReportsTable reports={dailyReports} />
             </TabsContent>
-            
+
             <TabsContent value="reports" className="mt-6">
               <ReportsLogs cases={cases} />
             </TabsContent>
           </Tabs>
 
-          <SubmitDailyReportModal 
-            isOpen={isDailyReportModalOpen} 
-            onClose={() => setIsDailyReportModalOpen(false)} 
-            cases={cases} 
-            onSubmitReport={handleSubmitDailyReport} 
+          <SubmitDailyReportModal
+            isOpen={isDailyReportModalOpen}
+            onClose={() => setIsDailyReportModalOpen(false)}
+            cases={cases}
+            onSubmitReport={handleSubmitDailyReport}
           />
         </main>
       </div>

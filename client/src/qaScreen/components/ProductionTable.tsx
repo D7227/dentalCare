@@ -12,6 +12,8 @@ import { CaseStatus, DentalCase } from "../data/cases";
 import CustomButton from "@/components/common/customButtom";
 import { useLocation } from "wouter";
 import CustomStatusLabel from "@/components/common/customStatusLabel";
+import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, notes?: string) => void }> = ({ onUpdate }) => {
   const [cases, setCases] = useState<DentalCase[]>([]);
@@ -32,12 +34,12 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
   const [location, setLocation] = useLocation();
 
   const PrescriptionType = [
-    {name:"Fixed Restoration",key:"fixed-restoration"},
-    {name:"Implant Solution",key:"implant"},
-    {name:"Splints, Guards & TMJ",key:"splints-guards"},
-    {name:"Ortho",key:"ortho"},
-    {name:"Dentures",key:"dentures"},
-    {name:"Sleep Accessories",key:"sleep-accessories"},
+    { name: "Fixed Restoration", key: "fixed-restoration" },
+    { name: "Implant Solution", key: "implant" },
+    { name: "Splints, Guards & TMJ", key: "splints-guards" },
+    { name: "Ortho", key: "ortho" },
+    { name: "Dentures", key: "dentures" },
+    { name: "Sleep Accessories", key: "sleep-accessories" },
   ];
 
   useEffect(() => {
@@ -92,6 +94,12 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
     );
   });
 
+  // Pagination state and logic (moved after filteredCases)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.ceil(filteredCases.length / pageSize);
+  const paginatedCases = filteredCases.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const getOrderTypeColor = (orderMethod: string) => {
     switch (orderMethod) {
       case "digital": return "bg-blue-100 text-blue-800 border-blue-200";
@@ -111,8 +119,8 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
 
   // Statistics calculations
   const totalOrders = cases.length;
-  const processingOrders = cases.filter(c => c.status === "Pending").length;
-  const completedOrders = cases.filter(c => c.status === "Approved").length;
+  const processingOrders = cases.filter(c => c.orderStatus === "Pending").length;
+  const completedOrders = cases.filter(c => c.orderStatus === "Approved").length;
   const runningOrders = cases.length;
 
   const handleNewCase = () => {
@@ -281,65 +289,65 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
         <div className="flex items-center gap-4 flex-wrap justify-between">
           <div className="flex gap-4">
             <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Ref no." className="pl-10 w-32" value={refNo} onChange={e => setRefNo(e.target.value)} />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Order no." className="pl-10 w-32" value={orderNo} onChange={e => setOrderNo(e.target.value)} />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Clinic name" className="pl-10 w-32" value={clinicName} onChange={e => setClinicName(e.target.value)} />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Doctor" className="pl-10 w-32" value={doctor} onChange={e => setDoctor(e.target.value)} />
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Patient na..." className="pl-10 w-32" value={patient} onChange={e => setPatient(e.target.value)} />
-          </div>
-          <Select value={orderType} onValueChange={setOrderType}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Order type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="digital">Digital</SelectItem>
-              <SelectItem value="manual">Manual</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={prescription} onValueChange={setPrescription}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Prescription" />
-            </SelectTrigger>
-            <SelectContent>
-              {
-                PrescriptionType.map((value)=>(
-                  <SelectItem value={value.key}>{value.name}</SelectItem>
-                ))
-              }
-            </SelectContent>
-          </Select>
-          <Select value={product} onValueChange={setProduct}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Product" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="crown">Crown</SelectItem>
-              <SelectItem value="bridge">Bridge</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* Add more controlled filter inputs as needed */}
-          <Select value={scanStatus} onValueChange={setScanStatus}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Scan Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="scanned">Scanned</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Ref no." className="pl-10 w-32" value={refNo} onChange={e => setRefNo(e.target.value)} />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Order no." className="pl-10 w-32" value={orderNo} onChange={e => setOrderNo(e.target.value)} />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Clinic name" className="pl-10 w-32" value={clinicName} onChange={e => setClinicName(e.target.value)} />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Doctor" className="pl-10 w-32" value={doctor} onChange={e => setDoctor(e.target.value)} />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Patient na..." className="pl-10 w-32" value={patient} onChange={e => setPatient(e.target.value)} />
+            </div>
+            <Select value={orderType} onValueChange={setOrderType}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Order type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="digital">Digital</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={prescription} onValueChange={setPrescription}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Prescription" />
+              </SelectTrigger>
+              <SelectContent>
+                {
+                  PrescriptionType.map((value) => (
+                    <SelectItem value={value.key}>{value.name}</SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+            <Select value={product} onValueChange={setProduct}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Product" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="crown">Crown</SelectItem>
+                <SelectItem value="bridge">Bridge</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* Add more controlled filter inputs as needed */}
+            <Select value={scanStatus} onValueChange={setScanStatus}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Scan Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scanned">Scanned</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <CustomButton onClick={clearFilter} variant='primary'>
             Clear
@@ -372,38 +380,130 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCases.slice(0, 10).map((dentalCase, index) => (
-                    <TableRow key={dentalCase.id}>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell className="font-medium text-blue-600">{dentalCase.refId}</TableCell>
-                      <TableCell>{dentalCase.orderId}</TableCell>
-                      <TableCell>{"Smile Dental"}</TableCell>
-                      <TableCell>{dentalCase.caseHandledBy}</TableCell>
-                      <TableCell>{dentalCase.firstName} {dentalCase.lastName}</TableCell>
-                      <TableCell>
-                        <Badge className={getOrderTypeColor(dentalCase.orderMethod)} variant="outline">
-                          {dentalCase.orderMethod}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getPrescriptionColor(dentalCase.prescriptionType)} variant="outline">
-                          {dentalCase.prescriptionType}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>Zirconia Crown</TableCell>
-                      <TableCell>Dispatch</TableCell>
-                      <TableCell>Dr. Moulik</TableCell>
-                      <TableCell>07-07-2025</TableCell>
-                      <TableCell>
-                        <CustomStatusLabel status={dentalCase.orderStatus} label={dentalCase.orderStatus} />
-                      </TableCell>
-                      <TableCell>11, 23</TableCell>
-                      <TableCell>	3 files</TableCell>
-                      <TableCell>
-                        <Button size="sm" onClick={() => openModal(dentalCase)}>Review</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedCases.map((dentalCase, index) => {
+                    // Extract from selectedTeeth
+                    const teethFromSelected = Array.isArray((dentalCase as any).selectedTeeth)
+                      ? (dentalCase as any).selectedTeeth
+                        .map((t: any) => t && typeof t === 'object' && 'toothNumber' in t ? Number(t.toothNumber) : undefined)
+                        .filter((num: any) => typeof num === 'number' && !isNaN(num))
+                      : [];
+
+                    // Extract from toothGroups' teethDetails
+                    const teethFromGroups = Array.isArray((dentalCase as any).toothGroups)
+                      ? (dentalCase as any).toothGroups.flatMap((group: any) =>
+                        Array.isArray(group.teethDetails)
+                          ? group.teethDetails.flat().map((t: any) =>
+                            t && typeof t === 'object' && 'teethNumber' in t ? Number(t.teethNumber) : undefined
+                          )
+                          : []
+                      ).filter((num: any) => typeof num === 'number' && !isNaN(num))
+                      : [];
+
+                    // Combine, deduplicate, and sort
+                    const allTeethNumbers = Array.from(new Set([...teethFromSelected, ...teethFromGroups])).sort((a, b) => a - b);
+
+                    // Defensive checks for dynamic fields
+                    const clinicName = typeof (dentalCase as any)?.clinicName === 'string' ? (dentalCase as any).clinicName : 'N/A';
+                    const department = typeof (dentalCase as any)?.department === 'string' ? (dentalCase as any).department : 'N/A';
+                    const lastStatus = typeof (dentalCase as any)?.lastStatus === 'string' ? (dentalCase as any).lastStatus : undefined;
+                    const createdAt = (dentalCase as any)?.createdAt ? new Date((dentalCase as any).createdAt).toLocaleDateString() : undefined;
+                    // Count all file types
+                    const filesCount =
+                      (Array.isArray((dentalCase as any)?.files) ? (dentalCase as any).files.length : 0) +
+                      (Array.isArray((dentalCase as any)?.intraOralScans) ? (dentalCase as any).intraOralScans.length : 0) +
+                      (Array.isArray((dentalCase as any)?.faceScans) ? (dentalCase as any).faceScans.length : 0) +
+                      (Array.isArray((dentalCase as any)?.patientPhotos) ? (dentalCase as any).patientPhotos.length : 0) +
+                      (Array.isArray((dentalCase as any)?.referralFiles) ? (dentalCase as any).referralFiles.length : 0);
+
+                    return (
+                      <TableRow key={dentalCase.id}>
+                        <TableCell className="font-medium">{(currentPage - 1) * pageSize + index + 1}</TableCell>
+                        <TableCell className="font-medium text-blue-600">{dentalCase.refId}</TableCell>
+                        <TableCell>{dentalCase.orderId}</TableCell>
+                        <TableCell>{clinicName !== 'N/A' ? clinicName : "Smile Dental"}</TableCell>
+                        <TableCell>{dentalCase.caseHandledBy}</TableCell>
+                        <TableCell>{dentalCase.firstName} {dentalCase.lastName}</TableCell>
+                        <TableCell>
+                          <Badge className={getOrderTypeColor(dentalCase.orderMethod)} variant="outline">
+                            {dentalCase.orderMethod}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getPrescriptionColor(dentalCase.prescriptionType)} variant="outline">
+                            {dentalCase.prescriptionType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <ProductDetailsPopOver products={dentalCase.restorationProducts || []} />
+                        </TableCell>
+                        <TableCell>{department}</TableCell>
+                        <TableCell>{dentalCase.technician || 'N/A'}</TableCell>
+                        <TableCell>{lastStatus || createdAt || 'N/A'}</TableCell>
+                        <TableCell>
+                          <CustomStatusLabel status={dentalCase.orderStatus} label={dentalCase.orderStatus} />
+                        </TableCell>
+                        <TableCell>
+                          {allTeethNumbers.length > 0 ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button className="text-xs font-medium">
+                                  Selected: {allTeethNumbers.length} teeth
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56">
+                                <div className="font-semibold mb-2">Selected Teeth ({allTeethNumbers.length})</div>
+                                <div className="text-sm">{allTeethNumbers.join(", ")}</div>
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <span className="text-gray-400 text-xs">No teeth</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="text-xs font-medium">
+                                {filesCount} files
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64">
+                              <div className="font-semibold mb-2">File Details</div>
+                              <ul className="space-y-1 text-sm">
+                                <li>
+                                  <span className="font-medium">General Files:</span> {Array.isArray((dentalCase as any)?.files) && (dentalCase as any).files.length > 0
+                                    ? (dentalCase as any).files.map((f: any, i: number) => f?.name || `File ${i + 1}`).join(', ')
+                                    : 'None'}
+                                </li>
+                                <li>
+                                  <span className="font-medium">IntraOral Scans:</span> {Array.isArray((dentalCase as any)?.intraOralScans) && (dentalCase as any).intraOralScans.length > 0
+                                    ? (dentalCase as any).intraOralScans.map((f: any, i: number) => f?.name || `Scan ${i + 1}`).join(', ')
+                                    : 'None'}
+                                </li>
+                                <li>
+                                  <span className="font-medium">Face Scans:</span> {Array.isArray((dentalCase as any)?.faceScans) && (dentalCase as any).faceScans.length > 0
+                                    ? (dentalCase as any).faceScans.map((f: any, i: number) => f?.name || `Face Scan ${i + 1}`).join(', ')
+                                    : 'None'}
+                                </li>
+                                <li>
+                                  <span className="font-medium">Patient Photos:</span> {Array.isArray((dentalCase as any)?.patientPhotos) && (dentalCase as any).patientPhotos.length > 0
+                                    ? (dentalCase as any).patientPhotos.map((f: any, i: number) => f?.name || `Photo ${i + 1}`).join(', ')
+                                    : 'None'}
+                                </li>
+                                <li>
+                                  <span className="font-medium">Referral Files:</span> {Array.isArray((dentalCase as any)?.referralFiles) && (dentalCase as any).referralFiles.length > 0
+                                    ? (dentalCase as any).referralFiles.map((f: any, i: number) => f?.name || `Referral ${i + 1}`).join(', ')
+                                    : 'None'}
+                                </li>
+                              </ul>
+                            </PopoverContent>
+                          </Popover>
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" onClick={() => openModal(dentalCase)}>Review</Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -413,20 +513,26 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
         {/* Pagination Info */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing 1 to 10 of {filteredCases.length} cases
+            {filteredCases.length === 0
+              ? "No cases"
+              : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredCases.length)} of ${filteredCases.length} cases`}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
               «
             </Button>
-            <Button variant="default" size="sm" className="bg-teal-600 hover:bg-teal-700">
-              1
-            </Button>
-            <Button variant="ghost" size="sm">2</Button>
-            <Button variant="ghost" size="sm">3</Button>
-            <span className="px-2">...</span>
-            <Button variant="ghost" size="sm">5</Button>
-            <Button variant="ghost" size="sm">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? "default" : "ghost"}
+                size="sm"
+                className={currentPage === page ? "bg-teal-600 hover:bg-teal-700" : ""}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button variant="ghost" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
               »
             </Button>
           </div>

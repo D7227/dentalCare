@@ -31,6 +31,7 @@ import OptionsMenu from "../common/OptionsMenu";
 import CircularProgress from "../common/CircularProgress";
 import { useAppSelector } from '@/store/hooks';
 import { useApiGet } from "@/hooks/useApi";
+import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
 
 interface OrderTableProps {
   onViewOrder?: (order: any) => void;
@@ -237,8 +238,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     const matchesSearch =
       searchTerm === "" ||
       patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
+      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase())
+    //  ||
+    // getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
 
     // Status filter
     let matchesStatusFilter = true;
@@ -306,6 +308,12 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
       matchesOrderTypeFilter
     );
   });
+
+  // Pagination state and logic (moved after filteredOrders)
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.ceil(filteredOrders.length / pageSize);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
 
   console.log('filteredOrders', filteredOrders)
@@ -538,7 +546,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order: any, index: number) => {
+                    {paginatedOrders.map((order: any, index: number) => {
                       const orderTeeth = getOrderTeeth(order?.id);
                       const toothGroups = getOrderToothGroups(order?.id);
                       // Get real unread count for this order's chat
@@ -546,8 +554,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       return (
                         <tr
                           key={order.id}
-                          className={`border-b hover:bg-gray-50 ${selectedOrder?.id === order?.id ? "bg-blue-50" : ""
-                            }`}
+                          className={`border-b hover:bg-gray-50 ${selectedOrder?.id === order?.id ? "bg-blue-50" : ""}`}
                         >
                           <td className="p-3 text-sm">{formatDate(order?.createdAt)}</td>
                           <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview")}>
@@ -556,19 +563,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                           <td className="p-3 text-sm">{order?.firstName} {order?.lastName}</td>
                           <td className="p-3 text-sm capitalize">{order?.prescriptionType}</td>
                           <td className="p-3 text-sm">
-                            {orderTeeth.length > 0 && (
-                              <div>
-                                <div className="font-medium">
-                                  {orderTeeth.length > 2
-                                    ? `E-max 10 yr x ${orderTeeth.length}`
-                                    : `E-max 10 yr x ${orderTeeth.length}`
-                                  }
-                                </div>
-                                {/* <div className="text-xs text-gray-500">
-                                  USD / Export Quality
-                                </div> */}
-                              </div>
-                            )}
+                            <ProductDetailsPopOver products={order.restorationProducts || []} />
                           </td>
                           <td className="p-3 text-sm text-center">
                             {/* Circular Progress UI */}
@@ -651,26 +646,32 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 {/* Pagination */}
                 <div className="flex items-center justify-between px-4 py-3 border-t">
                   <div className="text-sm text-gray-500">
-                    Showing 1 to {Math.min(12, filteredOrders.length)} of {filteredOrders.length} entries
+                    {filteredOrders.length === 0
+                      ? "No entries"
+                      : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredOrders.length)} of ${filteredOrders.length} entries`}
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50" disabled>
+                    <button
+                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
                       ←
                     </button>
-                    <button className="px-3 py-1 text-sm bg-teal-600 text-white rounded">
-                      1
-                    </button>
-                    <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
-                      2
-                    </button>
-                    <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
-                      3
-                    </button>
-                    <span className="px-2 text-sm text-gray-500">...</span>
-                    <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
-                      10
-                    </button>
-                    <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === page ? "bg-teal-600 text-white" : ""}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
                       →
                     </button>
                   </div>

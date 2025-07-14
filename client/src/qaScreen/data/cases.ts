@@ -46,6 +46,7 @@ export type FileCategory = {
 };
 
 export type DentalCase = {
+  technician: string;
   id: string;
   refId: string;
   orderId: string;
