@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import BillingStatCard from "@/components/ui/BillingStatCard.tsx";
+import BillingStatCard from "@/doctor/components/billing/BillingStatCard";
 import { Button } from "@/components/ui/button";
 import { FileChartColumnIncreasing } from "lucide-react";
 import {
@@ -11,7 +11,7 @@ import {
   CreditCard,
   Eye, // <- add this
 } from "lucide-react";
-import CustomButton from "../common/customButtom";
+import CustomButton from "../../../components/common/customButtom";
 import SettlementModal from "./SettlementModal";
 
 interface BillingOverviewProps {

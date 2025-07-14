@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Users, Package, Search, MoreVertical, Plus, HeadphonesIcon, UserPlus, Shield, Archive, Settings, Bell, BellOff, MessageCircle, X, Info } from 'lucide-react';
@@ -12,9 +11,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAppSelector, hasPermission } from '@/store/hooks';
-import ChatModule from './ChatModule';
+import ChatModule from '../../components/chat/ChatModule';
 import { useSocket } from '@/contexts/SocketContext';
-import { v4 as uuidv4 } from 'uuid';
 
 interface ChatItem {
   id: string;

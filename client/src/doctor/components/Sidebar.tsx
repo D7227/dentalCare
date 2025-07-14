@@ -7,9 +7,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import logoImage from '@/assets/logo.png';
 import Small_Logo from '@/assets/Small_Logo.png';
 import { useClinicMembers } from '@/hooks/useClinicMembers';
-import LoadingSpinner from './shared/LoadingSpinner';
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import LayoutConstants from '@/utils/staticValue';
+import LayoutConstants from '@/doctor/utils/staticValue';
 import { useLocation } from 'wouter';
 import { logout } from '@/store/slices/authSlice';
 import { clearReduxPersist } from '@/store/utils';

@@ -1,32 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
-  Clock,
   Search,
-  Loader2,
   FileText,
-  Calendar,
-  RefreshCw,
   XCircle,
-  MessageSquare,
-  CreditCard,
-  CheckCircle2,
-  Plus,
-  MessageCircle,
-  Package,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import OrderDetailView from "@/components/OrderDetailView";
-import { OrderStatusBadge } from "../shared/OrderStatusBadge";
-import { DoctorInfo } from "../shared/DoctorInfo";
-import { ToothSummary } from "../shared/ToothSummary";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import OrderDetailView from "@/components/orders/OrderDetailView.tsx";
 import { useApiGet } from "@/hooks/useApi";
 import DropdownSelector from "../common/DropdownSelector";
-import TabNavButtons from "../common/TabNavButtons";
 import { DentalOrder, OrderCard } from "./OrderCard.tsx";
 import { useAppSelector } from '@/store/hooks';
 // import CustomStatusLabel from '../common/CustomStatusLabel';

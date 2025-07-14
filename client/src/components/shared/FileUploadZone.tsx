@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Upload, X, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { UploadedFile } from './shared/FileUploader';
+import { UploadedFile } from './FileUploader';
 
 interface FileUploadZoneProps {
   files: UploadedFile[];
@@ -46,7 +46,7 @@ const FileUploadZone = ({
     // In a real implementation, this would upload to your server or cloud storage
     // For now, we'll create a blob URL as a placeholder
     const url = URL.createObjectURL(file);
-    
+
     return {
       fileName: file.name,
       fileType: file.type,
@@ -85,7 +85,7 @@ const FileUploadZone = ({
       });
     } else {
       setErrors([]);
-      
+
       // Convert files to UploadedFile format
       Promise.all(validFiles.map(file => uploadFile(file)))
         .then(uploadedFiles => {
@@ -151,11 +151,10 @@ const FileUploadZone = ({
     <div className={`space-y-4 ${className}`}>
       {/* Upload Zone */}
       <div
-        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-          dragActive
+        className={`border-2 border-dashed rounded-lg p-6 transition-colors ${dragActive
             ? 'border-primary bg-primary/5'
             : 'border-border hover:border-primary/50'
-        }`}
+          }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

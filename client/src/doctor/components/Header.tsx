@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, Bell, MessageCircle, RefreshCw, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -11,7 +10,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import ThemeToggle from './ThemeToggle';
+import ThemeToggle from '../../components/common/ThemeToggle';
 
 interface HeaderProps {
   doctorName: string;

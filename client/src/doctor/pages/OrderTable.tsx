@@ -22,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import OrderDetailView from "@/components/OrderDetailView";
-import { OrderStatusBadge } from "../shared/OrderStatusBadge";
+import OrderDetailView from "@/components/orders/OrderDetailView";
+import { OrderStatusBadge } from "../../components/shared/OrderStatusBadge";
 import { useQuery } from "@tanstack/react-query";
-import CustomStatusBatch from "../common/customStatusBatch";
-import CustomStatusLabel from "../common/customStatusLabel";
-import OptionsMenu from "../common/OptionsMenu";
-import CircularProgress from "../common/CircularProgress";
+import CustomStatusBatch from "../../components/common/customStatusBatch";
+import CustomStatusLabel from "../../components/common/customStatusLabel";
+import OptionsMenu from "../../components/common/OptionsMenu";
+import CircularProgress from "../../components/common/CircularProgress";
 import { useAppSelector } from '@/store/hooks';
 import { useApiGet } from "@/hooks/useApi";
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";

@@ -16,13 +16,13 @@ import {
   FileChartColumnIncreasing,
   MessageCircle,
 } from "lucide-react";
-import ChatModule from "./chat/ChatModule";
+import ChatModule from "../chat/ChatModule";
 import { useToast } from "@/hooks/use-toast";
-import OverviewTab from "./orders/tabs/OverviewTab";
-import PickupTab from "./orders/tabs/PickupTab";
-import PaymentTab from "./orders/tabs/PaymentTab";
+import OverviewTab from "./tabs/OverviewTab";
+import PickupTab from "./tabs/PickupTab";
+import PaymentTab from "./tabs/PaymentTab";
 import { useAppSelector } from "@/store/hooks";
-import { getLifecycleStages } from "./shared/progress/lifecycleData";
+import { getLifecycleStages } from "../shared/progress/lifecycleData";
 
 interface OrderDetailViewProps {
   isOpen: boolean;

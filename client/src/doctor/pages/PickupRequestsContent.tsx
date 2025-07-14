@@ -4,9 +4,9 @@ import { Plus, Clock, CheckCircle, AlertCircle, Calendar, User } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import PickupRequestModal from './PickupRequestModal';
-import ReschedulePickupModal from './ReschedulePickupModal';
-import CancelPickupModal from './CancelPickupModal';
+import PickupRequestModal from '../components/pickup/PickupRequestModal';
+import ReschedulePickupModal from '../components/pickup/ReschedulePickupModal';
+import CancelPickupModal from '../components/pickup/CancelPickupModal';
 
 interface PickupRequest {
   id: string;

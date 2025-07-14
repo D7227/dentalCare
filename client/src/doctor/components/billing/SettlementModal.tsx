@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import CashCollectionModal from "../billing/CashCollectionModal";
-import ChequeCollectionModal from "../billing/ChequeCollectionModal";
-import SelfCashDepositModal from "../billing/SelfCashDepositModal";
-import PartPaymentModal from "../billing/PartPaymentModal";
+import CashCollectionModal from "./CashCollectionModal";
+import ChequeCollectionModal from "./ChequeCollectionModal";
+import SelfCashDepositModal from "./SelfCashDepositModal";
+import PartPaymentModal from "./PartPaymentModal";
 
 interface SettlementModalProps {
     isOpen: boolean;

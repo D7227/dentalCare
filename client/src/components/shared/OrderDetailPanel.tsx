@@ -1,6 +1,6 @@
 
 import React from 'react';
-import OrderDetailView from '../OrderDetailView';
+import OrderDetailView from '../orders/OrderDetailView';
 import { FileText } from 'lucide-react';
 import { OrderData } from '../../types';
 

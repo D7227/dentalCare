@@ -1,45 +1,18 @@
-
+//  TODO: set the daynamic Data and mange the type
 import React, { useState } from 'react';
-import StatsModal from './modals/StatsModal';
-import { ordersData } from '@/data/ordersData';
+import StatsModal from './StatsModal';
 import FigmaStatCard from '@/components/ui/FigmaStatCard';
 import { bigCard1, bigCard2, bigCard3, card1, card2, card3, icon_1, icon_2, icon_3, icon_4, icon_5, icon_6 } from '@/assets/svg';
-// import { CustomCard } from '../common/CustomCard';
 
 const StatsCards = () => {
   const [selectedStat, setSelectedStat] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const activeCases = ordersData.filter(order =>
-    ['In Progress', 'New', 'Trial Work Ready'].includes(order.status)
-  );
-  
-  const arrivingToday = ordersData.filter(order => 
-    order.status === 'Trial Work Ready' || order.status === 'Completed'
-  );
-
-  const scanAppointments = [
-    {
-      id: 'SCAN-001',
-      patient: 'John Smith',
-      type: 'Full Arch Scan',
-      status: 'New',
-      date: '2024-01-20',
-      dueDate: '2024-01-20',
-      urgency: 'standard' as const,
-      time: '10:00 AM'
-    }
-  ];
-  
-  const pickupRequests = ordersData.filter(order => 
-    order.status === 'Trial Work Ready'
-  );
-
-  const stats:any = [
+  const stats: any = [
     {
       title: 'Draft',
-      value: activeCases.length,
-      data: activeCases,
+      value: 0,
+      data: 0,
       key: 'active',
       iconSrc: icon_1,
       backgroundSrc: card1,
@@ -47,8 +20,8 @@ const StatsCards = () => {
     },
     {
       title: 'Pending approval case',
-      value: arrivingToday.length,
-      data: arrivingToday,
+      value: 0,
+      data: 0,
       key: 'arriving',
       iconSrc: icon_2,
       backgroundSrc: card2,
@@ -56,8 +29,8 @@ const StatsCards = () => {
     },
     {
       title: 'Active cases',
-      value: scanAppointments.length,
-      data: scanAppointments,
+      value: 0,
+      data: 0,
       key: 'appointments',
       iconSrc: icon_3,
       backgroundSrc: card3,
@@ -65,8 +38,8 @@ const StatsCards = () => {
     },
     {
       title: 'Orders Arriving today',
-      value: pickupRequests.length,
-      data: pickupRequests,
+      value: 0,
+      data: 0,
       key: 'pickup',
       iconSrc: icon_4,
       backgroundSrc: card1,
@@ -74,8 +47,8 @@ const StatsCards = () => {
     },
     {
       title: 'Delivered',
-      value: pickupRequests.length,
-      data: pickupRequests,
+      value: 0,
+      data: 0,
       key: 'pickup',
       iconSrc: icon_5,
       backgroundSrc: card2,
@@ -83,8 +56,8 @@ const StatsCards = () => {
     },
     {
       title: 'Total Order',
-      value: pickupRequests.length,
-      data: pickupRequests,
+      value: 0,
+      data: 0,
       key: 'pickup',
       iconSrc: icon_6,
       backgroundSrc: card3,
@@ -97,8 +70,8 @@ const StatsCards = () => {
     setIsModalOpen(true);
   };
 
-  const getModalData = () => stats.find(s => s.key === selectedStat)?.data || [];
-  const getModalTitle = () => stats.find(s => s.key === selectedStat)?.title || '';
+  const getModalData = () => stats.find((s: any) => s.key === selectedStat)?.data || [];
+  const getModalTitle = () => stats.find((s: any) => s.key === selectedStat)?.title || '';
 
   return (
     <>

@@ -5,12 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X, Shield, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import FileUploader from '@/components/shared/FileUploader';
 import { useOrders } from '@/hooks/shared/useOrders';
-import { OrderData } from '@/types';
 
 interface RepairOrderFlowProps {
   currentStep: number;

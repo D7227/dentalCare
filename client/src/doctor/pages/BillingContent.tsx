@@ -12,12 +12,10 @@ import {
   Download,
   Eye
 } from 'lucide-react';
-import CashCollectionModal from './CashCollectionModal';
-import InvoiceDetailModal from './InvoiceDetailModal';
-import StatementContent from './StatementContent';
-import { DoctorInfo } from '../shared/DoctorInfo';
-import { ToothSummary } from '../shared/ToothSummary';
-import BillingOverview from '../dashboard/BillingOverview';
+import CashCollectionModal from '../components/billing/CashCollectionModal';
+import InvoiceDetailModal from '../components/billing/InvoiceDetailModal';
+import StatementContent from '../components/billing/StatementContent';
+import BillingOverview from '../components/billing/BillingOverview';
 import { useOrders } from '../../hooks/shared/useOrders';
 
 const BillingContent = () => {

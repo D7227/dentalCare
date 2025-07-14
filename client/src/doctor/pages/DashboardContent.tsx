@@ -1,16 +1,15 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import OrderDetailView from "./OrderDetailView";
-import StatsCards from "./dashboard/StatsCards";
-import OrdersContent from "./orders/OrdersContent";
-import QuickActionsCard from "./dashboard/QuickActionsCard";
-import BillingOverview from "./dashboard/BillingOverview";
-import PaymentOptionModal from "./shared/PaymentOptionModal";
-import ScanBookingConfirmationModal from "./shared/ScanBookingConfirmationModal";
-import { useOrders } from "../hooks/shared/useOrders";
+import OrderDetailView from "../../components/orders/OrderDetailView";
+import StatsCards from "../components/StatsCards";
+import OrdersContent from "../../components/orders/OrdersContent";
+import QuickActionsCard from "../components/QuickActionsCard";
+import BillingOverview from "../components/billing/BillingOverview";
+import PaymentOptionModal from "../../components/shared/PaymentOptionModal";
+import ScanBookingConfirmationModal from "../../components/shared/ScanBookingConfirmationModal";
+import { useOrders } from "../../hooks/shared/useOrders";
 import { tooth } from "@/assets/svg";
-import CustomButton from "./common/customButtom";
+import CustomButton from "../../components/common/customButtom";
 
 interface DashboardContentProps {
   onNewCase: () => void;

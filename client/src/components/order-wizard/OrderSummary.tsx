@@ -1,11 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Edit2, CheckCircle, Plus, FileChartColumnIncreasing, User, ArchiveRestore, Wrench, FileText, Edit } from 'lucide-react';
 import { OrderCategoryType } from './types/orderTypes';
 import ToothChart from './components/ToothChart';
-import { DoctorInfo } from '../shared/DoctorInfo';
-import { ToothSummary } from '../shared/ToothSummary';
 import { CrownBridgeTeeth, ImpantTeeth } from '@/assets/svg';
 import { convertToLegacyGroups } from './ToothSelector';
 
