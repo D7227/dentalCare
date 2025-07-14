@@ -39,7 +39,7 @@ interface NewOrderFlowProps {
   setFormData: (data: any) => void;
   onAddMoreProducts?: () => void;
   onSaveOrder?: (orderData: any) => void;
-  setCurrentStep?: any
+  setCurrentStep?: any;
 }
 
 // Helper to build deduplicated, prioritized group list for summary
@@ -69,7 +69,7 @@ function buildSummaryGroups(toothGroups: any[], selectedTeeth: any[]) {
     });
   // Then individual teeth
   const individualTeeth = selectedTeeth.filter(
-    (t: any) => !usedTeeth.has(t.toothNumber),
+    (t: any) => !usedTeeth.has(t.toothNumber)
   );
   if (individualTeeth.length > 0) {
     summaryGroups.push({
@@ -247,7 +247,7 @@ const NewOrderFlow = ({
   setFormData,
   onAddMoreProducts,
   onSaveOrder,
-  setCurrentStep
+  setCurrentStep,
 }: NewOrderFlowProps) => {
   const [companies, setCompanies] = useState<
     Array<{ id: string; name: string }>
@@ -408,70 +408,118 @@ const NewOrderFlow = ({
               <div className="flex flex-col gap-6">
                 {/* Intra oral scans */}
                 <div>
-                  <Label className="text-base font-medium">Intra oral scans (STL/PLY)</Label>
+                  <Label className="text-base font-medium">
+                    Intra oral scans (STL/PLY)
+                  </Label>
                   <Input
                     type="file"
                     accept=".stl,.ply"
                     multiple
-                    onChange={e => setFormData({ ...formData, intraOralScans: Array.from(e.target.files || []) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        intraOralScans: Array.from(e.target.files || []),
+                      })
+                    }
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.intraOralScans || []).map((file: any, idx: number) => (
-                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                    {(formData.intraOralScans || []).map(
+                      (file: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="text-xs text-gray-700 flex items-center gap-2"
+                        >
                           {file.name}
                         </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
                 {/* Face scans */}
                 <div>
-                  <Label className="text-base font-medium">Face scans (JPG/PNG)</Label>
+                  <Label className="text-base font-medium">
+                    Face scans (JPG/PNG)
+                  </Label>
                   <Input
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, faceScans: Array.from(e.target.files || []) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        faceScans: Array.from(e.target.files || []),
+                      })
+                    }
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.faceScans || []).map((file: any, idx: number) => (
-                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                    {(formData.faceScans || []).map(
+                      (file: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="text-xs text-gray-700 flex items-center gap-2"
+                        >
                           {file.name}
                         </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
                 {/* Patient photos */}
                 <div>
-                  <Label className="text-base font-medium">Add patient photos (JPG/PNG)</Label>
+                  <Label className="text-base font-medium">
+                    Add patient photos (JPG/PNG)
+                  </Label>
                   <Input
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, patientPhotos: Array.from(e.target.files || []) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        patientPhotos: Array.from(e.target.files || []),
+                      })
+                    }
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.patientPhotos || []).map((file: any, idx: number) => (
-                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                    {(formData.patientPhotos || []).map(
+                      (file: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="text-xs text-gray-700 flex items-center gap-2"
+                        >
                           {file.name}
                         </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
                 {/* Referral files */}
                 <div>
-                  <Label className="text-base font-medium">Referral images/docs (PDF/JPG/PNG)</Label>
+                  <Label className="text-base font-medium">
+                    Referral images/docs (PDF/JPG/PNG)
+                  </Label>
                   <Input
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, referralFiles: Array.from(e.target.files || []) })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        referralFiles: Array.from(e.target.files || []),
+                      })
+                    }
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.referralFiles || []).map((file: any, idx: number) => (
-                      <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
+                    {(formData.referralFiles || []).map(
+                      (file: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="text-xs text-gray-700 flex items-center gap-2"
+                        >
                           {file.name}
                         </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -482,10 +530,10 @@ const NewOrderFlow = ({
                   style={{
                     width: 400,
                     height: 400,
-                    border: '1px solid #ccc',
+                    border: "1px solid #ccc",
                     borderRadius: 8,
-                    backgroundColor: '#000', // black background
-                    overflow: 'hidden',
+                    backgroundColor: "#000", // black background
+                    overflow: "hidden",
                   }}
                 >
                   {(formData.intraOralScans || []).length > 0 ? (
@@ -498,17 +546,17 @@ const NewOrderFlow = ({
                 </div>
               </div>
             </div>
-          </CardContent >
-        </Card >
+          </CardContent>
+        </Card>
         <AccessorySelection formData={formData} setFormData={setFormData} />
-      </div >
+      </div>
     );
   }
   // Step 7: Final Details & Accessories
   if (currentStep === 7) {
     const summaryGroups = buildSummaryGroups(
       formData.toothGroups || [],
-      formData.selectedTeeth || [],
+      formData.selectedTeeth || []
     );
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -624,8 +672,8 @@ const NewOrderFlow = ({
                     {formData.prescriptionType === "crown-bridge"
                       ? "Crown and Bridge"
                       : formData.prescriptionType === "implant"
-                        ? "Implant"
-                        : "Not specified"}
+                      ? "Implant"
+                      : "Not specified"}
                   </p>
                 </div>
                 <div>
@@ -636,8 +684,8 @@ const NewOrderFlow = ({
                     {formData.orderMethod === "digital"
                       ? "Digital"
                       : formData.orderMethod === "manual"
-                        ? "Manual"
-                        : "Not specified"}
+                      ? "Manual"
+                      : "Not specified"}
                   </p>
                 </div>
               </div>
@@ -664,7 +712,7 @@ const NewOrderFlow = ({
                 </Label>
                 <p className="text-xs sm:text-sm text-gray-600">
                   {formData.restoration_products &&
-                    formData.restoration_products.length > 0
+                  formData.restoration_products.length > 0
                     ? `${formData.restoration_products.length} product(s) selected`
                     : "No products selected"}
                 </p>
@@ -710,63 +758,63 @@ const NewOrderFlow = ({
             {(formData.pickupDate ||
               formData.pickupTime ||
               formData.scanBooking) && (
-                <div className="border-b pb-4">
-                  <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">
-                    Pickup/Scan Information
-                  </h4>
-                  {formData.orderType === "pickup-from-lab" && (
+              <div className="border-b pb-4">
+                <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">
+                  Pickup/Scan Information
+                </h4>
+                {formData.orderType === "pickup-from-lab" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                      <Label className="font-medium text-xs sm:text-sm">
+                        Pickup Date:
+                      </Label>
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        {formData.pickupDate || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="font-medium text-xs sm:text-sm">
+                        Pickup Time:
+                      </Label>
+                      <p className="text-xs sm:text-sm text-gray-600">
+                        {formData.pickupTime || "Not specified"}
+                      </p>
+                    </div>
+                    {formData.pickupRemarks && (
+                      <div className="col-span-1 sm:col-span-2">
+                        <Label className="font-medium text-xs sm:text-sm">
+                          Pickup Remarks:
+                        </Label>
+                        <p className="text-xs sm:text-sm text-gray-600">
+                          {formData.pickupRemarks}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {formData.orderType === "send-by-courier" &&
+                  formData.scanBooking && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
                         <Label className="font-medium text-xs sm:text-sm">
-                          Pickup Date:
+                          Courier Name:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.pickupDate || "Not specified"}
+                          {formData.scanBooking.courierName || "Not specified"}
                         </p>
                       </div>
                       <div>
                         <Label className="font-medium text-xs sm:text-sm">
-                          Pickup Time:
+                          Tracking ID:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.pickupTime || "Not specified"}
+                          {formData.scanBooking.trackingId || "Not specified"}
                         </p>
                       </div>
-                      {formData.pickupRemarks && (
-                        <div className="col-span-1 sm:col-span-2">
-                          <Label className="font-medium text-xs sm:text-sm">
-                            Pickup Remarks:
-                          </Label>
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.pickupRemarks}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   )}
-                  {formData.orderType === "send-by-courier" &&
-                    formData.scanBooking && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <Label className="font-medium text-xs sm:text-sm">
-                            Courier Name:
-                          </Label>
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.scanBooking.courierName || "Not specified"}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="font-medium text-xs sm:text-sm">
-                            Tracking ID:
-                          </Label>
-                          <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.scanBooking.trackingId || "Not specified"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                </div>
-              )}
+              </div>
+            )}
 
             {/* Notes Summary */}
             {formData.notes && (

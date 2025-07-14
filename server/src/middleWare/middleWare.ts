@@ -3,12 +3,13 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export function authMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   // Allow login and register endpoints without auth
-  if (
-    req.path === "/login" ||
-    req.path === "/register"
-  ) {
+  if (req.path === "/login" || req.path === "/register") {
     return next();
   }
 

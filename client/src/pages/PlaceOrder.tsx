@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,10 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import OrderCategoryStep from "@/components/order-wizard/OrderCategoryStep";
-import NewOrderFlow, {
-  // createOrderObject,
-  // createOrderObject,
-} from "@/components/order-wizard/NewOrderFlow";
+import NewOrderFlow from "@/components/order-wizard/NewOrderFlow";
 import RepeatOrderFlow from "@/components/order-wizard/RepeatOrderFlow";
 import RepairOrderFlow from "@/components/order-wizard/RepairOrderFlow";
 import AccessoryTagging from "@/components/order-wizard/AccessoryTagging";
@@ -24,50 +21,51 @@ import OrderSummary from "@/components/order-wizard/OrderSummary";
 import WizardProgress from "@/components/order-wizard/WizardProgress";
 import { useOrderValidation } from "@/components/order-wizard/hooks/useOrderValidation";
 import { useOrderSteps } from "@/components/order-wizard/hooks/useOrderSteps";
-import {
-  OrderCategoryType,
-  FormData,
-} from "@/components/order-wizard/types/orderTypes";
+import { OrderCategoryType } from "@/components/order-wizard/types/orderTypes";
 import CustomButton from "@/components/common/customButtom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/slices/authSlice";
+import { setOrder, setStep, resetOrder } from "@/store/slices/orderLocalSlice";
+import {
+  useCreateOrderMutation,
+  useUpdateOrderMutation,
+} from "@/store/slices/orderApi";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { OrderType } from "@/types/orderType";
 import { createOrderObject } from "@/utils/orderHelper";
-
-interface ToothGroup {
-  groupId: string;
-  teeth: number[];
-  type: "individual" | "connected";
-  notes: string;
-  material: string;
-  shade: string;
-  warning?: string;
-}
 
 const PlaceOrder = () => {
   const [location, setLocation] = useLocation();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [orderCategory, setOrderCategory] = useState<OrderCategoryType>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [stepValidationErrors, setStepValidationErrors] = useState<
-    Record<number, string[]>
-  >({});
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
-
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
 
-  // Get clinicId from Redux store
+  // Redux state
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const clinicId = user?.clinicId;
+  const { order, step } = useAppSelector((state) => state.orderLocal);
+  const [createOrder, { isLoading: isSubmitting }] = useCreateOrderMutation();
+  const [updateOrder] = useUpdateOrderMutation();
 
-  // Check authentication and restore user data from localStorage on component mount
+  console.log("order, step ", order, step);
+
+  // Handle the New | Repeat | Repair
+  const [orderCategory, setOrderCategory] = React.useState<OrderCategoryType>(
+    order?.orderType || null
+  );
+  // Handle CancelOrder Model
+  const [showCancelModal, setShowCancelModal] = React.useState(false);
+  const [stepValidationErrors, setStepValidationErrors] = React.useState<
+    Record<number, string[]>
+  >({});
+  const [isAuthChecking, setIsAuthChecking] = React.useState(true);
+  const [selectedOrderId, setSelectedOrderId] = React.useState<string>(
+    order?.orderId || ""
+  );
+
+  // Restore persisted user on mount
   useEffect(() => {
     if (!isAuthenticated) {
       const storedUser = localStorage.getItem("user");
@@ -76,355 +74,311 @@ const PlaceOrder = () => {
           const userData = JSON.parse(storedUser);
           dispatch(setUser(userData));
         } catch (error) {
-          console.error("Error parsing stored user data:", error);
-          // If stored data is invalid, redirect to login
           setLocation("/login");
         }
       } else {
-        // No stored user data, redirect to login
         setLocation("/login");
       }
     }
     setIsAuthChecking(false);
   }, [isAuthenticated, dispatch, setLocation]);
 
-  const [formData, setFormData] = useState<FormData>({
-    id: '',
-    orderId: '',
-    refId: '',
-    category: null,
-    type: null,
-    firstName: '',
-    lastName: '',
-    age: '',
-    sex: '',
-    caseHandledBy: '',
-    doctorMobile: '',
-    consultingDoctor: '',
-    consultingDoctorMobile: '',
-    orderMethod: '' as any,
-    prescriptionType: '',
-    subcategoryType: '',
-    restorationType: null,
-    productSelection: null,
-    orderType: '',
-    selectedFileType: null,
-    selectedTeeth: [],
-    toothGroups: [],
-    toothNumbers: [],
-    abutmentDetails: {
-      abutmentType: '',
-      quantity: 0,
-      product: [{ name: '', provider: '' }]
-    },
-    clinicId: '',
-    abutmentType: '',
-    restorationProducts: [],
-    ponticDesign: null,
-    occlusalStaining: 'medium',
-    shadeInstruction: null,
-    clearance: null,
-    accessories: [],
-    otherAccessory: null,
-    returnAccessories: false,
-    notes: null,
-    files: [],
-    expectedDeliveryDate: null,
-    pickupDate: null,
-    pickupTime: null,
-    pickupRemarks: null,
-    scanBooking: {
-      areaManagerId: '',
-      scanDate: '',
-      scanTime: '',
-      notes: '',
-      trackingId: '',
-      courierName: ''
-    },
-    previousOrderId: null,
-    repairOrderId: null,
-    issueDescription: null,
-    repairType: null,
-    returnWithTrial: false,
-    teethEditedByUser: false,
-    intraOralScans: [],
-    faceScans: [],
-    patientPhotos: [],
-    referralFiles: [],
+  // Restore order/step from Redux on mount
+  useEffect(() => {
+    if (order?.orderType)
+      setOrderCategory(order.orderType as OrderCategoryType);
+    if (order?.orderId) setSelectedOrderId(order.orderId);
+  }, [order]);
 
-    // --- Order display fields (for OrderCard) ---
-    orderStatus: 'pending',
-    percentage: 10,
-    isUrgent: false,
-    currency: 'INR',
-    exportQuality: 'Standard',
-    paymentStatus: 'pending',
-    totalAmount: "6565",
-  });
-
-  // Update clinicId when Redux data becomes available
-  // useEffect(() => {
-  //   if (clinicId || clinicId === '') {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       clinicId: clinicId,
-  //     }));
-  //   }
-  // }, [clinicId]);
-
-  const getHasSelectedTeeth = () => {
-    if (orderCategory !== "repeat") return false;
-    return formData.teethEditedByUser === true;
-  };
-
-  const hasSelectedTeeth = getHasSelectedTeeth();
-  const steps = getStepsForCategory(orderCategory, hasSelectedTeeth);
+  // Wizard steps
+  const orderData: Partial<OrderType> = order;
+  const steps = getStepsForCategory(orderCategory, false);
   const maxSteps = steps.length - 1;
 
+  // Step validation
   const validateCurrentStep = (): boolean => {
-    const errors = validateStep(currentStep, orderCategory, formData);
-    setStepValidationErrors((prev) => ({ ...prev, [currentStep]: errors }));
+    // Only validate if step > 0 (skip validation for category selection)
+    if (step === 0) return true;
+    const errors = validateStep(step, orderCategory, orderData);
+    console.log("errors", errors);
+    setStepValidationErrors((prev) => ({ ...prev, [step]: errors }));
     return errors.length === 0;
   };
 
+  // Category selection
   const handleCategorySelect = (category: OrderCategoryType) => {
     setOrderCategory(category);
-    setFormData({ ...formData, category });
-    setCurrentStep(1);
+    if (category) handleOrderChange({ orderType: category });
+    dispatch(setStep(1));
     setStepValidationErrors({});
   };
 
+  // Add more products
   const handleAddMoreProducts = () => {
-    // Go back to step 2 (prescription type selection) to add another product group
-    setCurrentStep(2);
-    // Clear current prescription and order method for new selection
-    setFormData({
-      ...formData,
-      prescriptionType: '',
-      type: 'new',
-      orderType: ''
-    });
+    dispatch(setStep(2));
+    handleOrderChange({ prescriptionTypesId: [], orderType: "new" });
   };
 
-  const handleSaveOrder = (orderData: any) => {
-    // This function will be called from NewOrderFlow when user wants to save the order
-    // console.log("Saving comprehensive order:", orderData);
-    // You can implement the save logic here or call the existing handleSubmit
-    handleSubmit(new Event('submit') as any);
+  // Save order (from NewOrderFlow)
+  const handleSaveOrder = () => {
+    handleSubmit(new Event("submit") as any);
   };
 
+  // Submit order
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateCurrentStep()) {
+    console.log("order", order);
+    // e.preventDefault();
+    // if (!validateCurrentStep()) {
+    //   // Show validation errors in a toast
+    //   const errors = stepValidationErrors[step] || [];
+    //   if (errors.length > 0) {
+    //     toast({
+    //       title: "Validation Errors",
+    //       description: `<ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>`,
+    //       variant: "destructive",
+    //     });
+    //   }
+    //   return;
+    // }
+    // try {
+    //   if (orderCategory === "repair") {
+    //     // Set required fields for repair
+    //     const formData: any = { ...order };
+    //     formData.category = "repair";
+    //     formData.type = "repair";
+    //     if (!formData.clinicId) formData.clinicId = user?.clinicId || '';
+    //     const orderData = createOrderObject(formData, user?.clinicId || '');
+    //     const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
+    //       method: 'PUT',
+    //       headers: {
+    //         'Content-Type': 'application/json',
+    //       },
+    //       body: JSON.stringify(orderData),
+    //     });
+    //     if (!updateResponse.ok) {
+    //       throw new Error('Failed to update order');
+    //     }
+    //     const updatedOrder = await updateResponse.json();
+    //     queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+    //     toast({
+    //       title: "Order updated successfully!",
+    //       description: `Order #${updatedOrder.id} has been updated.`,
+    //     });
+    //     window.history.back();
+    //     return;
+    //   }
+    //   if (orderCategory === 'repeat') {
+    //     if (!selectedOrderId) {
+    //       toast({
+    //         title: "Update Error",
+    //         description: "No order ID found for update.",
+    //         variant: "destructive"
+    //       });
+    //       return;
+    //     }
+    //     const formData: any = { ...order };
+    //     formData.category = "repeat";
+    //     formData.type = "repeat";
+    //     if (!formData.clinicId) formData.clinicId = user?.clinicId || '';
+    //     const orderData = createOrderObject(formData, user?.clinicId || "");
+    //     const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
+    //       method: "PUT",
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //       body: JSON.stringify(orderData),
+    //     });
+    //     if (!updateResponse.ok) {
+    //       throw new Error('Failed to update order');
+    //     }
+    //     const updatedOrder = await updateResponse.json();
+    //     queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+    //     toast({
+    //       title: "Order updated successfully!",
+    //       description: `Order #${updatedOrder.id} has been updated.`,
+    //     });
+    //     window.history.back();
+    //     return;
+    //   }
+    //   // New order logic
+    //   const formData: any = { ...order };
+    //   formData.accessories = [];
+    //   formData.orderStatus = 'pending';
+    //   formData.percentage = 10;
+    //   formData.type = formData.type || "new";
+    //   if (!formData.clinicId) formData.clinicId = user?.clinicId || '';
+    //   const orderData = createOrderObject(formData, user?.clinicId || "");
+    //   const orderResponse = await fetch('/api/orders', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(orderData),
+    //   });
+    //   if (!orderResponse.ok) {
+    //     throw new Error('Failed to create order');
+    //   }
+    //   const orderResult = await orderResponse.json();
+    //   // Create tooth groups for the order
+    //   if (formData.toothGroups && formData.toothGroups.length > 0) {
+    //     for (const toothGroup of formData.toothGroups) {
+    //       const toothGroupData = {
+    //         orderId: orderResult.id,
+    //         groupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    //         teeth: toothGroup.teethDetails?.flat().map((detail: any) => detail.teethNumber) || [],
+    //         type: toothGroup.groupType || "separate",
+    //         notes: toothGroup.shadeNotes || "",
+    //         material: toothGroup.selectedProducts?.[0]?.material || "",
+    //         shade: toothGroup.shadeDetails || "",
+    //       };
+    //       try {
+    //         const response = await fetch('/api/tooth-groups', {
+    //           method: 'POST',
+    //           headers: {
+    //             'Content-Type': 'application/json',
+    //           },
+    //           body: JSON.stringify(toothGroupData),
+    //         });
+    //         if (!response.ok) {
+    //           const errorData = await response.json();
+    //           console.error('Failed to create tooth group:', errorData);
+    //         }
+    //       } catch (error) {
+    //         console.error('Error creating tooth group:', error);
+    //       }
+    //     }
+    //   }
+    //   queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+    //   toast({
+    //     title: "Order submitted successfully!",
+    //     description: `Order #${orderResult.id} has been sent to the lab for processing.`
+    //   });
+    //   window.history.back();
+    // } catch (error) {
+    //   console.error('Order submission error:', error);
+    //   toast({
+    //     title: "Submission Error",
+    //     description: "There was an error submitting your order. Please try again.",
+    //     variant: "destructive"
+    //   });
+    // }
+  };
+
+  // Step navigation
+  const nextStep = () => {
+    const isValid = validateCurrentStep();
+    const errors = stepValidationErrors[step] || [];
+    if (!isValid && errors.length > 0) {
+      toast({
+        title: "Validation Errors",
+        description: (
+          <ul className="space-y-1 sm:space-y-2">
+            {currentStepErrors.map((error, index) => (
+              <li
+                key={index}
+                className="text-xs sm:text-sm text-red-700 flex items-center gap-2"
+              >
+                <span className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></span>
+                {error}
+              </li>
+            ))}
+          </ul>
+        ),
+        variant: "destructive",
+      });
       return;
     }
-    setIsSubmitting(true);
-    if (formData.clinicId === '') {
-      formData.clinicId = clinicId || '';
-    }
-
-    // console.log("Form data at submission:", JSON.stringify(formData, null, 2));
-
-    try {
-      if (orderCategory === "repair") {
-        formData.category = "repair";
-        formData.type = "repair";
-        // No need to set firstName, lastName, age, sex again
-        const orderData = createOrderObject(formData, user?.clinicId || '');
-        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-        });
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update order');
-        }
-        const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-        toast({
-          title: "Order updated successfully!",
-          description: `Order #${updatedOrder.id} has been updated.`,
-        });
-        window.history.back();
-        setIsSubmitting(false);
-        return;
-      }
-      if (orderCategory === 'repeat') {
-        // Call update order API
-        if (!selectedOrderId) {
-          toast({
-            title: "Update Error",
-            description: "No order ID found for update.",
-            variant: "destructive"
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        // Use the existing firstName, lastName, age, sex fields instead of patient* fields
-        formData.category = "repeat";
-        formData.type = "repeat";
-        const orderData = createOrderObject(formData, user?.clinicId || "");
-        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(orderData),
-        });
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update order');
-        }
-        const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-        toast({
-          title: "Order updated successfully!",
-          description: `Order #${updatedOrder.id} has been updated.`,
-        });
-        window.history.back();
-        setIsSubmitting(false);
-        return;
-      }
-      formData.accessories = [];
-      formData.orderStatus = 'pending';
-      formData.percentage = 10;
-      formData.type = formData.type || "new";
-      // Create the order using the database-compatible order object
-      const orderData = createOrderObject(formData, user?.clinicId || "");
-
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!orderResponse.ok) {
-        throw new Error('Failed to create order');
-      }
-
-      const order = await orderResponse.json();
-
-      // Create tooth groups for the order
-      if (formData.toothGroups && formData.toothGroups.length > 0) {
-        for (const toothGroup of formData.toothGroups) {
-          const toothGroupData = {
-            orderId: order.id,
-            groupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            teeth: toothGroup.teethDetails?.flat().map(detail => detail.teethNumber) || [],
-            type: toothGroup.groupType || "separate",
-            notes: toothGroup.shadeNotes || "",
-            material: toothGroup.selectedProducts?.[0]?.material || "",
-            shade: toothGroup.shadeDetails || "",
-          };
-
-          try {
-            const response = await fetch('/api/tooth-groups', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(toothGroupData),
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error('Failed to create tooth group:', errorData);
-            }
-          } catch (error) {
-            console.error('Error creating tooth group:', error);
-          }
-        }
-      }
-
-      // Invalidate the orders cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-
-      toast({
-        title: "Order submitted successfully!",
-        description: `Order #${order.id} has been sent to the lab for processing.`
-      });
-      // Redirect to dashboard after successful order placement
-      window.history.back();
-    } catch (error) {
-      console.error('Order submission error:', error);
-      toast({
-        title: "Submission Error",
-        description: "There was an error submitting your order. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const nextStep = () => {
-    if (validateCurrentStep()) {
-      setCurrentStep(Math.min(maxSteps, currentStep + 1));
+    if (isValid) {
+      dispatch(setStep(Math.min(maxSteps, step + 1)));
     }
   };
 
   const prevStep = () => {
-    if (currentStep === 1 && orderCategory) {
-      setCurrentStep(0);
+    if (step === 1 && orderCategory) {
+      dispatch(setStep(0));
       setOrderCategory(null);
       setStepValidationErrors({});
     } else {
-      setCurrentStep(Math.max(0, currentStep - 1));
-      setStepValidationErrors(prev => ({ ...prev, [currentStep]: [] }));
+      dispatch(setStep(Math.max(0, step - 1)));
+      setStepValidationErrors((prev) => ({ ...prev, [step]: [] }));
     }
   };
 
-  const goToStep = (step: number) => {
-    setCurrentStep(step);
+  const goToStep = (s: number) => {
+    dispatch(setStep(s));
   };
 
-  const handleCancelOrder = () => {
-    setShowCancelModal(true);
+  // Order data update handler
+  const handleOrderChange = (partialOrder: Partial<OrderType>) => {
+    dispatch(setOrder(partialOrder));
   };
 
+  // Cancel order
   const confirmCancelOrder = () => {
     setShowCancelModal(false);
     window.history.back();
+    dispatch(resetOrder());
     toast({
       title: "Order Cancelled",
-      description: "Your order has been cancelled and unsaved changes were discarded.",
+      description:
+        "Your order has been cancelled and unsaved changes were discarded.",
     });
   };
 
+  // Step content
   const renderStepContent = () => {
-    if (currentStep === 0) {
+    if (step === 0) {
+      console.log("step", step);
       return <OrderCategoryStep onCategorySelect={handleCategorySelect} />;
     }
-
-    // Let NewOrderFlow handle its own step 3 content
-    // Only override for repair step 4
-    const isRepairUploadStep = (orderCategory === 'repair' && currentStep === 4);
-
+    const isRepairUploadStep = orderCategory === "repair" && step === 4;
     if (isRepairUploadStep) {
-      return <AccessoryTagging formData={formData} setFormData={setFormData} />;
+      return (
+        <AccessoryTagging
+          formData={orderData}
+          setFormData={handleOrderChange}
+        />
+      );
     }
-
-    if (currentStep === maxSteps) {
-      return <OrderSummary formData={formData} orderCategory={orderCategory} onEditSection={goToStep} />;
+    if (step === maxSteps) {
+      return (
+        <OrderSummary
+          formData={orderData}
+          orderCategory={orderCategory}
+          onEditSection={goToStep}
+        />
+      );
     }
-
     switch (orderCategory) {
-      case 'new':
-        return <NewOrderFlow
-          currentStep={currentStep}
-          formData={formData}
-          setFormData={setFormData}
-          onAddMoreProducts={handleAddMoreProducts}
-          onSaveOrder={handleSaveOrder}
-          setCurrentStep={setCurrentStep}
-        />;
-      case 'repeat':
-        return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
-      case 'repair':
-        return <RepairOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
+      case "new":
+        return (
+          <NewOrderFlow
+            currentStep={step}
+            formData={orderData as any}
+            setFormData={handleOrderChange}
+            onAddMoreProducts={handleAddMoreProducts}
+            onSaveOrder={handleSaveOrder}
+            setCurrentStep={(s: number) => dispatch(setStep(s))}
+          />
+        );
+      case "repeat":
+        return (
+          <RepeatOrderFlow
+            currentStep={step}
+            formData={orderData}
+            setFormData={handleOrderChange}
+            setSelectedOrderId={setSelectedOrderId}
+          />
+        );
+      case "repair":
+        return (
+          <RepairOrderFlow
+            currentStep={step}
+            formData={orderData}
+            setFormData={handleOrderChange}
+            setSelectedOrderId={setSelectedOrderId}
+          />
+        );
       default:
         return null;
     }
@@ -432,26 +386,28 @@ const PlaceOrder = () => {
 
   const getSubmitButtonText = () => {
     switch (orderCategory) {
-      case 'repair': return 'Submit Repair Request';
-      case 'repeat': return 'Submit Repeat Order';
-      case 'new': return 'Submit New Order';
-      default: return 'Submit Order';
+      case "repair":
+        return "Submit Repair Request";
+      case "repeat":
+        return "Submit Repeat Order";
+      case "new":
+        return "Submit New Order";
+      default:
+        return "Submit Order";
     }
   };
 
   const getCurrentStepTitle = () => {
-    const step = steps.find(s => s.number === currentStep);
-    return step ? step.title : 'Place New Order';
+    const s = steps.find((s) => s.number === step);
+    return s ? s.title : "Place New Order";
   };
-
   const getCurrentStepDescription = () => {
-    const step = steps.find(s => s.number === currentStep);
-    return step ? step.description : 'Create a new dental lab order';
+    const s = steps.find((s) => s.number === step);
+    return s ? s.description : "Create a new dental lab order";
   };
+  const currentStepErrors = stepValidationErrors[step] || [];
+  console.log("currentStepErrors", currentStepErrors);
 
-  const currentStepErrors = stepValidationErrors[currentStep] || [];
-
-  // Show loading while checking authentication
   if (isAuthChecking) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -462,34 +418,30 @@ const PlaceOrder = () => {
       </div>
     );
   }
-
-  // Redirect if not authenticated
   if (!isAuthenticated || !user) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-[#FFFFFF]">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
-        <div className='max-w-7xl mx-auto'>
+        <div className="max-w-7xl mx-auto">
           <CardContent className="p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center justify-between">
-              <div className='flex items-center gap-3'>
-                {
-                  !isMobile && (
-                    <>
-                      <CustomButton
-                        variant="blackAndWhite"
-                        onClick={() => window.history.back()}
-                      >
-                        <ArrowLeft size={18} />
-                        Back
-                      </CustomButton>
-                      <div className="h-5 w-px bg-gray-300"></div>
-                    </>
-                  )
-                }
+              <div className="flex items-center gap-3">
+                {!isMobile && (
+                  <>
+                    <CustomButton
+                      variant="blackAndWhite"
+                      onClick={() => window.history.back()}
+                    >
+                      <ArrowLeft size={18} />
+                      Back
+                    </CustomButton>
+                    <div className="h-5 w-px bg-gray-300"></div>
+                  </>
+                )}
                 <div className="flex items-center gap-3 justify-between ">
                   <div>
                     <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
@@ -501,24 +453,36 @@ const PlaceOrder = () => {
                   </div>
                 </div>
               </div>
-              <div className='flex items-center gap-3'>
+              <div className="flex items-center gap-3">
                 {orderCategory && (
                   <div className="flex items-center gap-1 sm:gap-2 bg-mainBrackground px-2 sm:px-3 py-2 rounded-[8px] border border-customGreen-100">
-                    {steps.map((step, index) => (
-                      <div key={step.number} className="flex items-center">
-                        <div className={`
+                    {steps.map((stepObj, index) => (
+                      <div key={stepObj.number} className="flex items-center">
+                        <div
+                          className={`
                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors
-                            ${index < currentStep ? 'bg-customGreen-100 text-white' :
-                            index === currentStep ? 'bg-customGreen-100 text-white' :
-                              'bg-gray-200 text-gray-500'}
-                          `}>
+                            ${
+                              stepObj.number < step
+                                ? "bg-customGreen-100 text-white"
+                                : stepObj.number === step
+                                ? "bg-customGreen-100 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }
+                          `}
+                        >
                           {index + 1}
                         </div>
                         {index < steps.length - 1 && (
-                          <div className={`
+                          <div
+                            className={`
                               w-2 sm:w-3 h-0.5 mx-0.5 sm:mx-1
-                              ${index < currentStep ? 'bg-customGreen-100' : 'bg-gray-200'}
-                            `} />
+                              ${
+                                stepObj.number < step
+                                  ? "bg-customGreen-100"
+                                  : "bg-gray-200"
+                              }
+                            `}
+                          />
                         )}
                       </div>
                     ))}
@@ -527,7 +491,7 @@ const PlaceOrder = () => {
                 {orderCategory && !isMobile && (
                   <Button
                     variant="outline"
-                    onClick={handleCancelOrder}
+                    onClick={() => setShowCancelModal(true)}
                     className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
                   >
                     <X size={16} />
@@ -535,7 +499,6 @@ const PlaceOrder = () => {
                   </Button>
                 )}
               </div>
-
             </div>
           </CardContent>
         </div>
@@ -549,10 +512,12 @@ const PlaceOrder = () => {
             <div className="lg:w-80 flex-shrink-0 order-2 lg:order-1">
               <Card className="lg:sticky lg:top-24 shadow-sm border border-customGray-200 bg-white">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Order Progress</CardTitle>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
+                    Order Progress
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <WizardProgress steps={steps} currentStep={currentStep} />
+                  <WizardProgress steps={steps} currentStep={step} />
                 </CardContent>
               </Card>
             </div>
@@ -560,12 +525,14 @@ const PlaceOrder = () => {
 
           {/* Main Content Area */}
           <div
-            className={`flex-1 min-w-0 bg-transparent order-1 ${orderCategory ? "lg:order-1" : "lg:order-2"}`}
+            className={`flex-1 min-w-0 bg-transparent order-1 ${
+              orderCategory ? "lg:order-1" : "lg:order-2"
+            }`}
           >
             <Card className="shadow-sm border bg-[#F5F9F8] !border-customPrimery-200">
               <CardContent className="p-4 sm:p-6">
                 {/* Validation Errors */}
-                {currentStepErrors.length > 0 && (
+                {/* {currentStepErrors.length > 0 && (
                   <Card className="mb-4 sm:mb-6 border-red-200 bg-red-50">
                     <CardContent className="p-3 sm:p-4">
                       <h4 className="font-semibold text-red-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm">
@@ -587,12 +554,10 @@ const PlaceOrder = () => {
                       </ul>
                     </CardContent>
                   </Card>
-                )}
+                )} */}
 
                 {/* Step Content */}
-                <form onSubmit={handleSubmit}>
-                  {renderStepContent()}
-                </form>
+                <form onSubmit={handleSubmit}>{renderStepContent()}</form>
               </CardContent>
 
               {/* Navigation Footer */}
@@ -607,11 +572,10 @@ const PlaceOrder = () => {
                       className="flex items-center justify-center gap-2 px-4 py-2 order-2 sm:order-1"
                     >
                       <ChevronLeft size={16} />
-                      {currentStep === 1 ? 'Change Category' : 'Previous'}
+                      {step === 1 ? "Change Category" : "Previous"}
                     </Button>
-
                     <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
-                      {currentStep < maxSteps ? (
+                      {step < maxSteps ? (
                         <Button
                           type="button"
                           onClick={nextStep}
@@ -655,7 +619,8 @@ const PlaceOrder = () => {
               Cancel Order
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600">
-              Are you sure you want to cancel this order? All unsaved changes will be lost.
+              Are you sure you want to cancel this order? All unsaved changes
+              will be lost.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-6">

@@ -1,13 +1,13 @@
 import { d } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
-export interface UploadedFile{
-    intraOralScan:File;
-    faceScan: File;
-    addPatientPhotos:File;
-    referralImages:File;
+export interface UploadedFile {
+  intraOralScan: File | null;
+  faceScan: File | null;
+  addPatientPhotos: File | null;
+  referralImages: File | null;
 }
 
-export type OrderCategoryType = "new" | "repeat" | "repair" | null;
+export type OrderCategoryType = "new" | "repeat" | "repair" | "";
 
 export type OrderMethodType = "digital" | "manual";
 
@@ -39,22 +39,22 @@ export interface Product {
 }
 
 export interface ToothDetail {
-    teethNumber: number;
-    type: "abutment" | "pontic";
-    productName: string[];
-    productQuantity: number;
-    shadeDetails?: string;
-    occlusalStaining?: string;
-    shadeGuide?: ShadeGuide | null;
-    shadeNotes?: string;
-    trialRequirements?: string;
-    implantDetails?: {
-      companyName: string;
-      systemName: string;
-      remarks: string;
-      photo?: File;
-    };
-  }
+  teethNumber: number;
+  type: "abutment" | "pontic";
+  productName: string[];
+  productQuantity: number;
+  shadeDetails?: string;
+  occlusalStaining?: string;
+  shadeGuide?: ShadeGuide | null;
+  shadeNotes?: string;
+  trialRequirements?: string;
+  implantDetails?: {
+    companyName: string;
+    systemName: string;
+    remarks: string;
+    photo?: File;
+  };
+}
 
 export interface TeethGroup {
   groupType: "bridge" | "joint" | "separate" | "individual";
@@ -70,73 +70,73 @@ export interface TeethGroup {
 }
 
 export interface SelectedTeeth {
-    type: "abutment" | "pontic";
-    toothNumber: number;
-    prescriptionType: "implant" | "crown-bridge";
-    subcategoryType: string;
-    productName: string[];
-    shadeDetails: string;
-    occlusalStaining: string;
-    shadeGuide: ShadeGuide | null;
-    shadeNotes: string;
-    trialRequirements: string;
-    implantDetails?: {
-      companyName: string;
-      systemName: string;
-      remarks: string;
-      photo?: File;
-    };
-    selectedProducts: Product[];
-  }
+  type: "abutment" | "pontic";
+  toothNumber: number;
+  prescriptionType: "implant" | "crown-bridge";
+  subcategoryType: string;
+  productName: string[];
+  shadeDetails: string;
+  occlusalStaining: string;
+  shadeGuide: ShadeGuide | null;
+  shadeNotes: string;
+  trialRequirements: string;
+  implantDetails?: {
+    companyName: string;
+    systemName: string;
+    remarks: string;
+    photo?: File;
+  };
+  selectedProducts: Product[];
+}
 
-  export interface PickUpData{
-    pickUpDate:string;
-    pickUpTime:string;
-    pickUpMessage:string;
-  }
+export interface PickUpData {
+  pickUpDate: string;
+  pickUpTime: string;
+  pickUpMessage: string;
+}
 
-  export interface CourierData{
-    courierName:string;
-    courierTrakingId:string;
-  }
+export interface CourierData {
+  courierName: string;
+  courierTrakingId: string;
+}
 
-export interface OrderType{
-    firstName:string;
-    lastName:string;
-    age:number;
-    sex:string;
-    clinicId:string;
-    caseHandleBy:string;
-    doctorMobileNumber:string;
-    consultingDoctorName: string;
-    consultingDoctorMobileNumber: string;
-    orderMethod:string; //Digital || Manual
-    prescriptionTypesId:string[];
-    subPrescriptionTypesId:string[];
-    selectedTeeth:SelectedTeeth[];
-    teethGroup:TeethGroup[];
-    teethNumber:[];
-    products: [];
-    files:UploadedFile;
-    accessorios:Accessorios[];
-    handllingType:string;
-    pickupData:PickUpData[];
-    courierData:CourierData[];
-    resonOfReject:string;
-    resonOfRescan:string;
-    rejectNote:string;
-    orderId:string;
-    crateNo:string;
-    qaNote:string;
-    orderBy:string;
-    AcpectedDileveryData:Date;
-    lifeCycle:[];
-    orderStatus:string;
-    refId:string;
-    orderDate:string;
-    updateDate:string;
-    totalAmount:string;
-    paymentType:string;
-    doctorNote:string;
-    orderType:string;
-   }
+export interface OrderType {
+  firstName: string;
+  lastName: string;
+  age: number;
+  sex: string;
+  clinicId: string;
+  caseHandleBy: string;
+  doctorMobileNumber: string;
+  consultingDoctorName: string;
+  consultingDoctorMobileNumber: string;
+  orderMethod: string; //Digital || Manual
+  prescriptionTypesId: string[];
+  subPrescriptionTypesId: string[];
+  selectedTeeth: SelectedTeeth[];
+  teethGroup: TeethGroup[];
+  teethNumber: [];
+  products: [];
+  files: UploadedFile;
+  accessorios: Accessorios[];
+  handllingType: string;
+  pickupData: PickUpData[];
+  courierData: CourierData[];
+  resonOfReject: string;
+  resonOfRescan: string;
+  rejectNote: string;
+  orderId: string;
+  crateNo: string;
+  qaNote: string;
+  orderBy: string;
+  AcpectedDileveryData: Date;
+  lifeCycle: [];
+  orderStatus: string;
+  refId: string;
+  orderDate: string;
+  updateDate: string;
+  totalAmount: string;
+  paymentType: string;
+  doctorNote: string;
+  orderType: OrderCategoryType;
+}

@@ -576,7 +576,7 @@ var teamMemberStorage = new TeamMemberStorage();
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 var setupAuthenticationRoutes = (app2) => {
-  const JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
+  const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
   app2.post("/api/register", async (req, res) => {
     try {
       const clinicData = insertClinicSchema2.parse(req.body);
@@ -611,7 +611,7 @@ var setupAuthenticationRoutes = (app2) => {
         permissions: defaultPermissions
       });
       return res.status(201).json({
-        token: jwt.sign({ id: newClinic.id }, JWT_SECRET2, { expiresIn: "7d" })
+        token: jwt.sign({ id: newClinic.id }, JWT_SECRET, { expiresIn: "7d" })
       });
     } catch (error) {
       console.error("Clinic registration error:", error);
@@ -635,7 +635,7 @@ var setupAuthenticationRoutes = (app2) => {
         const isPasswordValid = await bcrypt.compare(password, pss || "");
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: teamMember.id }, JWT_SECRET2, { expiresIn: "7d" })
+            token: jwt.sign({ id: teamMember.id }, JWT_SECRET, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -646,7 +646,7 @@ var setupAuthenticationRoutes = (app2) => {
         const isPasswordValid = await bcrypt.compare(password, clinic2.password || "");
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: clinic2.id }, JWT_SECRET2, { expiresIn: "7d" })
+            token: jwt.sign({ id: clinic2.id }, JWT_SECRET, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -1034,7 +1034,9 @@ var OrderStorage = class {
         consultingDoctorName: insertOrder.consultingDoctorName,
         consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber
       };
-      clinicInformation2 = await clinicInformationStorage.createClinicInformation(clinicInformationData);
+      clinicInformation2 = await clinicInformationStorage.createClinicInformation(
+        clinicInformationData
+      );
       if (!clinicInformation2) {
         throw new Error("Failed to create clinic information record");
       }
@@ -1051,7 +1053,9 @@ var OrderStorage = class {
         // teethGroupId: teethGroup?.id, // if used
       };
       if (orderToInsert.acpectedDileveryData && typeof orderToInsert.acpectedDileveryData === "string") {
-        orderToInsert.acpectedDileveryData = new Date(orderToInsert.acpectedDileveryData);
+        orderToInsert.acpectedDileveryData = new Date(
+          orderToInsert.acpectedDileveryData
+        );
       }
       if (orderToInsert.orderDate && typeof orderToInsert.orderDate === "string") {
         orderToInsert.orderDate = new Date(orderToInsert.orderDate);
@@ -1066,7 +1070,9 @@ var OrderStorage = class {
         await patientStorage.deletePatient(insertPatient.id);
       }
       if (clinicInformation2 && clinicInformation2.id) {
-        await clinicInformationStorage.deleteClinicInformation(clinicInformation2.id);
+        await clinicInformationStorage.deleteClinicInformation(
+          clinicInformation2.id
+        );
       }
       if (teethGroup && teethGroup.id) {
         await teethGroupStorage.deleteTeethGroup(teethGroup.id);
@@ -1083,7 +1089,9 @@ var OrderStorage = class {
     const results = [];
     for (const order of orders) {
       const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
-      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(order.clinicInformationId) : void 0;
+      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(
+        order.clinicInformationId
+      ) : void 0;
       const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
       const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
         (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
@@ -1108,7 +1116,9 @@ var OrderStorage = class {
               addProduct(prod.name, Number(prod.quantity) || 1);
             });
             if (Array.isArray(tooth.productName)) {
-              tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
+              tooth.productName.forEach(
+                (name) => addProduct(name, Number(tooth.productQuantity) || 1)
+              );
             } else if (tooth.productName) {
               addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
             }
@@ -1121,13 +1131,18 @@ var OrderStorage = class {
             addProduct(prod.name, Number(prod.quantity) || 1);
           });
           if (Array.isArray(tooth.productName)) {
-            tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
+            tooth.productName.forEach(
+              (name) => addProduct(name, Number(tooth.productQuantity) || 1)
+            );
           } else if (tooth.productName) {
             addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
           }
         });
       }
-      const productSummary = Object.entries(productMap).map(([name, qty]) => ({ name, qty }));
+      const productSummary = Object.entries(productMap).map(([name, qty]) => ({
+        name,
+        qty
+      }));
       const orderData = {
         firstName: patient?.firstName || "",
         lastName: patient?.lastName || "",
@@ -2068,27 +2083,6 @@ function serveStatic(app2) {
 import { createServer as createServer2 } from "http";
 import dotenv2 from "dotenv";
 
-// server/src/middleWare/middleWare.ts
-import jwt2 from "jsonwebtoken";
-var JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
-function authMiddleware(req, res, next) {
-  if (req.path === "/login" || req.path === "/register") {
-    return next();
-  }
-  const authHeader = req.headers["authorization"];
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Enter Authorization Token" });
-  }
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt2.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid or expired token" });
-  }
-}
-
 // server/socket/socket.ts
 import { Server } from "socket.io";
 import { eq as eq11 } from "drizzle-orm";
@@ -2204,7 +2198,6 @@ var userSocketMap = /* @__PURE__ */ new Map();
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
 app.userSocketMap = userSocketMap;
-app.use("/api", authMiddleware);
 app.use((req, res, next) => {
   const start = Date.now();
   const path3 = req.path;
