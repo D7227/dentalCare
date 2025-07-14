@@ -52,7 +52,6 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
-
   // app.get("/api/orders/filter/:id", async (req, res) => {
   //   try {
   //     const clinicId = req.params.id;

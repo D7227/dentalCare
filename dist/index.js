@@ -10,7 +10,7 @@ import express2 from "express";
 // server/routes.ts
 import { createServer } from "http";
 
-// server/db.ts
+// server/database/db.ts
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
@@ -194,7 +194,7 @@ var insertProductSchema = createInsertSchema2(products).omit({
   id: true
 });
 
-// server/db.ts
+// server/database/db.ts
 import dotenv from "dotenv";
 dotenv.config();
 var pool = new Pool({
@@ -251,54 +251,29 @@ var patients = pgTable4("patient", {
   sex: text4("sex").notNull()
 });
 
-// server/database/db.ts
-import { drizzle as drizzle2 } from "drizzle-orm/node-postgres";
-import { Pool as Pool2 } from "pg";
-import dotenv2 from "dotenv";
-dotenv2.config();
-var pool2 = new Pool2({
-  host: process.env.DB_HOST || "localhost",
-  port: parseInt(process.env.DB_PORT || "5432"),
-  user: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "root",
-  database: process.env.DB_NAME || "dental_lab_db",
-  ssl: false
-  // Always disable SSL for local testing
-});
-pool2.on("connect", (client) => {
-  console.log("Database connected successfully");
-});
-pool2.on("error", (err) => {
-  console.error("Database connection error:", err);
-});
-pool2.query("SELECT NOW()", (err, res) => {
-  if (err) {
-    console.error("Database connection test failed:", err);
-  } else {
-    console.log("Database connection test successful:", res.rows[0]);
-  }
-});
-var db2 = drizzle2(pool2, { schema: schema_exports });
-
 // server/src/patient/patientController.ts
 import { eq } from "drizzle-orm";
 var PatientStorage = class {
   async getPatient(id) {
-    const [patient] = await db2.select().from(patients).where(eq(patients.id, id));
+    const [patient] = await db.select().from(patients).where(eq(patients.id, id));
     return patient;
   }
   async createPatient(insertPatient) {
     const patientData = {
       ...insertPatient
     };
-    const [patient] = await db2.insert(patients).values(patientData).returning();
+    const [patient] = await db.insert(patients).values(patientData).returning();
     return patient;
   }
   async getPatients() {
-    return await db2.select().from(patients);
+    return await db.select().from(patients);
   }
   async deletePatient(id) {
-    await db2.delete(patients).where(eq(patients.id, id));
+    await db.delete(patients).where(eq(patients.id, id));
+  }
+  async updatePatient(id, updates) {
+    const [patient] = await db.update(patients).set(updates).where(eq(patients.id, id)).returning();
+    return patient;
   }
 };
 var patientStorage = new PatientStorage();
@@ -457,35 +432,35 @@ var insertClinicSchema2 = z3.object({
 import { eq as eq3 } from "drizzle-orm";
 var ClinicStorage = class {
   async getClinic(id) {
-    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.id, id));
+    const [clinicData] = await db.select().from(clinic).where(eq3(clinic.id, id));
     return clinicData;
   }
   async getClinicById(id) {
-    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.id, id));
+    const [clinicData] = await db.select().from(clinic).where(eq3(clinic.id, id));
     return clinicData;
   }
   async getClinicByEmail(email) {
-    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.email, email));
+    const [clinicData] = await db.select().from(clinic).where(eq3(clinic.email, email));
     return clinicData;
   }
   async getClinicByMobileNumber(mobileNumber) {
-    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.phone, mobileNumber));
+    const [clinicData] = await db.select().from(clinic).where(eq3(clinic.phone, mobileNumber));
     return clinicData;
   }
   async createClinic(clinicData) {
-    const [newClinic] = await db2.insert(clinic).values(clinicData).returning();
+    const [newClinic] = await db.insert(clinic).values(clinicData).returning();
     return newClinic;
   }
   async getClinics() {
-    return await db2.select().from(clinic);
+    return await db.select().from(clinic);
   }
   async updateClinic(id, updates) {
-    const [updatedClinic] = await db2.update(clinic).set(updates).where(eq3(clinic.id, id)).returning();
+    const [updatedClinic] = await db.update(clinic).set(updates).where(eq3(clinic.id, id)).returning();
     console.log("updatedClinic==>", updatedClinic);
     return updatedClinic;
   }
   async getClinicByName(clinicName) {
-    const [clinicData] = await db2.select().from(clinic).where(eq3(clinic.clinicName, clinicName));
+    const [clinicData] = await db.select().from(clinic).where(eq3(clinic.clinicName, clinicName));
     return clinicData;
   }
 };
@@ -508,11 +483,11 @@ var insertRoleSchema = createInsertSchema4(role).omit({
 // server/src/role/roleController.ts
 var RoleStorage = class {
   async getRoleById(roleId) {
-    const [roleData] = await db2.select().from(role).where(eq4(role.id, roleId));
+    const [roleData] = await db.select().from(role).where(eq4(role.id, roleId));
     return roleData;
   }
   async getRoleByName(roleName) {
-    const [roleData] = await db2.select().from(role).where(eq4(role.name, roleName));
+    const [roleData] = await db.select().from(role).where(eq4(role.name, roleName));
     return roleData;
   }
 };
@@ -549,7 +524,7 @@ var insertTeamMemberSchema = createInsertSchema5(teamMembers).omit({
 // server/src/teamMember/teamMemberController.ts
 var TeamMemberStorage = class {
   async getTeamMember(id) {
-    const [user] = await db2.select().from(teamMembers).where(eq5(teamMembers.id, id));
+    const [user] = await db.select().from(teamMembers).where(eq5(teamMembers.id, id));
     return user;
   }
   async createTeamMember(data) {
@@ -563,16 +538,16 @@ var TeamMemberStorage = class {
       lastLogin: /* @__PURE__ */ new Date()
     };
     console.log("Inserting team member:", teamMemberData);
-    const [teamMember] = await db2.insert(teamMembers).values(teamMemberData).returning();
+    const [teamMember] = await db.insert(teamMembers).values(teamMemberData).returning();
     console.log("Team member created:", teamMember);
     return teamMember;
   }
   async getTeamMembers() {
-    const members = await db2.select().from(teamMembers);
+    const members = await db.select().from(teamMembers);
     return members;
   }
   async getTeamMembersByClinic(clinicName) {
-    const members = await db2.select().from(teamMembers).where(eq5(teamMembers.clinicName, clinicName));
+    const members = await db.select().from(teamMembers).where(eq5(teamMembers.clinicName, clinicName));
     return members;
   }
   async updateTeamMember(id, updates) {
@@ -580,18 +555,18 @@ var TeamMemberStorage = class {
       ...updates,
       updatedAt: /* @__PURE__ */ new Date()
     };
-    const [teamMember] = await db2.update(teamMembers).set(updateData).where(eq5(teamMembers.id, id)).returning();
+    const [teamMember] = await db.update(teamMembers).set(updateData).where(eq5(teamMembers.id, id)).returning();
     return teamMember;
   }
   async deleteTeamMember(id) {
-    await db2.delete(teamMembers).where(eq5(teamMembers.id, id));
+    await db.delete(teamMembers).where(eq5(teamMembers.id, id));
   }
   async getTeamMemberByMobileNumber(mobileNumber) {
-    const [teamMember] = await db2.select().from(teamMembers).where(eq5(teamMembers.contactNumber, mobileNumber));
+    const [teamMember] = await db.select().from(teamMembers).where(eq5(teamMembers.contactNumber, mobileNumber));
     return teamMember;
   }
   async getTeamMemberById(id) {
-    const [member] = await db2.select().from(teamMembers).where(eq5(teamMembers.id, id));
+    const [member] = await db.select().from(teamMembers).where(eq5(teamMembers.id, id));
     return member;
   }
 };
@@ -858,7 +833,7 @@ var insertChatSchema = createInsertSchema7(chats).omit({
 var ChatStorage = class {
   async getChat(id) {
     console.log("Getting chat", id);
-    const [chat] = await db2.select().from(chats).where(eq6(chats.id, id));
+    const [chat] = await db.select().from(chats).where(eq6(chats.id, id));
     console.log("Chat", chat);
     return chat;
   }
@@ -867,11 +842,11 @@ var ChatStorage = class {
       ...data,
       participants: Array.isArray(data.participants) ? data.participants : []
     };
-    const [chat] = await db2.insert(chats).values(chatData).returning();
+    const [chat] = await db.insert(chats).values(chatData).returning();
     return chat;
   }
   async getChats(userId) {
-    const chatList = await db2.select().from(chats);
+    const chatList = await db.select().from(chats);
     console.log("chatList", chatList);
     if (!userId) {
       return chatList.map((chat) => ({ ...chat, unreadCount: 0 }));
@@ -897,30 +872,30 @@ var ChatStorage = class {
     return chatsWithUnreadCounts;
   }
   async getChatsByType(type) {
-    return await db2.select().from(chats).where(eq6(chats.type, type));
+    return await db.select().from(chats).where(eq6(chats.type, type));
   }
   async getChatsByClinic(clinicId) {
-    return await db2.select().from(chats).where(eq6(chats.clinicId, clinicId));
+    return await db.select().from(chats).where(eq6(chats.clinicId, clinicId));
   }
   async updateChat(id, updates) {
     const updateData = { ...updates };
     if (updates.participants && Array.isArray(updates.participants)) {
       updateData.participants = updates.participants;
     }
-    const [chat] = await db2.update(chats).set(updateData).where(eq6(chats.id, id)).returning();
+    const [chat] = await db.update(chats).set(updateData).where(eq6(chats.id, id)).returning();
     return chat;
   }
   async getChatByOrderId(orderId) {
-    const [chat] = await db2.select().from(chats).where(eq6(chats.orderId, orderId));
+    const [chat] = await db.select().from(chats).where(eq6(chats.orderId, orderId));
     return chat;
   }
   async deleteMessagesByChat(chatId) {
-    await db2.delete(messages).where(eq6(messages.chatId, chatId));
+    await db.delete(messages).where(eq6(messages.chatId, chatId));
   }
   // Hard delete a chat and its messages
   async deleteChat(chatId) {
     await this.deleteMessagesByChat(chatId);
-    await db2.delete(chats).where(eq6(chats.id, chatId));
+    await db.delete(chats).where(eq6(chats.id, chatId));
   }
   // Get unread message count for a user in a chat
   async getUnreadMessageCount(chatId, userId) {
@@ -943,7 +918,7 @@ var ChatStorage = class {
       console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
       return 0;
     }
-    const messageList = await db2.select().from(messages).where(eq6(messages.chatId, chatId));
+    const messageList = await db.select().from(messages).where(eq6(messages.chatId, chatId));
     console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
     console.log("messageList", messageList);
     const unreadCount = messageList.filter((message) => {
@@ -976,18 +951,22 @@ var clinicInformation = pgTable10("clinic_information", {
 import { eq as eq7 } from "drizzle-orm";
 var ClinicInformationStorage = class {
   async createClinicInformation(data) {
-    const [newClinicInformation] = await db2.insert(clinicInformation).values(data).returning();
+    const [newClinicInformation] = await db.insert(clinicInformation).values(data).returning();
     return newClinicInformation;
   }
   async getClinicInformationById(id) {
-    const [info] = await db2.select().from(clinicInformation).where(eq7(clinicInformation.id, id));
+    const [info] = await db.select().from(clinicInformation).where(eq7(clinicInformation.id, id));
     return info;
   }
   async getClinicInformations() {
-    return await db2.select().from(clinicInformation);
+    return await db.select().from(clinicInformation);
+  }
+  async updateClinicInformation(id, updates) {
+    const [info] = await db.update(clinicInformation).set(updates).where(eq7(clinicInformation.id, id)).returning();
+    return info;
   }
   async deleteClinicInformation(id) {
-    await db2.delete(clinicInformation).where(eq7(clinicInformation.id, id));
+    await db.delete(clinicInformation).where(eq7(clinicInformation.id, id));
   }
 };
 var clinicInformationStorage = new ClinicInformationStorage();
@@ -1004,18 +983,22 @@ var teethGroups = pgTable11("teeth_group", {
 import { eq as eq8 } from "drizzle-orm";
 var TeethGroupStorage = class {
   async createTeethGroup(data) {
-    const [newTeethGroup] = await db2.insert(teethGroups).values(data).returning();
+    const [newTeethGroup] = await db.insert(teethGroups).values(data).returning();
     return newTeethGroup;
   }
   async getTeethGroupById(id) {
-    const [teethGroup] = await db2.select().from(teethGroups).where(eq8(teethGroups.id, id));
+    const [teethGroup] = await db.select().from(teethGroups).where(eq8(teethGroups.id, id));
     return teethGroup;
   }
   async getTeethGroups() {
-    return await db2.select().from(teethGroups);
+    return await db.select().from(teethGroups);
+  }
+  async updateTeethGroup(id, updates) {
+    const [teethGroup] = await db.update(teethGroups).set(updates).where(eq8(teethGroups.id, id)).returning();
+    return teethGroup;
   }
   async deleteTeethGroup(id) {
-    await db2.delete(teethGroups).where(eq8(teethGroups.id, id));
+    await db.delete(teethGroups).where(eq8(teethGroups.id, id));
   }
 };
 var teethGroupStorage = new TeethGroupStorage();
@@ -1026,7 +1009,7 @@ var OrderStorage = class {
     throw new Error("Method not implemented.");
   }
   async getOrder(id) {
-    const [order] = await db2.select().from(orderSchema).where(eq9(orderSchema.id, id));
+    const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
     return order;
   }
   async createOrder(insertOrder) {
@@ -1076,7 +1059,7 @@ var OrderStorage = class {
       if (orderToInsert.updateDate && typeof orderToInsert.updateDate === "string") {
         orderToInsert.updateDate = new Date(orderToInsert.updateDate);
       }
-      const [order] = await db2.insert(orderSchema).values(orderToInsert).returning();
+      const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
       return order;
     } catch (error) {
       if (insertPatient && insertPatient.id) {
@@ -1092,10 +1075,10 @@ var OrderStorage = class {
     }
   }
   async getOrders() {
-    return await db2.select().from(orderSchema);
+    return await db.select().from(orderSchema);
   }
   async getOrdersByClinicId(clinicId) {
-    const orders = await db2.select().from(orderSchema).where(eq9(orderSchema.id, clinicId));
+    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.id, clinicId));
     if (!orders || orders.length === 0) return [];
     const results = [];
     for (const order of orders) {
@@ -1197,101 +1180,57 @@ var OrderStorage = class {
   }
   async getToothGroupsByOrder(orderId) {
     console.log("orderId", orderId);
-    return await db2.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
+    return await db.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
   }
   //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
   //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
   //     return chat;
   //   }
   async updateOrderStatus(id, orderStatus) {
-    const [order] = await db2.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
+    const [order] = await db.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
     return order;
   }
   async updateOrder(id, updates) {
-    const orderData = {};
-    orderData.refId = updates.refId || null;
-    orderData.orderId = updates.orderId || null;
-    orderData.category = updates.category || null;
-    orderData.type = updates.type || null;
-    orderData.firstName = updates.firstName || null;
-    orderData.lastName = updates.lastName || null;
-    orderData.age = updates.age || null;
-    orderData.sex = updates.sex || null;
-    orderData.caseHandledBy = updates.caseHandledBy || null;
-    orderData.doctorMobile = updates.doctorMobile || null;
-    orderData.consultingDoctor = updates.consultingDoctor || null;
-    orderData.consultingDoctorMobile = updates.consultingDoctorMobile || null;
-    orderData.orderMethod = updates.orderMethod || null;
-    orderData.prescriptionType = updates.prescriptionType || null;
-    orderData.subcategoryType = updates.subcategoryType || null;
-    orderData.restorationType = updates.restorationType || null;
-    orderData.productSelection = updates.productSelection || null;
-    orderData.orderType = updates.orderType || null;
-    orderData.selectedFileType = updates.selectedFileType || null;
-    orderData.selectedTeeth = Array.isArray(updates.selectedTeeth) && updates.selectedTeeth.length > 0 ? updates.selectedTeeth : null;
-    orderData.toothGroups = Array.isArray(updates.toothGroups) && updates.toothGroups.length > 0 ? updates.toothGroups : null;
-    orderData.toothNumbers = Array.isArray(updates.toothNumbers) && updates.toothNumbers.length > 0 ? updates.toothNumbers : null;
-    orderData.abutmentDetails = updates.abutmentDetails || null;
-    orderData.abutmentType = updates.abutmentType || null;
-    orderData.restorationProducts = Array.isArray(updates.restorationProducts) && updates.restorationProducts.length > 0 ? updates.restorationProducts : null;
-    orderData.clinicId = updates.clinicId || null;
-    orderData.ponticDesign = updates.ponticDesign || null;
-    orderData.occlusalStaining = updates.occlusalStaining || null;
-    orderData.shadeInstruction = updates.shadeInstruction || null;
-    orderData.clearance = updates.clearance || null;
-    orderData.accessories = Array.isArray(updates.accessories) && updates.accessories.length > 0 ? updates.accessories : null;
-    orderData.otherAccessory = updates.otherAccessory || null;
-    orderData.returnAccessories = Boolean(updates.returnAccessories);
-    orderData.notes = updates.notes || null;
-    orderData.files = Array.isArray(updates.files) && updates.files.length > 0 ? updates.files : null;
-    orderData.expectedDeliveryDate = updates.expectedDeliveryDate ? new Date(updates.expectedDeliveryDate) : null;
-    orderData.pickupDate = updates.pickupDate ? new Date(updates.pickupDate) : null;
-    orderData.pickupTime = updates.pickupTime || null;
-    orderData.pickupRemarks = updates.pickupRemarks || null;
-    orderData.scanBooking = updates.scanBooking || null;
-    orderData.previousOrderId = updates.previousOrderId || null;
-    orderData.repairOrderId = updates.repairOrderId || null;
-    orderData.issueDescription = updates.issueDescription || null;
-    orderData.repairType = updates.repairType || null;
-    orderData.returnWithTrial = Boolean(updates.returnWithTrial);
-    orderData.teethEditedByUser = Boolean(updates.teethEditedByUser);
-    orderData.intraOralScans = updates.intraOralScans || null;
-    orderData.faceScans = updates.faceScans || null;
-    orderData.patientPhotos = updates.patientPhotos || null;
-    orderData.referralFiles = updates.referralFiles || null;
-    orderData.quantity = updates.quantity || 1;
-    orderData.patientName = updates.patientName || null;
-    orderData.teethNo = updates.teethNo || null;
-    orderData.orderDate = updates.orderDate || null;
-    orderData.orderCategory = updates.orderCategory || null;
-    orderData.orderStatus = updates.orderStatus || null;
-    orderData.statusLabel = updates.statusLabel || null;
-    orderData.percentage = updates.percentage || 0;
-    orderData.chatConnection = Boolean(updates.chatConnection);
-    orderData.unreadMessages = updates.unreadMessages || 0;
-    orderData.messages = Array.isArray(updates.messages) && updates.messages.length > 0 ? updates.messages : null;
-    orderData.isUrgent = Boolean(updates.isUrgent);
-    orderData.currency = updates.currency || "INR";
-    orderData.exportQuality = updates.exportQuality || "Standard";
-    orderData.paymentStatus = updates.paymentStatus || "pending";
-    orderData.shade = Array.isArray(updates.shade) && updates.shade.length > 0 ? updates.shade : null;
-    orderData.shadeGuide = Array.isArray(updates.shadeGuide) && updates.shadeGuide.length > 0 ? updates.shadeGuide : null;
-    orderData.shadeNotes = updates.shadeNotes || null;
-    orderData.trial = updates.trial || null;
-    orderData.implantPhoto = updates.implantPhoto || null;
-    orderData.implantCompany = updates.implantCompany || null;
-    orderData.implantRemark = updates.implantRemark || null;
-    orderData.issueCategory = updates.issueCategory || null;
-    orderData.trialApproval = Boolean(updates.trialApproval);
-    orderData.reapirInstructions = updates.reapirInstructions || null;
-    orderData.additionalNotes = updates.additionalNotes || null;
-    orderData.selectedCompany = updates.selectedCompany || null;
-    orderData.handlingType = updates.handlingType || null;
-    orderData.crateNo = updates.crateNo || null;
-    orderData.additionalNote = updates.additionalNote || null;
-    orderData.rejectionReason = updates.rejectionReason || null;
-    const [order] = await db2.update(orderSchema).set(orderData).where(eq9(orderSchema.id, id)).returning();
-    return order;
+    const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
+    if (!order) return void 0;
+    let patientId = order.patientId;
+    if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
+      await patientStorage.updatePatient(patientId, {
+        ...updates.firstName && { firstName: updates.firstName },
+        ...updates.lastName && { lastName: updates.lastName },
+        ...updates.age && { age: updates.age },
+        ...updates.sex && { sex: updates.sex }
+      });
+    }
+    let clinicInformationId = order.clinicInformationId;
+    if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
+      await clinicInformationStorage.updateClinicInformation(clinicInformationId, {
+        ...updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy },
+        ...updates.doctorMobileNumber && { doctorMobileNumber: updates.doctorMobileNumber },
+        ...updates.consultingDoctorName && { consultingDoctorName: updates.consultingDoctorName },
+        ...updates.consultingDoctorMobileNumber && { consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber }
+      });
+    }
+    let selectedTeethId = order.selectedTeethId;
+    if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
+      await teethGroupStorage.updateTeethGroup(selectedTeethId, {
+        ...updates.selectedTeeth && { selectedTeeth: updates.selectedTeeth },
+        ...updates.teethGroup && { teethGroup: updates.teethGroup }
+      });
+    }
+    const orderUpdate = { ...updates };
+    delete orderUpdate.firstName;
+    delete orderUpdate.lastName;
+    delete orderUpdate.age;
+    delete orderUpdate.sex;
+    delete orderUpdate.caseHandleBy;
+    delete orderUpdate.doctorMobileNumber;
+    delete orderUpdate.consultingDoctorName;
+    delete orderUpdate.consultingDoctorMobileNumber;
+    delete orderUpdate.selectedTeeth;
+    delete orderUpdate.teethGroup;
+    const [updatedOrder] = await db.update(orderSchema).set(orderUpdate).where(eq9(orderSchema.id, id)).returning();
+    return updatedOrder;
   }
   async initializeData() {
     console.log("Starting order database initialization...");
@@ -1321,16 +1260,16 @@ var MessageStorage = class {
       readBy: [insertMessage.sender]
     };
     console.log("messageData", messageData);
-    const [message] = await db2.insert(messages).values(messageData).returning();
+    const [message] = await db.insert(messages).values(messageData).returning();
     return message;
   }
   async getMessagesByOrder(orderId) {
-    const orderChats = await db2.select().from(chats).where(eq10(chats.orderId, orderId));
+    const orderChats = await db.select().from(chats).where(eq10(chats.orderId, orderId));
     if (orderChats.length === 0) return [];
-    return await db2.select().from(messages).where(eq10(messages.chatId, orderChats[0].id));
+    return await db.select().from(messages).where(eq10(messages.chatId, orderChats[0].id));
   }
   async getMessagesByChat(chatId) {
-    return await db2.select().from(messages).where(eq10(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
+    return await db.select().from(messages).where(eq10(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
   }
   async initializeData() {
     console.log("Starting database initialization...");
@@ -1340,7 +1279,7 @@ var MessageStorage = class {
       return;
     }
     try {
-      await db2.insert(companies).values([
+      await db.insert(companies).values([
         { name: "Nobel Biocare" },
         { name: "Straumann" },
         { name: "Dentsply Sirona" },
@@ -1375,7 +1314,7 @@ var MessageStorage = class {
       console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
       return 0;
     }
-    const messageList = await db2.select().from(messages).where(eq10(messages.chatId, chatId));
+    const messageList = await db.select().from(messages).where(eq10(messages.chatId, chatId));
     console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
     console.log("messageList", messageList);
     const unreadCount = messageList.filter((message) => {
@@ -1388,12 +1327,12 @@ var MessageStorage = class {
     return unreadCount;
   }
   async markAllMessagesAsRead(chatId, userId) {
-    const messageList = await db2.select().from(messages).where(eq10(messages.chatId, chatId));
+    const messageList = await db.select().from(messages).where(eq10(messages.chatId, chatId));
     for (const messageItem of messageList) {
       const currentReadBy = messageItem.readBy || [];
       if (!currentReadBy.includes(userId)) {
         const updatedReadBy = [...currentReadBy, userId];
-        await db2.update(messages).set({ readBy: updatedReadBy }).where(eq10(messages.id, messageItem.id));
+        await db.update(messages).set({ readBy: updatedReadBy }).where(eq10(messages.id, messageItem.id));
       }
     }
   }
@@ -1517,16 +1456,16 @@ var setupChatRoutes = (app2) => {
       const { userId } = req.body;
       const chatId = req.params.id;
       await messageStorage.markAllMessagesAsRead(chatId, userId);
-      const io2 = req.app.get("io") || req.app.io;
+      const io = req.app.get("io") || req.app.io;
       const userSocketMap2 = req.app.get("userSocketMap") || req.app.userSocketMap;
-      if (io2 && userSocketMap2 && userId) {
+      if (io && userSocketMap2 && userId) {
         const socketId = userSocketMap2.get(userId);
         if (socketId) {
           const unreadCount = await messageStorage.getUnreadMessageCount(
             chatId,
             userId
           );
-          io2.to(socketId).emit("unread-count-update", { chatId, unreadCount });
+          io.to(socketId).emit("unread-count-update", { chatId, unreadCount });
         }
       }
       res.status(200).json({ success: true });
@@ -1578,9 +1517,9 @@ var setupChatRoutes = (app2) => {
       if (!chat) {
         return res.status(404).json({ error: "Chat not found" });
       }
-      const io2 = req.app.io;
-      if (io2) {
-        io2.emit("participants-updated", {
+      const io = req.app.io;
+      if (io) {
+        io.emit("participants-updated", {
           chatId,
           participants,
           newParticipants,
@@ -1718,7 +1657,7 @@ var lifecycleStages = pgTable12("lifecycle_stages", {
 // server/src/lifeCycle/lifeCycleController.ts
 var LifeCycleStorage = class {
   async getLifecycleStages() {
-    return await db2.select().from(lifecycleStages).orderBy(lifecycleStages.createdAt);
+    return await db.select().from(lifecycleStages).orderBy(lifecycleStages.createdAt);
   }
 };
 var lifeCycleStorage = new LifeCycleStorage();
@@ -1772,78 +1711,17 @@ var setupOrderRoutes = (app2) => {
       res.status(400).json({ error });
     }
   });
-  app2.put("/api/orders/:id", async (req, res) => {
+  app2.patch("/api/updateOrders/:id", async (req, res) => {
     try {
-      const order = await orderStorage.updateOrder(req.params.id, req.body);
-      if (!order) {
-        return res.status(404).json({ error: "Order not found" });
-      }
-      res.json(order);
-    } catch (error) {
-      console.log(error, "order update error");
-      res.status(500).json({ error: "Failed to update order" });
-    }
-  });
-  app2.patch("/api/orders/:id/status", async (req, res) => {
-    try {
-      const { orderStatus } = req.body;
-      if (!orderStatus) {
-        return res.status(400).json({ error: "Status is required" });
-      }
-      const order = await orderStorage.updateOrderStatus(req.params.id, orderStatus);
+      const orderId = req.params.id;
+      const orderData = req.body;
+      const order = await orderStorage.updateOrder(orderId, orderData);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });
-    }
-  });
-  app2.get("/api/orders/filter/:id", async (req, res) => {
-    try {
-      const clinicId = req.params.id;
-      if (!clinicId) {
-        return res.status(400).json({ error: "Clinic ID is required" });
-      }
-      const { patientName, prescription, refId, order_id } = req.query;
-      let orders = await orderStorage.getOrdersByClinicId(clinicId);
-      if (patientName) {
-        const name = String(patientName).toLowerCase();
-        orders = orders.filter(
-          (order) => order.patientFirstName && order.patientFirstName.toLowerCase().includes(name) || order.patientLastName && order.patientLastName.toLowerCase().includes(name)
-        );
-      }
-      if (prescription) {
-        const presc = String(prescription).toLowerCase();
-        orders = orders.filter(
-          (order) => order.prescription && order.prescription.toLowerCase().includes(presc)
-        );
-      }
-      if (refId) {
-        orders = orders.filter(
-          (order) => order.reference_id && order.reference_id == refId
-        );
-      }
-      if (order_id) {
-        orders = orders.filter(
-          (order) => order.order_id && order.order_id == order_id
-        );
-      }
-      res.json(orders);
-    } catch (error) {
-      console.log("order data ", error);
-      res.status(500).json({ error });
-    }
-  });
-  app2.get("/api/orders/:orderId/chat", async (req, res) => {
-    try {
-      const chat = await chatStorage.getChatByOrderId(req.params.orderId);
-      if (!chat) {
-        return res.status(404).json({ error: "Chat not found for this order" });
-      }
-      res.json(chat);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch chat for order" });
     }
   });
 };
@@ -1921,13 +1799,13 @@ var setupTeamMemberRoutes = (app2) => {
         );
       }
       await teamMemberStorage.deleteTeamMember(req.params.id);
-      const io2 = req.app.get("io") || req.app.io;
-      if (io2 && fullName) {
+      const io = req.app.get("io") || req.app.io;
+      if (io && fullName) {
         for (const chat of affectedChats) {
           const updatedParticipants = (chat.participants || []).filter(
             (p) => p !== fullName
           );
-          io2.emit("participants-updated", {
+          io.emit("participants-updated", {
             chatId: chat.id,
             participants: updatedParticipants,
             newParticipants: [],
@@ -2187,10 +2065,8 @@ function serveStatic(app2) {
 }
 
 // server/index.ts
-import { eq as eq11 } from "drizzle-orm";
 import { createServer as createServer2 } from "http";
-import { Server } from "socket.io";
-import dotenv3 from "dotenv";
+import dotenv2 from "dotenv";
 
 // server/src/middleWare/middleWare.ts
 import jwt2 from "jsonwebtoken";
@@ -2213,59 +2089,25 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// server/index.ts
-dotenv3.config();
-var app = express2();
-var httpServer = createServer2(app);
-var io = new Server(httpServer, {
-  cors: {
-    origin: ["http://localhost:5000", "http://192.168.29.46:5000"],
-    methods: ["GET", "POST"]
-  }
-});
-var userSocketMap = /* @__PURE__ */ new Map();
-var activeChatUsers = /* @__PURE__ */ new Map();
-app.use(express2.json());
-app.use(express2.urlencoded({ extended: false }));
-app.userSocketMap = userSocketMap;
-app.use("/api", authMiddleware);
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path3 = req.path;
-  let capturedJsonResponse = void 0;
-  const originalResJson = res.json;
-  res.json = function(bodyObj, ...args) {
-    capturedJsonResponse = bodyObj;
-    return originalResJson.apply(res, [bodyObj, ...args]);
-  };
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path3.startsWith("/api")) {
-      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse).slice(0, 80)}`;
-      }
-      log(logLine);
+// server/socket/socket.ts
+import { Server } from "socket.io";
+import { eq as eq11 } from "drizzle-orm";
+function setupSocket(httpServer2, app2) {
+  const io = new Server(httpServer2, {
+    cors: {
+      origin: ["http://localhost:5000", "http://192.168.29.46:5000"],
+      methods: ["GET", "POST"]
     }
   });
-  next();
-});
-(async () => {
-  try {
-    console.log("Checking database initialization...");
-    await storage.initializeData();
-    console.log("Database initialization completed");
-  } catch (error) {
-    console.error("Database initialization error:", error);
-  }
-  const server = await registerRoutes(app);
+  const userSocketMap2 = /* @__PURE__ */ new Map();
+  const activeChatUsers = /* @__PURE__ */ new Map();
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
     socket.on("register-user", (userId) => {
       if (userId) {
-        userSocketMap.set(userId, socket.id);
+        userSocketMap2.set(userId, socket.id);
         socket.userId = userId;
-        console.log(`Current userSocketMap entries:`, Array.from(userSocketMap.entries()));
+        console.log(`Current userSocketMap entries:`, Array.from(userSocketMap2.entries()));
       }
     });
     socket.on("join-chat", (chatId) => {
@@ -2311,7 +2153,7 @@ app.use((req, res, next) => {
             permissions: member.permissions || []
           })),
           ...clinics.map((clinic2) => ({
-            id: `${clinic2.firstname} ${clinic2.lastname}`,
+            id: clinic2.id,
             type: "clinic",
             permissions: clinic2.permissions || []
           }))
@@ -2319,7 +2161,7 @@ app.use((req, res, next) => {
         allUsers.forEach(async (user) => {
           const userId = user.id;
           if (userId && userId !== savedMessage.sender && !activeUsersInThisChat.has(userId)) {
-            const socketId = userSocketMap.get(userId);
+            const socketId = userSocketMap2.get(userId);
             if (socketId) {
               const unreadCount = await messageStorage.getUnreadMessageCount(data.chatId, userId);
               io.to(socketId).emit("unread-count-update", { chatId: data.chatId, unreadCount });
@@ -2343,14 +2185,57 @@ app.use((req, res, next) => {
     socket.on("disconnect", () => {
       const userId = socket.userId;
       if (userId) {
-        userSocketMap.delete(userId);
+        userSocketMap2.delete(userId);
         activeChatUsers.forEach((users2) => users2.delete(userId));
         console.log(`User ${userId} disconnected and unregistered.`);
       }
       console.log("User disconnected:", socket.id);
     });
   });
-  app.io = io;
+  app2.io = io;
+  app2.userSocketMap = userSocketMap2;
+}
+
+// server/index.ts
+dotenv2.config();
+var app = express2();
+var httpServer = createServer2(app);
+var userSocketMap = /* @__PURE__ */ new Map();
+app.use(express2.json());
+app.use(express2.urlencoded({ extended: false }));
+app.userSocketMap = userSocketMap;
+app.use("/api", authMiddleware);
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path3 = req.path;
+  let capturedJsonResponse = void 0;
+  const originalResJson = res.json;
+  res.json = function(bodyObj, ...args) {
+    capturedJsonResponse = bodyObj;
+    return originalResJson.apply(res, [bodyObj, ...args]);
+  };
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path3.startsWith("/api")) {
+      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse).slice(0, 80)}`;
+      }
+      log(logLine);
+    }
+  });
+  next();
+});
+(async () => {
+  try {
+    console.log("Checking database initialization...");
+    await storage.initializeData();
+    console.log("Database initialization completed");
+  } catch (error) {
+    console.error("Database initialization error:", error);
+  }
+  const server = await registerRoutes(app);
+  setupSocket(httpServer, app);
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
