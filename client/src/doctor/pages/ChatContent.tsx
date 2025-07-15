@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAppSelector, hasPermission } from '@/store/hooks';
 import ChatModule from '../../components/chat/ChatModule';
 import { useSocket } from '@/contexts/SocketContext';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 
 interface ChatItem {
   id: string;
@@ -52,11 +53,21 @@ const ChatContent = () => {
   const userRole = user?.roleName;
   const isMainDoctor = userRole === 'main_doctor';
 
+  // Add at the top of the component (inside ChatContent)
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem('doctor_access_token');
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    return {};
+  };
+
   // Delete chat mutation
   const deleteChatMutation = useMutation({
     mutationFn: async (chatId: string) => {
       const response = await fetch(`/api/chats/${chatId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
       if (!response.ok) {
         const error = await response.json();
@@ -75,9 +86,9 @@ const ChatContent = () => {
 
   // Fetch team members
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['/api/team-members'],
+    queryKey: [`/api/team-members/${user?.clinicId}`],
     queryFn: async () => {
-      const response = await fetch('/api/team-members');
+      const response = await fetch(`/api/team-members/${user?.clinicId}` , { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch team members');
       return response.json();
     },
@@ -91,7 +102,7 @@ const ChatContent = () => {
       const url = user?.fullName 
         ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
         : '/api/chats';
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch chats');
       return response.json();
     },
@@ -99,14 +110,7 @@ const ChatContent = () => {
   });
 
   // Fetch orders for creating order-specific chats
-  const { data: orders = [] } = useQuery({
-    queryKey: [`/api/orders/${user?.clinicId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/orders/${user?.clinicId}`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      return response.json();
-    }
-  });
+  const { data: orders = [] } = useGetOrdersQuery();
 
   console.log(orders ,"orders data")
 
@@ -118,7 +122,7 @@ const ChatContent = () => {
         throw new Error('No clinic name found in user data');
       }
       // 1. Fetch clinicId using clinicName
-      const clinicRes = await fetch(`/api/clinics/name/${encodeURIComponent(clinicName)}`);
+      const clinicRes = await fetch(`/api/clinics/name/${encodeURIComponent(clinicName)}`, { headers: getAuthHeaders() });
       if (!clinicRes.ok) throw new Error('Could not find clinicId for this clinic');
       const { id: clinicId } = await clinicRes.json();
 
@@ -130,7 +134,7 @@ const ChatContent = () => {
       // 3. Create the chat
       const response = await fetch('/api/chats', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(chatPayload)
       });
       if (!response.ok) throw new Error('Failed to create chat');

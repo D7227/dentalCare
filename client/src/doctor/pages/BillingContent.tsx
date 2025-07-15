@@ -16,7 +16,7 @@ import CashCollectionModal from '../components/billing/CashCollectionModal';
 import InvoiceDetailModal from '../components/billing/InvoiceDetailModal';
 import StatementContent from '../components/billing/StatementContent';
 import BillingOverview from '../components/billing/BillingOverview';
-import { useOrders } from '../../hooks/shared/useOrders';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 
 const BillingContent = () => {
   const [activeTab, setActiveTab] = useState('outstanding');
@@ -26,7 +26,7 @@ const BillingContent = () => {
   const [invoiceDetailModalOpen, setInvoiceDetailModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
 
-  const { data: orders = [], isLoading } = useOrders();
+  const { data: orders = [], isLoading } = useGetOrdersQuery();
 
   // Filter and calculate billing statistics from orders
   const billingData = useMemo(() => {

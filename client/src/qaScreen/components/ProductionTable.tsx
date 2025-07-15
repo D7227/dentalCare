@@ -14,6 +14,10 @@ import { useLocation } from "wouter";
 import CustomStatusLabel from "@/components/common/customStatusLabel";
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useGetOrderByIdQuery, useGetOrdersQuery } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import { useAppSelector } from "@/store/hooks";
 
 const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, notes?: string) => void }> = ({ onUpdate }) => {
   const [cases, setCases] = useState<DentalCase[]>([]);
@@ -41,24 +45,24 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
     { name: "Dentures", key: "dentures" },
     { name: "Sleep Accessories", key: "sleep-accessories" },
   ];
+  const user = useAppSelector((state) => state.userData.userData);
+
+  // Use orderApi for fetching orders, and orderLocalSlice for local state
+  const { data: orders, isLoading, error: apiError } = useGetOrderByIdQuery(user?.clinicId || "");
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    const fetchCases = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch("/api/orders");
-        if (!response.ok) throw new Error("Failed to fetch orders");
-        const data = await response.json();
-        setCases(data);
-      } catch (err: any) {
-        setError(err.message || "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCases();
-  }, []);
+    if (orders) {
+      dispatch(setOrder(orders));
+      setCases(orders); // Assuming orders directly map to cases for now
+    }
+  }, [orders, dispatch]);
+
+  useEffect(() => {
+    if (apiError) {
+      setError(apiError.message || "Unknown error");
+    }
+  }, [apiError]);
 
   const openModal = (dentalCase: DentalCase) => {
     setSelectedCase(dentalCase);

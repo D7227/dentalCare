@@ -95,7 +95,9 @@ export const setupAuthenticationRoutes = (app: Express) => {
       // Try clinic
       const clinic = await clinicStorage.getClinicByMobileNumber(mobileNumber);
       if (clinic) {
+        console.log(clinic.password)
         const isPasswordValid = await bcrypt.compare(password, clinic.password || "");
+        console.log(isPasswordValid);
         if (isPasswordValid) {
           return res.json({
             token: jwt.sign({ id: clinic.id }, JWT_SECRET, { expiresIn: "7d" })
@@ -123,6 +125,7 @@ export const setupAuthenticationRoutes = (app: Express) => {
 
       if (!clinicData) {
         teamMemberData = await teamMemberStorage.getTeamMemberById(id);
+        console.log("hello ytjosdfvkdfksdjfksdj", teamMemberData)
 
         if (!teamMemberData) {
           return res.status(401).json({ error: "User Not Found" });
@@ -146,7 +149,7 @@ export const setupAuthenticationRoutes = (app: Express) => {
           return res.status(401).json({ error: "Clinic Not Found" });
         }
         const teamMembersData = {
-          ...teamMemberStorage,
+          ...teamMemberData,
           roleName,
           clinicId
         }

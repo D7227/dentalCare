@@ -30,7 +30,7 @@ import CustomStatusLabel from "../../components/common/customStatusLabel";
 import OptionsMenu from "../../components/common/OptionsMenu";
 import CircularProgress from "../../components/common/CircularProgress";
 import { useAppSelector } from '@/store/hooks';
-import { useApiGet } from "@/hooks/useApi";
+import { useFilterOrdersQuery, useGetOrderByIdQuery } from '@/store/slices/orderApi';
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
 
 interface OrderTableProps {
@@ -50,22 +50,19 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
 
-  const UserData = useAppSelector((state) => state.userData);
-  console.log('UserData orderTable', UserData)
-  const clinicId = UserData?.clinicId;
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
+  const clinicId = user?.clinicId;
   console.log('clinicId', clinicId)
+
+  // Only call the query if clinicId is defined
   const {
     data: dbOrders = [],
     isLoading,
     isError: error,
-    errorMessage,
+    error: errorMessage,
     refetch,
-  } = useApiGet<any[]>(`/api/orders/filter/${clinicId}`, {
-    enabled: !!clinicId,
-    refetchInterval: 30000,
-    onSuccess: (data) => console.log('Orders fetched:', data),
-    onError: (error) => console.error('Failed to fetch orders:', error),
-  });
+  } = useGetOrderByIdQuery(clinicId ?? "", { skip: !clinicId });
 
   console.log('dbOrders   ---table', dbOrders)
 
@@ -92,49 +89,12 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     refetchInterval: 30000,
   });
 
-  const { data: allToothGroups = [] } = useQuery<any[]>({
-    queryKey: ["/api/tooth-groups/all", dbOrders?.length],
-    queryFn: async () => {
-      if (!dbOrders || dbOrders.length === 0) return [];
-      const toothGroupPromises = dbOrders.map(async (order: any) => {
-        const response = await fetch(`/api/orders/${order.id}/tooth-groups`);
-        const toothGroups = await response.json();
-        return { orderId: order.id, toothGroups };
-      });
-      return Promise.all(toothGroupPromises);
-    },
-    enabled: !!dbOrders && dbOrders.length > 0,
-    refetchInterval: 30000,
-  });
-
-  // const { data: chats = [] } = useQuery({
-  //   queryKey: ['/api/chats', UserData?.userData?.fullName],
-  //   queryFn: async () => {
-  //     const url = user?.fullName
-  //       ? `/api/chats?userId=${encodeURIComponent(UserData?.cli?.fullName)}`
-  //       : '/api/chats';
-  //     const response = await fetch(url);
-  //     if (!response.ok) throw new Error('Failed to fetch chats');
-  //     return response.json();
-  //   },
-  //   enabled: !!user?.fullName
-  // });
-
-  const getPatientName = (patientId: number) => {
-    const patient = patients.find((p: any) => p.id === patientId);
-    return patient
-      ? `${patient.firstName} ${patient.lastName}`
-      : "Unknown Patient";
-  };
-
+  // Replace getOrderTeeth and getOrderToothGroups to use order data directly
   const getOrderTeeth = (orderId: number) => {
-    const orderToothGroups = allToothGroups.find(
-      (otg: any) => otg.orderId === orderId,
-    );
-    if (!orderToothGroups || !orderToothGroups.toothGroups) return [];
-
+    const order = dbOrders.find((o: any) => o.id === orderId);
+    if (!order || !order.teethGroup) return [];
     const allTeeth: string[] = [];
-    orderToothGroups.toothGroups.forEach((group: any) => {
+    order.teethGroup.forEach((group: any) => {
       if (group.teeth && Array.isArray(group.teeth)) {
         allTeeth.push(...group.teeth.map((tooth: any) => tooth.toString()));
       }
@@ -145,11 +105,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   };
 
   const getOrderToothGroups = (orderId: number) => {
-    const orderToothGroups = allToothGroups.find(
-      (otg: any) => otg.orderId === orderId,
-    );
-    if (!orderToothGroups || !orderToothGroups.toothGroups || !Array.isArray(orderToothGroups.toothGroups)) return [];
-    return orderToothGroups.toothGroups;
+    const order = dbOrders.find((o: any) => o.id === orderId);
+    if (!order || !order.teethGroup || !Array.isArray(order.teethGroup)) return [];
+    return order.teethGroup;
   };
 
   const getOrderType = (orderId: number) => {
@@ -215,7 +173,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
   // Get unique patient names for filter dropdown
   const uniquePatients = Array.from(
-    new Set(dbOrders.map((order: any) => getPatientName(order.patientId))),
+    new Set(dbOrders.map((order: any) => `${order.firstName} ${order.lastName}`)),
   ).sort();
 
   // Clear all filters function
@@ -230,12 +188,13 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   };
 
   const getUnreadCountForOrder = (orderId: string) => {
-    const chat = chats.find((chat: any) => chat.orderId === orderId);
-    return chat?.unreadCount || 0;
+    // If you have a chat system, replace this with the correct logic
+    // For now, always return 0 to avoid linter error
+    return 0;
   };
 
   const filteredOrders = dbOrders.filter((order: any) => {
-    const patientName = getPatientName(order.patientId);
+    const patientName = `${order.firstName} ${order.lastName}`;
     const matchesSearch =
       searchTerm === "" ||
       patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -549,7 +508,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                   <tbody>
                     {paginatedOrders.map((order: any, index: number) => {
                       const orderTeeth = getOrderTeeth(order?.id);
-                      const toothGroups = getOrderToothGroups(order?.id);
+                      const teethGroup = getOrderToothGroups(order?.id);
                       // Get real unread count for this order's chat
                       const unreadCount = getUnreadCountForOrder(order?.id);
                       return (

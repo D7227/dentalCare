@@ -1,16 +1,16 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-// import { orderApi } from './slices/orderApi';
+import { orderApi } from './slices/orderApi';
 import { doctorAuthApi } from './slices/doctorAuthApi';
 import { userDataReducer } from './slices';
 import { userDataApi } from './slices/userDataSlice';
-// import orderLocalReducer from './slices/orderLocalSlice';
+import orderLocalReducer from './slices/orderLocalSlice';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
-  // // // orderLocal: orderLocalReducer,
-  // // [orderApi.reducerPath]: orderApi.reducer,
+  [orderApi.reducerPath]: orderApi.reducer,
+  orderLocal: orderLocalReducer,
   [doctorAuthApi.reducerPath]: doctorAuthApi.reducer,
   [userDataApi.reducerPath]: userDataApi.reducer,
   userData: userDataReducer,
@@ -41,7 +41,7 @@ export const store = configureStore({
         ignoredPaths: ['_persist'],
       },
     })
-      // .concat(orderApi.middleware)
+      .concat(orderApi.middleware)
       .concat(doctorAuthApi.middleware)
       .concat(userDataApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',

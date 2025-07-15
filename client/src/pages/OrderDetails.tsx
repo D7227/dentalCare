@@ -19,13 +19,58 @@ import { getStatusColor } from '@/utils/orderUtils';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { useAppSelector } from '@/store/hooks';
+import { useGetOrderByIdQuery, useUpdateOrderMutation } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import { OrderType } from '@/types/orderType';
+import { OrderData } from '@/types';
+
+// Mapping function from OrderType to OrderData
+function mapOrderTypeToOrderData(order: OrderType): OrderData {
+  return {
+    referenceId: order.refId || '',
+    orderId: order.orderId,
+    orderMethod: order.orderMethod,
+    status: order.orderStatus as any,
+    paymentStatus: order.paymentType as any,
+    createdAt: order.orderDate,
+    updatedAt: order.updateDate,
+    patientFirstName: order.firstName,
+    patientLastName: order.lastName,
+    patientAge: order.age,
+    patientSex: order.sex,
+    caseHandledBy: order.caseHandleBy,
+    consultingDoctor: order.consultingDoctorName,
+    consultingDoctorMobile: order.consultingDoctorMobileNumber,
+    prescriptionType: order.prescriptionTypesId?.[0] || '',
+    subcategoryType: order.subPrescriptionTypesId?.[0] || '',
+    orderType: order.orderType,
+    restorationProducts: order.products,
+    category: '',
+    restorationType: '',
+    productSelection: '',
+    notes: order.doctorNote,
+    toothGroups: order.teethGroup,
+    accessories: order.accessorios?.map(a => a.name) || [],
+    otherAccessory: undefined,
+    returnAccessories: false,
+    pickupDate: undefined,
+    pickupTime: undefined,
+    pickupRemarks: undefined,
+    previousOrderId: undefined,
+    repairType: undefined,
+    issueDescription: undefined,
+    returnWithTrial: undefined,
+    files: [], // Map as needed
+  };
+}
 
 const OrderDetails = () => {
   const [location, setLocation] = useLocation();
   const { orderId } = useParams();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'details' | 'chat' | 'pickup' | 'scan' | 'payment'>('details');
-  const { user } = useAppSelector(state => state.auth);
+  const user = useAppSelector(state => state.userData.userData);
   const handlePaymentClick = (type: 'online' | 'collection') => {
     if (type === 'online') {
       toast({
@@ -47,10 +92,8 @@ const OrderDetails = () => {
   };
 
   // Fetch order by ID from API
-  const { data: order, isLoading, error } = useQuery<any>({
-    queryKey: [`/api/orders/${user?.clinicId}`, orderId],
-    enabled: !!orderId,
-  });
+  const { data: order, isLoading, error } = useGetOrderByIdQuery(orderId, { skip: !orderId });
+  // const order = orderData && Array.isArray(orderData) ? mapOrderTypeToOrderData(orderData[0]) : undefined;
 
   // Fetch patient details
   const { data: patient } = useQuery<any>({

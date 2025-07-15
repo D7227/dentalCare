@@ -50,6 +50,7 @@ import { createInsertSchema } from "drizzle-zod";
 var orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: text("patient_id"),
+  clinicId: text("clinic_id"),
   clinicInformationId: text("clinic_information_id"),
   orderMethod: text("order_method"),
   prescriptionTypesId: text("prescription_types_id").array(),
@@ -642,7 +643,9 @@ var setupAuthenticationRoutes = (app2) => {
       }
       const clinic2 = await clinicStorage.getClinicByMobileNumber(mobileNumber);
       if (clinic2) {
+        console.log(clinic2.password);
         const isPasswordValid = await bcrypt.compare(password, clinic2.password || "");
+        console.log(isPasswordValid);
         if (isPasswordValid) {
           return res.json({
             token: jwt.sign({ id: clinic2.id }, JWT_SECRET2, { expiresIn: "7d" })
@@ -666,6 +669,7 @@ var setupAuthenticationRoutes = (app2) => {
       let teamMemberData;
       if (!clinicData) {
         teamMemberData = await teamMemberStorage.getTeamMemberById(id);
+        console.log("hello ytjosdfvkdfksdjfksdj", teamMemberData);
         if (!teamMemberData) {
           return res.status(401).json({ error: "User Not Found" });
         }
@@ -686,7 +690,7 @@ var setupAuthenticationRoutes = (app2) => {
           return res.status(401).json({ error: "Clinic Not Found" });
         }
         const teamMembersData = {
-          ...teamMemberStorage,
+          ...teamMemberData,
           roleName,
           clinicId
         };
@@ -1054,20 +1058,39 @@ var OrderStorage = class {
         ...insertOrder,
         patientId: insertPatient.id,
         clinicInformationId: clinicInformation2.id,
-        selectedTeethId: teethGroup.id
-        // teethGroupId: teethGroup?.id, // if used
+        selectedTeethId: teethGroup.id,
+        // Defensive: ensure all array fields are arrays
+        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
+        subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId) ? insertOrder.subPrescriptionTypesId : [],
+        accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
+        selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
+        teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
+        teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
+        products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
+        pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
+        courierData: Array.isArray(insertOrder.courierData) ? insertOrder.courierData : [],
+        lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
+        files: {
+          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
+          faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
+          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan) ? insertOrder.files.intraOralScan : [],
+          referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : []
+        }
       };
-      if (orderToInsert.acpectedDileveryData && typeof orderToInsert.acpectedDileveryData === "string") {
-        orderToInsert.acpectedDileveryData = new Date(
-          orderToInsert.acpectedDileveryData
-        );
-      }
-      if (orderToInsert.orderDate && typeof orderToInsert.orderDate === "string") {
-        orderToInsert.orderDate = new Date(orderToInsert.orderDate);
-      }
-      if (orderToInsert.updateDate && typeof orderToInsert.updateDate === "string") {
-        orderToInsert.updateDate = new Date(orderToInsert.updateDate);
-      }
+      const fixDate = (val) => {
+        if (!val) return null;
+        if (val instanceof Date) return val;
+        if (typeof val === "string") {
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        return null;
+      };
+      orderToInsert.acpectedDileveryData = fixDate(orderToInsert.acpectedDileveryData);
+      orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
+      orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
+      orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
+      orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
       const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
       return order;
     } catch (error) {
@@ -1089,7 +1112,7 @@ var OrderStorage = class {
     return await db.select().from(orderSchema);
   }
   async getOrdersByClinicId(clinicId) {
-    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.id, clinicId));
+    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.clinicId, clinicId));
     if (!orders || orders.length === 0) return [];
     const results = [];
     for (const order of orders) {
@@ -1160,22 +1183,22 @@ var OrderStorage = class {
         consultingDoctorMobileNumber: clinicInformation2?.consultingDoctorMobileNumber || "",
         orderMethod: order.orderMethod || "",
         accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
-        selectedTeeth: teethGroup?.selectedTeeth || [],
-        teethGroup: teethGroup?.teethGroup || [],
-        teethNumber: teethnumber || [],
-        products: productSummary || [],
-        AcpectedDileveryData: order.AcpectedDileveryData ? new Date(order.AcpectedDileveryData) : /* @__PURE__ */ new Date(),
-        prescriptionTypesId: order.prescriptionTypesId || [],
-        subPrescriptionTypesId: order.subPrescriptionTypesId || [],
+        selectedTeeth: Array.isArray(teethGroup?.selectedTeeth) ? teethGroup.selectedTeeth : [],
+        teethGroup: Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : [],
+        teethNumber: Array.isArray(teethnumber) ? teethnumber : [],
+        products: Array.isArray(productSummary) ? productSummary : [],
+        acpectedDileveryData: order.acpectedDileveryData ? new Date(order.acpectedDileveryData) : /* @__PURE__ */ new Date(),
+        prescriptionTypesId: Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : [],
+        subPrescriptionTypesId: Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : [],
         files: {
-          addPatientPhotos: order.files?.addPatientPhotos || [],
-          faceScan: order.files?.faceScan || [],
-          intraOralScan: order.files?.intraOralScan || [],
-          referralImages: order.files?.referralImages || []
+          addPatientPhotos: Array.isArray((order.files ?? {}).addPatientPhotos) ? (order.files ?? {}).addPatientPhotos : [],
+          faceScan: Array.isArray((order.files ?? {}).faceScan) ? (order.files ?? {}).faceScan : [],
+          intraOralScan: Array.isArray((order.files ?? {}).intraOralScan) ? (order.files ?? {}).intraOralScan : [],
+          referralImages: Array.isArray((order.files ?? {}).referralImages) ? (order.files ?? {}).referralImages : []
         },
         handllingType: order.handllingType || "",
-        pickupData: order.pickupData || [],
-        courierData: order.courierData || [],
+        pickupData: Array.isArray(order.pickupData) ? order.pickupData : [],
+        courierData: Array.isArray(order.courierData) ? order.courierData : [],
         resonOfReject: order.resonOfReject || "",
         resonOfRescan: order.resonOfRescan || "",
         rejectNote: order.rejectNote || "",
@@ -1183,7 +1206,7 @@ var OrderStorage = class {
         crateNo: order.crateNo || "",
         qaNote: order.qaNote || "",
         orderBy: order.orderBy || "",
-        lifeCycle: order.lifeCycle || [],
+        lifeCycle: Array.isArray(order.lifeCycle) ? order.lifeCycle : [],
         orderStatus: order.orderStatus || "",
         refId: order.refId || "",
         orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),

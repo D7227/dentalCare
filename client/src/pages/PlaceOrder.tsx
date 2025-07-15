@@ -33,6 +33,10 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createOrderObject } from "@/utils/orderHelper";
 import { setUser } from "@/store/slices/userDataSlice";
+import { useCreateOrderMutation, useUpdateOrderMutation } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import { OrderType } from "@/types/orderType";
 
 interface ToothGroup {
   groupId: string;
@@ -89,7 +93,7 @@ const PlaceOrder = () => {
   //   setIsAuthChecking(false);
   // }, [isAuthenticated, dispatch, setLocation]);
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<OrderType>({
     id: '',
     orderId: '',
     refId: '',
@@ -97,9 +101,9 @@ const PlaceOrder = () => {
     type: null,
     firstName: '',
     lastName: '',
-    age: '',
+    age: 0,
     sex: '',
-    caseHandledBy: '',
+    caseHandledBy: 'Demoeefjfj',
     doctorMobile: '',
     consultingDoctor: '',
     consultingDoctorMobile: '',
@@ -129,7 +133,12 @@ const PlaceOrder = () => {
     otherAccessory: null,
     returnAccessories: false,
     notes: null,
-    files: [],
+    files: {
+      addPatientPhotos: null,
+      faceScan: null,
+      intraOralScan: null,
+      referralImages: null,
+    },
     expectedDeliveryDate: null,
     pickupDate: null,
     pickupTime: null,
@@ -201,7 +210,7 @@ const PlaceOrder = () => {
     // Clear current prescription and order method for new selection
     setFormData({
       ...formData,
-      prescriptionType: '',
+      prescriptionTypesId: '',
       type: 'new',
       orderType: ''
     });
@@ -213,6 +222,10 @@ const PlaceOrder = () => {
     // You can implement the save logic here or call the existing handleSubmit
     handleSubmit(new Event('submit') as any);
   };
+
+  const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
+  const [updateOrder, { isLoading: isUpdating }] = useUpdateOrderMutation();
+  const orderLocal = useSelector((state: any) => state?.orderLocal.order);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,32 +241,29 @@ const PlaceOrder = () => {
 
     try {
       if (orderCategory === "repair") {
-        formData.category = "repair";
-        formData.type = "repair";
+        formData.orderType = "repair";
         // No need to set firstName, lastName, age, sex again
-        const orderData = createOrderObject(formData, clinicId || '');
-        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(orderData),
-        });
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update order');
+        const orderDataRaw = createOrderObject(formData, user?.clinicId || '');
+        const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
+        const updateRes = await updateOrder({ id: selectedOrderId, body: orderData });
+        if (updateRes && !('error' in updateRes)) {
+          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+          toast({
+            title: "Order updated successfully!",
+            description: `Order #${selectedOrderId} has been updated.`,
+          });
+          window.history.back();
+        } else {
+          toast({
+            title: "Order update failed!",
+            description: "There was an error updating your order. Please try again.",
+            variant: "destructive"
+          });
         }
-        const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-        toast({
-          title: "Order updated successfully!",
-          description: `Order #${updatedOrder.id} has been updated.`,
-        });
-        window.history.back();
         setIsSubmitting(false);
         return;
       }
       if (orderCategory === 'repeat') {
-        // Call update order API
         if (!selectedOrderId) {
           toast({
             title: "Update Error",
@@ -263,56 +273,55 @@ const PlaceOrder = () => {
           setIsSubmitting(false);
           return;
         }
-        // Use the existing firstName, lastName, age, sex fields instead of patient* fields
-        formData.category = "repeat";
-        formData.type = "repeat";
-        const orderData = createOrderObject(formData, clinicId || "");
-        const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(orderData),
-        });
-        if (!updateResponse.ok) {
-          throw new Error('Failed to update order');
+        // formData.category = "repeat";
+        formData.orderType = "repeat";
+        const orderDataRaw = createOrderObject(formData, user?.clinicId || "");
+        const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
+        const updateRes = await updateOrder({ id: selectedOrderId, body: orderData });
+        if (updateRes && !('error' in updateRes)) {
+          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+          toast({
+            title: "Order updated successfully!",
+            description: `Order #${selectedOrderId} has been updated.`,
+          });
+          window.history.back();
+        } else {
+          toast({
+            title: "Order update failed!",
+            description: "There was an error updating your order. Please try again.",
+            variant: "destructive"
+          });
         }
-        const updatedOrder = await updateResponse.json();
-        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-        toast({
-          title: "Order updated successfully!",
-          description: `Order #${updatedOrder.id} has been updated.`,
-        });
-        window.history.back();
         setIsSubmitting(false);
         return;
       }
-      formData.accessories = [];
+      formData.accessorios = [];
       formData.orderStatus = 'pending';
-      formData.percentage = 10;
-      formData.type = formData.type || "new";
-      // Create the order using the database-compatible order object
-      const orderData = createOrderObject(formData, clinicId || "");
-
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!orderResponse.ok) {
-        throw new Error('Failed to create order');
+      // formData.percentage = 10;
+      formData.orderType = formData.orderType || "new";
+      const orderDataRaw = createOrderObject(formData, user?.clinicId || "");
+      const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
+      const orderRes = await createOrder(orderData);
+      if (orderRes && !('error' in orderRes)) {
+        toast({
+          title: "Order submitted successfully!",
+          description: `Order #${orderLocal.id} has been sent to the lab for processing.`
+        });
+        window.history.back();
+      } else {
+        toast({
+          title: "Order submission failed!",
+          description: "There was an error submitting your order. Please try again.",
+          variant: "destructive"
+        });
       }
 
-      const order = await orderResponse.json();
 
       // Create tooth groups for the order
-      if (formData.toothGroups && formData.toothGroups.length > 0) {
-        for (const toothGroup of formData.toothGroups) {
+      if (formData.teethGroup && formData.teethGroup.length > 0) {
+        for (const toothGroup of formData.teethGroup) {
           const toothGroupData = {
-            orderId: order.id,
+            orderId: orderLocal.id, // Use orderLocal.id for the new order
             groupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             teeth: toothGroup.teethDetails?.flat().map(detail => detail.teethNumber) || [],
             type: toothGroup.groupType || "separate",
@@ -341,14 +350,9 @@ const PlaceOrder = () => {
       }
 
       // Invalidate the orders cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      // queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
-      toast({
-        title: "Order submitted successfully!",
-        description: `Order #${order.id} has been sent to the lab for processing.`
-      });
-      // Redirect to dashboard after successful order placement
-      window.history.back();
+
     } catch (error) {
       console.error('Order submission error:', error);
       toast({

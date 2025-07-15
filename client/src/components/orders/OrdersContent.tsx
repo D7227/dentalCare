@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import OrderDetailView from "@/components/orders/OrderDetailView.tsx";
-import { useApiGet } from "@/hooks/useApi";
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
 import DropdownSelector from "../common/DropdownSelector";
 import { OrderCard } from "./OrderCard.tsx";
 import { useAppSelector } from '@/store/hooks';
@@ -31,33 +33,16 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [detailsHeight, setDetailsHeight] = useState(600);
   const orderDetailRef = useRef(null);
+  const dispatch = useDispatch();
 
-  const {
-    data: dbOrders = [],
-    isLoading,
-    isError: error,
-    errorMessage,
-    refetch,
-  } = useApiGet<any[]>(`/api/orders/filter/${user?.clinicId}`, {
-    enabled: !!user?.clinicId,
-    refetchInterval: 30000,
-    onSuccess: (data) => console.log('Orders fetched:', data),
-    onError: (error) => console.error('Failed to fetch orders:', error),
-  });
+  // Use orderApi for fetching orders
+  const { data: dbOrders = [], isLoading, isError: error, refetch } = useGetOrdersQuery();
+
+  // Use orderLocalSlice for local order state if needed
+  const localOrder = useSelector((state: any) => state.orderLocal.order);
+  const localStep = useSelector((state: any) => state.orderLocal.step);
 
   // Orders page shows all orders - no filtering needed
-
-  const { data: patients = [] } = useApiGet<any[]>("/api/patients", {
-    refetchInterval: 30000,
-  });
-
-  const getPatientName = (patientId: number) => {
-    const patient = patients.find((p: any) => p.id === patientId);
-    return patient
-      ? `${patient.firstName} ${patient.lastName}`
-      : "Unknown Patient";
-  };
-
 
   const getOrderType = (orderId: number) => {
     const order = dbOrders.find((o: any) => o.id === orderId);
@@ -121,7 +106,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   ];
 
   const filteredOrders = dbOrders.filter((order: any) => {
-    const patientName = getPatientName(order.patientId);
+    const patientName = order.patientName || "Unknown Patient";
     const matchesSearch =
       searchTerm === "" ||
       patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -198,9 +183,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       ? order.toothGroups.map((tg: any) => tg.teeth).flat().join(", ")
       : "";
     // Compose patient name
-    const patientName = order.patient?.firstName && order.patient?.lastName
-      ? `${order.patient.firstName} ${order.patient.lastName}`
-      : "Unknown Patient";
+    const patientName = order.patientName || "Unknown Patient";
     // Compose messages (demo: show status as message)
     const messages = [
       { label: `Status: ${statusLabel}`, messageBy: "lab" as const }

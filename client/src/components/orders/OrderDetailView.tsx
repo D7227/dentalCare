@@ -23,6 +23,7 @@ import PickupTab from "./tabs/PickupTab";
 import PaymentTab from "./tabs/PaymentTab";
 import { useAppSelector } from "@/store/hooks";
 import { getLifecycleStages } from "../shared/progress/lifecycleData";
+import { useGetOrderChatQuery } from '@/store/slices/orderApi';
 
 interface OrderDetailViewProps {
   isOpen: boolean;
@@ -42,9 +43,8 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const [activeTab, setActiveTab] = useState(initialTab);
   const { toast } = useToast();
   const [attachments, setAttachments] = useState<{ name: string }[]>(order?.files?.map((f: string) => ({ name: f })) || []);
-  const [chatId, setChatId] = useState<string | null>(null);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
+  const { data: chatData, isLoading: chatLoading, error: chatError } = useGetOrderChatQuery(order?.id, { skip: !order?.id });
+  const chatId = chatData?.id || null;
   const UserData = useAppSelector(state => state.userData);
   const user = UserData.userData;
 
@@ -64,23 +64,6 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       location: '-',
     }
     : undefined;
-
-  useEffect(() => {
-    if (!order?.orderId && !order?.referenceId) {
-      setChatId(null);
-      return;
-    }
-    setChatLoading(true);
-    setChatError(null);
-    fetch(`/api/orders/${order.id}/chat`)
-      .then((res) => {
-        if (!res.ok) throw new Error('No chat found');
-        return res.json();
-      })
-      .then((data) => setChatId(data.id))
-      .catch((err) => setChatError('No chat found for this order'))
-      .finally(() => setChatLoading(false));
-  }, [order?.orderId, order?.referenceId]);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -197,7 +180,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                 {chatLoading ? (
                   <div className="flex items-center justify-center h-full">Loading chat...</div>
                 ) : chatError ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">{chatError}</div>
+                  <div className="flex items-center justify-center h-full text-gray-500">No chat found for this order</div>
                 ) : chatId ? (
                   <ChatModule chatId={chatId} userData={user} />
                 ) : (

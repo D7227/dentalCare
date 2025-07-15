@@ -92,28 +92,39 @@ export class OrderStorage implements orderStore {
         patientId: insertPatient.id,
         clinicInformationId: clinicInformation.id,
         selectedTeethId: teethGroup.id,
-        // teethGroupId: teethGroup?.id, // if used
+        // Defensive: ensure all array fields are arrays
+        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
+        subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId) ? insertOrder.subPrescriptionTypesId : [],
+        accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
+        selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
+        teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
+        teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
+        products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
+        pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
+        courierData: Array.isArray(insertOrder.courierData) ? insertOrder.courierData : [],
+        lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
+        files: {
+          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
+          faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
+          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan) ? insertOrder.files.intraOralScan : [],
+          referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : [],
+        },
       };
-      if (
-        orderToInsert.acpectedDileveryData &&
-        typeof orderToInsert.acpectedDileveryData === "string"
-      ) {
-        orderToInsert.acpectedDileveryData = new Date(
-          orderToInsert.acpectedDileveryData
-        );
-      }
-      if (
-        orderToInsert.orderDate &&
-        typeof orderToInsert.orderDate === "string"
-      ) {
-        orderToInsert.orderDate = new Date(orderToInsert.orderDate);
-      }
-      if (
-        orderToInsert.updateDate &&
-        typeof orderToInsert.updateDate === "string"
-      ) {
-        orderToInsert.updateDate = new Date(orderToInsert.updateDate);
-      }
+      // Defensive: ensure all date fields are valid Date objects or null
+      const fixDate = (val: any) => {
+        if (!val) return null;
+        if (val instanceof Date) return val;
+        if (typeof val === 'string') {
+          const d = new Date(val);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        return null;
+      };
+      orderToInsert.acpectedDileveryData = fixDate(orderToInsert.acpectedDileveryData);
+      orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
+      orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
+      orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
+      orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
       const [order] = await db
         .insert(orderSchema)
         .values(orderToInsert)
@@ -145,7 +156,7 @@ export class OrderStorage implements orderStore {
     const orders = await db
       .select()
       .from(orderSchema)
-      .where(eq(orderSchema.id, clinicId));
+      .where(eq(orderSchema.clinicId, clinicId));
     if (!orders || orders.length === 0) return [];
     const results = [];
     for (const order of orders) {
@@ -241,25 +252,25 @@ export class OrderStorage implements orderStore {
         consultingDoctorMobileNumber:
           clinicInformation?.consultingDoctorMobileNumber || "",
         orderMethod: order.orderMethod || "",
-        accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
-        selectedTeeth: teethGroup?.selectedTeeth || [],
-        teethGroup: teethGroup?.teethGroup || [],
-        teethNumber: teethnumber || [],
-        products: productSummary || [],
-        AcpectedDileveryData: order.AcpectedDileveryData
-          ? new Date(order.AcpectedDileveryData)
+        accessorios: (Array.isArray(order.accessorios) ? order.accessorios : []) as any,
+        selectedTeeth: (Array.isArray(teethGroup?.selectedTeeth) ? teethGroup.selectedTeeth : []) as any,
+        teethGroup: (Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : []) as any,
+        teethNumber: (Array.isArray(teethnumber) ? teethnumber : []) as any,
+        products: (Array.isArray(productSummary) ? productSummary : []) as any,
+        acpectedDileveryData: order.acpectedDileveryData
+          ? new Date(order.acpectedDileveryData)
           : new Date(),
-        prescriptionTypesId: order.prescriptionTypesId || [],
-        subPrescriptionTypesId: order.subPrescriptionTypesId || [],
+        prescriptionTypesId: (Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : []) as any,
+        subPrescriptionTypesId: (Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : []) as any,
         files: {
-          addPatientPhotos: order.files?.addPatientPhotos || [],
-          faceScan: order.files?.faceScan || [],
-          intraOralScan: order.files?.intraOralScan || [],
-          referralImages: order.files?.referralImages || [],
-        },
+          addPatientPhotos: (Array.isArray((order.files ?? {}).addPatientPhotos) ? (order.files ?? {}).addPatientPhotos : []) as any,
+          faceScan: (Array.isArray((order.files ?? {}).faceScan) ? (order.files ?? {}).faceScan : []) as any,
+          intraOralScan: (Array.isArray((order.files ?? {}).intraOralScan) ? (order.files ?? {}).intraOralScan : []) as any,
+          referralImages: (Array.isArray((order.files ?? {}).referralImages) ? (order.files ?? {}).referralImages : []) as any,
+        } as any,
         handllingType: order.handllingType || "",
-        pickupData: order.pickupData || [],
-        courierData: order.courierData || [],
+        pickupData: (Array.isArray(order.pickupData) ? order.pickupData : []) as any,
+        courierData: (Array.isArray(order.courierData) ? order.courierData : []) as any,
         resonOfReject: order.resonOfReject || "",
         resonOfRescan: order.resonOfRescan || "",
         rejectNote: order.rejectNote || "",
@@ -267,7 +278,7 @@ export class OrderStorage implements orderStore {
         crateNo: order.crateNo || "",
         qaNote: order.qaNote || "",
         orderBy: order.orderBy || "",
-        lifeCycle: order.lifeCycle || [],
+        lifeCycle: (Array.isArray(order.lifeCycle) ? order.lifeCycle : []) as any,
         orderStatus: order.orderStatus || "",
         refId: order.refId || "",
         orderDate:
@@ -287,7 +298,7 @@ export class OrderStorage implements orderStore {
         doctorNote: order.doctorNote || "",
         orderType: order.orderType || "",
         // ...add any other fields from OrderType with appropriate fallbacks
-      };
+      } as any;
       results.push(orderData);
     }
     return results;

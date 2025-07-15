@@ -1,5 +1,44 @@
+import { OrderType } from "@/types/orderType";
+
+// Define a local type for the form data that includes all fields used below
+export type OrderFormData = OrderType & {
+  subcategoryType?: string;
+  prescriptionType?: string;
+  intraOralScan?: File[];
+  faceScan?: File[];
+  addPatientPhotos?: File[];
+  referralImages?: File[];
+  pickupDate?: string;
+  pickupTime?: string;
+  pickupRemarks?: string;
+  scanBooking?: {
+    areaManagerId: string;
+    scanDate: string;
+    scanTime: string;
+    notes: string;
+    trackingId: string;
+    courierName: string;
+  };
+  issueDescription?: string;
+  issueCategory?: string;
+  repairType?: string;
+  trialApproval?: boolean;
+  reapirInstructions?: string;
+  returnWithTrial?: boolean;
+  previousOrderId?: string;
+  repairOrderId?: string;
+  notes?: string;
+  additionalNotes?: string;
+  teethEditedByUser?: boolean;
+  percentage?: number;
+  isUrgent?: boolean;
+  currency?: string;
+  exportQuality?: string;
+  totalAmount?: string;
+};
+
 // Function to create comprehensive order object
-export const createOrderObject = (formData: any, clinicId: string) => {
+export const createOrderObject = (formData: OrderFormData, clinicId: string) => {
   // Handle subcategory-specific conditions
   const getOrderTypeBasedOnSubcategory = () => {
     if (formData.subcategoryType) {
@@ -35,77 +74,44 @@ export const createOrderObject = (formData: any, clinicId: string) => {
       .toUpperCase()}`,
     orderId: formData.orderId || "",
     type: getOrderTypeBasedOnSubcategory(),
-    category: formData.category || "new",
+    orderType: formData.orderType || "new",
     orderStatus: formData.orderStatus || "pending",
-    priority: formData.isUrgent ? "urgent" : "standard",
-    urgency: formData.isUrgent ? "urgent" : "standard",
-    paymentStatus: formData.paymentStatus || "pending",
+    paymentType: formData.paymentType || "pending",
     clinicId: formData.clinicId || "",
 
     // Patient Information
     firstName: formData.firstName || "",
     lastName: formData.lastName || "",
-    age: formData.age ? parseInt(formData.age, 10) : null,
+    age: formData.age,
     sex: formData.sex || "",
 
     // Case Information
-    caseHandledBy: formData.caseHandledBy || "",
-    doctorMobile: formData.doctorMobile || "",
-    consultingDoctor: formData.consultingDoctor || "",
-    consultingDoctorMobile: formData.consultingDoctorMobile || "",
+    caseHandleBy: formData.caseHandleBy || "",
+    doctorMobileNumber: formData.doctorMobileNumber || "",
+    consultingDoctorName: formData.consultingDoctorName || "",
+    consultingDoctorMobileNumber: formData.consultingDoctorMobileNumber || "",
 
     // Order Details
-    prescriptionType: formData.prescriptionType || "",
-    subcategoryType: formData.subcategoryType || "",
-    orderType: formData.orderType || "",
+    prescriptionTypesId: formData.prescriptionTypesId || "",
+    subPrescriptionTypesId: formData.subPrescriptionTypesId || "",
     orderMethod: formData.orderMethod || "",
-     restorationType: formData.restorationType || "",
 
     // Teeth Configuration - Store as separate fields for database
-    toothGroups: formData.toothGroups || [],
+    teethGroup: formData.teethGroup || [],
     selectedTeeth: formData.selectedTeeth || [],
-    toothNumbers: formData.toothNumbers || [],
-
-    // Product Information
-    restorationProducts: formData.restorationProducts || [],
-
-    // Implant Specific Fields
-    abutmentType: formData.abutmentType || "",
-    abutmentDetails: formData.abutmentDetails || null,
-    implantPhoto: formData.implantPhoto || "",
-    implantCompany: formData.implantCompany || "",
-    implantRemark: formData.implantRemark || "",
-
-    // Design Specifications
-    pontic: formData.pontic || "Ridge Lap",
-    ponticDesign: formData.ponticDesign || "",
-    occlusalStaining: formData.occlusalStaining || "medium",
-    trial: formData.trial || "",
-    expectedDeliveryDate: formData.expectedDeliveryDate || "",
-
-    // Shade Information
-    shade: formData.shade || [],
-    shadeGuide: formData.shadeGuide || [],
-    shadeNotes: formData.shadeNotes || "",
-    shadeInstruction: formData.shadeInstruction || "",
+    teethNumber: formData.teethNumber || [],
 
     // Files and Documentation
-    files: formData.files || [],
-    intraOralScans: formData.intraOralScans || [],
-    faceScans: formData.faceScans || [],
-    patientPhotos: formData.patientPhotos || [],
-    referralFiles: formData.referralFiles || [],
-    selectedFileType: formData.selectedFileType || "",
-
-    // Additional Specifications
-    clearance: formData.clearance || "",
-    selectedCompany: formData.selectedCompany || "",
+    files: {
+      intraOralScan: formData.intraOralScan || [],
+      faceScan: formData.faceScan || [],
+      addPatientPhotos: formData.addPatientPhotos || [],
+      referralImages: formData.referralImages || [],
+    },
 
     // Accessories and Additional Items
-    accessories: formData.accessories || [],
-    otherAccessory: formData.otherAccessory || "",
-    handlingType: formData.handlingType || "",
-    returnAccessories: formData.returnAccessories || false,
+    accessorios: formData.accessorios || [],
+    handllingType: formData.handllingType || "",
 
     // Pickup/Delivery Information
     pickupDate: formData.pickupDate || "",

@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { User, FileText, Stethoscope, Upload, Edit, Download, X } from "lucide-react";
 import type { DentalCase, CaseStatus } from "../data/cases";
 import OrderSummary from "@/components/order-wizard/OrderSummary";
+import { useUpdateOrderMutation } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
 
 type Props = {
   open: boolean;
@@ -56,7 +59,7 @@ export default function OrderReviewModal({
   const [rescanReason, setRescanReason] = useState("");
   const [rescanNotes, setRescanNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateOrder, { isLoading: isUpdating }] = useUpdateOrderMutation();
 
   React.useEffect(() => {
     if (dentalCase && !orderId) {
@@ -78,77 +81,49 @@ export default function OrderReviewModal({
 
   const handleAction = async (action: CaseStatus) => {
     if (!dentalCase) return;
-
-    setIsUpdating(true);
     try {
-      // Call the API to update the order
       dentalCase.orderStatus = "active";
       dentalCase.orderId = orderId;
       dentalCase.additionalNote = additionalNotes;
       dentalCase.crateNo = crateNumber;
-      await updateOrderAPI(dentalCase.id, dentalCase);
-
-      // Call the parent's onUpdate function
+      await updateOrder({ id: dentalCase.id, body: dentalCase });
       onUpdate(dentalCase.id, action, additionalNotes);
       setAdditionalNotes("");
       onClose();
     } catch (error) {
       console.error('Failed to update order:', error);
-      // You might want to show an error toast here
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   const handleReject = async () => {
     if (!dentalCase) return;
-
-    setIsUpdating(true);
     try {
       const combinedNotes = `Rejection Reason: ${rejectionReason}\nAdditional Notes: ${additionalNotes}`;
-
-      // Call the API to update the order
       dentalCase.orderStatus = "rejected";
       dentalCase.orderId = orderId;
       dentalCase.additionalNote = additionalNotes;
       dentalCase.rejectionReason = rejectionReason;
       dentalCase.crateNo = crateNumber;
-      await updateOrderAPI(dentalCase.id, dentalCase,);
-
-      // Call the parent's onUpdate function
+      await updateOrder({ id: dentalCase.id, body: dentalCase });
       onUpdate(dentalCase.id, "Rejected", combinedNotes);
       setRejectionReason("");
       setAdditionalNotes("");
       onClose();
     } catch (error) {
       console.error('Failed to reject order:', error);
-      // You might want to show an error toast here
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   const handleRescanRequest = async () => {
     if (!dentalCase) return;
-
-    setIsUpdating(true);
     try {
       const combinedNotes = `Rescan Reason: ${rescanReason}\nNotes: ${rescanNotes}`;
-
-      // Call the API to update the order
-      // dentalCase.orderStatus = "Rescan Requested";
-      await updateOrderAPI(dentalCase.id, dentalCase);
-
-      // Call the parent's onUpdate function
-      // onUpdate(dentalCase.id, "Rescan Requested", combinedNotes);
+      await updateOrder({ id: dentalCase.id, body: dentalCase });
       setRescanReason("");
       setRescanNotes("");
       onClose();
     } catch (error) {
       console.error('Failed to request rescan:', error);
-      // You might want to show an error toast here
-    } finally {
-      setIsUpdating(false);
     }
   };
 

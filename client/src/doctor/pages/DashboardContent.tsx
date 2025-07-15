@@ -7,9 +7,12 @@ import QuickActionsCard from "../components/QuickActionsCard";
 import BillingOverview from "../components/billing/BillingOverview";
 import PaymentOptionModal from "../../components/shared/PaymentOptionModal";
 import ScanBookingConfirmationModal from "../../components/shared/ScanBookingConfirmationModal";
-import { useOrders } from "../../hooks/shared/useOrders";
 import { tooth } from "@/assets/svg";
 import CustomButton from "../../components/common/customButtom";
+import { useGetOrderByIdQuery, useGetOrdersQuery } from '@/store/slices/orderApi';
+import { useSelector, useDispatch } from 'react-redux';
+import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import { useAppSelector } from "@/store/hooks";
 
 interface DashboardContentProps {
   onNewCase: () => void;
@@ -25,13 +28,21 @@ const DashboardContent = ({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentOrderId, setPaymentOrderId] = useState("");
   const [scanBookingModalOpen, setScanBookingModalOpen] = useState(false);
+  const user = useAppSelector((state) => state.userData.userData);
 
-  const { data: allOrders = [], isLoading } = useOrders();
+  const dispatch = useDispatch();
+  const { data: allOrders = [], isLoading } = useGetOrderByIdQuery(user?.clinicId);
+  // Optionally, sync to local slice
+  React.useEffect(() => {
+    if (allOrders) {
+      allOrders.forEach(order => dispatch(setOrder(order)));
+    }
+  }, [allOrders, dispatch]);
 
   // Filter orders for dashboard: only ongoing orders (not completed or rejected)
-  const orders = allOrders.filter((order) => {
+  const orders = allOrders.filter((order: any) => {
     // Show only ongoing orders (not completed, not rejected)
-    return order.status !== "completed" && order.status !== "rejected";
+    return order.orderStatus !== "completed" && order.orderStatus !== "rejected";
   });
 
   const handleViewOrder = (order: any) => {

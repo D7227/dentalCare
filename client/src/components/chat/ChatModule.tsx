@@ -42,6 +42,15 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const canAddParticipants = hasPermission(user, 'manage_participants');
   const canRemoveParticipants = hasPermission(user, 'manage_participants');
 
+  // JWT token for all API calls
+  const getAuthHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem('doctor_access_token');
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+    return {};
+  };
+
   // Fetch chat details
   const { data: chatDetails, isLoading: chatLoading, error: chatError } = useQuery({
     queryKey: ['/api/chats', chatId],
@@ -49,7 +58,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       if (!chatId) return null;
       
       // If chatId is an order ID, find the corresponding chat
-      const chatsResponse = await fetch('/api/chats');
+      const chatsResponse = await fetch('/api/chats', { headers: getAuthHeaders() });
       if (chatsResponse.ok) {
         const allChats = await chatsResponse.json();
         const orderChat = allChats.find((chat: any) => chat.orderId === chatId);
@@ -59,7 +68,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       }
       
       // Otherwise fetch chat by ID
-      const response = await fetch(`/api/chats/${chatId}`);
+      const response = await fetch(`/api/chats/${chatId}`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch chat details');
       return response.json();
     },
@@ -71,7 +80,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['/api/team-members?clinicName=', clinicName],
     queryFn: async () => {
-      const response = await fetch('/api/team-members');
+      const response = await fetch('/api/team-members', { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Failed to fetch team members');
       return response.json();
     }
@@ -84,7 +93,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       if (!chatDetails?.id) {
         return [];
       }
-      const response = await fetch(`/api/chats/${chatDetails.id}/messages`);
+      const response = await fetch(`/api/chats/${chatDetails.id}/messages`, { headers: getAuthHeaders() });
       if (!response.ok) {
         console.error('Failed to fetch messages:', response.status, response.statusText);
         throw new Error('Failed to fetch messages');
@@ -103,7 +112,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       if (!chatDetails?.id) throw new Error('No chat selected');
       const response = await fetch(`/api/chats/${chatDetails.id}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(messageData)
       });
       if (!response.ok) throw new Error('Failed to send message');
@@ -123,7 +132,8 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const deleteChatMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/chats/${chatId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
       if (!response.ok) {
         const error = await response.json();
@@ -145,7 +155,8 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const archiveChatMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/chats/${chatId}/archive`, {
-        method: 'PATCH'
+        method: 'PATCH',
+        headers: getAuthHeaders()
       });
       if (!response.ok) throw new Error('Failed to archive chat');
       return response.json();
@@ -165,9 +176,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
     mutationFn: async (participants: string[]) => {
       const response = await fetch(`/api/chats/${chatId}/participants`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           participants,
           updatedBy: userData?.fullName || 'Unknown'
@@ -310,7 +319,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       if (userData?.fullName) {
         fetch(`/api/chats/${chatDetails.id}/mark-read`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: userData.fullName })
         }).then(() => {
           queryClient.invalidateQueries({ queryKey: ['/api/chats', userData.fullName] });
@@ -337,7 +346,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
           if (userData?.fullName) {
             fetch(`/api/chats/${chatDetails.id}/mark-read`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId: userData.fullName })
             }).then(() => {
               // After marking as read on the server, refetch the data to update the UI.

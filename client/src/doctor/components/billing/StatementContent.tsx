@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Filter, CreditCard } from 'lucide-react';
-import { useOrders } from '../../../hooks/shared/useOrders';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 import PaymentOptionModal from '../../../components/shared/PaymentOptionModal';
 
 const StatementContent = ({ onBack }: { onBack: () => void }) => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const { data: orders = [] } = useOrders();
+  const { data: orders = [] } = useGetOrdersQuery();
 
   // Calculate financial data
   const financialData = useMemo(() => {

@@ -85,9 +85,12 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const clinicName = user?.clinicName;
   console.log(clinicName)
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['/api/team-members?clinicName=', clinicName],
+    queryKey: [`/api/team-members/${user?.clinicId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/team-members?clinicName=${clinicName}`);
+      const token = localStorage.getItem('doctor_access_token');
+      const response = await fetch(`/api/team-members/${user?.clinicId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) throw new Error('Failed to fetch team members');
       return response.json();
     }
@@ -97,7 +100,10 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const { data: clinics = [], isLoading: clinicsLoading, error: clinicsError } = useQuery({
     queryKey: ['/api/clinics'],
     queryFn: async () => {
-      const response = await fetch('/api/clinics');
+      const token = localStorage.getItem('doctor_access_token');
+      const response = await fetch('/api/clinics', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) throw new Error('Failed to fetch clinics');
       return response.json();
     }

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 import { OrderData } from '../../types';
 import { useAppSelector } from '@/store/hooks';
 
@@ -15,9 +15,7 @@ export const useOrderData = (): UseOrderDataResult => {
     data: orders = [], 
     isLoading: isOrdersLoading, 
     error: ordersError 
-  } = useQuery<OrderData[]>({ 
-    queryKey: [`/api/orders/${UserData?.userData?.clinicId}`] 
-  });
+  } = useGetOrdersQuery();
 
   const getToothGroupsByOrder = (referenceId: string): any[] => {
     const order = orders.find(o => o.referenceId === referenceId);

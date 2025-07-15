@@ -36,9 +36,15 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Delay socket connection until user is available
   useEffect(() => {
     if (user?.id) {
-      // Use window.location.hostname and default to 5000 if port is not set
-      const port = window.location.port || '5000';
-      const serverUrl = `http://${window.location.hostname}:${port}`;
+      // Use window.location.hostname and support ws/wss and env port
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const hostname = window.location.hostname;
+      const envPort = import.meta.env.VITE_WS_PORT;
+      let port = envPort || window.location.port;
+      if (!port) {
+        port = protocol === 'wss' ? '443' : '5000';
+      }
+      const serverUrl = `${protocol}://${hostname}:${port}`;
       const newSocket = io(serverUrl, {
         transports: ['websocket', 'polling'],
         autoConnect: true,
