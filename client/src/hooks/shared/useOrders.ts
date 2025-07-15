@@ -24,7 +24,8 @@ const createOrderAPI = async (formData: OrderFormData): Promise<OrderData> => {
 };
 
 const getOrdersAPI = async (): Promise<OrderData[]> => {
-  const { user } = useAppSelector(state => state.auth);
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
   const ordersResponse = await fetch(`/api/orders/${user?.clinicId}`);
   const patientsResponse = await fetch('/api/patients');
   
@@ -133,7 +134,8 @@ export const useCreateOrder = (onSuccessCallback?: (data: OrderData) => void) =>
 
 // Hook for fetching all orders (for clinic dashboard and OrdersTab)
 export const useOrders = () => {
-  const { user } = useAppSelector(state => state.auth);
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
   const clinicId = user?.clinicId;
   return useQuery({
     queryKey: ['orders'],
@@ -145,7 +147,8 @@ export const useOrders = () => {
 
 // Standalone query function for orders (can be used in components that need the query config)
 export const getOrders = async () => {
-  const { user } = useAppSelector(state => state.auth);
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
   const clinicId = user?.clinicId;
   let ordersResponse;
   if (clinicId) {

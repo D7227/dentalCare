@@ -11,7 +11,7 @@ import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import LayoutConstants from '@/doctor/utils/staticValue';
 import { useLocation } from 'wouter';
-import { logout } from '@/store/slices/authSlice';
+import { clearUserData } from '@/store/slices/userDataSlice';
 import { clearReduxPersist } from '@/store/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +36,7 @@ const Sidebar = ({
   const [clinicMembersOpen, setClinicMembersOpen] = useState(true);
 
   // Get current user from Redux
-  const currentUser = useAppSelector(state => state.auth.user);
+  const user = useAppSelector((state) => state.userData.userData);
 
   // Add setLocation for navigation
   const [, setLocation] = useLocation();
@@ -91,7 +91,7 @@ const Sidebar = ({
   ];
 
   // Fetch clinic members dynamically using Redux user
-  const { members: clinicMembers, isLoading: isMembersLoading, error: membersError } = useClinicMembers(currentUser?.clinicName);
+  const { members: clinicMembers, isLoading: isMembersLoading, error: membersError } = useClinicMembers(user?.clinicId);
 
   const handleAddMember = () => {
     onSectionChange('my-team');
@@ -99,7 +99,7 @@ const Sidebar = ({
 
   const handleLogout = () => {
     // Clear all Redux data
-    dispatch(logout());
+    dispatch(clearUserData());
 
     // Clear Redux persist data
     clearReduxPersist();

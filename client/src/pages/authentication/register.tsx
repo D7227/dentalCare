@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { registerClinic, clearError } from '@/store/slices/authSlice';
+import { useRegisterMutation } from '@/store/slices/doctorAuthApi';
 
 const initialFormData = {
   firstname: '',
@@ -74,19 +74,15 @@ const Register = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
-
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      setLocation('/');
-    }
-  }, [isAuthenticated, setLocation]);
+  const [register, { isLoading, error }] = useRegisterMutation();
 
   React.useEffect(() => {
     if (error) {
-      dispatch(clearError());
+      // The original code had dispatch(clearError()) here, but clearError is removed from imports.
+      // Assuming the intent was to handle the error if the mutation itself provides it.
+      // For now, removing the line as per the new_code.
     }
-  }, [error, dispatch]);
+  }, [error]);
 
   // If billingSameAsClinic is checked, copy clinic address fields to billing address fields
   React.useEffect(() => {
@@ -158,7 +154,11 @@ const Register = () => {
     if (!validateForm()) return;
     try {
       const { confirmPassword, ...clinicData } = formData;
-      const userResult = await dispatch(registerClinic(clinicData)).unwrap();
+      const result = await register(clinicData).unwrap();
+      // If registration returns a token, store it
+      if (result && result.token) {
+        localStorage.setItem('doctor_access_token', result.token);
+      }
       toast({
         title: 'Registration Successful!',
         description: 'Your clinic has been registered successfully. You are now logged in.',

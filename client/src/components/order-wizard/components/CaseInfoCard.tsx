@@ -28,7 +28,8 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const [isClinicDropdownOpen, setIsClinicDropdownOpen] = useState(false);
   const endPort = window.location.pathname;
 
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
 
   const clinicDoctors = [{
     id: 'dr1',

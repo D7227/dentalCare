@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   // Allow login and register endpoints without auth
+  console.log(req.path)
   if (
     req.path === "/login" ||
     req.path === "/register"

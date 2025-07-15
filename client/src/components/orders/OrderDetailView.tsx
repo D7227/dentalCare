@@ -45,7 +45,8 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
-  const user = useAppSelector(state => state.auth.user);
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
 
   const patient = order?.firstName
     ? {

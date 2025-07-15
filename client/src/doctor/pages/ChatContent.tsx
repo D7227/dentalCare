@@ -41,7 +41,7 @@ const ChatContent = () => {
   const { getSocket, onUnreadCountUpdate, offUnreadCountUpdate } = useSocket();
   
   // Get user data from Redux
-  const user = useAppSelector(state => state.auth.user);
+  const user = useAppSelector(state => state.userData.userData);
   const clinicName = user?.clinicName;
 
   // Check permissions using the new permission system

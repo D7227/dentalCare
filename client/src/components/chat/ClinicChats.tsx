@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/store/hooks';
 
 const ClinicChats = () => {
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

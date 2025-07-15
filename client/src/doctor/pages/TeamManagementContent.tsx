@@ -65,31 +65,43 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
   const queryClient = useQueryClient();
 
   // Get user data from Redux to access clinic name
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
 
   const { socket } = useSocket();
 
+  // Utility to get auth headers
+  function getAuthHeaders() {
+    const token = localStorage.getItem('doctor_access_token');
+    return token ? { Authorization: `Bearer ${token}` } : undefined;
+  }
+
   const { data: teamMembers = [], isLoading } = useQuery({
-    queryKey: ['/api/team-members', user?.clinicName],
+    queryKey: ['/api/team-members', user?.clinicId],
     queryFn: async () => {
-      // Use backend API with clinic name filter
-      const url = user?.clinicName 
-        ? `/api/team-members?clinicName=${encodeURIComponent(user.clinicName)}`
+      const url = user?.clinicId 
+        ? `/api/team-members/${user?.clinicId}`
         : '/api/team-members';
-      
-      const response = await fetch(url);
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(url, {
+        headers: authHeaders ? authHeaders : {},
+      });
       if (!response.ok) throw new Error('Failed to fetch team members');
       const teamMembers = await response.json();
       return teamMembers;
     },
-    enabled: !!user?.clinicName // Only run query if user has clinic name
+    enabled: !!user?.clinicName
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      const authHeaders = getAuthHeaders();
       const response = await fetch('/api/create/team-members', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeaders || {}),
+        },
         body: JSON.stringify(data)
       });
       if (!response.ok) throw new Error('Failed to create team member');
@@ -115,9 +127,13 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
 
   const userCreate = useMutation({
     mutationFn: async (formData: any) => {
+      const authHeaders = getAuthHeaders();
       const response = await fetch(`/api/create-user`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeaders || {}),
+        },
         body: JSON.stringify(formData)
       });
       if (!response.ok) throw new Error('Login failed');
@@ -132,9 +148,13 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await fetch(`/api/team-members/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(`/api/update/team-member/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authHeaders || {}),
+        },
         body: JSON.stringify(data)
       });
       if (!response.ok) throw new Error('Failed to update team member');
@@ -156,8 +176,10 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/team-members/${id}`, {
-        method: 'DELETE'
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(`/api/team-member/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders ? authHeaders : {},
       });
       if (!response.ok) throw new Error('Failed to delete team member');
     },

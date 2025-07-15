@@ -35,7 +35,8 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const { socket, joinChat, leaveChat, sendMessage: socketSendMessage, isConnected, getSocket, sendTyping } = useSocket();
 
   // Get user data from Redux
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
 
   // Check permissions using the new permission system
   const canAddParticipants = hasPermission(user, 'manage_participants');

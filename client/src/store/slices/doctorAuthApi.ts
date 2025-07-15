@@ -3,25 +3,43 @@ import type { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 // --- Types ---
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
+  token: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  mobileNumber: string;
   password: string;
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user: any;
+  token: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
+export interface UserData {
+    id: string;
+    fullName: string;
+    permissions: string[];
+    contactNumber: string;
+    roleId: string;
+    clinicName: string;
+    roleName: string;
+    userType?: string;
+    clinicId?: string;
+    clinicAddressLine1?: string;
+    clinicAddressLine2?: string;
+    clinicCity?: string;
+    clinicState?: string;
+    clinicPincode?: string;
+    clinicCountry?: string;
+    billingAddressLine1?: string;
+    billingAddressLine2?: string;
+    billingCity?: string;
+    billingState?: string;
+    billingPincode?: string;
+    billingCountry?: string;
+    gstNumber?: string;
+    panNumber?: string;
+    email?: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -33,10 +51,10 @@ const ACCESS_TOKEN_KEY = "doctor_access_token";
 const REFRESH_TOKEN_KEY = "doctor_refresh_token";
 
 export const setAuthTokens = (tokens: AuthTokens) => {
-  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  if (tokens.refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-  }
+  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.token);
+  // if (tokens.refreshToken) {
+  //   localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  // }
 };
 
 export const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -77,6 +95,22 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
   api,
   extraOptions
 ) => {
+  // Determine the URL for the request
+  let url = '';
+  if (typeof args === 'string') {
+    url = args;
+  } else if (typeof args === 'object' && 'url' in args) {
+    url = args.url as string;
+  }
+
+  // Skip auth logic for login and register endpoints
+  if (url.includes('/login') || url.includes('/register')) {
+    const rawBaseQuery = fetchBaseQuery({
+      baseUrl: "/api",
+    });
+    return rawBaseQuery(args, api, extraOptions);
+  }
+
   let accessToken = getAccessToken();
   // Auto-logout if token expired
   if (isTokenExpired(accessToken)) {
@@ -84,7 +118,7 @@ const baseQueryWithAuth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQuery
     return { error: { status: 401, data: { message: "Session expired. Please login again." } } };
   }
   const rawBaseQuery = fetchBaseQuery({
-    baseUrl: "/api/doctor-auth",
+    baseUrl: "/api",
     prepareHeaders: (headers) => {
       if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
       return headers;
@@ -106,13 +140,13 @@ export const doctorAuthApi = createApi({
       async onQueryStarted(arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          if (data.accessToken) {
-            setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+          if (data.token) {
+            setAuthTokens({ token: data.token });
           }
         } catch {}
       },
     }),
-    register: builder.mutation<any, RegisterRequest>({
+    register: builder.mutation<any, UserData>({
       query: (body) => ({
         url: "/register",
         method: "POST",

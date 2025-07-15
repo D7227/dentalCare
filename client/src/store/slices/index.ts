@@ -1,2 +1,2 @@
-export { default as authSlice } from './authSlice';
 export * from './doctorAuthApi';
+export { default as userDataReducer } from './userDataSlice';

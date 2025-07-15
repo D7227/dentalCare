@@ -80,8 +80,7 @@ export const setupAuthenticationRoutes = (app: Express) => {
         mobileNumber
       );
       if (teamMember) {
-        const pss ="$2a$10$nv9SquvlvuYDfr/eXc.Ltu4kKvHt6InAnew7/ARBZm0pNApMAK/sa"
-        const isPasswordValid = await bcrypt.compare(password, pss || "");
+        const isPasswordValid = await bcrypt.compare(password, teamMember.password || "");
         if (isPasswordValid) {
           // Get roleName from role table
 
@@ -146,18 +145,22 @@ export const setupAuthenticationRoutes = (app: Express) => {
         if (!clinicId) {
           return res.status(401).json({ error: "Clinic Not Found" });
         }
-        return res.json({
-          teamMemberData,
+        const teamMembersData = {
+          ...teamMemberStorage,
           roleName,
-          clinicId,
-        });
+          clinicId
+        }
+        return res.json(teamMembersData);
       }
       if (clinicData.roleId) {
         clinicId = clinicData.id;
         const role = await RolesStorage.getRoleById(clinicData.roleId);
         roleName = role?.name || "";
       }
-     return res.json({ clinicData, roleName, clinicId });
+      const ClinicsData = {
+        ...clinicData, roleName, clinicId
+      }
+     return res.json(ClinicsData);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch user data" });
     }

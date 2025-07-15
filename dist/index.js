@@ -631,8 +631,7 @@ var setupAuthenticationRoutes = (app2) => {
         mobileNumber
       );
       if (teamMember) {
-        const pss = "$2a$10$nv9SquvlvuYDfr/eXc.Ltu4kKvHt6InAnew7/ARBZm0pNApMAK/sa";
-        const isPasswordValid = await bcrypt.compare(password, pss || "");
+        const isPasswordValid = await bcrypt.compare(password, teamMember.password || "");
         if (isPasswordValid) {
           return res.json({
             token: jwt.sign({ id: teamMember.id }, JWT_SECRET2, { expiresIn: "7d" })
@@ -686,18 +685,24 @@ var setupAuthenticationRoutes = (app2) => {
         if (!clinicId) {
           return res.status(401).json({ error: "Clinic Not Found" });
         }
-        return res.json({
-          teamMemberData,
+        const teamMembersData = {
+          ...teamMemberStorage,
           roleName,
           clinicId
-        });
+        };
+        return res.json(teamMembersData);
       }
       if (clinicData.roleId) {
         clinicId = clinicData.id;
         const role2 = await RolesStorage.getRoleById(clinicData.roleId);
         roleName = role2?.name || "";
       }
-      return res.json({ clinicData, roleName, clinicId });
+      const ClinicsData = {
+        ...clinicData,
+        roleName,
+        clinicId
+      };
+      return res.json(ClinicsData);
     } catch (err) {
       res.status(500).json({ error: "Failed to fetch user data" });
     }
@@ -1034,7 +1039,9 @@ var OrderStorage = class {
         consultingDoctorName: insertOrder.consultingDoctorName,
         consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber
       };
-      clinicInformation2 = await clinicInformationStorage.createClinicInformation(clinicInformationData);
+      clinicInformation2 = await clinicInformationStorage.createClinicInformation(
+        clinicInformationData
+      );
       if (!clinicInformation2) {
         throw new Error("Failed to create clinic information record");
       }
@@ -1051,7 +1058,9 @@ var OrderStorage = class {
         // teethGroupId: teethGroup?.id, // if used
       };
       if (orderToInsert.acpectedDileveryData && typeof orderToInsert.acpectedDileveryData === "string") {
-        orderToInsert.acpectedDileveryData = new Date(orderToInsert.acpectedDileveryData);
+        orderToInsert.acpectedDileveryData = new Date(
+          orderToInsert.acpectedDileveryData
+        );
       }
       if (orderToInsert.orderDate && typeof orderToInsert.orderDate === "string") {
         orderToInsert.orderDate = new Date(orderToInsert.orderDate);
@@ -1066,7 +1075,9 @@ var OrderStorage = class {
         await patientStorage.deletePatient(insertPatient.id);
       }
       if (clinicInformation2 && clinicInformation2.id) {
-        await clinicInformationStorage.deleteClinicInformation(clinicInformation2.id);
+        await clinicInformationStorage.deleteClinicInformation(
+          clinicInformation2.id
+        );
       }
       if (teethGroup && teethGroup.id) {
         await teethGroupStorage.deleteTeethGroup(teethGroup.id);
@@ -1083,7 +1094,9 @@ var OrderStorage = class {
     const results = [];
     for (const order of orders) {
       const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
-      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(order.clinicInformationId) : void 0;
+      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(
+        order.clinicInformationId
+      ) : void 0;
       const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
       const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
         (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
@@ -1108,7 +1121,9 @@ var OrderStorage = class {
               addProduct(prod.name, Number(prod.quantity) || 1);
             });
             if (Array.isArray(tooth.productName)) {
-              tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
+              tooth.productName.forEach(
+                (name) => addProduct(name, Number(tooth.productQuantity) || 1)
+              );
             } else if (tooth.productName) {
               addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
             }
@@ -1121,13 +1136,18 @@ var OrderStorage = class {
             addProduct(prod.name, Number(prod.quantity) || 1);
           });
           if (Array.isArray(tooth.productName)) {
-            tooth.productName.forEach((name) => addProduct(name, Number(tooth.productQuantity) || 1));
+            tooth.productName.forEach(
+              (name) => addProduct(name, Number(tooth.productQuantity) || 1)
+            );
           } else if (tooth.productName) {
             addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
           }
         });
       }
-      const productSummary = Object.entries(productMap).map(([name, qty]) => ({ name, qty }));
+      const productSummary = Object.entries(productMap).map(([name, qty]) => ({
+        name,
+        qty
+      }));
       const orderData = {
         firstName: patient?.firstName || "",
         lastName: patient?.lastName || "",
@@ -1786,6 +1806,23 @@ var setupTeamMemberRoutes = (app2) => {
       res.status(400).json({ error: "Invalid team member data" });
     }
   });
+  app2.patch("/api/update/team-member/:id", async (req, res) => {
+    try {
+      const teamMemberId = req.params.id;
+      const updateData = { ...req.body };
+      if (updateData.password) {
+        updateData.password = await bcrypt2.hash(updateData.password, 10);
+      }
+      const updatedTeamMember = await teamMemberStorage.updateTeamMember(teamMemberId, updateData);
+      if (!updatedTeamMember) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      res.json(updatedTeamMember);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(400).json({ error: "Failed to update team member" });
+    }
+  });
   app2.delete("/api/team-member/:id", async (req, res) => {
     try {
       const member = await teamMemberStorage.getTeamMember(req.params.id);
@@ -2072,6 +2109,7 @@ import dotenv2 from "dotenv";
 import jwt2 from "jsonwebtoken";
 var JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 function authMiddleware(req, res, next) {
+  console.log(req.path);
   if (req.path === "/login" || req.path === "/register") {
     return next();
   }

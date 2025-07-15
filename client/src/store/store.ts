@@ -1,24 +1,25 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import authReducer from './slices/authSlice';
-import { orderApi } from './slices/orderApi';
+// import { orderApi } from './slices/orderApi';
 import { doctorAuthApi } from './slices/doctorAuthApi';
-import orderLocalReducer from './slices/orderLocalSlice';
+import { userDataReducer } from './slices';
+// import orderLocalReducer from './slices/orderLocalSlice';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
-  auth: authReducer,
-  orderLocal: orderLocalReducer,
-  [orderApi.reducerPath]: orderApi.reducer,
+  // auth: authReducer,
+  // orderLocal: orderLocalReducer,
+  // [orderApi.reducerPath]: orderApi.reducer,
   [doctorAuthApi.reducerPath]: doctorAuthApi.reducer,
+  userData: userDataReducer,
   // Add more slices here
 });
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth', 'orderLocal'], // Persist auth and orderLocal
+  whitelist: ['auth', 'orderLocal', 'userData'], // Persist auth, orderLocal, userData
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -39,7 +40,7 @@ export const store = configureStore({
         ignoredPaths: ['_persist'],
       },
     })
-      .concat(orderApi.middleware)
+      // .concat(orderApi.middleware)
       .concat(doctorAuthApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });

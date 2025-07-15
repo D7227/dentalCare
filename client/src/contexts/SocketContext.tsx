@@ -31,12 +31,14 @@ interface SocketProviderProps {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.userData.userData);
 
   // Delay socket connection until user is available
   useEffect(() => {
     if (user?.id) {
-      const serverUrl = `http://${window.location.hostname}:5000`;
+      // Use window.location.hostname and default to 5000 if port is not set
+      const port = window.location.port || '5000';
+      const serverUrl = `http://${window.location.hostname}:${port}`;
       const newSocket = io(serverUrl, {
         transports: ['websocket', 'polling'],
         autoConnect: true,

@@ -11,7 +11,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import OrderDetailView from "@/components/orders/OrderDetailView.tsx";
 import { useApiGet } from "@/hooks/useApi";
 import DropdownSelector from "../common/DropdownSelector";
-import { DentalOrder, OrderCard } from "./OrderCard.tsx";
+import { OrderCard } from "./OrderCard.tsx";
 import { useAppSelector } from '@/store/hooks';
 // import CustomStatusLabel from '../common/CustomStatusLabel';
 
@@ -21,7 +21,8 @@ interface OrdersContentProps {
 }
 
 const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
-  const { user } = useAppSelector(state => state.auth);
+  const UserData = useAppSelector(state => state.userData);
+  const user = UserData.userData;
   const [location, setLocation] = useLocation();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,10 +141,10 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
   });
 
   // Helper to map API order data to DentalOrder structure for OrderCard
-  const mapApiOrderToDentalOrder = (order: any): DentalOrder & any => {
+  const mapApiOrderToDentalOrder = (order: any): any => {
     // Map status to statusLabel/orderStatus for UI
-    let statusLabel: DentalOrder["statusLabel"] = "pending";
-    let orderStatus: DentalOrder["orderStatus"] = order.orderStatus;
+    let statusLabel: any = "pending";
+    let orderStatus: any = order.orderStatus;
     // Map API status/orderType to UI enums
     switch (order.orderStatus) {
       case "pending_approval":
@@ -188,7 +189,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
     //     orderStatus = "new";
     // }
     // Payment status mapping
-    let paymentStatus: DentalOrder["paymentStatus"] = "pending";
+    let paymentStatus: any = "pending";
     if (order.paymentStatus === "paid") paymentStatus = "paid";
     else if (order.paymentStatus === "rejected") paymentStatus = "rejected";
     else paymentStatus = "pending";
@@ -292,7 +293,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
               Error Loading Orders
             </h3>
             <p className="text-muted-foreground">
-              {error instanceof Error ? error.message : 'Failed to load orders'}
+              {typeof error === 'object' && error && 'message' in error ? (error as any).message : 'Failed to load orders'}
             </p>
             {!user?.clinicId && (
               <p className="text-sm text-red-500 mt-2">

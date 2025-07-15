@@ -30,9 +30,9 @@ import {
 } from "@/components/order-wizard/types/orderTypes";
 import CustomButton from "@/components/common/customButtom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setUser } from "@/store/slices/authSlice";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createOrderObject } from "@/utils/orderHelper";
+import { setUser } from "@/store/slices/userDataSlice";
 
 interface ToothGroup {
   groupId: string;
@@ -63,8 +63,9 @@ const PlaceOrder = () => {
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
 
-  // Get clinicId from Redux store
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  // Get user data from Redux store
+  const user = useAppSelector((state) => state.userData.userData);
+  const isAuthenticated = !!user;
   const clinicId = user?.clinicId;
 
   // Check authentication and restore user data from localStorage on component mount

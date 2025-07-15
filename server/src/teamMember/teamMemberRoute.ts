@@ -82,6 +82,25 @@ export const setupTeamMemberRoutes = (app: Express) => {
     }
   });
 
+  app.patch("/api/update/team-member/:id", async (req, res) => {
+    try {
+      const teamMemberId = req.params.id;
+      const updateData = { ...req.body };
+      // If password is present, hash it
+      if (updateData.password) {
+        updateData.password = await bcrypt.hash(updateData.password, 10);
+      }
+      const updatedTeamMember = await teamMemberStorage.updateTeamMember(teamMemberId, updateData);
+      if (!updatedTeamMember) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+      res.json(updatedTeamMember);
+    } catch (error) {
+      console.error("Error updating team member:", error);
+      res.status(400).json({ error: "Failed to update team member" });
+    }
+  });
+
   app.delete("/api/team-member/:id", async (req, res) => {
     try {
       // Get the member before deletion

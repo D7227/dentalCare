@@ -24,7 +24,6 @@ import OrderDetails from "./pages/OrderDetails";
 import ResubmitOrder from "./pages/ResubmitOrder";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/authentication/login";
-import { setUser } from "@/store/slices/authSlice";
 import { useToast } from "@/components/ui/use-toast";
 import Register from "./pages/authentication/register";
 import OrderTable from "./doctor/pages/OrderTable";
@@ -43,7 +42,6 @@ const DashboardLayout = () => {
   const { onUnreadCountUpdate, offUnreadCountUpdate, getSocket } = useSocket();
 
   // Debug Redux state
-  const authState = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
   const { toast } = useToast();
@@ -98,7 +96,7 @@ const DashboardLayout = () => {
   const prevPermissionsRef = useRef<string[]>(user?.permissions || []);
 
   useEffect(() => {
-  }, [authState, user, isAuthenticated]);
+  }, [user, isAuthenticated]);
 
   useEffect(() => {
     const handleUnreadCountUpdate = () => {
@@ -118,13 +116,12 @@ const DashboardLayout = () => {
       const response = await fetch('/api/me', headers ? { headers } : undefined);
       if (response && response.ok) {
         const updatedUser = await response.json();
-        dispatch(setUser(updatedUser));
         localStorage.setItem('user', JSON.stringify(updatedUser));
         toast({ title: "Your permissions have been updated. Please check your access." });
       }
     } catch (err) {
     }
-  }, [dispatch, user?.contactNumber, toast]);
+  }, [user?.contactNumber, toast]);
 
   useEffect(() => {
     const socket = typeof getSocket === 'function' ? getSocket() : null;
@@ -176,12 +173,12 @@ const DashboardLayout = () => {
     // Only show toasts if this is not the first mount (i.e., prevPermissions is not empty)
     if (prevPermissions.length > 0) {
       // Find revoked permissions
-      const revoked = prevPermissions.filter(p => !currentPermissions.includes(p));
+      const revoked = prevPermissions.filter((p: string) => !currentPermissions.includes(p));
       // Find granted permissions
-      const granted = currentPermissions.filter(p => !prevPermissions.includes(p));
+      const granted = currentPermissions.filter((p: string) => !prevPermissions.includes(p));
 
       if (revoked.length > 0) {
-        revoked.forEach(permission => {
+        revoked.forEach((permission: string) => {
           toast({
             title: 'Access Revoked',
             description: `Your access to "${permission}" was revoked by the admin.`,
@@ -190,7 +187,7 @@ const DashboardLayout = () => {
         });
       }
       if (granted.length > 0) {
-        granted.forEach(permission => {
+        granted.forEach((permission: string) => {
           toast({
             title: 'Access Granted',
             description: `You have been granted access to "${permission}" by the admin.`,

@@ -1,53 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { findUserByMobile, clearError } from '@/store/slices/authSlice';
+import { useLoginMutation } from '@/store/slices/doctorAuthApi';
+import { fetchUserDataFromToken } from '@/store/slices/userDataSlice';
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [, setLocation] = useLocation();
-  
   const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
-
-  // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
+  const [login, { isLoading: isLoginLoading, error: loginError }] = useLoginMutation();
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+  console.log(user , "user data")
+  // Redirect if already logged in and userData is present
+  useEffect(() => {
+    if (user) {
       setLocation('/');
     }
-  }, [isAuthenticated, setLocation]);
+  }, [user, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!mobileNumber || !password) {
-      return;
-    }
-
+    if (!mobileNumber || !password) return;
     try {
-      // Find user by mobile number (works for both team members and clinics)
-      const userResult = await dispatch(findUserByMobile(mobileNumber)).unwrap();
-      
-      // If user found, initialize them with role name and permissions
-      if (userResult) {
-        console.log("userResult", userResult);
-        // setLocation('/');
+      // Login API expects { email, password }
+      const loginPayload = { mobileNumber: mobileNumber, password };
+      const response = await login(loginPayload).unwrap();
+      // Get token from response or localStorage
+      const token = response?.token || localStorage.getItem('doctor_access_token');
+      if (token) {
+        dispatch(fetchUserDataFromToken(token));
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
+    } catch (error) {
+      // Error handled by loginError
     }
   };
 
-  const handleInputChange = () => {
-    if (error) {
-      dispatch(clearError());
-    }
-  };
+  const isLoading = isLoginLoading;
+  const error = (loginError && 'data' in loginError && (loginError.data as any)?.message) || '';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -60,7 +55,6 @@ const Login = () => {
             Enter your mobile number and password to access your account
           </p>
         </div>
-        
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
@@ -73,36 +67,27 @@ const Login = () => {
                   id="mobileNumber"
                   type="tel"
                   value={mobileNumber}
-                  onChange={(e) => {
-                    setMobileNumber(e.target.value);
-                    handleInputChange();
-                  }}
+                  onChange={(e) => setMobileNumber(e.target.value)}
                   placeholder="Enter your mobile number"
                   required
                 />
               </div>
-              
               <div>
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    handleInputChange();
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                 />
               </div>
-
               {error && (
                 <div className="text-red-600 text-sm text-center">
-                  {error}
+                  {typeof error === 'string' ? error : JSON.stringify(error)}
                 </div>
               )}
-
               <Button
                 type="submit"
                 className="w-full bg-[#11AB93] hover:bg-[#11AB93]/90"

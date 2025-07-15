@@ -10,7 +10,8 @@ interface QuickActionsCardProps {
 }
 
 const QuickActionsCard = ({ onSectionChange, onScanBooking }: QuickActionsCardProps) => {
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
 
   const handleQuickAction = (section: string) => {
     if (section === 'appointments' && onScanBooking) {

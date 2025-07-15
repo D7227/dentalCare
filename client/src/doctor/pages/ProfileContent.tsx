@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { logout } from '@/store/slices/authSlice';
+import { clearUserData } from '@/store/slices/userDataSlice';
 import { clearReduxPersist } from '@/store/utils';
 import { useLocation } from 'wouter';
 
@@ -49,19 +49,20 @@ const ProfileContent: React.FC = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.userData.userData);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const [location, setLocation] = useLocation();
 
-  // Fetch user data from API using user ID
-  console.log("user in ProfileContent", user); // DEBUG LOG
   const { data: profileData, isLoading, error } = useQuery<ClinicData>({
     queryKey: ['/api/userData', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('User ID not available');
-      const response = await fetch(`/api/userData/${user.id}`);
+      const token = localStorage.getItem('doctor_access_token');
+      const response = await fetch(`/api/userData/${user.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!response.ok) {
         const text = await response.text();
         console.error('Failed to fetch user data:', text); // DEBUG LOG
@@ -79,6 +80,7 @@ const ProfileContent: React.FC = () => {
 
   // Sync editProfileData with fetched profileData
   useEffect(() => {
+    console.log(profileData);
     setEditProfileData(profileData ?? null);
   }, [profileData]);
 
@@ -86,23 +88,24 @@ const ProfileContent: React.FC = () => {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<ClinicData>) => {
       if (!user?.id) throw new Error('User ID not available');
-      const memberpayload = {}
-      if (data.userType !== 'clinic') {
+      const memberpayload: Partial<ClinicData> = {};
+      if (!isMainDoctor) {
         memberpayload.clinicName = data.clinicName?.trim();
-        memberpayload.contactNumber = data.phone?.trim();
-        memberpayload.roleName = data.roleName?.trim();
-        memberpayload.permissions = data.permissions;
-        memberpayload.profilePicture = data.profilePicture?.trim();
-        memberpayload.email = data.email?.trim();
-        memberpayload.fullName = data.firstName?.trim() + " " + data.lastName?.trim();
+        memberpayload.email = (data as any).email?.trim();
+        memberpayload.roleName = (data as any).roleName?.trim();
+        memberpayload.permissions = (data as any).permissions;
+        // Remove contactNumber, profilePicture, fullName
       }
-      // console.log("memberpayload", memberpayload);
-      const endpoint = `/api/userData/${user.id}`;
+      const endpoint = `/api/userUpdate/${user.id}`;
+      const token = localStorage.getItem('doctor_access_token');
       // Convert camelCase to snake_case before sending
       const response = await fetch(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: data.userType === 'clinic' ? JSON.stringify(toSnakeCase(data)) : JSON.stringify(memberpayload),
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: isMainDoctor ? JSON.stringify(toSnakeCase(data)) : JSON.stringify(memberpayload),
       });
       if (!response.ok) throw new Error('Failed to update profile');
       return response.json();
@@ -125,9 +128,9 @@ const ProfileContent: React.FC = () => {
   const validateGST = (gst: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
   const validatePAN = (pan: string) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
 
-  // Only allow editing of personal details for team members
-  const isClinic = editProfileData?.userType === 'clinic';
-  const isTeamMember = editProfileData?.userType === 'teamMember';
+  // Remove userType from ClinicData usage and logic
+  const isMainDoctor = editProfileData?.roleName === 'main_doctor';
+  const isTeamMember = editProfileData?.roleName === 'team_member';
 
   // Add state for required field errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -141,42 +144,6 @@ const ProfileContent: React.FC = () => {
 
     if (!editProfileData) return;
     updateProfileMutation.mutate(editProfileData);
-
-
-    // if (!editProfileData) return;
-    // const newErrors: Errors = { gstNumber: '', panNumber: '' };
-    // let requiredFieldErrors: Record<string, string> = {};
-    // // Required fields for clinic
-    // if (isClinic) {
-    //   if (!editProfileData.clinicName) requiredFieldErrors.clinicName = 'Clinic Name is required';
-    //   if (!editProfileData.licenseNumber) requiredFieldErrors.licenseNumber = 'License Number is required';
-    // }
-    // // Required for all
-    // if (!editProfileData.firstName) requiredFieldErrors.firstName = 'First Name is required';
-    // if (!editProfileData.lastName) requiredFieldErrors.lastName = 'Last Name is required';
-    // if (!editProfileData.email) requiredFieldErrors.email = 'Email is required';
-    // if (!editProfileData.phone) requiredFieldErrors.phone = 'Phone is required';
-    // // GST/PAN validation
-    // if (editProfileData.gstNumber && !validateGST(editProfileData.gstNumber)) {
-    //   newErrors.gstNumber = 'Invalid GST format. Format: 22AAAAA0000A1Z5';
-    // }
-    // if (editProfileData.panNumber && !validatePAN(editProfileData.panNumber)) {
-    //   newErrors.panNumber = 'Invalid PAN format. Format: AAAAA0000A';
-    // }
-    // setErrors(newErrors);
-    // setFieldErrors(requiredFieldErrors);
-    // setSaveAttempted(true);
-    // // Mark all required fields as touched on save attempt
-    // const allTouched: Record<string, boolean> = { ...touchedFields };
-    // Object.keys(requiredFieldErrors).forEach((key) => { allTouched[key] = true; });
-    // setTouchedFields(allTouched);
-    // if (
-    //   Object.keys(requiredFieldErrors).length === 0 &&
-    //   !newErrors.gstNumber &&
-    //   !newErrors.panNumber
-    // ) {
-    //   updateProfileMutation.mutate(editProfileData);
-    // }
   };
 
   const handleInputChange = (field: keyof ClinicData, value: string) => {
@@ -296,7 +263,7 @@ const ProfileContent: React.FC = () => {
 
   const handleLogout = () => {
     // Clear all Redux data
-    dispatch(logout());
+    dispatch(clearUserData());
     
     // Clear Redux persist data
     clearReduxPersist();
@@ -434,52 +401,51 @@ const ProfileContent: React.FC = () => {
           <SectionCard title="General Information">
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                {renderField('First Name', editProfileData.firstName, 'firstName', 'text', 1, isTeamMember ? false : false, true)}
-                {renderField('Last Name', editProfileData.lastName, 'lastName', 'text', 1, isTeamMember ? false : false, true)}
-                {renderField('Email', editProfileData.email, 'email', 'text', 1, isTeamMember ? false : false, true)}
-                {renderField('Phone', editProfileData.phone, 'phone', 'text', 1, isTeamMember ? false : false, true)}
+                {renderField('First Name', editProfileData.firstname, 'firstname', 'text', 1, false, true)}
+                {renderField('Last Name', editProfileData.lastname, 'lastname', 'text', 1, false, true)}
+                {renderField('Email', editProfileData.email, 'email', 'text', 1, false, true)}
+                {renderField('Phone', editProfileData.phone, 'phone', 'text', 1, false, true)}
               </div>
-              {
-                editProfileData?.userType !== 'clinic' && (
-                  <>
-                    {
-                      isEditing && (
-                        <div className='flex justify-center'>
-                        <Button
-                          onClick={handleSave}
-                          disabled={updateProfileMutation.isPending}
-                          className="bg-customGreen-200 text-white font-medium rounded-lg py-3 px-10 hover:bg-[#039855] transition-colors duration-150 border-none shadow-none mt-4"
-                        >
-                          {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
-                        </Button>
-                          </div>
-                      )
-                    }
-                  </>
-                )
-              }
+              {isEditing && (
+                <div className='flex justify-center'>
+                  <Button
+                    onClick={handleSave}
+                    disabled={updateProfileMutation.isPending}
+                    className="bg-customGreen-200 text-white font-medium rounded-lg py-3 px-10 hover:bg-[#039855] transition-colors duration-150 border-none shadow-none mt-4"
+                  >
+                    {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              )}
             </div>
-
           </SectionCard>
-          {/* Clinic Information - Only show for clinic/main_doctor */}
-          {(editProfileData?.userType === 'clinic' || editProfileData?.roleName === 'main_doctor') && (
-            <SectionCard title="Clinic Information">
+
+          {/* Team Member Details - Only show for team members */}
+          {isTeamMember && (
+            <SectionCard title="Team Member Details">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {renderField('Clinic Name', editProfileData.clinicName, 'clinicName', 'text', 2, isTeamMember, isClinic, true, fieldErrors.clinicName)}
-                {renderField('License Number', editProfileData.licenseNumber, 'licenseNumber', 'text', 2, isTeamMember, isClinic, true, fieldErrors.licenseNumber)}
-                {renderField('Address Line 1', editProfileData.clinicAddressLine1, 'clinicAddressLine1', 'text', 2, isTeamMember, isClinic, false, fieldErrors.clinicAddressLine1)}
-                {renderField('Address Line 2 (Optional)', editProfileData.clinicAddressLine2, 'clinicAddressLine2', 'text', 2, isTeamMember, isClinic)}
-                {/* City/State row */}
-                {renderField('City', editProfileData.clinicCity, 'clinicCity', 'text', 1, isTeamMember, isClinic)}
-                {renderField('State', editProfileData.clinicState, 'clinicState', 'text', 1, isTeamMember, isClinic)}
-                {/* Pincode/Country row */}
-                {renderField('Pincode', editProfileData.clinicPincode, 'clinicPincode', 'text', 1, isTeamMember, isClinic)}
-                {renderField('Country', editProfileData.clinicCountry, 'clinicCountry', 'text', 1, isTeamMember, isClinic)}
+                {renderField('Role', editProfileData.roleName, 'roleName', 'text', 1, true, true)}
+                {renderField('Permissions', (editProfileData.permissions || []).join(', '), 'permissions', 'text', 2, true, true)}
               </div>
             </SectionCard>
           )}
-          {/* Billing Information - Only show for clinic */}
-          {editProfileData?.userType === 'clinic' && (
+          {/* Clinic Information - Only show for main_doctor */}
+          {isMainDoctor && (
+            <SectionCard title="Clinic Information">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {renderField('Clinic Name', editProfileData.clinicName, 'clinicName', 'text', 2, false, true, true, fieldErrors.clinicName)}
+                {renderField('License Number', editProfileData.clinicLicenseNumber, 'clinicLicenseNumber', 'text', 2, false, true, true, fieldErrors.clinicLicenseNumber)}
+                {renderField('Address Line 1', editProfileData.clinicAddressLine1, 'clinicAddressLine1', 'text', 2, false, true, false, fieldErrors.clinicAddressLine1)}
+                {renderField('Address Line 2 (Optional)', editProfileData.clinicAddressLine2, 'clinicAddressLine2', 'text', 2, false, true)}
+                {renderField('City', editProfileData.clinicCity, 'clinicCity', 'text', 1, false, true)}
+                {renderField('State', editProfileData.clinicState, 'clinicState', 'text', 1, false, true)}
+                {renderField('Pincode', editProfileData.clinicPincode, 'clinicPincode', 'text', 1, false, true)}
+                {renderField('Country', editProfileData.clinicCountry, 'clinicCountry', 'text', 1, false, true)}
+              </div>
+            </SectionCard>
+          )}
+          {/* Billing Information - Only show for main_doctor */}
+          {isMainDoctor && (
             <SectionCard title="Billing Information">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -512,10 +478,8 @@ const ProfileContent: React.FC = () => {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {renderField('Address Line 1', editProfileData.billingAddressLine1, 'billingAddressLine1', 'text', 2, false, true)}
                 {renderField('Address Line 2 (Optional)', editProfileData.billingAddressLine2, 'billingAddressLine2', 'text', 2, false, true)}
-                {/* City/State row */}
                 {renderField('City', editProfileData.billingCity, 'billingCity', 'text', 1, false, true)}
                 {renderField('State', editProfileData.billingState, 'billingState', 'text', 1, false, true)}
-                {/* Pincode/Country row */}
                 {renderField('Pincode', editProfileData.billingPincode, 'billingPincode', 'text', 1, false, true)}
                 {renderField('Country', editProfileData.billingCountry, 'billingCountry', 'text', 1, false, true)}
               </div>
