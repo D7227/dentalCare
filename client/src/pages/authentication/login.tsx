@@ -4,45 +4,46 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useLoginMutation } from '@/store/slices/doctorAuthApi';
-import { fetchUserDataFromToken } from '@/store/slices/userDataSlice';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [, setLocation] = useLocation();
-  const dispatch = useAppDispatch();
-  const [login, { isLoading: isLoginLoading, error: loginError }] = useLoginMutation();
-  const UserData = useAppSelector((state) => state.userData);
-  const user = UserData.userData;
-  console.log(user , "user data")
-  // Redirect if already logged in and userData is present
-  useEffect(() => {
-    if (user) {
+  const navigate = useNavigate()
+
+  const [login, { isLoading, error, data }] = useLoginMutation();
+  const [formError, setFormError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (data && data.token) {
+      // You can store the token or redirect here
+      // localStorage.setItem('token', data.token);
       setLocation('/');
     }
-  }, [user, setLocation]);
+  }, [data, setLocation]);
+
+  console.log('data', data, error)
+
+  if (data) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileNumber || !password) return;
+    setFormError(null);
+    if (!mobileNumber || !password) {
+      setFormError('Mobile number and password are required');
+      return;
+    }
     try {
-      // Login API expects { email, password }
-      const loginPayload = { mobileNumber: mobileNumber, password };
-      const response = await login(loginPayload).unwrap();
-      // Get token from response or localStorage
-      const token = response?.token || localStorage.getItem('doctor_access_token');
-      if (token) {
-        dispatch(fetchUserDataFromToken(token));
-      }
-    } catch (error) {
-      // Error handled by loginError
+      await login({ mobileNumber, password });
+      navigate('/');
+    } catch (err: any) {
+      setFormError(err?.data?.error || 'Login failed');
     }
   };
-
-  const isLoading = isLoginLoading;
-  const error = (loginError && 'data' in loginError && (loginError.data as any)?.message) || '';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -55,6 +56,7 @@ const Login = () => {
             Enter your mobile number and password to access your account
           </p>
         </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
@@ -72,6 +74,7 @@ const Login = () => {
                   required
                 />
               </div>
+
               <div>
                 <Label htmlFor="password">Password</Label>
                 <Input
@@ -83,9 +86,10 @@ const Login = () => {
                   required
                 />
               </div>
-              {error && (
+
+              {(formError || (error && 'data' in error && (error as any).data?.error)) && (
                 <div className="text-red-600 text-sm text-center">
-                  {typeof error === 'string' ? error : JSON.stringify(error)}
+                  {formError || (error && 'data' in error && (error as any).data?.error)}
                 </div>
               )}
               <Button

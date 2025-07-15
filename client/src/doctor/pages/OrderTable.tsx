@@ -50,8 +50,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
 
-  const { user } = useAppSelector(state => state.auth);
-  const clinicId = user?.clinicId;
+  const UserData = useAppSelector((state) => state.userData);
+  console.log('UserData orderTable', UserData)
+  const clinicId = UserData?.clinicId;
   console.log('clinicId', clinicId)
   const {
     data: dbOrders = [],
@@ -59,8 +60,8 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     isError: error,
     errorMessage,
     refetch,
-  } = useApiGet<any[]>(`/api/orders/filter/${user?.clinicId}`, {
-    enabled: !!user?.clinicId,
+  } = useApiGet<any[]>(`/api/orders/filter/${clinicId}`, {
+    enabled: !!clinicId,
     refetchInterval: 30000,
     onSuccess: (data) => console.log('Orders fetched:', data),
     onError: (error) => console.error('Failed to fetch orders:', error),
@@ -106,18 +107,18 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     refetchInterval: 30000,
   });
 
-  const { data: chats = [] } = useQuery({
-    queryKey: ['/api/chats', user?.fullName],
-    queryFn: async () => {
-      const url = user?.fullName
-        ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
-        : '/api/chats';
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch chats');
-      return response.json();
-    },
-    enabled: !!user?.fullName
-  });
+  // const { data: chats = [] } = useQuery({
+  //   queryKey: ['/api/chats', UserData?.userData?.fullName],
+  //   queryFn: async () => {
+  //     const url = user?.fullName
+  //       ? `/api/chats?userId=${encodeURIComponent(UserData?.cli?.fullName)}`
+  //       : '/api/chats';
+  //     const response = await fetch(url);
+  //     if (!response.ok) throw new Error('Failed to fetch chats');
+  //     return response.json();
+  //   },
+  //   enabled: !!user?.fullName
+  // });
 
   const getPatientName = (patientId: number) => {
     const patient = patients.find((p: any) => p.id === patientId);

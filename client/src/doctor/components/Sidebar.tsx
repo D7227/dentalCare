@@ -8,13 +8,12 @@ import logoImage from '@/assets/logo.png';
 import Small_Logo from '@/assets/Small_Logo.png';
 import { useClinicMembers } from '@/hooks/useClinicMembers';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import LayoutConstants from '@/doctor/utils/staticValue';
 import { useLocation } from 'wouter';
-import { clearUserData } from '@/store/slices/userDataSlice';
-import { clearReduxPersist } from '@/store/utils';
+import { useLogoutMutation } from '@/store/slices/doctorAuthApi';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useAppSelector } from '@/store/hooks';
 
 export interface SidebarProps {
   isCollapsed: boolean;
@@ -40,9 +39,9 @@ const Sidebar = ({
 
   // Add setLocation for navigation
   const [, setLocation] = useLocation();
-  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [logout] = useLogoutMutation();
 
   const menuItems = [
     {
@@ -97,23 +96,12 @@ const Sidebar = ({
     onSectionChange('my-team');
   };
 
-  const handleLogout = () => {
-    // Clear all Redux data
-    dispatch(clearUserData());
-
-    // Clear Redux persist data
-    clearReduxPersist();
-
-    // Clear all React Query cache
-    queryClient.clear();
-
-    // Show success toast
+  const handleLogout = async () => {
+    await logout();
     toast({
       title: "Logged out successfully",
       description: "You have been logged out and redirected to login.",
     });
-
-    // Redirect to login page
     setLocation('/login');
   };
 

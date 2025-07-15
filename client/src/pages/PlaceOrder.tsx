@@ -69,25 +69,25 @@ const PlaceOrder = () => {
   const clinicId = user?.clinicId;
 
   // Check authentication and restore user data from localStorage on component mount
-  useEffect(() => {
-    if (!isAuthenticated) {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          dispatch(setUser(userData));
-        } catch (error) {
-          console.error("Error parsing stored user data:", error);
-          // If stored data is invalid, redirect to login
-          setLocation("/login");
-        }
-      } else {
-        // No stored user data, redirect to login
-        setLocation("/login");
-      }
-    }
-    setIsAuthChecking(false);
-  }, [isAuthenticated, dispatch, setLocation]);
+  // useEffect(() => {
+  //   if (!isAuthenticated) {
+  //     const storedUser = localStorage.getItem("user");
+  //     if (storedUser) {
+  //       try {
+  //         const userData = JSON.parse(storedUser);
+  //         dispatch(setUser(userData));
+  //       } catch (error) {
+  //         console.error("Error parsing stored user data:", error);
+  //         // If stored data is invalid, redirect to login
+  //         setLocation("/login");
+  //       }
+  //     } else {
+  //       // No stored user data, redirect to login
+  //       setLocation("/login");
+  //     }
+  //   }
+  //   setIsAuthChecking(false);
+  // }, [isAuthenticated, dispatch, setLocation]);
 
   const [formData, setFormData] = useState<FormData>({
     id: '',
@@ -231,7 +231,7 @@ const PlaceOrder = () => {
         formData.category = "repair";
         formData.type = "repair";
         // No need to set firstName, lastName, age, sex again
-        const orderData = createOrderObject(formData, user?.clinicId || '');
+        const orderData = createOrderObject(formData, clinicId || '');
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
           method: 'PUT',
           headers: {
@@ -266,7 +266,7 @@ const PlaceOrder = () => {
         // Use the existing firstName, lastName, age, sex fields instead of patient* fields
         formData.category = "repeat";
         formData.type = "repeat";
-        const orderData = createOrderObject(formData, user?.clinicId || "");
+        const orderData = createOrderObject(formData, clinicId || "");
         const updateResponse = await fetch(`/api/orders/${selectedOrderId}`, {
           method: "PUT",
           headers: {
@@ -292,7 +292,7 @@ const PlaceOrder = () => {
       formData.percentage = 10;
       formData.type = formData.type || "new";
       // Create the order using the database-compatible order object
-      const orderData = createOrderObject(formData, user?.clinicId || "");
+      const orderData = createOrderObject(formData, clinicId || "");
 
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
@@ -464,10 +464,10 @@ const PlaceOrder = () => {
     );
   }
 
-  // Redirect if not authenticated
-  if (!isAuthenticated || !user) {
-    return null; // Will redirect in useEffect
-  }
+  // // Redirect if not authenticated
+  // if (!isAuthenticated || !user) {
+  //   return null; // Will redirect in useEffect
+  // }
 
   return (
     <div className="min-h-screen bg-[#FFFFFF]">

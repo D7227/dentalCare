@@ -72,7 +72,7 @@ const TeamManagementContent = ({ onSectionChange }: TeamManagementContentProps) 
 
   // Utility to get auth headers
   function getAuthHeaders() {
-    const token = localStorage.getItem('doctor_access_token');
+    const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : undefined;
   }
 

@@ -20,7 +20,7 @@ export const useClinicMembers = (clinicId?: string) => {
   } = useQuery<ClinicMember[]>({
     queryKey,
     queryFn: async () => {
-      const token = localStorage.getItem('doctor_access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/team-members/${clinicId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

@@ -4,14 +4,15 @@ import storage from 'redux-persist/lib/storage';
 // import { orderApi } from './slices/orderApi';
 import { doctorAuthApi } from './slices/doctorAuthApi';
 import { userDataReducer } from './slices';
+import { userDataApi } from './slices/userDataSlice';
 // import orderLocalReducer from './slices/orderLocalSlice';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
-  // auth: authReducer,
-  // orderLocal: orderLocalReducer,
-  // [orderApi.reducerPath]: orderApi.reducer,
+  // // // orderLocal: orderLocalReducer,
+  // // [orderApi.reducerPath]: orderApi.reducer,
   [doctorAuthApi.reducerPath]: doctorAuthApi.reducer,
+  [userDataApi.reducerPath]: userDataApi.reducer,
   userData: userDataReducer,
   // Add more slices here
 });
@@ -41,7 +42,8 @@ export const store = configureStore({
       },
     })
       // .concat(orderApi.middleware)
-      .concat(doctorAuthApi.middleware),
+      .concat(doctorAuthApi.middleware)
+      .concat(userDataApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

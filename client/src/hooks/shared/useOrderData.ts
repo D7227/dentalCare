@@ -10,13 +10,13 @@ export interface UseOrderDataResult {
 }
 
 export const useOrderData = (): UseOrderDataResult => {
-  const { user } = useAppSelector(state => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
   const { 
     data: orders = [], 
     isLoading: isOrdersLoading, 
     error: ordersError 
   } = useQuery<OrderData[]>({ 
-    queryKey: [`/api/orders/${user?.clinicId}`] 
+    queryKey: [`/api/orders/${UserData?.userData?.clinicId}`] 
   });
 
   const getToothGroupsByOrder = (referenceId: string): any[] => {
