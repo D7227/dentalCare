@@ -20,7 +20,7 @@ export const orderApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: "/api/orders",
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('doctor_access_token');
+      const token = localStorage.getItem('token');
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }

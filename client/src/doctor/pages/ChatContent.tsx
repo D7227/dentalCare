@@ -8,12 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { useAppSelector, hasPermission } from '@/store/hooks';
+import { useAppSelector, useAppDispatch, hasPermission } from '@/store/hooks';
+import { useGetChatsQuery, useCreateChatMutation, useDeleteChatMutation } from '@/store/slices/chatApi';
+import { setSelectedChatId } from '@/store/slices/chatslice';
 import ChatModule from '../../components/chat/ChatModule';
-import { useSocket } from '@/contexts/SocketContext';
 import { useGetOrdersQuery } from '@/store/slices/orderApi';
+import { useSocket } from '@/contexts/SocketContext';
 
 interface ChatItem {
   id: string;
@@ -29,85 +30,34 @@ interface ChatItem {
 }
 
 const ChatContent = () => {
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [newChatModal, setNewChatModal] = useState(false);
   const [newChatType, setNewChatType] = useState<string>('order');
   const [newChatTitle, setNewChatTitle] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<string>('');
-
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(state => state.userData.userData);
+  const { data: chats = [] , isLoading, error, refetch } = useGetChatsQuery({ clinicId: user?.clinicId, userId: user?.fullName });
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { getSocket, onUnreadCountUpdate, offUnreadCountUpdate } = useSocket();
+  const [createChat, { isLoading: isCreating, isSuccess: isCreateSuccess }] = useCreateChatMutation();
+  const [deleteChat, { isLoading: isDeleting }] = useDeleteChatMutation();
+  const {getSocket} = useSocket();
   
   // Get user data from Redux
-  const user = useAppSelector(state => state.userData.userData);
-  const clinicName = user?.clinicName;
-
-  // Check permissions using the new permission system
-  // const canCreateChat = hasPermission(user, 'create_chat');
-  // const canDeleteChat = hasPermission(user, 'delete_chat');
-  // const canViewAdminChats = hasPermission(user, 'view_admin_chats');
-
   const userRole = user?.roleName;
   const isMainDoctor = userRole === 'main_doctor';
 
   // Add at the top of the component (inside ChatContent)
   const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem('doctor_access_token');
+    const token = localStorage.getItem('token');
     if (token) {
       return { Authorization: `Bearer ${token}` };
     }
     return {};
   };
 
-  // Delete chat mutation
-  const deleteChatMutation = useMutation({
-    mutationFn: async (chatId: string) => {
-      const response = await fetch(`/api/chats/${chatId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete chat');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-      toast({ title: "Chat deleted successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: error.message, variant: "destructive" });
-    }
-  });
-
-  // Fetch team members
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: [`/api/team-members/${user?.clinicId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/team-members/${user?.clinicId}` , { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch team members');
-      return response.json();
-    },
-    // enabled: canCreateChat,
-  });
-
-  // Fetch chats from API
-  const { data: chats = [], isLoading, error } = useQuery({
-    queryKey: ['/api/chats', user?.fullName],
-    queryFn: async () => {
-      const url = user?.fullName 
-        ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
-        : '/api/chats';
-      const response = await fetch(url, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch chats');
-      return response.json();
-    },
-    enabled: !!user?.fullName
-  });
 
   // Fetch orders for creating order-specific chats
   const { data: orders = [] } = useGetOrdersQuery();
@@ -115,43 +65,6 @@ const ChatContent = () => {
   console.log(orders ,"orders data")
 
   // Create new chat mutation
-  const createChatMutation = useMutation({
-    mutationFn: async (chatData: any) => {
-      if (!clinicName) {
-        console.error('No clinic name found in Redux user data', user);
-        throw new Error('No clinic name found in user data');
-      }
-      // 1. Fetch clinicId using clinicName
-      const clinicRes = await fetch(`/api/clinics/name/${encodeURIComponent(clinicName)}`, { headers: getAuthHeaders() });
-      if (!clinicRes.ok) throw new Error('Could not find clinicId for this clinic');
-      const { id: clinicId } = await clinicRes.json();
-
-      // 2. Remove id from chatData if present (do not send id)
-      const { id, ...chatDataWithoutId } = chatData;
-      const chatPayload = { ...chatDataWithoutId, clinicId };
-      delete chatPayload.id;
-
-      // 3. Create the chat
-      const response = await fetch('/api/chats', {
-        method: 'POST',
-        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(chatPayload)
-      });
-      if (!response.ok) throw new Error('Failed to create chat');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-      setNewChatModal(false);
-      setNewChatTitle('');
-      setSelectedOrder('');
-      toast({ title: "Chat created successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to create chat", variant: "destructive" });
-    }
-  });
-
   const handleCreateChat = () => {
     if (!isMainDoctor) {
       toast({ title: "Only main doctors can create new chats", variant: "destructive" });
@@ -170,6 +83,7 @@ const ChatContent = () => {
     // Only add the main_doctor as a participant
     const participants = [currentUser];
     const chatData = {
+      clinicId: user?.clinicId,
       type: newChatType,
       title: newChatTitle,
       orderId: selectedOrder,
@@ -178,8 +92,17 @@ const ChatContent = () => {
       userRole: userRole,
       roleName: userRole, // Send roleName for backend validation
     };
-    createChatMutation.mutate(chatData);
+    createChat(chatData);
   };
+
+  // Close modal on successful chat creation
+  React.useEffect(() => {
+    if (isCreateSuccess) {
+      setNewChatModal(false);
+      setNewChatTitle('');
+      setSelectedOrder('');
+    }
+  }, [isCreateSuccess]);
 
   // Filter chats based on active tab and search
   const filteredChats = React.useMemo(() => {
@@ -191,19 +114,19 @@ const ChatContent = () => {
     
     // If user doesn't have chat permission, only show chats where they are participants
     if (!hasChatPermission) {
-      const userFullName = user?.fullName?.toLowerCase() || '';
+      const userId = user?.fullName?.toLowerCase() || '';
       filtered = chats.filter((chat: ChatItem) =>
         chat.participants.some(
-          (participant) => participant.trim().toLowerCase() === userFullName.trim().toLowerCase()
+          (participant) => participant.trim().toLowerCase() === userId.trim().toLowerCase()
         )
       );
     } else {
       // For users with chat permission, show all chats but apply role-based filtering for specific roles
       if (userRole === 'admin_doctor' || userRole === 'assistant_doctor' || userRole === 'receptionist') {
-        const userFullName = user?.fullName?.toLowerCase() || '';
+        const userId = user?.fullName?.toLowerCase() || '';
         filtered = chats.filter((chat: ChatItem) =>
           chat.participants.some(
-            (participant) => participant.trim().toLowerCase() === userFullName.trim().toLowerCase()
+            (participant) => participant.trim().toLowerCase() === userId.trim().toLowerCase()
           )
         );
       }
@@ -268,62 +191,59 @@ const ChatContent = () => {
 
   useEffect(() => {
     const handleUnreadCountUpdate = (data: { chatId: string; unreadCount: number }) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats', user?.fullName] });
+      // No need to invalidate queries here, as useGetChatsQuery will refetch on chat update
     };
-    onUnreadCountUpdate(handleUnreadCountUpdate);
+    // onUnreadCountUpdate(handleUnreadCountUpdate); // Removed as per edit hint
     return () => {
-      offUnreadCountUpdate(handleUnreadCountUpdate);
+      // offUnreadCountUpdate(handleUnreadCountUpdate); // Removed as per edit hint
     };
-  }, [onUnreadCountUpdate, offUnreadCountUpdate, queryClient, user?.fullName]);
+  }, [user]); // Removed onUnreadCountUpdate, offUnreadCountUpdate, queryClient
 
   // Listen for real-time participant updates
   useEffect(() => {
-    const socketInstance = getSocket();
-    if (socketInstance && socketInstance.on) {
-      const handleParticipantsUpdated = (data: { 
-        chatId: string; 
-        participants: string[]; 
-        newParticipants: string[];
-        removedParticipants: string[];
-        updatedBy: string 
-      }) => {
-        queryClient.invalidateQueries({ queryKey: ['/api/chats', user?.fullName] });
-        queryClient.invalidateQueries({ queryKey: ['/api/chats', data.chatId] });
 
-        // If the currently open chat is the one updated, check if user is still a participant
-        if (selectedChat === data.chatId && user) {
-          const userFullName = user.fullName || '';
-          const isParticipant = data.participants.some(
-            (participant: string) =>
-              participant.toLowerCase() === userFullName.toLowerCase() ||
-              participant.toLowerCase().includes(userFullName.toLowerCase()) ||
-              userFullName.toLowerCase().includes(participant.toLowerCase())
-          );
-          // Only close the chat if the user is actually removed from the group and is not a main doctor
-          if (!isParticipant) {
-            setSelectedChat(null);
-            // Force refetch of chats to update sidebar and unread counts
-            queryClient.invalidateQueries({ queryKey: ['/api/chats', user?.fullName] });
-            toast({
-              title: "Removed from group",
-              description: "You have been removed from this group and can no longer access it.",
-              variant: "destructive"
-            });
-          } else {
-            // If user is still a participant or is a main doctor, do not close the chat
-            // Optionally, you can show a toast if participants were updated
-            // toast({ title: "Group participants updated" });
-          }
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleParticipantsUpdated = (data: { 
+      chatId: string; 
+      participants: string[]; 
+      newParticipants: string[];
+      removedParticipants: string[];
+      updatedBy: string 
+    }) => {
+      refetch();
+      // If the currently open chat is the one updated, check if user is still a participant
+      if (selectedChat === data.chatId && user) {
+        const userId = user.fullName || '';
+        const isParticipant = data.participants.some(
+          (participant: string) =>
+            participant.toLowerCase() === userId.toLowerCase() ||
+            participant.toLowerCase().includes(userId.toLowerCase()) ||
+            userId.toLowerCase().includes(participant.toLowerCase())
+        );
+        // Only close the chat if the user is actually removed from the group and is not a main doctor
+        if (!isParticipant) {
+          setSelectedChat(null);
+          toast({
+            title: "Removed from group",
+            description: "You have been removed from this group and can no longer access it.",
+            variant: "destructive"
+          });
+        } else {
+          // If user is still a participant or is a main doctor, do not close the chat
+          // Optionally, you can show a toast if participants were updated
+          // toast({ title: "Group participants updated" });
         }
-      };
-      
-      socketInstance.on('participants-updated', handleParticipantsUpdated);
-      
-      return () => {
-        socketInstance.off('participants-updated', handleParticipantsUpdated);
-      };
-    }
-  }, [getSocket, queryClient, toast, user, selectedChat]);
+      }
+    };
+    
+    socket.on('participants-updated', handleParticipantsUpdated);
+    
+    return () => {
+      socket.off('participants-updated', handleParticipantsUpdated);
+    };
+  }, [getSocket, selectedChat, user, refetch, toast]);
 
   // Check if a chat already exists for a given orderId
   const orderHasChat = (orderId: string) => {
@@ -433,10 +353,10 @@ const ChatContent = () => {
               <div className="flex gap-3 pt-4">
                 <Button 
                   onClick={handleCreateChat}
-                  disabled={createChatMutation.isPending || (selectedOrder && orderHasChat(selectedOrder))}
+                  disabled={isCreating || (selectedOrder && orderHasChat(selectedOrder))}
                   className="flex-1"
                 >
-                  {createChatMutation.isPending ? 'Creating...' : 'Create Chat'}
+                  {isCreating ? 'Creating...' : 'Create Chat'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -505,7 +425,7 @@ const ChatContent = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/chats'] })}
+                    onClick={() => refetch()} // Refetch using RTK Query
                     className="mt-2"
                   >
                     Retry
@@ -574,9 +494,9 @@ const ChatContent = () => {
                                   variant="ghost"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    deleteChatMutation.mutate(chat.id);
+                                    deleteChat(chat.id);
                                   }}
-                                  disabled={deleteChatMutation.isPending}
+                                  disabled={isDeleting}
                                   className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                   <X className="h-3 w-3" />

@@ -77,7 +77,7 @@ const ProductSearch = ({
         }
 
         const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        const token = localStorage.getItem('doctor_access_token');
+        const token = localStorage.getItem('token');
         const response = await fetch(url, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });

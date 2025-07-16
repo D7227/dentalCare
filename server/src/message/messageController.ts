@@ -73,6 +73,9 @@ export class MessageStorage implements MessageStore {
       }
     
       async getUnreadMessageCount(chatId: string, userId?: string): Promise<number> {
+        console.log(chatId , userId ,"this is a alll")
+
+
         if (!userId) {
           console.log("No userId provided, returning 0");
           return 0;
@@ -100,8 +103,6 @@ export class MessageStorage implements MessageStore {
         }
     
         const messageList = await db.select().from(messages).where(eq(messages.chatId, chatId));
-        console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
-        console.log("messageList", messageList);
         
         const unreadCount = messageList.filter((message: Message) => {
           const readBy = message.readBy || [];

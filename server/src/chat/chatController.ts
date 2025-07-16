@@ -26,9 +26,12 @@ export interface ChatStore {
   }
 
   async createChat(data: any) {
+    // Ensure participants are user full names (not IDs)
     const chatData = {
       ...data,
-      participants: Array.isArray(data.participants) ? data.participants : [],
+      participants: Array.isArray(data.participants)
+        ? data.participants.map((p: any) => typeof p === 'object' ? p.fullName : p)
+        : [],
     };
     const [chat] = await db.insert(chats).values(chatData).returning();
     return chat;
@@ -83,7 +86,8 @@ export interface ChatStore {
   async updateChat(id: string, updates: Partial<InsertChat>): Promise<Chat | undefined> {
     const updateData: any = { ...updates };
     if (updates.participants && Array.isArray(updates.participants)) {
-      updateData.participants = updates.participants as string[];
+      // Always use fullName for participants
+      updateData.participants = updates.participants.map((p: any) => typeof p === 'object' ? p.fullName : p);
     }
     
     const [chat] = await db
@@ -123,12 +127,7 @@ export interface ChatStore {
 
       // Check if the user is a participant in this chat
       const participants = chat.participants || [];
-      const isParticipant = participants.some((participant: string) => {
-        const exactMatch = participant.toLowerCase() === userId.toLowerCase();
-        const containsMatch = participant.toLowerCase().includes(userId.toLowerCase()) ||
-                             userId.toLowerCase().includes(participant.toLowerCase());
-        return exactMatch || containsMatch;
-      });
+      const isParticipant = participants.includes(userId);
 
       if (!isParticipant) {
         console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
@@ -136,8 +135,6 @@ export interface ChatStore {
       }
 
       const messageList = await db.select().from(messages).where(eq(messages.chatId, chatId));
-      console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
-      console.log("messageList", messageList);
       
       const unreadCount = messageList.filter((message: any) => {
         const readBy = message.readBy || [];

@@ -78,7 +78,7 @@ export function setupSocket(httpServer: any, app: any) {
             permissions: member.permissions || []
           })),
           ...clinics.map(clinic => ({ 
-            id: clinic.id,
+            id: `${clinic?.firstname} ${clinic?.lastname}`,
             type: 'clinic',
             permissions: clinic.permissions || []
           }))

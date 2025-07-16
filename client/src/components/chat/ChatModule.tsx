@@ -4,11 +4,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Send, Settings, Check, CheckCheck, Clock, Users, Trash2, Archive, Plus, X, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDispatch } from 'react-redux';
+import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch } from '@/store/hooks';
+import { useGetChatQuery, useGetMessagesQuery, useSendMessageMutation, useUpdateParticipantsMutation, useArchiveChatMutation, useDeleteChatMutation, useMarkAllReadMutation, useGetChatsQuery } from '@/store/slices/chatApi';
+import { setSelectedChatId } from '@/store/slices/chatslice';
 import { useSocket } from '@/contexts/SocketContext';
-import { useAppSelector, hasPermission } from '@/store/hooks';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { useQuery } from '@tanstack/react-query';
 
 interface ChatModuleProps {
   chatId?: string | null;
@@ -17,7 +21,7 @@ interface ChatModuleProps {
   isAuthenticated?: boolean;
 }
 
-const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModuleProps) => {
+const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [showParticipants, setShowParticipants] = useState(false);
   const [newParticipant, setNewParticipant] = useState('');
@@ -27,24 +31,24 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   const [dropdownOpen, setDropdownOpen] = useState(false); // Track dropdown state
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
+  const [messagesList, setMessagesList] = useState<any[]>([]);
 
   console.log('fullName', userData?.fullName);
   
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { socket, joinChat, leaveChat, sendMessage: socketSendMessage, isConnected, getSocket, sendTyping } = useSocket();
+  // Use useSocket context instead of Redux for socket
+  const { joinChat, leaveChat, sendMessage: socketSendMessage, isConnected, getSocket, sendTyping } = useSocket();
 
   // Get user data from Redux
   const UserData = useAppSelector((state) => state.userData);
   const user = UserData.userData;
 
   // Check permissions using the new permission system
-  const canAddParticipants = hasPermission(user, 'manage_participants');
-  const canRemoveParticipants = hasPermission(user, 'manage_participants');
 
   // JWT token for all API calls
   const getAuthHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem('doctor_access_token');
+    const token = localStorage.getItem('token');
     if (token) {
       return { Authorization: `Bearer ${token}` };
     }
@@ -52,172 +56,47 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
   };
 
   // Fetch chat details
-  const { data: chatDetails, isLoading: chatLoading, error: chatError } = useQuery({
-    queryKey: ['/api/chats', chatId],
-    queryFn: async () => {
-      if (!chatId) return null;
-      
-      // If chatId is an order ID, find the corresponding chat
-      const chatsResponse = await fetch('/api/chats', { headers: getAuthHeaders() });
-      if (chatsResponse.ok) {
-        const allChats = await chatsResponse.json();
-        const orderChat = allChats.find((chat: any) => chat.orderId === chatId);
-        if (orderChat) {
-          return orderChat;
-        }
-      }
-      
-      // Otherwise fetch chat by ID
-      const response = await fetch(`/api/chats/${chatId}`, { headers: getAuthHeaders() });
-      if (!response.ok) throw new Error('Failed to fetch chat details');
-      return response.json();
-    },
-    enabled: !!chatId
-  });
+  const { data: chatDetails } = useGetChatQuery(chatId ? String(chatId) : '');
 
+  console.log(chatId , "chatIdchatIdchatIdchatIdchatId")
   // Fetch team members for participant selection
-  const clinicName = user?.clinicName;
   const { data: teamMembers = [] } = useQuery({
-    queryKey: ['/api/team-members?clinicName=', clinicName],
+    queryKey: ['/api/team-members', user?.clinicId],
     queryFn: async () => {
-      const response = await fetch('/api/team-members', { headers: getAuthHeaders() });
+      const url = user?.clinicId 
+        ? `/api/team-members/${user?.clinicId}`
+        : '/api/team-members';
+      const authHeaders = getAuthHeaders();
+      const response = await fetch(url, {
+        headers: authHeaders ? authHeaders : {},
+      });
       if (!response.ok) throw new Error('Failed to fetch team members');
-      return response.json();
-    }
+      const teamMembers = await response.json();
+      return teamMembers;
+    },
+    enabled: !!user?.clinicName
   });
 
   // Fetch messages for the selected chat
-  const { data: messages = [], isLoading, error: messagesError } = useQuery({
-    queryKey: ['/api/chats', chatDetails?.id, 'messages'],
-    queryFn: async () => {
-      if (!chatDetails?.id) {
-        return [];
-      }
-      const response = await fetch(`/api/chats/${chatDetails.id}/messages`, { headers: getAuthHeaders() });
-      if (!response.ok) {
-        console.error('Failed to fetch messages:', response.status, response.statusText);
-        throw new Error('Failed to fetch messages');
-      }
-      const messages = await response.json();
-      return messages;
-    },
-    enabled: !!chatDetails?.id,
-    refetchInterval: 5000, // Refetch every 5 seconds as a fallback
-    staleTime: 0, // Always consider data stale
-  });
+  const { data: messages = [], isLoading, error: messagesError, refetch: refetchMessages } = useGetMessagesQuery(chatId ? String(chatId) : '');
+  // Fetch chat list for refetching on new message
+  
+  const { refetch: refetchChats } = useGetChatsQuery({ clinicId: user?.clinicId, userId: user?.fullName });
 
   // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: any) => {
-      if (!chatDetails?.id) throw new Error('No chat selected');
-      const response = await fetch(`/api/chats/${chatDetails.id}/messages`, {
-        method: 'POST',
-        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageData)
-      });
-      if (!response.ok) throw new Error('Failed to send message');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats', chatDetails?.id, 'messages'] });
-      setNewMessage('');
-      toast({ title: "Message sent successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to send message", variant: "destructive" });
-    }
-  });
+  const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
 
   // Delete chat mutation
-  const deleteChatMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/chats/${chatId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete chat');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-      onClose?.();
-      toast({ title: "Chat deleted successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: error.message, variant: "destructive" });
-    }
-  });
+  const [deleteChat, { isLoading: isDeleting }] = useDeleteChatMutation();
 
   // Archive chat mutation
-  const archiveChatMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/chats/${chatId}/archive`, {
-        method: 'PATCH',
-        headers: getAuthHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to archive chat');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-      onClose?.();
-      toast({ title: "Chat archived successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to archive chat", variant: "destructive" });
-    }
-  });
+  const [archiveChat, { isLoading: isArchiving }] = useArchiveChatMutation();
 
   // Update participants mutation
-  const updateParticipantsMutation = useMutation({
-    mutationFn: async (participants: string[]) => {
-      const response = await fetch(`/api/chats/${chatId}/participants`, {
-        method: 'PATCH',
-        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          participants,
-          updatedBy: userData?.fullName || 'Unknown'
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update participants');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      // Force immediate cache update
-      queryClient.setQueryData(['/api/chats', chatId], data);
-      
-      // Invalidate all related queries with more specific patterns
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/chats', chatId],
-        exact: true 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/chats'],
-        exact: false 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/chats', chatId, 'messages'],
-        exact: true 
-      });
-      
-      // Force a refetch of the chat details
-      queryClient.refetchQueries({ 
-        queryKey: ['/api/chats', chatId],
-        exact: true 
-      });
-      
-      toast({ title: "Participants updated successfully" });
-    },
-    onError: (error) => {
-      console.error('Failed to update participants:', error);
-      toast({ title: "Failed to update participants", variant: "destructive" });
-    }
-  });
+  const [updateParticipants, { isLoading: isUpdatingParticipants }] = useUpdateParticipantsMutation();
+
+  // Mark all messages as read mutation
+  const [markAllRead] = useMarkAllReadMutation();
 
   const isMainDoctor = user?.roleName === 'main_doctor';
 
@@ -236,7 +115,11 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
     
     const updatedParticipants = [...currentParticipants, newParticipant.trim()];
     
-    updateParticipantsMutation.mutate(updatedParticipants);
+    updateParticipants({
+      chatId: chatId,
+      participants: updatedParticipants,
+      updatedBy: userData?.fullName || 'Unknown',
+    });
     setNewParticipant(''); // Clear the selection after adding
     setRefreshTrigger(prev => prev + 1); // Force refresh
   };
@@ -257,18 +140,22 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
     }
     const currentParticipants = chatDetails?.participants || [];
     const updatedParticipants = currentParticipants.filter((p: string) => p !== participantToRemove);
-    updateParticipantsMutation.mutate(updatedParticipants);
+    updateParticipants({
+      chatId: chatId,
+      participants: updatedParticipants,
+      updatedBy: userData?.fullName || 'Unknown',
+    });
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim() || !chatId || !chatDetails?.id) {
       return;
     }
 
     // Use authenticated user data from Redux
-    const currentUser = user?.fullName || 'Dr. Sarah Mitchell';
+    const currentUser = user?.fullName || `${user?.firstname} ${user?.lastname}`;
     const userRole = user?.roleName || 'main_doctor';
-    const userType = hasPermission(user, 'manage_chat') ? 'clinic' : 'team';
+    const userType = user?.roleName === 'main_doctor' ? 'clinic' : 'team';
 
     const messageData = {
       sender: currentUser,
@@ -287,76 +174,53 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       socketSendMessage(chatDetails.id, messageData);
       setNewMessage('');
       setTimeout(() => {
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/chats', chatDetails.id, 'messages'],
-          exact: true 
-        });
-        queryClient.refetchQueries({ 
-          queryKey: ['/api/chats', chatDetails.id, 'messages'],
-          exact: true 
-        });
+        refetchMessages();
       }, 500);
       toast({ title: "Message sent" });
     } else {
-      sendMessageMutation.mutate(messageData);
+      await sendMessage(messageData);
+      setNewMessage('');
+      refetchMessages();
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'sent': return <Check size={12} className="text-muted-foreground" />;
-      case 'delivered': return <CheckCheck size={12} className="text-muted-foreground" />;
-      case 'read': return <CheckCheck size={12} className="text-primary" />;
-      default: return <Clock size={12} className="text-muted-foreground" />;
-    }
-  };
 
   // Join/leave chat room when chat changes
   useEffect(() => {
-    if (chatDetails?.id && isConnected) {
-      joinChat(chatDetails.id);
+    if (chatDetails?.id && isConnected && user?.fullName) {
+      joinChat(chatDetails.id, user.fullName);
 
-      if (userData?.fullName) {
-        fetch(`/api/chats/${chatDetails.id}/mark-read`, {
-          method: 'POST',
-          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: userData.fullName })
-        }).then(() => {
-          queryClient.invalidateQueries({ queryKey: ['/api/chats', userData.fullName] });
-        }).catch(error => {
-          console.error('Failed to mark messages as read:', error);
-        });
+      if (typeof markAllRead === 'function' && userData?.fullName && chatDetails?.id && String(chatDetails.id)) {
+        markAllRead({ chatId: String(chatDetails.id), userId: userData.fullName });
       }
       
       return () => {
-        leaveChat(chatDetails.id);
+        leaveChat(chatDetails.id, user.fullName);
       };
     }
-  }, [chatDetails?.id, isConnected, joinChat, leaveChat, userData?.fullName, queryClient]);
+  }, [chatDetails?.id, isConnected, joinChat, leaveChat, user?.fullName, markAllRead]);
+
+  // Keep messagesList in sync with fetched messages (on chat change or initial load)
+  useEffect(() => {
+    setMessagesList(messages);
+  }, [messages, chatId]);
 
   // Listen for real-time messages
   useEffect(() => {
     const socketInstance = getSocket();
     if (socketInstance && chatDetails?.id) {
       const handleNewMessage = (data: { chatId: string, message: any }) => {
-        if (data.chatId === chatDetails?.id) {
+        if (data.chatId === chatDetails.id) {
+          setMessagesList((prev) => [...prev, data.message]);
           scrollToBottom();
-
           // Mark messages as read since the user is actively viewing the chat
           if (userData?.fullName) {
-            fetch(`/api/chats/${chatDetails.id}/mark-read`, {
-              method: 'POST',
-              headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: userData.fullName })
-            }).then(() => {
-              // After marking as read on the server, refetch the data to update the UI.
-              queryClient.invalidateQueries({ queryKey: ['/api/chats', chatDetails.id, 'messages'] });
-              queryClient.invalidateQueries({ queryKey: ['/api/chats', userData.fullName] });
-            });
-          } else {
-            // Fallback for safety, though this case is unlikely
-            queryClient.invalidateQueries({ queryKey: ['/api/chats', chatDetails.id, 'messages'] });
+            markAllRead({ chatId: chatDetails.id, userId: userData.fullName });
           }
+          // Refetch messages and chats to update all data in real time
+          refetchMessages();
+          console.log("this time call refatch");
+          refetchChats();
         }
       };
 
@@ -386,27 +250,10 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
       }) => {
         if (data.chatId === chatDetails.id) {          
           // Update the cache immediately with new data
-          const updatedChatDetails = {
-            ...chatDetails,
-            participants: data.participants
-          };
-          queryClient.setQueryData(['/api/chats', chatDetails.id], updatedChatDetails);
-          
-          // Invalidate and refetch to ensure consistency
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/chats', chatDetails.id],
-            exact: true 
-          });
-          queryClient.invalidateQueries({ 
-            queryKey: ['/api/chats'],
-            exact: false 
-          });
+          // No need to invalidate queries here, RTK Query handles refetching
           
           // Force refetch
-          queryClient.refetchQueries({ 
-            queryKey: ['/api/chats', chatDetails.id],
-            exact: true 
-          });
+          // No need to refetch here, RTK Query handles refetching
           
           // Show notification if someone else updated participants
           if (data.updatedBy !== userData?.fullName) {
@@ -438,7 +285,18 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
         socketInstance.off('participants-updated', handleParticipantsUpdated);
       };
     }
-  }, [getSocket, chatDetails?.id, queryClient, toast, userData?.fullName]);
+  }, [getSocket, chatDetails?.id, userData?.fullName, markAllRead, toast, chatDetails, refetchMessages, refetchChats]);
+
+  // Listen for unread-count-update socket events
+  // React.useEffect(() => {
+  //   if (!getSocket) return;
+  //   const socketInstance = getSocket();
+  //   if (!socketInstance) return;
+  //   socketInstance.on('unread-count-update', handleUnreadUpdate);
+  //   return () => {
+  //     socketInstance.off('unread-count-update', handleUnreadUpdate);
+  //   };
+  // }, [getSocket, dispatch]);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -483,7 +341,8 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
 
   // Restrict access if user is not a participant
   const isParticipant = chatDetails?.participants?.includes(userData?.fullName);
-  if (chatDetails && !isParticipant) {
+  // const isMainDoctor = user?.roleName === 'main_doctor';
+  if (chatDetails && !isParticipant && !isMainDoctor) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="bg-destructive/10 border border-destructive/20 rounded p-6 text-center">
@@ -538,8 +397,12 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
                 
                   <>
                     <DropdownMenuItem 
-                      onClick={() => archiveChatMutation.mutate()}
-                      disabled={archiveChatMutation.isPending}
+                      onClick={async () => {
+                        await archiveChat(chatDetails?.id ? String(chatDetails.id) : chatId);
+                        if (typeof onClose === 'function') onClose();
+                        if (typeof refetchChats === 'function') refetchChats();
+                      }}
+                      disabled={isArchiving}
                     >
                       <Archive className="mr-2 h-4 w-4" />
                       Archive Chat
@@ -547,9 +410,9 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-destructive"
-                      onClick={() => deleteChatMutation.mutate()}
+                      onClick={() => deleteChat({ chatId: chatDetails?.id ? String(chatDetails.id) : '' })}
                       // disabled={deleteChatMutation.isPending || chatDetails?.orderId}
-                      disabled={deleteChatMutation.isPending}
+                      disabled={isDeleting}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Chat
@@ -618,7 +481,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
                     <Button 
                       size="sm" 
                       onClick={addParticipant}
-                      disabled={!newParticipant.trim() || updateParticipantsMutation.isPending}
+                      disabled={!newParticipant.trim() || isUpdatingParticipants}
                       style={{ backgroundColor: '#00A3C8' }}
                       className="text-white hover:opacity-90"
                     >
@@ -670,7 +533,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
                           size="sm"
                           variant="ghost"
                           onClick={() => removeParticipant(participant)}
-                          disabled={updateParticipantsMutation.isPending}
+                          disabled={isUpdatingParticipants}
                           className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
                         >
                           <X className="h-3 w-3" />
@@ -694,7 +557,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
               )}
             </div>
             
-            {updateParticipantsMutation.isPending && (
+            {isUpdatingParticipants && (
               <div className="mt-3 text-sm text-muted-foreground">
                 Updating participants...
               </div>
@@ -728,20 +591,20 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
           <div className="text-center text-muted-foreground">Loading messages...</div>
         ) : messagesError ? (
           <div className="text-center text-destructive">
-            <p>Error loading messages: {messagesError.message}</p>
+            <p>Error loading messages: {typeof messagesError === 'string' ? messagesError : (messagesError && 'status' in messagesError && messagesError.status ? `Status ${messagesError.status}` : 'Unknown error')}</p>
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => queryClient.refetchQueries({ queryKey: ['/api/chats', chatDetails?.id, 'messages'] })}
+              onClick={() => {}} // No-op or refetch if available
               className="mt-2"
             >
               Retry
             </Button>
           </div>
-        ) : messages.length === 0 ? (
+        ) : messagesList.length === 0 ? (
           <div className="text-center text-muted-foreground">No messages yet. Start the conversation!</div>
         ) : (
-          messages.map((message: any) => (
+          messagesList.map((message: any) => (
             <div key={message.id} className="space-y-2">
               <div className={`flex ${message.sender === userData?.fullName ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -749,8 +612,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
                     ? 'text-white' 
                     : 'bg-muted text-foreground'
                 }`}
-                style={message.sender === userData?.fullName ? { backgroundColor: '#00A3C8' } : {}}
-                >
+                style={message.sender === userData?.fullName ? { backgroundColor: '#00A3C8' } : {}}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-medium">
                       {message.sender}
@@ -823,7 +685,7 @@ const ChatModule = ({ chatId, onClose, userData, isAuthenticated }: ChatModulePr
           <div className="flex flex-col gap-2">
             <Button
               onClick={() =>  handleSendMessage()}
-              disabled={!newMessage.trim() || sendMessageMutation.isPending}
+              disabled={!newMessage.trim() || isSending}
               className="px-3"
             >
               <Send size={16} />

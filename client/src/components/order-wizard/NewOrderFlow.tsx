@@ -32,6 +32,7 @@ import OrderTypeSection from "./components/OrderTypeSection";
 import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
 import Combined3DPreview from "./Combined3DPreview";
 import { FormData } from "./types/orderTypes";
+import { useLocation } from 'react-router-dom';
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -242,13 +243,16 @@ function CameraCapture({ onPhoto }: { onPhoto: (file: File) => void }) {
 }
 
 const NewOrderFlow = ({
-  currentStep,
-  formData,
+  currentStep: propCurrentStep,
+  formData: propFormData,
   setFormData,
   onAddMoreProducts,
   onSaveOrder,
   setCurrentStep
 }: NewOrderFlowProps) => {
+  const location = useLocation();
+  const { draftOrder, step } = location.state || {};
+  const [initialized, setInitialized] = useState(false);
   const [companies, setCompanies] = useState<
     Array<{ id: string; name: string }>
   >([]);
@@ -257,6 +261,17 @@ const NewOrderFlow = ({
   const isMobile = useIsMobile();
   const [showInstructions, setShowInstructions] = useState(false);
   const viewerRef = useRef(null);
+
+  // Defensive defaulting for arrays in propFormData
+  const safeFormData = {
+    ...propFormData,
+    intraOralScans: propFormData?.intraOralScans || [],
+    faceScans: propFormData?.faceScans || [],
+    patientPhotos: propFormData?.patientPhotos || [],
+    referralFiles: propFormData?.referralFiles || [],
+    toothGroups: propFormData?.toothGroups || [],
+    selectedTeeth: propFormData?.selectedTeeth || [],
+  };
 
   // Fetch companies from API
   useEffect(() => {
@@ -283,55 +298,63 @@ const NewOrderFlow = ({
     fetchCompanies();
   }, []);
 
+  useEffect(() => {
+    if (!initialized && draftOrder && step) {
+      setFormData(draftOrder);
+      if (setCurrentStep) setCurrentStep(step);
+      setInitialized(true);
+    }
+  }, [draftOrder, step, setFormData, setCurrentStep, initialized]);
+
   // Step 1: Patient & Case Information
-  if (currentStep === 1) {
+  if (propCurrentStep === 1) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <PatientInfoCard formData={formData} setFormData={setFormData} />
-          <CaseInfoCard formData={formData} setFormData={setFormData} />
+          <PatientInfoCard formData={safeFormData} setFormData={setFormData} />
+          <CaseInfoCard formData={safeFormData} setFormData={setFormData} />
         </div>
 
         {/* Order Method */}
-        {(formData?.toothGroups?.length === 0 || !formData?.toothGroups) &&
-          (!formData?.selectedTeeth ||
-            formData?.selectedTeeth.length === 0) && (
-            <OrderTypeSection formData={formData} setFormData={setFormData} />
+        {(safeFormData?.toothGroups?.length === 0 || !safeFormData?.toothGroups) &&
+          (!safeFormData?.selectedTeeth ||
+            safeFormData?.selectedTeeth.length === 0) && (
+            <OrderTypeSection formData={safeFormData} setFormData={setFormData} />
           )}
       </div>
     );
   }
 
   // Step 2: Restoration Type Selection
-  if (currentStep === 2) {
+  if (propCurrentStep === 2) {
     return (
       <SelectPrescriptionSection
-        formData={formData}
+        formData={safeFormData}
         setFormData={setFormData}
         mode="prescription"
         onNextStep={() => {
-          setCurrentStep(currentStep + 1);
+          setCurrentStep(propCurrentStep + 1);
         }}
       />
     );
   }
 
   // Step 3: Subcategory Selection
-  if (currentStep === 3) {
+  if (propCurrentStep === 3) {
     return (
       <SelectPrescriptionSection
-        formData={formData}
+        formData={safeFormData}
         setFormData={setFormData}
         mode="subcategory"
         onNextStep={() => {
-          setCurrentStep(currentStep + 1);
+          setCurrentStep(propCurrentStep + 1);
         }}
       />
     );
   }
 
   // Step 4: Teeth Selection
-  if (currentStep === 4) {
+  if (propCurrentStep === 4) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
         <Card className="border-none p-0 bg-transparent">
@@ -345,18 +368,18 @@ const NewOrderFlow = ({
           </CardHeader>
           <CardContent className="p-0 mt-4">
             <ToothSelector
-              prescriptionType={formData?.prescriptionType}
-              selectedGroups={formData?.toothGroups || []}
-              selectedTeeth={formData?.selectedTeeth || []}
+              prescriptionType={safeFormData?.prescriptionType}
+              selectedGroups={safeFormData?.toothGroups || []}
+              selectedTeeth={safeFormData?.selectedTeeth || []}
               onSelectionChange={(groups, teeth) =>
                 setFormData({
-                  ...formData,
+                  ...safeFormData,
                   toothGroups: groups,
                   selectedTeeth: teeth,
                 })
               }
-              subcategoryType={formData?.subcategoryType}
-              formData={formData}
+              subcategoryType={safeFormData?.subcategoryType}
+              formData={safeFormData}
             />
           </CardContent>
         </Card>
@@ -365,13 +388,13 @@ const NewOrderFlow = ({
   }
 
   // Step 5: Product Selection & Details
-  if (currentStep === 5) {
+  if (propCurrentStep === 5) {
     return (
       <div className="space-y-4 sm:space-y-6">
         <Card className="border-none p-0 bg-transparent">
           <div className="p-0 mt-4">
             <ProductSelection
-              formData={formData}
+              formData={safeFormData}
               setFormData={setFormData}
               onAddMoreProducts={
                 typeof onAddMoreProducts === "function"
@@ -386,10 +409,10 @@ const NewOrderFlow = ({
   }
 
   // Step 6: Upload Files & Impression Handling
-  if (currentStep === 6) {
+  if (propCurrentStep === 6) {
     const summaryGroups = buildSummaryGroups(
-      formData.toothGroups || [],
-      formData.selectedTeeth || []
+      safeFormData.toothGroups || [],
+      safeFormData.selectedTeeth || []
     );
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -413,10 +436,10 @@ const NewOrderFlow = ({
                     type="file"
                     accept=".stl,.ply"
                     multiple
-                    onChange={e => setFormData({ ...formData, intraOralScans: Array.from(e.target.files || []) })}
+                    onChange={e => setFormData({ ...safeFormData, intraOralScans: Array.from(e.target.files || []) })}
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.intraOralScans || []).map((file: any, idx: number) => (
+                    {(safeFormData.intraOralScans || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
                           {file.name}
                         </div>
@@ -430,10 +453,10 @@ const NewOrderFlow = ({
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, faceScans: Array.from(e.target.files || []) })}
+                    onChange={e => setFormData({ ...safeFormData, faceScans: Array.from(e.target.files || []) })}
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.faceScans || []).map((file: any, idx: number) => (
+                    {(safeFormData.faceScans || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
                           {file.name}
                         </div>
@@ -447,10 +470,10 @@ const NewOrderFlow = ({
                     type="file"
                     accept=".jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, patientPhotos: Array.from(e.target.files || []) })}
+                    onChange={e => setFormData({ ...safeFormData, patientPhotos: Array.from(e.target.files || []) })}
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.patientPhotos || []).map((file: any, idx: number) => (
+                    {(safeFormData.patientPhotos || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
                           {file.name}
                         </div>
@@ -464,10 +487,10 @@ const NewOrderFlow = ({
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     multiple
-                    onChange={e => setFormData({ ...formData, referralFiles: Array.from(e.target.files || []) })}
+                    onChange={e => setFormData({ ...safeFormData, referralFiles: Array.from(e.target.files || []) })}
                   />
                   <div className="mt-2 space-y-1">
-                    {(formData.referralFiles || []).map((file: any, idx: number) => (
+                    {(safeFormData.referralFiles || []).map((file: any, idx: number) => (
                       <div key={idx} className="text-xs text-gray-700 flex items-center gap-2">
                           {file.name}
                         </div>
@@ -488,8 +511,8 @@ const NewOrderFlow = ({
                     overflow: 'hidden',
                   }}
                 >
-                  {(formData.intraOralScans || []).length > 0 ? (
-                    <Combined3DPreview files={formData.intraOralScans} />
+                  {(safeFormData.intraOralScans || []).length > 0 ? (
+                    <Combined3DPreview files={safeFormData.intraOralScans} />
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-400 text-sm">
                       No STL/PLY file selected
@@ -500,15 +523,15 @@ const NewOrderFlow = ({
             </div>
           </CardContent >
         </Card >
-        <AccessorySelection formData={formData} setFormData={setFormData} />
+        <AccessorySelection formData={safeFormData} setFormData={setFormData} />
       </div >
     );
   }
   // Step 7: Final Details & Accessories
-  if (currentStep === 7) {
+  if (propCurrentStep === 7) {
     const summaryGroups = buildSummaryGroups(
-      formData.toothGroups || [],
-      formData.selectedTeeth || [],
+      safeFormData.toothGroups || [],
+      safeFormData.selectedTeeth || [],
     );
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -528,10 +551,10 @@ const NewOrderFlow = ({
               </Label>
               <Textarea
                 id="additionalNotes"
-                value={formData.notes || ""}
+                value={safeFormData.notes || ""}
                 onChange={(e) =>
                   setFormData({
-                    ...formData,
+                    ...safeFormData,
                     notes: e.target.value,
                   })
                 }
@@ -543,7 +566,7 @@ const NewOrderFlow = ({
           </CardContent>
         </Card>
 
-        <AccessoryTagging formData={formData} setFormData={setFormData} />
+        <AccessoryTagging formData={safeFormData} setFormData={setFormData} />
 
         {/* Comprehensive Order Summary */}
         <Card>
@@ -567,19 +590,19 @@ const NewOrderFlow = ({
                     Name:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.firstName} {formData.lastName}
+                    {safeFormData.firstName} {safeFormData.lastName}
                   </p>
                 </div>
                 <div>
                   <Label className="font-medium text-xs sm:text-sm">Age:</Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.age ? formData.age : "Not specified"}
+                    {safeFormData.age ? safeFormData.age : "Not specified"}
                   </p>
                 </div>
                 <div>
                   <Label className="font-medium text-xs sm:text-sm">Sex:</Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.sex || "Not specified"}
+                    {safeFormData.sex || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -596,7 +619,7 @@ const NewOrderFlow = ({
                     Case Handled By:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.caseHandledBy || "Not specified"}
+                    {safeFormData.caseHandledBy || "Not specified"}
                   </p>
                 </div>
                 <div>
@@ -604,7 +627,7 @@ const NewOrderFlow = ({
                     Consulting Doctor:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.consultingDoctor || "Not specified"}
+                    {safeFormData.consultingDoctor || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -621,9 +644,9 @@ const NewOrderFlow = ({
                     Prescription Type:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.prescriptionType === "crown-bridge"
+                    {(safeFormData.prescriptionType as string) === "crown-bridge"
                       ? "Crown and Bridge"
-                      : formData.prescriptionType === "implant"
+                      : (safeFormData.prescriptionType as string) === "implant"
                         ? "Implant"
                         : "Not specified"}
                   </p>
@@ -633,9 +656,9 @@ const NewOrderFlow = ({
                     Order Method:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.orderMethod === "digital"
+                    {safeFormData.orderMethod === "digital"
                       ? "Digital"
-                      : formData.orderMethod === "manual"
+                      : safeFormData.orderMethod === "manual"
                         ? "Manual"
                         : "Not specified"}
                   </p>
@@ -663,15 +686,15 @@ const NewOrderFlow = ({
                   Restoration Products:
                 </Label>
                 <p className="text-xs sm:text-sm text-gray-600">
-                  {formData.restoration_products &&
-                    formData.restoration_products.length > 0
-                    ? `${formData.restoration_products.length} product(s) selected`
+                  {safeFormData.restorationProducts &&
+                    safeFormData.restorationProducts.length > 0
+                    ? `${safeFormData.restorationProducts.length} product(s) selected`
                     : "No products selected"}
                 </p>
               </div>
               <div className="mt-4">
                 <SelectedTeethViewer
-                  selectedTeeth={formData.selectedTeeth || []}
+                  selectedTeeth={safeFormData.selectedTeeth || []}
                   toothGroups={summaryGroups}
                 />
               </div>
@@ -688,8 +711,8 @@ const NewOrderFlow = ({
                     Uploaded Files:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.files && formData.files.length > 0
-                      ? `${formData.files.length} file(s) uploaded`
+                    {safeFormData.files && safeFormData.files.length > 0
+                      ? `${safeFormData.files.length} file(s) uploaded`
                       : "No files uploaded"}
                   </p>
                 </div>
@@ -698,8 +721,8 @@ const NewOrderFlow = ({
                     Accessories:
                   </Label>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {formData.accessories && formData.accessories.length > 0
-                      ? `${formData.accessories.length} accessory(ies) selected`
+                    {safeFormData.accessories && safeFormData.accessories.length > 0
+                      ? `${safeFormData.accessories.length} accessory(ies) selected`
                       : "No accessories selected"}
                   </p>
                 </div>
@@ -707,21 +730,21 @@ const NewOrderFlow = ({
             </div>
 
             {/* Pickup/Scan Information Summary */}
-            {(formData.pickupDate ||
-              formData.pickupTime ||
-              formData.scanBooking) && (
+            {(safeFormData.pickupDate ||
+              safeFormData.pickupTime ||
+              safeFormData.scanBooking) && (
                 <div className="border-b pb-4">
                   <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-indigo-600">
                     Pickup/Scan Information
                   </h4>
-                  {formData.orderType === "pickup-from-lab" && (
+                  {safeFormData.orderType === "pickup-from-lab" && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div>
                         <Label className="font-medium text-xs sm:text-sm">
                           Pickup Date:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.pickupDate || "Not specified"}
+                          {safeFormData.pickupDate || "Not specified"}
                         </p>
                       </div>
                       <div>
@@ -729,30 +752,30 @@ const NewOrderFlow = ({
                           Pickup Time:
                         </Label>
                         <p className="text-xs sm:text-sm text-gray-600">
-                          {formData.pickupTime || "Not specified"}
+                          {safeFormData.pickupTime || "Not specified"}
                         </p>
                       </div>
-                      {formData.pickupRemarks && (
+                      {safeFormData.pickupRemarks && (
                         <div className="col-span-1 sm:col-span-2">
                           <Label className="font-medium text-xs sm:text-sm">
                             Pickup Remarks:
                           </Label>
                           <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.pickupRemarks}
+                            {safeFormData.pickupRemarks}
                           </p>
                         </div>
                       )}
                     </div>
                   )}
-                  {formData.orderType === "send-by-courier" &&
-                    formData.scanBooking && (
+                  {safeFormData.orderType === "send-by-courier" &&
+                    safeFormData.scanBooking && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
                           <Label className="font-medium text-xs sm:text-sm">
                             Courier Name:
                           </Label>
                           <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.scanBooking.courierName || "Not specified"}
+                            {safeFormData.scanBooking.courierName || "Not specified"}
                           </p>
                         </div>
                         <div>
@@ -760,7 +783,7 @@ const NewOrderFlow = ({
                             Tracking ID:
                           </Label>
                           <p className="text-xs sm:text-sm text-gray-600">
-                            {formData.scanBooking.trackingId || "Not specified"}
+                            {safeFormData.scanBooking.trackingId || "Not specified"}
                           </p>
                         </div>
                       </div>
@@ -769,13 +792,13 @@ const NewOrderFlow = ({
               )}
 
             {/* Notes Summary */}
-            {formData.notes && (
+            {safeFormData.notes && (
               <div>
                 <h4 className="font-semibold text-base sm:text-lg mb-2 sm:mb-3 text-gray-600">
                   Additional Notes
                 </h4>
                 <p className="text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  {formData.notes}
+                  {safeFormData.notes}
                 </p>
               </div>
             )}

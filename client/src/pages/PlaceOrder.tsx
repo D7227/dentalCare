@@ -31,12 +31,13 @@ import {
 import CustomButton from "@/components/common/customButtom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { createOrderObject } from "@/utils/orderHelper";
+import { createOrderObject, createDraftOrderObject } from "@/utils/orderHelper";
 import { setUser } from "@/store/slices/userDataSlice";
 import { useCreateOrderMutation, useUpdateOrderMutation } from '@/store/slices/orderApi';
 import { useSelector, useDispatch } from 'react-redux';
 import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
 import { OrderType } from "@/types/orderType";
+import { useLocation as useRouterLocation } from 'react-router-dom';
 
 interface ToothGroup {
   groupId: string;
@@ -63,6 +64,24 @@ const PlaceOrder = () => {
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
+  const [initialized, setInitialized] = useState(false);
+  const routerLocation = useRouterLocation();
+  const navState = routerLocation.state || {};
+  let draftOrderData = navState.draftOrder;
+  let draftStep = navState.step;
+  let shouldRemoveDraftOrderEdit = false;
+
+  if (!draftOrderData || !draftStep) {
+    const local = localStorage.getItem('draftOrderEdit');
+    if (local) {
+      try {
+        const parsed = JSON.parse(local);
+        draftOrderData = parsed.draftOrder;
+        draftStep = parsed.step;
+        shouldRemoveDraftOrderEdit = true;
+      } catch {}
+    }
+  }
 
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
@@ -92,6 +111,18 @@ const PlaceOrder = () => {
   //   }
   //   setIsAuthChecking(false);
   // }, [isAuthenticated, dispatch, setLocation]);
+
+  useEffect(() => {
+    if (!initialized && draftOrderData && draftStep) {
+      setOrderCategory('new');
+      setCurrentStep(draftStep);
+      setFormData(draftOrderData);
+      setInitialized(true);
+      if (shouldRemoveDraftOrderEdit) {
+        localStorage.removeItem('draftOrderEdit');
+      }
+    }
+  }, [initialized, draftOrderData, draftStep, shouldRemoveDraftOrderEdit]);
 
   const [formData, setFormData] = useState<OrderType>({
     id: '',
@@ -134,10 +165,10 @@ const PlaceOrder = () => {
     returnAccessories: false,
     notes: null,
     files: {
-      addPatientPhotos: null,
-      faceScan: null,
-      intraOralScan: null,
-      referralImages: null,
+      addPatientPhotos: [] as File[],
+      faceScan: [] as File[],
+      intraOralScan: [] as File[],
+      referralImages: [] as File[],
     },
     expectedDeliveryDate: null,
     pickupDate: null,
@@ -371,6 +402,42 @@ const PlaceOrder = () => {
     }
   };
 
+  const saveDraft = async () => {
+    setIsSubmitting(true);
+    try {
+      const draftData = { ...formData, orderStatus: 'draft', step: currentStep };
+      const draftOrderData = createDraftOrderObject(draftData, user?.clinicId || "");
+      const token = localStorage.getItem('token');
+      const draftOrderResponse = await fetch('/api/draft-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(draftOrderData),
+      });
+      if (!draftOrderResponse.ok) {
+        throw new Error('Failed to save draft');
+      }
+      const draftOrder = await draftOrderResponse.json();
+      queryClient.invalidateQueries({ queryKey: ['/api/draft-orders'] });
+      toast({
+        title: "Draft saved successfully!",
+        description: `Draft #${draftOrder.id} has been saved.`
+      });
+      window.history.back();
+    } catch (error) {
+      console.error('Draft save error:', error);
+      toast({
+        title: "Draft Error",
+        description: "There was an error saving your draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   const prevStep = () => {
     if (currentStep === 1 && orderCategory) {
       setCurrentStep(0);
@@ -457,21 +524,28 @@ const PlaceOrder = () => {
   const currentStepErrors = stepValidationErrors[currentStep] || [];
 
   // Show loading while checking authentication
-  if (isAuthChecking) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (isAuthChecking) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+  //         <p className="text-gray-600">Loading...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // // Redirect if not authenticated
   // if (!isAuthenticated || !user) {
   //   return null; // Will redirect in useEffect
   // }
+
+  if (
+    (!initialized && (draftOrderData && draftStep)) ||
+    (orderCategory === null && draftOrderData && draftStep)
+  ) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FFFFFF]">
@@ -617,15 +691,30 @@ const PlaceOrder = () => {
 
                     <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
                       {currentStep < maxSteps ? (
-                        <Button
-                          type="button"
-                          onClick={nextStep}
-                          className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
-                          disabled={isSubmitting}
-                        >
-                          Continue
-                          <ChevronRight size={16} />
-                        </Button>
+                        <>
+                          {
+                            orderCategory === 'new' && currentStep === 6
+                              ?
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={saveDraft}
+                                className="flex items-center justify-center gap-2 px-4 py-2 "
+                              >
+                                Save Draft
+                              </Button>
+                              : null
+                          }
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                            className="flex items-center gap-2 bg-[#11AB93] hover:bg-[#0F9A82] px-4 sm:px-6 py-2 w-full sm:w-auto"
+                            disabled={isSubmitting}
+                          >
+                            Continue
+                            <ChevronRight size={16} />
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           type="submit"

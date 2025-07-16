@@ -12,37 +12,31 @@ import BillingContent from './BillingContent';
 import ChatContent from './ChatContent';
 import TeamManagementContent from './TeamManagementContent';
 import ProfileContent from './ProfileContent';
+import DraftOrdersTable from './DraftOrdersTable';
+import { useGetChatsQuery } from '@/store/slices/chatApi';
 import { useAppSelector } from '@/store/hooks';
+import { useGetUserDataQuery, setUser } from '@/store/slices/userDataSlice';
+import { useDispatch } from 'react-redux';
 
 const DoctorDashboard = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const user = useAppSelector((state) => state.userData.userData);
+    const { data: chats = [] } = useGetChatsQuery({ clinicId: user?.clinicId, userId: user?.fullName });
 
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [activeSection, setActiveSection] = useState('dashboard');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const { onUnreadCountUpdate, offUnreadCountUpdate, getSocket } = useSocket();
-
-    // Fetch chats for unread count
-    const [chats, setChats] = useState<any[]>([]);
-    useEffect(() => {
-        const fetchChats = async () => {
-            if (!user?.fullName) return;
-            const url = `/api/chats?userId=${encodeURIComponent(user.fullName)}`;
-            const response = await fetch(url);
-            if (response.ok) {
-                setChats(await response.json());
-            }
-        };
-        fetchChats();
-    }, [user?.firstname]);
+    const dispatch = useDispatch();
+    const userId = user?.id;
+    const { refetch } = useGetUserDataQuery(userId, { skip: !userId });
 
     // Calculate unread group count (filtered for user permissions)
     const userFirstName = user?.firstname || '';
     const userLastName = user?.lastname || '';
-    const userFullName = `${userFirstName} ${userLastName}`.trim();
+    const userFullName = user?.fullName || '';
     let permissionFilteredChats = chats;
     const permissions = user?.permissions ?? [];
     const hasChatPermission = permissions.includes('chat');
@@ -73,21 +67,15 @@ const DoctorDashboard = () => {
 
     useEffect(() => {
         const handleUnreadCountUpdate = () => {
-            if (user?.fullName) {
-                // Re-fetch chats
-                const url = `/api/chats?userId=${encodeURIComponent(user.fullName)}`;
-                fetch(url).then(res => {
-                    if (res.ok) {
-                        res.json().then(setChats);
-                    }
-                });
-            }
+            // Re-fetch chats via RTK Query
+            // The useGetChatsQuery hook will automatically refetch if the query key changes
+            // or if the user data changes.
         };
         onUnreadCountUpdate(handleUnreadCountUpdate);
         return () => {
             offUnreadCountUpdate(handleUnreadCountUpdate);
         };
-    }, [onUnreadCountUpdate, offUnreadCountUpdate, user?.fullName]);
+    }, [onUnreadCountUpdate, offUnreadCountUpdate]);
 
     const handlePermissionsUpdated = useCallback(async () => {
         try {
@@ -119,6 +107,22 @@ const DoctorDashboard = () => {
             socket.emit('register-user', user.fullName);
         }
     }, [user?.fullName, getSocket]);
+
+    useEffect(() => {
+        const socket = typeof getSocket === 'function' ? getSocket() : null;
+        if (!socket || !userId) return;
+        const handleTeamMemberUpdated = (updatedMember) => {
+            if (updatedMember.id === userId) {
+                refetch().then(({ data }) => {
+                    if (data) dispatch(setUser(data));
+                });
+            }
+        };
+        socket.on('team-member-updated', handleTeamMemberUpdated);
+        return () => {
+            socket.off('team-member-updated', handleTeamMemberUpdated);
+        };
+    }, [getSocket, userId, refetch, dispatch]);
 
     // Map sections to required permissions
     const sectionPermissionMap: Record<string, string> = {
@@ -187,8 +191,10 @@ const DoctorDashboard = () => {
         switch (activeSection) {
             case 'dashboard':
                 return <DashboardContent onNewCase={handleNewCase} onSectionChange={handleSectionChange} />;
-            case 'orders':
+                case 'orders-all':
                 return <OrderTable />;
+            case 'orders-draft':
+                return <DraftOrdersTable />;
             case 'appointments':
                 return <ScanBookingContent />;
             case 'pickup':

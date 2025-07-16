@@ -145,11 +145,13 @@ const Register = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log(formData);
     e.preventDefault();
     if (!validateForm()) return;
     try {
       const { confirmPassword, ...clinicData } = formData;
-      await register(clinicData).unwrap();
+      console.log(clinicData)
+      // await register(clinicData).unwrap();
       toast({
         title: 'Registration Successful!',
         description: 'Your clinic has been registered successfully. You are now logged in.',

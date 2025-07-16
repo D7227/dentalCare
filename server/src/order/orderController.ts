@@ -69,9 +69,10 @@ export class OrderStorage implements orderStore {
         clinicId: insertOrder.clinicId,
         caseHandleBy: insertOrder.caseHandleBy,
         doctorMobileNumber: insertOrder.doctorMobileNumber,
-        consultingDoctorName: insertOrder.consultingDoctorName,
-        consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber,
+        consultingDoctorName: insertOrder?.consultingDoctorName,
+        consultingDoctorMobileNumber: insertOrder?.consultingDoctorMobileNumber,
       };
+      console.log("dasdasdadasdwdqwdqwd",clinicInformationData);
       clinicInformation =
         await clinicInformationStorage.createClinicInformation(
           clinicInformationData
@@ -79,6 +80,7 @@ export class OrderStorage implements orderStore {
       if (!clinicInformation) {
         throw new Error("Failed to create clinic information record");
       }
+      console.log(clinicInformation)
 
       const teethGroupData = {
         selectedTeeth: insertOrder.selectedTeeth,

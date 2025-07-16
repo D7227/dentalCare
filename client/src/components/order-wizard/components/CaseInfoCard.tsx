@@ -87,7 +87,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const { data: teamMembers = [] } = useQuery({
     queryKey: [`/api/team-members/${user?.clinicId}`],
     queryFn: async () => {
-      const token = localStorage.getItem('doctor_access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/team-members/${user?.clinicId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -100,7 +100,7 @@ const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
   const { data: clinics = [], isLoading: clinicsLoading, error: clinicsError } = useQuery({
     queryKey: ['/api/clinics'],
     queryFn: async () => {
-      const token = localStorage.getItem('doctor_access_token');
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/clinics', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

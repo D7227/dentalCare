@@ -6,15 +6,21 @@ import { doctorAuthApi } from './slices/doctorAuthApi';
 import { userDataReducer } from './slices';
 import { userDataApi } from './slices/userDataSlice';
 import orderLocalReducer from './slices/orderLocalSlice';
+import { draftOrderApi } from './slices/draftOrderApi';
+import { chatApi } from './slices/chatApi';
+import chatslice from './slices/chatslice';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
   [orderApi.reducerPath]: orderApi.reducer,
   orderLocal: orderLocalReducer,
   [doctorAuthApi.reducerPath]: doctorAuthApi.reducer,
+  [draftOrderApi.reducerPath]: draftOrderApi.reducer,
+  [chatApi.reducerPath]: chatApi.reducer,
   [userDataApi.reducerPath]: userDataApi.reducer,
   userData: userDataReducer,
   // Add more slices here
+  chat: chatslice,
 });
 
 const persistConfig = {
@@ -43,6 +49,8 @@ export const store = configureStore({
     })
       .concat(orderApi.middleware)
       .concat(doctorAuthApi.middleware)
+      .concat(chatApi.middleware)
+      .concat(draftOrderApi.middleware)
       .concat(userDataApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });

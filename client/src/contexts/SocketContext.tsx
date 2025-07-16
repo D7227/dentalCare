@@ -5,8 +5,8 @@ import { useAppSelector } from '@/store/hooks';
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
-  joinChat: (chatId: number) => void;
-  leaveChat: (chatId: number) => void;
+  joinChat: (chatId: string, userId: string) => void;
+  leaveChat: (chatId: string, userId: string) => void;
   sendMessage: (chatId: string, message: any) => void;
   sendTyping: (chatId: number, user: string, isTyping: boolean) => void;
   getSocket: () => Socket | null;
@@ -70,24 +70,25 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // Register user with socket after connection and user.fullName is available
+  // Register user with socket after connection and user is available
   useEffect(() => {
-    if (socket && isConnected && user?.fullName) {
-      socket.emit('register-user', user.fullName);
+    if (socket && isConnected && user?.id) {
+      socket.emit('register-user', user.id);
+      console.log('Registered socket with user.id:', user.id);
     }
-  }, [socket, isConnected, user?.fullName]);
+  }, [socket, isConnected, user?.id]);
 
-  const joinChat = (chatId: number) => {
+  const joinChat = (chatId: string, userId: string) => {
     if (socket && isConnected) {
-      socket.emit('join-chat', chatId);
-      console.log(`Joined chat room: ${chatId}`);
+      socket.emit('join-chat', chatId, userId);
+      console.log(`Joined chat room: ${chatId} as user: ${userId}`);
     }
   };
 
-  const leaveChat = (chatId: number) => {
+  const leaveChat = (chatId: string, userId: string) => {
     if (socket && isConnected) {
-      socket.emit('leave-chat', chatId);
-      console.log(`Left chat room: ${chatId}`);
+      socket.emit('leave-chat', chatId, userId);
+      console.log(`Left chat room: ${chatId} as user: ${userId}`);
     }
   };
 

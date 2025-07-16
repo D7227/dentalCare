@@ -78,6 +78,7 @@ function extractUserData(payload: any): UserData {
       ...payload.clinicData,
       roleName: payload.roleName || payload.clinicData.roleName || '',
       clinicId: payload.clinicId || payload.clinicData.clinicId || payload.clinicData.id || '',
+      fullName: payload.fullName ||  `${payload.clinicData.firstname} ${payload.clinicData.lastname}`,
     };
   }
   return payload as UserData;

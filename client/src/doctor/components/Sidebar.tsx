@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, FileText, Calendar, Truck, Receipt, MessageSquare, User, Users, Plus, LogOut, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, FileText, Calendar, Truck, Receipt, MessageSquare, User, Users, Plus, LogOut, ChevronDown, ChevronRight, ChevronLeft, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ const Sidebar = ({
   onToggleCollapse
 }: SidebarProps) => {
   const [clinicMembersOpen, setClinicMembersOpen] = useState(true);
+  // Remove dropdown state
+  // const [ordersDropdownOpen, setOrdersDropdownOpen] = useState(false);
 
   // Get current user from Redux
   const user = useAppSelector((state) => state.userData.userData);
@@ -182,7 +184,63 @@ const Sidebar = ({
       </div>
       {/* Navigation */}
       <nav className={cn("flex-1 space-y-2 transition-all duration-200", isCollapsed ? "p-1" : "p-4")}>
-        {filteredMenuItems.map(item => {
+        {/* Dashboard menu item (always first) */}
+        {filteredMenuItems.filter(item => item.id === 'dashboard').map(item => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          return <button key={item.id} onClick={() => onSectionChange(item.id)} className={cn(
+            "w-full flex items-center transition-all duration-200 relative group",
+            isCollapsed ? "justify-center p-0 h-12 w-12 mx-auto rounded-full" : "gap-3 px-3 py-3 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800",
+            isActive && (isCollapsed ? "bg-teal-500 text-white" : "bg-teal-500 text-white hover:bg-teal-600")
+          )} aria-label={item.label}>
+            <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-white" : "text-gray-600 dark:text-gray-400")} />
+            {!isCollapsed && <>
+              <span className={cn("flex-1 text-left", isActive ? "text-white" : "text-gray-700 dark:text-gray-300")}>{item.label}</span>
+              {item.badge && <span className="ml-auto bg-secondary text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">{item.badge}</span>}
+            </>}
+            {isCollapsed && item.badge && <span className="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">{item.badge}</span>}
+          </button>;
+        })}
+        {/* Orders section with sub-menu (always second) */}
+        <div className="mb-2">
+          <div
+            className={cn(
+              "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium cursor-pointer",
+              activeSection.startsWith('orders-') ? "bg-teal-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+            )}
+            onClick={() => onSectionChange('orders-all')}
+          >
+            <FileText className="h-5 w-5 flex-shrink-0" />
+            {!isCollapsed && <span className="flex-1 text-left">Orders</span>}
+          </div>
+          {/* Sub-menu */}
+          {(!isCollapsed && activeSection.startsWith('orders-')) && (
+            <div className=" gap-2 flex flex-col mt-2 ml-2">
+              <button
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium cursor-pointer",
+                  activeSection === 'orders-all' ? "bg-teal-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                )}
+                onClick={() => onSectionChange('orders-all')}
+              >
+                <FileText className="h-4 w-4" />
+                All orders
+              </button>
+              <button
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium cursor-pointer",
+                  activeSection === 'orders-draft' ? "bg-teal-500 text-white" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                )}
+                onClick={() => onSectionChange('orders-draft')}
+              >
+                <Edit className="h-4 w-4" />
+                Draft orders
+              </button>
+            </div>
+          )}
+        </div>
+        {/* Render other menu items except 'dashboard' and 'orders' */}
+        {filteredMenuItems.filter(item => item.id !== 'dashboard' && item.id !== 'orders').map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           return <button key={item.id} onClick={() => onSectionChange(item.id)} className={cn(

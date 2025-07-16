@@ -5,12 +5,13 @@ import { insertChatSchema } from "./chatSchema";
 import { messageStorage } from "../message/messageController";
 
 export const setupChatRoutes = (app: Express) => {
-  app.get("/api/chats", async (req, res) => {
+  app.get("/api/chats/:clinicId", async (req, res) => {
     try {
       const { userId } = req.query;
-      const chats = await chatStorage.getChats();
-      console.log("chats", chats);
-      console.log("userId from query:", userId);
+      const clinicId = req.params.clinicId;
+      const chats = await chatStorage.getChatsByClinic(clinicId);
+
+      console.log(userId,"this is a user id");
 
       // If userId is provided, calculate unread count for each chat
       if (userId && typeof userId === "string") {
@@ -56,7 +57,7 @@ export const setupChatRoutes = (app: Express) => {
         );
         // Filter out nulls (chats where user is not a participant)
         const filteredChats = chatsWithUnreadCount.filter(Boolean);
-        console.log("Final chats with unread counts:", filteredChats);
+        console.log("Final chats with unread counts:", filteredChats,userId);
         res.json(filteredChats);
       } else {
         console.log(
@@ -70,7 +71,7 @@ export const setupChatRoutes = (app: Express) => {
     }
   });
 
-  app.get("/api/chats/:id", async (req, res) => {
+  app.get("/api/chat/:id", async (req, res) => {
     try {
       console.log("Fetching chat", req.params.id);
       const chat = await chatStorage.getChat(req.params.id);
@@ -125,6 +126,21 @@ export const setupChatRoutes = (app: Express) => {
         chatId: req.params.id, // use as string
       });
       const message = await messageStorage.createMessage(messageData);
+
+      // Emit unread-count-update to all participants (including sender)
+      const io = req.app.get("io") || (req.app as any).io;
+      const userSocketMap = req.app.get("userSocketMap") || (req.app as any).userSocketMap;
+      const chat = await chatStorage.getChat(req.params.id);
+      if (io && userSocketMap && chat) {
+        for (const participant of chat.participants || []) {
+          const socketId = userSocketMap.get(participant);
+          if (socketId) {
+            const unreadCount = await messageStorage.getUnreadMessageCount(req.params.id, participant);
+            io.to(socketId).emit("unread-count-update", { chatId: req.params.id, unreadCount });
+          }
+        }
+      }
+
       res.status(201).json(message);
     } catch (error) {
       console.log(error);

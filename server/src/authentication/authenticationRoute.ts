@@ -160,8 +160,9 @@ export const setupAuthenticationRoutes = (app: Express) => {
         const role = await RolesStorage.getRoleById(clinicData.roleId);
         roleName = role?.name || "";
       }
+      const fullName = `${clinicData?.firstname} ${clinicData?.lastname}`;
       const ClinicsData = {
-        ...clinicData, roleName, clinicId
+        ...clinicData, roleName, clinicId , fullName
       }
      return res.json(ClinicsData);
     } catch (err) {

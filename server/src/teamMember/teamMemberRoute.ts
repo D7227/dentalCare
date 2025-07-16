@@ -94,6 +94,11 @@ export const setupTeamMemberRoutes = (app: Express) => {
       if (!updatedTeamMember) {
         return res.status(404).json({ error: "Team member not found" });
       }
+      // Emit socket event for real-time update
+      const io = req.app.get("io") || (req.app as any).io;
+      if (io) {
+        io.emit("team-member-updated", updatedTeamMember);
+      }
       res.json(updatedTeamMember);
     } catch (error) {
       console.error("Error updating team member:", error);

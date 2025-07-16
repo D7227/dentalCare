@@ -112,4 +112,18 @@ export const setupOrderRoutes = (app: Express) => {
   //     res.status(500).json({ error: "Failed to fetch chat for order" });
   //   }
   // });
+
+  // Get chat by orderId
+  app.get("/api/orders/:orderId/chat", async (req, res) => {
+    try {
+      const chat = await chatStorage.getChatByOrderId(req.params.orderId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found for this order" });
+      }
+      res.json(chat);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat for order" });
+    }
+  });
+
 };
