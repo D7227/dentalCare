@@ -6,6 +6,7 @@ import { doctorAuthApi } from './slices/doctorAuthApi';
 import { userDataReducer } from './slices';
 import { userDataApi } from './slices/userDataSlice';
 import orderLocalReducer from './slices/orderLocalSlice';
+import { teamMemberApi } from './slices/teamMemberApi';
 import { draftOrderApi } from './slices/draftOrderApi';
 import { chatApi } from './slices/chatApi';
 import chatslice from './slices/chatslice';
@@ -14,6 +15,7 @@ import chatslice from './slices/chatslice';
 const rootReducer = combineReducers({
   [orderApi.reducerPath]: orderApi.reducer,
   orderLocal: orderLocalReducer,
+  [teamMemberApi.reducerPath]: teamMemberApi.reducer,
   [doctorAuthApi.reducerPath]: doctorAuthApi.reducer,
   [draftOrderApi.reducerPath]: draftOrderApi.reducer,
   [chatApi.reducerPath]: chatApi.reducer,
@@ -49,6 +51,7 @@ export const store = configureStore({
     })
       .concat(orderApi.middleware)
       .concat(doctorAuthApi.middleware)
+      .concat(teamMemberApi.middleware)
       .concat(chatApi.middleware)
       .concat(draftOrderApi.middleware)
       .concat(userDataApi.middleware),

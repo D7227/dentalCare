@@ -16,7 +16,7 @@ export interface OrderData {
   patientLastName: string;
   patientAge: number;
   patientSex: string;
-  caseHandledBy: string;
+  caseHandleBy: string;
   consultingDoctor: string;
   consultingDoctorMobile?: string;
   prescriptionType: string;

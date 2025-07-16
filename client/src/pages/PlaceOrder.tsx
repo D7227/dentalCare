@@ -13,10 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import OrderCategoryStep from "@/components/order-wizard/OrderCategoryStep";
-import NewOrderFlow, {
-  // createOrderObject,
-  // createOrderObject,
-} from "@/components/order-wizard/NewOrderFlow";
+import NewOrderFlow from "@/components/order-wizard/NewOrderFlow"; // createOrderObject, // createOrderObject,
 import RepeatOrderFlow from "@/components/order-wizard/RepeatOrderFlow";
 import RepairOrderFlow from "@/components/order-wizard/RepairOrderFlow";
 import AccessoryTagging from "@/components/order-wizard/AccessoryTagging";
@@ -33,11 +30,15 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { createOrderObject, createDraftOrderObject } from "@/utils/orderHelper";
 import { setUser } from "@/store/slices/userDataSlice";
-import { useCreateOrderMutation, useUpdateOrderMutation } from '@/store/slices/orderApi';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import {
+  useCreateOrderMutation,
+  useUpdateOrderMutation,
+} from "@/store/slices/orderApi";
+import { useSelector, useDispatch } from "react-redux";
+import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import { OrderType } from "@/types/orderType";
-import { useLocation as useRouterLocation } from 'react-router-dom';
+import SummaryOrder from "@/components/order-wizard/SummaryOrder";
+import { useLocation as useRouterLocation } from "react-router-dom";
 
 interface ToothGroup {
   groupId: string;
@@ -58,7 +59,6 @@ const PlaceOrder = () => {
     Record<number, string[]>
   >({});
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -72,7 +72,7 @@ const PlaceOrder = () => {
   let shouldRemoveDraftOrderEdit = false;
 
   if (!draftOrderData || !draftStep) {
-    const local = localStorage.getItem('draftOrderEdit');
+    const local = localStorage.getItem("draftOrderEdit");
     if (local) {
       try {
         const parsed = JSON.parse(local);
@@ -90,7 +90,7 @@ const PlaceOrder = () => {
   const user = useAppSelector((state) => state.userData.userData);
   const isAuthenticated = !!user;
   const clinicId = user?.clinicId;
-
+  console.log("user - place order", user);
   // Check authentication and restore user data from localStorage on component mount
   // useEffect(() => {
   //   if (!isAuthenticated) {
@@ -109,55 +109,53 @@ const PlaceOrder = () => {
   //       setLocation("/login");
   //     }
   //   }
-  //   setIsAuthChecking(false);
   // }, [isAuthenticated, dispatch, setLocation]);
 
   useEffect(() => {
     if (!initialized && draftOrderData && draftStep) {
-      setOrderCategory('new');
+      setOrderCategory("new");
       setCurrentStep(draftStep);
       setFormData(draftOrderData);
       setInitialized(true);
       if (shouldRemoveDraftOrderEdit) {
-        localStorage.removeItem('draftOrderEdit');
+        localStorage.removeItem("draftOrderEdit");
       }
     }
   }, [initialized, draftOrderData, draftStep, shouldRemoveDraftOrderEdit]);
 
   const [formData, setFormData] = useState<OrderType>({
-    id: '',
-    orderId: '',
-    refId: '',
+    orderId: "",
+    refId: "",
     category: null,
     type: null,
-    firstName: '',
-    lastName: '',
+    firstName: "",
+    lastName: "",
     age: 0,
-    sex: '',
-    caseHandledBy: 'Demoeefjfj',
-    doctorMobile: '',
-    consultingDoctor: '',
-    consultingDoctorMobile: '',
-    orderMethod: '' as any,
-    prescriptionType: '',
-    subcategoryType: '',
+    sex: "",
+    caseHandleBy: "",
+    doctorMobile: "",
+    consultingDoctor: "",
+    consultingDoctorMobile: "",
+    orderMethod: "" as any,
+    prescriptionType: "",
+    subcategoryType: "",
     restorationType: null,
     productSelection: null,
-    orderType: '',
+    orderType: "",
     selectedFileType: null,
     selectedTeeth: [],
-    toothGroups: [],
+    teethGroups: [],
     toothNumbers: [],
     abutmentDetails: {
-      abutmentType: '',
+      abutmentType: "",
       quantity: 0,
-      product: [{ name: '', provider: '' }]
+      product: [{ name: "", provider: "" }],
     },
-    clinicId: '',
-    abutmentType: '',
+    clinicId: "",
+    abutmentType: "",
     restorationProducts: [],
     ponticDesign: null,
-    occlusalStaining: 'medium',
+    occlusalStaining: "medium",
     shadeInstruction: null,
     clearance: null,
     accessories: [],
@@ -175,12 +173,12 @@ const PlaceOrder = () => {
     pickupTime: null,
     pickupRemarks: null,
     scanBooking: {
-      areaManagerId: '',
-      scanDate: '',
-      scanTime: '',
-      notes: '',
-      trackingId: '',
-      courierName: ''
+      areaManagerId: "",
+      scanDate: "",
+      scanTime: "",
+      notes: "",
+      trackingId: "",
+      courierName: "",
     },
     previousOrderId: null,
     repairOrderId: null,
@@ -194,12 +192,12 @@ const PlaceOrder = () => {
     referralFiles: [],
 
     // --- Order display fields (for OrderCard) ---
-    orderStatus: 'pending',
+    orderStatus: "pending",
     percentage: 10,
     isUrgent: false,
-    currency: 'INR',
-    exportQuality: 'Standard',
-    paymentStatus: 'pending',
+    currency: "INR",
+    exportQuality: "Standard",
+    paymentStatus: "pending",
     totalAmount: "6565",
   });
 
@@ -241,9 +239,9 @@ const PlaceOrder = () => {
     // Clear current prescription and order method for new selection
     setFormData({
       ...formData,
-      prescriptionTypesId: '',
-      type: 'new',
-      orderType: ''
+      prescriptionTypesId: "",
+      type: "new",
+      orderType: "",
     });
   };
 
@@ -251,7 +249,7 @@ const PlaceOrder = () => {
     // This function will be called from NewOrderFlow when user wants to save the order
     // console.log("Saving comprehensive order:", orderData);
     // You can implement the save logic here or call the existing handleSubmit
-    handleSubmit(new Event('submit') as any);
+    handleSubmit(new Event("submit") as any);
   };
 
   const [createOrder, { isLoading: isCreating }] = useCreateOrderMutation();
@@ -264,8 +262,8 @@ const PlaceOrder = () => {
       return;
     }
     setIsSubmitting(true);
-    if (formData.clinicId === '') {
-      formData.clinicId = clinicId || '';
+    if (formData.clinicId === "") {
+      formData.clinicId = clinicId || "";
     }
 
     // console.log("Form data at submission:", JSON.stringify(formData, null, 2));
@@ -274,11 +272,17 @@ const PlaceOrder = () => {
       if (orderCategory === "repair") {
         formData.orderType = "repair";
         // No need to set firstName, lastName, age, sex again
-        const orderDataRaw = createOrderObject(formData, user?.clinicId || '');
-        const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
-        const updateRes = await updateOrder({ id: selectedOrderId, body: orderData });
-        if (updateRes && !('error' in updateRes)) {
-          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        const orderDataRaw = createOrderObject(formData, user?.clinicId || "");
+        const orderData = {
+          ...orderDataRaw,
+          age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
+        };
+        const updateRes = await updateOrder({
+          id: selectedOrderId,
+          body: orderData,
+        });
+        if (updateRes && !("error" in updateRes)) {
+          queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
           toast({
             title: "Order updated successfully!",
             description: `Order #${selectedOrderId} has been updated.`,
@@ -287,19 +291,20 @@ const PlaceOrder = () => {
         } else {
           toast({
             title: "Order update failed!",
-            description: "There was an error updating your order. Please try again.",
-            variant: "destructive"
+            description:
+              "There was an error updating your order. Please try again.",
+            variant: "destructive",
           });
         }
         setIsSubmitting(false);
         return;
       }
-      if (orderCategory === 'repeat') {
+      if (orderCategory === "repeat") {
         if (!selectedOrderId) {
           toast({
             title: "Update Error",
             description: "No order ID found for update.",
-            variant: "destructive"
+            variant: "destructive",
           });
           setIsSubmitting(false);
           return;
@@ -307,10 +312,16 @@ const PlaceOrder = () => {
         // formData.category = "repeat";
         formData.orderType = "repeat";
         const orderDataRaw = createOrderObject(formData, user?.clinicId || "");
-        const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
-        const updateRes = await updateOrder({ id: selectedOrderId, body: orderData });
-        if (updateRes && !('error' in updateRes)) {
-          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        const orderData = {
+          ...orderDataRaw,
+          age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
+        };
+        const updateRes = await updateOrder({
+          id: selectedOrderId,
+          body: orderData,
+        });
+        if (updateRes && !("error" in updateRes)) {
+          queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
           toast({
             title: "Order updated successfully!",
             description: `Order #${selectedOrderId} has been updated.`,
@@ -319,42 +330,53 @@ const PlaceOrder = () => {
         } else {
           toast({
             title: "Order update failed!",
-            description: "There was an error updating your order. Please try again.",
-            variant: "destructive"
+            description:
+              "There was an error updating your order. Please try again.",
+            variant: "destructive",
           });
         }
         setIsSubmitting(false);
         return;
       }
       formData.accessorios = [];
-      formData.orderStatus = 'pending';
+      formData.orderStatus = "pending";
       // formData.percentage = 10;
       formData.orderType = formData.orderType || "new";
-      const orderDataRaw = createOrderObject(formData, user?.clinicId || "");
-      const orderData = { ...orderDataRaw, age: orderDataRaw.age === null ? undefined : orderDataRaw.age };
+      const orderDataRaw = createOrderObject(formData, user);
+      const orderData = {
+        ...orderDataRaw,
+        age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
+      };
+      console.log("formData", formData);
+      console.log("orderData", orderData);
       const orderRes = await createOrder(orderData);
-      if (orderRes && !('error' in orderRes)) {
+      if (orderRes && !("error" in orderRes)) {
         toast({
           title: "Order submitted successfully!",
-          description: `Order #${orderLocal.id} has been sent to the lab for processing.`
+          description: `Order #${orderLocal.id} has been sent to the lab for processing.`,
         });
         window.history.back();
       } else {
         toast({
           title: "Order submission failed!",
-          description: "There was an error submitting your order. Please try again.",
-          variant: "destructive"
+          description:
+            "There was an error submitting your order. Please try again.",
+          variant: "destructive",
         });
       }
-
 
       // Create tooth groups for the order
       if (formData.teethGroup && formData.teethGroup.length > 0) {
         for (const toothGroup of formData.teethGroup) {
           const toothGroupData = {
             orderId: orderLocal.id, // Use orderLocal.id for the new order
-            groupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            teeth: toothGroup.teethDetails?.flat().map(detail => detail.teethNumber) || [],
+            groupId: `group_${Date.now()}_${Math.random()
+              .toString(36)
+              .substr(2, 9)}`,
+            teeth:
+              toothGroup.teethDetails
+                ?.flat()
+                .map((detail) => detail.teethNumber) || [],
             type: toothGroup.groupType || "separate",
             notes: toothGroup.shadeNotes || "",
             material: toothGroup.selectedProducts?.[0]?.material || "",
@@ -362,34 +384,33 @@ const PlaceOrder = () => {
           };
 
           try {
-            const response = await fetch('/api/tooth-groups', {
-              method: 'POST',
+            const response = await fetch("/api/tooth-groups", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify(toothGroupData),
             });
 
             if (!response.ok) {
               const errorData = await response.json();
-              console.error('Failed to create tooth group:', errorData);
+              console.error("Failed to create tooth group:", errorData);
             }
           } catch (error) {
-            console.error('Error creating tooth group:', error);
+            console.error("Error creating tooth group:", error);
           }
         }
       }
 
       // Invalidate the orders cache to refresh the list
       // queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-
-
     } catch (error) {
-      console.error('Order submission error:', error);
+      console.error("Order submission error:", error);
       toast({
         title: "Submission Error",
-        description: "There was an error submitting your order. Please try again.",
-        variant: "destructive"
+        description:
+          "There was an error submitting your order. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -405,38 +426,45 @@ const PlaceOrder = () => {
   const saveDraft = async () => {
     setIsSubmitting(true);
     try {
-      const draftData = { ...formData, orderStatus: 'draft', step: currentStep };
-      const draftOrderData = createDraftOrderObject(draftData, user?.clinicId || "");
-      const token = localStorage.getItem('token');
-      const draftOrderResponse = await fetch('/api/draft-orders', {
-        method: 'POST',
+      const draftData = {
+        ...formData,
+        orderStatus: "draft",
+        step: currentStep,
+      };
+      const draftOrderData = createDraftOrderObject(
+        draftData,
+        user?.clinicId || ""
+      );
+      const token = localStorage.getItem("token");
+      const draftOrderResponse = await fetch("/api/draft-orders", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(draftOrderData),
       });
       if (!draftOrderResponse.ok) {
-        throw new Error('Failed to save draft');
+        throw new Error("Failed to save draft");
       }
       const draftOrder = await draftOrderResponse.json();
-      queryClient.invalidateQueries({ queryKey: ['/api/draft-orders'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/draft-orders"] });
       toast({
         title: "Draft saved successfully!",
-        description: `Draft #${draftOrder.id} has been saved.`
+        description: `Draft #${draftOrder.id} has been saved.`,
       });
       window.history.back();
     } catch (error) {
-      console.error('Draft save error:', error);
+      console.error("Draft save error:", error);
       toast({
         title: "Draft Error",
         description: "There was an error saving your draft. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   const prevStep = () => {
     if (currentStep === 1 && orderCategory) {
@@ -445,7 +473,7 @@ const PlaceOrder = () => {
       setStepValidationErrors({});
     } else {
       setCurrentStep(Math.max(0, currentStep - 1));
-      setStepValidationErrors(prev => ({ ...prev, [currentStep]: [] }));
+      setStepValidationErrors((prev) => ({ ...prev, [currentStep]: [] }));
     }
   };
 
@@ -462,7 +490,8 @@ const PlaceOrder = () => {
     window.history.back();
     toast({
       title: "Order Cancelled",
-      description: "Your order has been cancelled and unsaved changes were discarded.",
+      description:
+        "Your order has been cancelled and unsaved changes were discarded.",
     });
   };
 
@@ -473,30 +502,55 @@ const PlaceOrder = () => {
 
     // Let NewOrderFlow handle its own step 3 content
     // Only override for repair step 4
-    const isRepairUploadStep = (orderCategory === 'repair' && currentStep === 4);
+    const isRepairUploadStep = orderCategory === "repair" && currentStep === 4;
 
     if (isRepairUploadStep) {
       return <AccessoryTagging formData={formData} setFormData={setFormData} />;
     }
 
     if (currentStep === maxSteps) {
-      return <OrderSummary formData={formData} orderCategory={orderCategory} onEditSection={goToStep} />;
+      return (
+        <>
+          <OrderSummary
+            formData={formData}
+            orderCategory={orderCategory}
+            onEditSection={goToStep}
+          />
+          <SummaryOrder formData={formData} setFormData={setFormData} />
+        </>
+      );
     }
 
     switch (orderCategory) {
-      case 'new':
-        return <NewOrderFlow
-          currentStep={currentStep}
-          formData={formData}
-          setFormData={setFormData}
-          onAddMoreProducts={handleAddMoreProducts}
-          onSaveOrder={handleSaveOrder}
-          setCurrentStep={setCurrentStep}
-        />;
-      case 'repeat':
-        return <RepeatOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
-      case 'repair':
-        return <RepairOrderFlow currentStep={currentStep} formData={formData} setFormData={setFormData} setSelectedOrderId={setSelectedOrderId} />;
+      case "new":
+        return (
+          <NewOrderFlow
+            currentStep={currentStep}
+            formData={formData}
+            setFormData={setFormData}
+            onAddMoreProducts={handleAddMoreProducts}
+            onSaveOrder={handleSaveOrder}
+            setCurrentStep={setCurrentStep}
+          />
+        );
+      case "repeat":
+        return (
+          <RepeatOrderFlow
+            currentStep={currentStep}
+            formData={formData}
+            setFormData={setFormData}
+            setSelectedOrderId={setSelectedOrderId}
+          />
+        );
+      case "repair":
+        return (
+          <RepairOrderFlow
+            currentStep={currentStep}
+            formData={formData}
+            setFormData={setFormData}
+            setSelectedOrderId={setSelectedOrderId}
+          />
+        );
       default:
         return null;
     }
@@ -504,21 +558,25 @@ const PlaceOrder = () => {
 
   const getSubmitButtonText = () => {
     switch (orderCategory) {
-      case 'repair': return 'Submit Repair Request';
-      case 'repeat': return 'Submit Repeat Order';
-      case 'new': return 'Submit New Order';
-      default: return 'Submit Order';
+      case "repair":
+        return "Submit Repair Request";
+      case "repeat":
+        return "Submit Repeat Order";
+      case "new":
+        return "Submit New Order";
+      default:
+        return "Submit Order";
     }
   };
 
   const getCurrentStepTitle = () => {
-    const step = steps.find(s => s.number === currentStep);
-    return step ? step.title : 'Place New Order';
+    const step = steps.find((s) => s.number === currentStep);
+    return step ? step.title : "Place New Order";
   };
 
   const getCurrentStepDescription = () => {
-    const step = steps.find(s => s.number === currentStep);
-    return step ? step.description : 'Create a new dental lab order';
+    const step = steps.find((s) => s.number === currentStep);
+    return step ? step.description : "Create a new dental lab order";
   };
 
   const currentStepErrors = stepValidationErrors[currentStep] || [];
@@ -540,35 +598,36 @@ const PlaceOrder = () => {
   //   return null; // Will redirect in useEffect
   // }
 
+  // Redirect if not authenticated
+  if (!isAuthenticated || !user) {
+    return null; // Will redirect in useEffect
+  }
   if (
-    (!initialized && (draftOrderData && draftStep)) ||
+    (!initialized && draftOrderData && draftStep) ||
     (orderCategory === null && draftOrderData && draftStep)
   ) {
     return null;
   }
-
   return (
     <div className="min-h-screen bg-[#FFFFFF]">
       {/* Compact Header */}
       <Card className="sticky top-0 z-50 rounded-none border-x-0 border-t-0 shadow-sm bg-white">
-        <div className='max-w-7xl mx-auto'>
+        <div className="max-w-7xl mx-auto">
           <CardContent className="p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center justify-between">
-              <div className='flex items-center gap-3'>
-                {
-                  !isMobile && (
-                    <>
-                      <CustomButton
-                        variant="blackAndWhite"
-                        onClick={() => window.history.back()}
-                      >
-                        <ArrowLeft size={18} />
-                        Back
-                      </CustomButton>
-                      <div className="h-5 w-px bg-gray-300"></div>
-                    </>
-                  )
-                }
+              <div className="flex items-center gap-3">
+                {!isMobile && (
+                  <>
+                    <CustomButton
+                      variant="blackAndWhite"
+                      onClick={() => window.history.back()}
+                    >
+                      <ArrowLeft size={18} />
+                      Back
+                    </CustomButton>
+                    <div className="h-5 w-px bg-gray-300"></div>
+                  </>
+                )}
                 <div className="flex items-center gap-3 justify-between ">
                   <div>
                     <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
@@ -580,24 +639,36 @@ const PlaceOrder = () => {
                   </div>
                 </div>
               </div>
-              <div className='flex items-center gap-3'>
+              <div className="flex items-center gap-3">
                 {orderCategory && (
                   <div className="flex items-center gap-1 sm:gap-2 bg-mainBrackground px-2 sm:px-3 py-2 rounded-[8px] border border-customGreen-100">
                     {steps.map((step, index) => (
                       <div key={step.number} className="flex items-center">
-                        <div className={`
+                        <div
+                          className={`
                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium transition-colors
-                            ${index < currentStep ? 'bg-customGreen-100 text-white' :
-                            index === currentStep ? 'bg-customGreen-100 text-white' :
-                              'bg-gray-200 text-gray-500'}
-                          `}>
+                            ${
+                              index < currentStep
+                                ? "bg-customGreen-100 text-white"
+                                : index === currentStep
+                                ? "bg-customGreen-100 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }
+                          `}
+                        >
                           {index + 1}
                         </div>
                         {index < steps.length - 1 && (
-                          <div className={`
+                          <div
+                            className={`
                               w-2 sm:w-3 h-0.5 mx-0.5 sm:mx-1
-                              ${index < currentStep ? 'bg-customGreen-100' : 'bg-gray-200'}
-                            `} />
+                              ${
+                                index < currentStep
+                                  ? "bg-customGreen-100"
+                                  : "bg-gray-200"
+                              }
+                            `}
+                          />
                         )}
                       </div>
                     ))}
@@ -614,12 +685,10 @@ const PlaceOrder = () => {
                   </Button>
                 )}
               </div>
-
             </div>
           </CardContent>
         </div>
       </Card>
-
       {/* Main Layout */}
       <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:py-6">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
@@ -628,7 +697,9 @@ const PlaceOrder = () => {
             <div className="lg:w-80 flex-shrink-0 order-2 lg:order-1">
               <Card className="lg:sticky lg:top-24 shadow-sm border border-customGray-200 bg-white">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Order Progress</CardTitle>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">
+                    Order Progress
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <WizardProgress steps={steps} currentStep={currentStep} />
@@ -639,7 +710,9 @@ const PlaceOrder = () => {
 
           {/* Main Content Area */}
           <div
-            className={`flex-1 min-w-0 bg-transparent order-1 ${orderCategory ? "lg:order-1" : "lg:order-2"}`}
+            className={`flex-1 min-w-0 bg-transparent order-1 ${
+              orderCategory ? "lg:order-1" : "lg:order-2"
+            }`}
           >
             <Card className="shadow-sm border bg-[#F5F9F8] !border-customPrimery-200">
               <CardContent className="p-4 sm:p-6">
@@ -669,9 +742,7 @@ const PlaceOrder = () => {
                 )}
 
                 {/* Step Content */}
-                <form onSubmit={handleSubmit}>
-                  {renderStepContent()}
-                </form>
+                <form onSubmit={handleSubmit}>{renderStepContent()}</form>
               </CardContent>
 
               {/* Navigation Footer */}
@@ -686,25 +757,22 @@ const PlaceOrder = () => {
                       className="flex items-center justify-center gap-2 px-4 py-2 order-2 sm:order-1"
                     >
                       <ChevronLeft size={16} />
-                      {currentStep === 1 ? 'Change Category' : 'Previous'}
+                      {currentStep === 1 ? "Change Category" : "Previous"}
                     </Button>
 
                     <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
                       {currentStep < maxSteps ? (
                         <>
-                          {
-                            orderCategory === 'new' && currentStep === 6
-                              ?
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={saveDraft}
-                                className="flex items-center justify-center gap-2 px-4 py-2 "
-                              >
-                                Save Draft
-                              </Button>
-                              : null
-                          }
+                          {orderCategory === "new" && currentStep === 6 ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={saveDraft}
+                              className="flex items-center justify-center gap-2 px-4 py-2 "
+                            >
+                              Save Draft
+                            </Button>
+                          ) : null}
                           <Button
                             type="button"
                             onClick={nextStep}
@@ -740,7 +808,6 @@ const PlaceOrder = () => {
           </div>
         </div>
       </div>
-
       {/* Cancel Order Confirmation Modal */}
       <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <DialogContent className="max-w-md mx-4">
@@ -749,7 +816,8 @@ const PlaceOrder = () => {
               Cancel Order
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600">
-              Are you sure you want to cancel this order? All unsaved changes will be lost.
+              Are you sure you want to cancel this order? All unsaved changes
+              will be lost.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-6">

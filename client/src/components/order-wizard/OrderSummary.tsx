@@ -390,10 +390,10 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType, showHe
                     <div className="font-medium text-gray-900">{formData.consultingDoctor}</div>
                   </div>
                 )}
-                {formData.caseHandledBy && (
+                {formData.caseHandleBy && (
                   <div className='flex-1 min-w-[120px]'>
                     <div className="text-xs text-gray-500">Case Handled By</div>
-                    <div className="font-medium text-gray-900">{formData.caseHandledBy}</div>
+                    <div className="font-medium text-gray-900">{formData.caseHandleBy}</div>
                   </div>
                 )}
               </div>

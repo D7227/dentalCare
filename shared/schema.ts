@@ -21,7 +21,7 @@ export const users = pgTable("users", {
 //   status: text("status").notNull().default("pending"),
 //   priority: text("priority").notNull().default("standard"), // 'critical', 'high', 'standard', 'low'
 //   urgency: text("urgency").notNull().default("standard"),
-//   caseHandledBy: text("case_handled_by"),
+//   caseHandleBy: text("case_handled_by"),
 //   consultingDoctor: text("consulting_doctor"),
 //   restorationType: text("restoration_type"),
 //   toothGroups: jsonb("tooth_groups").$type<any[]>().default([]),

@@ -701,10 +701,12 @@ var setupAuthenticationRoutes = (app2) => {
         const role2 = await RolesStorage.getRoleById(clinicData.roleId);
         roleName = role2?.name || "";
       }
+      const fullName = `${clinicData?.firstname} ${clinicData?.lastname}`;
       const ClinicsData = {
         ...clinicData,
         roleName,
-        clinicId
+        clinicId,
+        fullName
       };
       return res.json(ClinicsData);
     } catch (err) {
@@ -849,7 +851,7 @@ var ChatStorage = class {
   async createChat(data) {
     const chatData = {
       ...data,
-      participants: Array.isArray(data.participants) ? data.participants : []
+      participants: Array.isArray(data.participants) ? data.participants.map((p) => typeof p === "object" ? p.fullName : p) : []
     };
     const [chat] = await db.insert(chats).values(chatData).returning();
     return chat;
@@ -889,7 +891,7 @@ var ChatStorage = class {
   async updateChat(id, updates) {
     const updateData = { ...updates };
     if (updates.participants && Array.isArray(updates.participants)) {
-      updateData.participants = updates.participants;
+      updateData.participants = updates.participants.map((p) => typeof p === "object" ? p.fullName : p);
     }
     const [chat] = await db.update(chats).set(updateData).where(eq6(chats.id, id)).returning();
     return chat;
@@ -918,18 +920,12 @@ var ChatStorage = class {
       return 0;
     }
     const participants = chat.participants || [];
-    const isParticipant = participants.some((participant) => {
-      const exactMatch = participant.toLowerCase() === userId.toLowerCase();
-      const containsMatch = participant.toLowerCase().includes(userId.toLowerCase()) || userId.toLowerCase().includes(participant.toLowerCase());
-      return exactMatch || containsMatch;
-    });
+    const isParticipant = participants.includes(userId);
     if (!isParticipant) {
       console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
       return 0;
     }
     const messageList = await db.select().from(messages).where(eq6(messages.chatId, chatId));
-    console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
-    console.log("messageList", messageList);
     const unreadCount = messageList.filter((message) => {
       const readBy = message.readBy || [];
       const isUnread = !readBy.includes(userId);
@@ -949,11 +945,11 @@ import { eq as eq9 } from "drizzle-orm";
 import { pgTable as pgTable10, text as text10, uuid as uuid10 } from "drizzle-orm/pg-core";
 var clinicInformation = pgTable10("clinic_information", {
   id: uuid10("id").primaryKey().defaultRandom(),
-  clinicId: text10("clinic_id").notNull(),
+  clinicId: text10("clinic_id"),
   caseHandleBy: text10("case_handle_by").notNull(),
   doctorMobileNumber: text10("doctor_mobile_number").notNull(),
-  consultingDoctorName: text10("consulting_doctor_name").notNull(),
-  consultingDoctorMobileNumber: text10("consulting_doctor_mobile_number").notNull()
+  consultingDoctorName: text10("consulting_doctor_name"),
+  consultingDoctorMobileNumber: text10("consulting_doctor_mobile_number")
 });
 
 // server/src/clinicInformation/clinicInformationController.ts
@@ -1040,15 +1036,17 @@ var OrderStorage = class {
         clinicId: insertOrder.clinicId,
         caseHandleBy: insertOrder.caseHandleBy,
         doctorMobileNumber: insertOrder.doctorMobileNumber,
-        consultingDoctorName: insertOrder.consultingDoctorName,
-        consultingDoctorMobileNumber: insertOrder.consultingDoctorMobileNumber
+        consultingDoctorName: insertOrder?.consultingDoctorName,
+        consultingDoctorMobileNumber: insertOrder?.consultingDoctorMobileNumber
       };
+      console.log("dasdasdadasdwdqwdqwd", clinicInformationData);
       clinicInformation2 = await clinicInformationStorage.createClinicInformation(
         clinicInformationData
       );
       if (!clinicInformation2) {
         throw new Error("Failed to create clinic information record");
       }
+      console.log(clinicInformation2);
       const teethGroupData = {
         selectedTeeth: insertOrder.selectedTeeth,
         teethGroup: insertOrder.teethGroup
@@ -1338,6 +1336,7 @@ var MessageStorage = class {
     }
   }
   async getUnreadMessageCount(chatId, userId) {
+    console.log(chatId, userId, "this is a alll");
     if (!userId) {
       console.log("No userId provided, returning 0");
       return 0;
@@ -1358,8 +1357,6 @@ var MessageStorage = class {
       return 0;
     }
     const messageList = await db.select().from(messages).where(eq10(messages.chatId, chatId));
-    console.log(`getUnreadMessageCount called for chatId: ${chatId}, userId: ${userId}`);
-    console.log("messageList", messageList);
     const unreadCount = messageList.filter((message) => {
       const readBy = message.readBy || [];
       const isUnread = !readBy.includes(userId);
@@ -1384,12 +1381,12 @@ var messageStorage = new MessageStorage();
 
 // server/src/chat/chatRoute.ts
 var setupChatRoutes = (app2) => {
-  app2.get("/api/chats", async (req, res) => {
+  app2.get("/api/chats/:clinicId", async (req, res) => {
     try {
       const { userId } = req.query;
-      const chats2 = await chatStorage.getChats();
-      console.log("chats", chats2);
-      console.log("userId from query:", userId);
+      const clinicId = req.params.clinicId;
+      const chats2 = await chatStorage.getChatsByClinic(clinicId);
+      console.log(userId, "this is a user id");
       if (userId && typeof userId === "string") {
         console.log(`Calculating unread counts for user: ${userId}`);
         const chatsWithUnreadCount = await Promise.all(
@@ -1424,7 +1421,7 @@ var setupChatRoutes = (app2) => {
           })
         );
         const filteredChats = chatsWithUnreadCount.filter(Boolean);
-        console.log("Final chats with unread counts:", filteredChats);
+        console.log("Final chats with unread counts:", filteredChats, userId);
         res.json(filteredChats);
       } else {
         console.log(
@@ -1437,7 +1434,7 @@ var setupChatRoutes = (app2) => {
       res.status(500).json({ error: "Failed to fetch chats" });
     }
   });
-  app2.get("/api/chats/:id", async (req, res) => {
+  app2.get("/api/chat/:id", async (req, res) => {
     try {
       console.log("Fetching chat", req.params.id);
       const chat = await chatStorage.getChat(req.params.id);
@@ -1488,6 +1485,18 @@ var setupChatRoutes = (app2) => {
         // use as string
       });
       const message = await messageStorage.createMessage(messageData);
+      const io = req.app.get("io") || req.app.io;
+      const userSocketMap2 = req.app.get("userSocketMap") || req.app.userSocketMap;
+      const chat = await chatStorage.getChat(req.params.id);
+      if (io && userSocketMap2 && chat) {
+        for (const participant of chat.participants || []) {
+          const socketId = userSocketMap2.get(participant);
+          if (socketId) {
+            const unreadCount = await messageStorage.getUnreadMessageCount(req.params.id, participant);
+            io.to(socketId).emit("unread-count-update", { chatId: req.params.id, unreadCount });
+          }
+        }
+      }
       res.status(201).json(message);
     } catch (error) {
       console.log(error);
@@ -1767,6 +1776,17 @@ var setupOrderRoutes = (app2) => {
       res.status(500).json({ error: "Failed to update order status" });
     }
   });
+  app2.get("/api/orders/:orderId/chat", async (req, res) => {
+    try {
+      const chat = await chatStorage.getChatByOrderId(req.params.orderId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found for this order" });
+      }
+      res.json(chat);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch chat for order" });
+    }
+  });
 };
 
 // server/src/teamMember/teamMemberRoute.ts
@@ -1839,6 +1859,10 @@ var setupTeamMemberRoutes = (app2) => {
       const updatedTeamMember = await teamMemberStorage.updateTeamMember(teamMemberId, updateData);
       if (!updatedTeamMember) {
         return res.status(404).json({ error: "Team member not found" });
+      }
+      const io = req.app.get("io") || req.app.io;
+      if (io) {
+        io.emit("team-member-updated", updatedTeamMember);
       }
       res.json(updatedTeamMember);
     } catch (error) {
@@ -1919,6 +1943,125 @@ var setupPatientRoute = async (app2) => {
       res.json(patients2);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch patients" });
+    }
+  });
+};
+
+// server/src/draftOrder/draftOrderSchema.tsx
+import {
+  pgTable as pgTable13,
+  uuid as uuid13,
+  text as text12,
+  integer as integer10,
+  jsonb as jsonb10,
+  timestamp as timestamp9,
+  date as date9
+} from "drizzle-orm/pg-core";
+var draftOrders = pgTable13("draft_order", {
+  id: uuid13("id").defaultRandom().primaryKey(),
+  firstName: text12("first_name"),
+  lastName: text12("last_name"),
+  age: integer10("age"),
+  sex: text12("sex"),
+  clinicId: text12("clinic_id"),
+  caseHandleBy: text12("case_handle_by"),
+  doctorMobileNumber: text12("doctor_mobile_number"),
+  consultingDoctorName: text12("consulting_doctor_name"),
+  consultingDoctorMobileNumber: text12("consulting_doctor_mobile_number"),
+  orderMethod: text12("order_method"),
+  // "Digital" or "Manual"
+  prescriptionTypesId: jsonb10("prescription_types_id").$type(),
+  subPrescriptionTypesId: jsonb10("sub_prescription_types_id").$type(),
+  selectedTeeth: jsonb10("selected_teeth").$type(),
+  teethGroup: jsonb10("teeth_group").$type(),
+  teethNumber: jsonb10("teeth_number").$type(),
+  products: jsonb10("products").$type(),
+  files: jsonb10("files").$type(),
+  accessorios: jsonb10("accessorios").$type(),
+  handllingType: text12("handlling_type"),
+  pickupData: jsonb10("pickup_data").$type(),
+  courierData: jsonb10("courier_data").$type(),
+  resonOfReject: text12("reson_of_reject"),
+  resonOfRescan: text12("reson_of_rescan"),
+  rejectNote: text12("reject_note"),
+  orderId: text12("order_id"),
+  crateNo: text12("crate_no"),
+  qaNote: text12("qa_note"),
+  orderBy: text12("order_by"),
+  AcpectedDileveryData: date9("acpected_dilevery_data"),
+  lifeCycle: jsonb10("life_cycle").$type(),
+  orderStatus: text12("order_status"),
+  refId: text12("ref_id"),
+  orderDate: text12("order_date"),
+  updateDate: text12("update_date"),
+  totalAmount: text12("total_amount"),
+  paymentType: text12("payment_type"),
+  doctorNote: text12("doctor_note"),
+  orderType: text12("order_type"),
+  step: integer10("step"),
+  createdAt: timestamp9("created_at", { withTimezone: true }).defaultNow()
+});
+
+// server/src/draftOrder/draftOrderController.tsx
+import { eq as eq11 } from "drizzle-orm";
+var DraftOrderStorage = class {
+  async getDraftOrder(id) {
+    const [order] = await db.select().from(draftOrders).where(eq11(draftOrders.id, id));
+    return order;
+  }
+  async createDraftOrder(order) {
+    const [created] = await db.insert(draftOrders).values(order).returning();
+    return created;
+  }
+  async getDraftOrdersByClinicId(clinicId) {
+    return await db.select().from(draftOrders).where(eq11(draftOrders.clinicId, clinicId));
+  }
+  async deleteDraftOrder(id) {
+    await db.delete(draftOrders).where(eq11(draftOrders.id, id));
+  }
+};
+var draftOrderStorage = new DraftOrderStorage();
+
+// server/src/draftOrder/draftOrderRoute.tsx
+var setupDraftOrderRoutes = (app2) => {
+  app2.get("/api/draft-orders/:id", async (req, res) => {
+    try {
+      const order = await draftOrderStorage.getDraftOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Draft order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch draft order" });
+    }
+  });
+  app2.get("/api/draft-orders/clinic/:clinicId", async (req, res) => {
+    try {
+      const orders = await draftOrderStorage.getDraftOrdersByClinicId(req.params.clinicId);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch draft orders" });
+    }
+  });
+  app2.post("/api/draft-orders", async (req, res) => {
+    try {
+      const order = await draftOrderStorage.createDraftOrder(req.body);
+      res.status(201).json(order);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ error });
+    }
+  });
+  app2.delete("/api/draft-orders/:id", async (req, res) => {
+    try {
+      const order = await draftOrderStorage.getDraftOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Draft order not found" });
+      }
+      await draftOrderStorage.deleteDraftOrder(req.params.id);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete draft order" });
     }
   });
 };
@@ -2012,6 +2155,7 @@ async function registerRoutes(app2) {
   setupTeamMemberRoutes(app2);
   setuRoleRoutes(app2);
   setupPatientRoute(app2);
+  setupDraftOrderRoutes(app2);
   const httpServer2 = createServer(app2);
   return httpServer2;
 }
@@ -2152,7 +2296,7 @@ function authMiddleware(req, res, next) {
 
 // server/socket/socket.ts
 import { Server } from "socket.io";
-import { eq as eq11 } from "drizzle-orm";
+import { eq as eq12 } from "drizzle-orm";
 function setupSocket(httpServer2, app2) {
   const io = new Server(httpServer2, {
     cors: {
@@ -2198,7 +2342,7 @@ function setupSocket(httpServer2, app2) {
           chatId: data.chatId
         });
         console.log("savedMessage", savedMessage);
-        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq11(chats.id, data.chatId));
+        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq12(chats.id, data.chatId));
         console.log("updatedChat");
         io.to(`chat-${data.chatId}`).emit("new-message", {
           chatId: data.chatId,
@@ -2214,7 +2358,7 @@ function setupSocket(httpServer2, app2) {
             permissions: member.permissions || []
           })),
           ...clinics.map((clinic2) => ({
-            id: clinic2.id,
+            id: `${clinic2?.firstname} ${clinic2?.lastname}`,
             type: "clinic",
             permissions: clinic2.permissions || []
           }))

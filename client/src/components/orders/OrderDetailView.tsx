@@ -57,9 +57,9 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     }
     : undefined;
 
-  const doctor = order?.caseHandledBy
+  const doctor = order?.caseHandleBy
     ? {
-      caseHandledBy: order.caseHandledBy || '-',
+      caseHandleBy: order.caseHandleBy || '-',
       consultingDoctor: order.consultingDoctor || '-',
       location: '-',
     }

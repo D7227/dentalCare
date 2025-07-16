@@ -86,7 +86,7 @@ const OrderSummary = ({ formData, orderCategory, onEditSection }: OrderSummaryPr
                 </div>
                 <div className="flex justify-between">
                   <span className="text-xs font-semibold text-muted-foreground">Case Handler:</span>
-                  <span className="text-xs font-medium">{formData.caseHandledBy}</span>
+                  <span className="text-xs font-medium">{formData.caseHandleBy}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-xs font-semibold text-muted-foreground">Doctor:</span>

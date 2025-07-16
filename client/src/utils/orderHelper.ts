@@ -38,7 +38,7 @@ export type OrderFormData = OrderType & {
 };
 
 // Function to create comprehensive order object
-export const createOrderObject = (formData: OrderFormData, clinicId: string) => {
+export const createOrderObject = (formData: OrderFormData, user: any) => {
   // Handle subcategory-specific conditions
   const getOrderTypeBasedOnSubcategory = () => {
     if (formData.subcategoryType) {
@@ -68,10 +68,12 @@ export const createOrderObject = (formData: OrderFormData, clinicId: string) => 
 
   return {
     // Order basic info
-    refId: formData.refId || `REF-${Date.now()}-${Math.random()
-      .toString(36)
-      .substr(2, 4)
-      .toUpperCase()}`,
+    refId:
+      formData.refId ||
+      `REF-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 4)
+        .toUpperCase()}`,
     orderId: formData.orderId || "",
     type: getOrderTypeBasedOnSubcategory(),
     orderType: formData.orderType || "new",
@@ -120,12 +122,12 @@ export const createOrderObject = (formData: OrderFormData, clinicId: string) => 
 
     // Scan Booking Information
     scanBooking: formData.scanBooking || {
-      areaManagerId: '',
-      scanDate: '',
-      scanTime: '',
-      notes: '',
-      trackingId: '',
-      courierName: ''
+      areaManagerId: "",
+      scanDate: "",
+      scanTime: "",
+      notes: "",
+      trackingId: "",
+      courierName: "",
     },
 
     // Repair/Issue Information

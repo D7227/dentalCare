@@ -20,9 +20,9 @@ export const orderApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: "/api/orders",
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return headers;
     },
@@ -61,7 +61,11 @@ export const orderApi = createApi({
       OrderType,
       { id: string; body: UpdateOrderRequest }
     >({
-      query: ({ id, body }) => ({ url: `updateOrders/${id}`, method: "PUT", body }),
+      query: ({ id, body }) => ({
+        url: `updateOrders/${id}`,
+        method: "PUT",
+        body,
+      }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Order", id },
         { type: "OrderList", id: "LIST" },

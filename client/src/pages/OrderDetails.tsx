@@ -39,7 +39,7 @@ function mapOrderTypeToOrderData(order: OrderType): OrderData {
     patientLastName: order.lastName,
     patientAge: order.age,
     patientSex: order.sex,
-    caseHandledBy: order.caseHandleBy,
+    caseHandleBy: order.caseHandleBy,
     consultingDoctor: order.consultingDoctorName,
     consultingDoctorMobile: order.consultingDoctorMobileNumber,
     prescriptionType: order.prescriptionTypesId?.[0] || '',

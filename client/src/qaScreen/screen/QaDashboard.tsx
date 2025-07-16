@@ -20,35 +20,50 @@ const QaDashboard = () => {
   const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
 
   const updateCase = (id: string, status: any, notes?: string) => {
-    setCases(cases => cases.map(c => c.id === id ? {
-      ...c,
-      status,
-      notes: notes || c.notes,
-      log: [...c.log, `${status} by Dr.Sagar on ${new Date().toLocaleString()}${notes ? ` — ${notes}` : ""}`]
-    } : c));
+    setCases((cases) =>
+      cases.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              status,
+              notes: notes || c.notes,
+              log: [
+                ...c.log,
+                `${status} by Dr.Sagar on ${new Date().toLocaleString()}${
+                  notes ? ` — ${notes}` : ""
+                }`,
+              ],
+            }
+          : c
+      )
+    );
   };
 
   const handleSubmitDailyReport = (additionalNotes: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    const todaysCases = cases.filter(c => c.receivedAt === today);
+    const today = new Date().toISOString().split("T")[0];
+    const todaysCases = cases.filter((c) => c.receivedAt === today);
     const newReport: DailyReport = {
-      id: `DR-${String(dailyReports.length + 1).padStart(3, '0')}`,
+      id: `DR-${String(dailyReports.length + 1).padStart(3, "0")}`,
       date: today,
       doctorName: "Dr. Sagar",
       casesReviewed: todaysCases.length,
-      casesApproved: todaysCases.filter(c => c.status === "Approved").length,
-      casesRejected: todaysCases.filter(c => c.status === "Rejected").length,
-      rescansRequested: todaysCases.filter(c => c.status === "Rescan Requested").length,
-      casesModified: todaysCases.filter(c => c.status === "Modified").length,
+      casesApproved: todaysCases.filter((c) => c.status === "Approved").length,
+      casesRejected: todaysCases.filter((c) => c.status === "Rejected").length,
+      rescansRequested: todaysCases.filter(
+        (c) => c.status === "Rescan Requested"
+      ).length,
+      casesModified: todaysCases.filter((c) => c.status === "Modified").length,
       additionalNotes,
       status: "Submitted",
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
-    setDailyReports(prev => [newReport, ...prev]);
+    setDailyReports((prev) => [newReport, ...prev]);
   };
 
-  const pendingCount = cases.filter(c => c.status === "Pending").length;
-  const todayCases = cases.filter(c => c.receivedAt === new Date().toISOString().split('T')[0]).length;
+  const pendingCount = cases.filter((c) => c.status === "Pending").length;
+  const todayCases = cases.filter(
+    (c) => c.receivedAt === new Date().toISOString().split("T")[0]
+  ).length;
 
   return (
     <SidebarProvider>
@@ -56,9 +71,14 @@ const QaDashboard = () => {
         <AppSidebar />
         <main className="flex-1 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Dental ERP Dashboard – Dr. Sagar</h1>
+            <h1 className="text-2xl font-bold">
+              Dental ERP Dashboard – Dr. Sagar
+            </h1>
             <div className="flex items-center gap-4">
-              <Button onClick={() => setIsDailyReportModalOpen(true)} className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsDailyReportModalOpen(true)}
+                className="flex items-center gap-2"
+              >
                 <FileText size={18} />
                 Submit Daily Report
               </Button>

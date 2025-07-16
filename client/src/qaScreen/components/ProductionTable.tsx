@@ -21,7 +21,6 @@ import { useAppSelector } from "@/store/hooks";
 
 const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, notes?: string) => void }> = ({ onUpdate }) => {
   const [cases, setCases] = useState<DentalCase[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Add state for each filter input
   const [refNo, setRefNo] = useState("");
@@ -88,7 +87,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
       (!refNo || dentalCase.refId.toLowerCase().includes(refNo.toLowerCase())) &&
       (!orderNo || dentalCase.id.toLowerCase().includes(orderNo.toLowerCase())) &&
       (!clinicName || "Smile Dental".toLowerCase().includes(clinicName.toLowerCase())) &&
-      (!doctor || dentalCase.caseHandledBy.toLowerCase().includes(doctor.toLowerCase())) &&
+      (!doctor || dentalCase.caseHandleBy.toLowerCase().includes(doctor.toLowerCase())) &&
       (!patient || patientName.toLowerCase().includes(patient.toLowerCase())) &&
       (!orderType || dentalCase.orderMethod === orderType) &&
       (!prescription || dentalCase.prescriptionType === prescription.toLocaleLowerCase()) &&
@@ -143,7 +142,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
     setScanStatus("");
   }
 
-  if (loading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
@@ -425,7 +424,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                         <TableCell className="font-medium text-blue-600">{dentalCase.refId}</TableCell>
                         <TableCell>{dentalCase.orderId}</TableCell>
                         <TableCell>{clinicName !== 'N/A' ? clinicName : "Smile Dental"}</TableCell>
-                        <TableCell>{dentalCase.caseHandledBy}</TableCell>
+                        <TableCell>{dentalCase.caseHandleBy}</TableCell>
                         <TableCell>{dentalCase.firstName} {dentalCase.lastName}</TableCell>
                         <TableCell>
                           <Badge className={getOrderTypeColor(dentalCase.orderMethod)} variant="outline">

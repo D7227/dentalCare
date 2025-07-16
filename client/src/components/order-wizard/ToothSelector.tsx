@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import ToothChart from "./components/ToothChart";
 import SelectedToothGroups from "./components/SelectedToothGroups";
 import ToothTypeDialog from "./components/ToothTypeDialog";
@@ -12,7 +12,7 @@ import { CrownBridgeTeeth, ImpantTeeth } from "@/assets/svg";
 import RadioCardGroup from "../common/RadioCardGroup";
 
 interface ToothSelectorProps {
-  prescriptionType: "implant" | "crown-bridge" | "splints-guards";
+  prescriptionType: string;
   selectedGroups: ToothGroup[];
   selectedTeeth: SelectedTooth[];
   onGroupsChange?: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
@@ -20,10 +20,12 @@ interface ToothSelectorProps {
   onProductComplete?: () => void;
   subcategoryType?: string;
   formData?: any;
+  editMode?: boolean;
+  readMode?: boolean;
 }
 
 interface SelectedTooth {
-  prescriptionType: "implant" | "crown-bridge";
+  prescriptionType: string;
   toothNumber: number;
   type: "abutment" | "pontic";
   selectedProducts?: any[];
@@ -32,14 +34,14 @@ interface SelectedTooth {
 
 // Helper functions to convert between new and legacy formats
 export const convertToLegacyGroups = (
-  groups: ToothGroup[],
+  groups: ToothGroup[]
 ): LegacyToothGroup[] => {
   return groups
     .filter(
       (group) =>
         group.groupType === "joint" ||
         group.groupType === "bridge" ||
-        group.groupType === "separate",
+        group.groupType === "separate"
     )
     .map((group, index) => {
       const allTeeth = group.teethDetails
@@ -99,22 +101,28 @@ const convertToNewGroups = (legacyGroups: LegacyToothGroup[]): ToothGroup[] => {
 };
 
 // Helper to get full details from individual teeth if present
-function getFullToothDetail(toothNumber: number, type: "abutment" | "pontic", localSelectedTeeth: SelectedTooth[]) {
-  const individual = localSelectedTeeth.find((t) => t.toothNumber === toothNumber);
+function getFullToothDetail(
+  toothNumber: number,
+  type: "abutment" | "pontic",
+  localSelectedTeeth: SelectedTooth[]
+) {
+  const individual = localSelectedTeeth.find(
+    (t) => t.toothNumber === toothNumber
+  );
   const detail: any = {
     teethNumber: toothNumber,
     productName: individual?.productName || [],
     productQuantity: 1,
-    shadeDetails: individual?.shadeDetails || '',
-    occlusalStaining: individual?.occlusalStaining || '',
+    shadeDetails: individual?.shadeDetails || "",
+    occlusalStaining: individual?.occlusalStaining || "",
     shadeGuide: individual?.shadeGuide || null,
-    shadeNotes: individual?.shadeNotes || '',
-    trialRequirements: individual?.trialRequirements || '',
+    shadeNotes: individual?.shadeNotes || "",
+    trialRequirements: individual?.trialRequirements || "",
     type: type,
     implantDetails: individual?.implantDetails,
     selectedProducts: individual?.selectedProducts || [],
   };
-  if (individual && 'productDetails' in individual) {
+  if (individual && "productDetails" in individual) {
     detail.productDetails = (individual as any).productDetails;
   }
   return detail;
@@ -129,15 +137,17 @@ const ToothSelector = ({
   onProductComplete,
   subcategoryType,
   formData,
+  readMode,
+  editMode,
 }: ToothSelectorProps) => {
   const [productSelection, setProductSelection] = useState<
     "implant" | "crown-bridge" | null
   >(null);
   const [localSelectedTeeth, setLocalSelectedTeeth] = useState<SelectedTooth[]>(
-    selectedTeeth || [],
+    selectedTeeth || []
   );
   const [localSelectedGroups, setLocalSelectedGroups] = useState<ToothGroup[]>(
-    selectedGroups || [],
+    selectedGroups || []
   );
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [showUnselectDialog, setShowUnselectDialog] = useState(false);
@@ -147,7 +157,7 @@ const ToothSelector = ({
   });
   const [clickedTooth, setClickedTooth] = useState<number | null>(null);
   const [deliveryType, setDeliveryType] = useState<"digital" | "manual" | null>(
-    null,
+    null
   );
 
   // Define allowed teeth for specific subcategories
@@ -157,9 +167,15 @@ const ToothSelector = ({
     switch (subcategory) {
       case "inlay":
       case "onlay":
-        return [14, 15, 16, 17, 18, 24, 25, 26, 27, 28, 34, 35, 36, 37, 38, 44, 45, 46, 47, 48];
+        return [
+          14, 15, 16, 17, 18, 24, 25, 26, 27, 28, 34, 35, 36, 37, 38, 44, 45,
+          46, 47, 48,
+        ];
       case "veneers":
-        return [11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 41, 42, 43, 44, 45];
+        return [
+          11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 41, 42,
+          43, 44, 45,
+        ];
       default:
         return [];
     }
@@ -169,45 +185,60 @@ const ToothSelector = ({
   const hasTeethRestriction = allowedTeeth.length > 0;
 
   // Check if this is splints-guards prescription type or other types that need arch selection
-  const isSplints = prescriptionType === "splints-guards" || formData?.prescriptionType === "splints-guards";
+  const isSplints =
+    prescriptionType === "splints-guards" ||
+    formData?.prescriptionType === "splints-guards";
 
   // Check if current subcategory needs arch selection
-  const needsArchSelection = isSplints || [
+  const needsArchSelection =
+    isSplints ||
+    [
       "clear-aligner",
       "retainer",
       "full-dentures",
       "sleep-apnea",
-    "implant-full-arch"
+      "implant-full-arch",
     ].includes(subcategoryType || formData?.subcategoryType || "");
 
   // State for implant full arch workflow
   const [selectedArchTeeth, setSelectedArchTeeth] = useState<number[]>([]);
   const [showImplantSelection, setShowImplantSelection] = useState(false);
-  const [selectedImplantTeeth, setSelectedImplantTeeth] = useState<number[]>([]);
-  const [implantDetailsData, setImplantDetailsData] = useState<Record<number, any>>({});
-  const [currentImplantToothForDetails, setCurrentImplantToothForDetails] = useState<number | null>(null);
+  const [selectedImplantTeeth, setSelectedImplantTeeth] = useState<number[]>(
+    []
+  );
+  const [implantDetailsData, setImplantDetailsData] = useState<
+    Record<number, any>
+  >({});
+  const [currentImplantToothForDetails, setCurrentImplantToothForDetails] =
+    useState<number | null>(null);
   const [showImplantDetailsModal, setShowImplantDetailsModal] = useState(false);
 
   // Define arch teeth groups
-  const upperArchTeeth = [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28];
-  const lowerArchTeeth = [31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48];
+  const upperArchTeeth = [
+    11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28,
+  ];
+  const lowerArchTeeth = [
+    31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
+  ];
   const allArchTeeth = [...upperArchTeeth, ...lowerArchTeeth];
 
   // Check if this is implant full arch
-  const isImplantFullArch = subcategoryType === "implant-full-arch" || formData?.subcategoryType === "implant-full-arch";
+  const isImplantFullArch =
+    subcategoryType === "implant-full-arch" ||
+    formData?.subcategoryType === "implant-full-arch";
 
   // Arch selection handlers
-  const handleArchSelection = (archType: 'upper' | 'lower' | 'both') => {
+  const handleArchSelection = (archType: "upper" | "lower" | "both") => {
     let teethToSelect: number[] = [];
 
     switch (archType) {
-      case 'upper':
+      case "upper":
         teethToSelect = upperArchTeeth;
         break;
-      case 'lower':
+      case "lower":
         teethToSelect = lowerArchTeeth;
         break;
-      case 'both':
+      case "both":
         teethToSelect = allArchTeeth;
         break;
     }
@@ -223,7 +254,7 @@ const ToothSelector = ({
       }
     } else {
       // For other types, directly select all teeth as abutments
-      const newTeeth = teethToSelect.map(toothNumber => ({
+      const newTeeth = teethToSelect.map((toothNumber) => ({
         toothNumber,
         type: "abutment" as const,
         prescriptionType,
@@ -237,8 +268,8 @@ const ToothSelector = ({
   const handleImplantToothToggle = (toothNumber: number) => {
     if (selectedImplantTeeth.includes(toothNumber)) {
       // If already selected, remove from selection and clear details
-      setSelectedImplantTeeth(prev => prev.filter(t => t !== toothNumber));
-      setImplantDetailsData(prev => {
+      setSelectedImplantTeeth((prev) => prev.filter((t) => t !== toothNumber));
+      setImplantDetailsData((prev) => {
         const newData = { ...prev };
         delete newData[toothNumber];
         return newData;
@@ -254,12 +285,15 @@ const ToothSelector = ({
   const handleImplantDetailsSaveForSelection = (implantDetails: any) => {
     if (currentImplantToothForDetails !== null) {
       // Add tooth to selected implants
-      setSelectedImplantTeeth(prev => [...prev, currentImplantToothForDetails]);
+      setSelectedImplantTeeth((prev) => [
+        ...prev,
+        currentImplantToothForDetails,
+      ]);
 
       // Store implant details
-      setImplantDetailsData(prev => ({
+      setImplantDetailsData((prev) => ({
         ...prev,
-        [currentImplantToothForDetails]: implantDetails
+        [currentImplantToothForDetails]: implantDetails,
       }));
 
       // Close modal and reset current tooth
@@ -286,19 +320,19 @@ const ToothSelector = ({
           : "pontic",
         productName: [],
         productDetails: {
-          shade: 'B1 - Vita Classic',
+          shade: "B1 - Vita Classic",
           productName: [],
-          notes: '',
-          ponticDesign: '',
-          occlusalStaining: 'medium',
+          notes: "",
+          ponticDesign: "",
+          occlusalStaining: "medium",
         },
         selectedProducts: [],
         shadeGuide: [],
-        shadeNotes: '',
-        shadeDetails: '',
+        shadeNotes: "",
+        shadeDetails: "",
         productQuantity: 1,
-        occlusalStaining: '',
-        trialRequirements: '',
+        occlusalStaining: "",
+        trialRequirements: "",
         // Add implant details if this is an implant tooth
         implantDetails: selectedImplantTeeth.includes(toothNumber)
           ? implantDetailsData[toothNumber]
@@ -363,21 +397,21 @@ const ToothSelector = ({
       const inGroups = localSelectedGroups.some((group) =>
         group.teethDetails
           .flat()
-          .some((tooth) => tooth.teethNumber === toothNumber),
+          .some((tooth) => tooth.teethNumber === toothNumber)
       );
       const inIndividualTeeth = localSelectedTeeth.some(
-        (tooth) => tooth.toothNumber === toothNumber,
+        (tooth) => tooth.toothNumber === toothNumber
       );
       return inGroups || inIndividualTeeth;
     },
-    [localSelectedTeeth, localSelectedGroups],
+    [localSelectedTeeth, localSelectedGroups]
   );
 
   const getToothType = useCallback(
     (toothNumber: number): "abutment" | "pontic" | null => {
       // Check individual teeth first
       const selectedTooth = localSelectedTeeth.find(
-        (tooth) => tooth.toothNumber === toothNumber,
+        (tooth) => tooth.toothNumber === toothNumber
       );
       if (selectedTooth) {
         return selectedTooth.type;
@@ -394,12 +428,12 @@ const ToothSelector = ({
       }
       return null;
     },
-    [localSelectedTeeth, localSelectedGroups],
+    [localSelectedTeeth, localSelectedGroups]
   );
 
   const areTeethStrictlyAdjacent = (
     tooth1: number,
-    tooth2: number,
+    tooth2: number
   ): boolean => {
     console.log("Checking strict adjacency between", tooth1, "and", tooth2);
 
@@ -438,7 +472,7 @@ const ToothSelector = ({
           "Invalid sequence: gap between",
           teeth[i],
           "and",
-          teeth[i + 1],
+          teeth[i + 1]
         );
         return false;
       }
@@ -456,7 +490,9 @@ const ToothSelector = ({
 
     // Check if tooth is allowed for selection
     if (!isToothAllowed(toothNumber)) {
-      console.log(`Tooth ${toothNumber} is not allowed for subcategory ${subcategoryType}`);
+      console.log(
+        `Tooth ${toothNumber} is not allowed for subcategory ${subcategoryType}`
+      );
       return;
     }
 
@@ -484,7 +520,7 @@ const ToothSelector = ({
     console.log("Deselecting tooth:", toothNumber);
 
     const groupContainingTooth = localSelectedGroups.find((g) =>
-      g.teethDetails.flat().some((tooth) => tooth.teethNumber === toothNumber),
+      g.teethDetails.flat().some((tooth) => tooth.teethNumber === toothNumber)
     );
 
     if (groupContainingTooth) {
@@ -492,10 +528,10 @@ const ToothSelector = ({
       // Find all instances of this tooth number in the group
       const allTeethInGroup = groupContainingTooth.teethDetails.flat();
       const pontics = allTeethInGroup.filter(
-        (t) => t.teethNumber === toothNumber && t.type === "pontic",
+        (t) => t.teethNumber === toothNumber && t.type === "pontic"
       );
       const abutments = allTeethInGroup.filter(
-        (t) => t.teethNumber === toothNumber && t.type === "abutment",
+        (t) => t.teethNumber === toothNumber && t.type === "abutment"
       );
 
       // If there are multiple pontics, remove only one
@@ -513,7 +549,7 @@ const ToothSelector = ({
                 return false; // remove only one instance
               }
               return true;
-            }),
+            })
           )
           .filter((group) => group.length > 0);
 
@@ -521,7 +557,7 @@ const ToothSelector = ({
         if (updatedTeethDetails.length === 0) {
           updateSelection(
             localSelectedGroups.filter((g) => g !== groupContainingTooth),
-            localSelectedTeeth,
+            localSelectedTeeth
           );
         } else {
           // Check if any pontics remain in the group
@@ -535,9 +571,9 @@ const ToothSelector = ({
             };
             updateSelection(
               localSelectedGroups.map((g) =>
-                g === groupContainingTooth ? updatedGroup : g,
+                g === groupContainingTooth ? updatedGroup : g
               ),
-              localSelectedTeeth,
+              localSelectedTeeth
             );
           } else {
             // No pontics remain: split into contiguous abutment fragments
@@ -575,7 +611,7 @@ const ToothSelector = ({
             if (currentFragment.length) fragments.push(currentFragment);
             // 3. Build new groups/individuals
             const newGroups = localSelectedGroups.filter(
-              (g) => g !== groupContainingTooth,
+              (g) => g !== groupContainingTooth
             );
             let newIndividualTeeth = [...localSelectedTeeth];
             fragments.forEach((fragment) => {
@@ -592,7 +628,7 @@ const ToothSelector = ({
                 const fragmentTeethDetails: ToothDetail[] = fragment.map(
                   (toothNum) => {
                     const toothDetail = flatTeeth.find(
-                      (t) => t.teethNumber === toothNum,
+                      (t) => t.teethNumber === toothNum
                     );
                     return (
                       toothDetail || {
@@ -607,7 +643,7 @@ const ToothSelector = ({
                         type: "abutment",
                       }
                     );
-                  },
+                  }
                 );
                 newGroups.push({
                   groupType: "joint",
@@ -629,7 +665,7 @@ const ToothSelector = ({
         if (remainingTeeth.length === 0) {
           updateSelection(
             localSelectedGroups.filter((g) => g !== groupContainingTooth),
-            localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber),
+            localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber)
           );
         } else if (remainingTeeth.length === 1) {
           const remainingToothNumber = remainingTeeth[0];
@@ -645,13 +681,13 @@ const ToothSelector = ({
                 toothNumber: remainingToothNumber,
                 type: remainingToothType,
                 prescriptionType,
-              }),
+              })
           );
         } else {
           if (validateTeethSequence(remainingTeeth)) {
             const updatedTeethDetails = groupContainingTooth.teethDetails
               .map((group) =>
-                group.filter((tooth) => tooth.teethNumber !== toothNumber),
+                group.filter((tooth) => tooth.teethNumber !== toothNumber)
               )
               .filter((group) => group.length > 0);
             const updatedGroup: ToothGroup = {
@@ -660,19 +696,19 @@ const ToothSelector = ({
             };
             updateSelection(
               localSelectedGroups.map((g) =>
-                g === groupContainingTooth ? updatedGroup : g,
+                g === groupContainingTooth ? updatedGroup : g
               ),
-              localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber),
+              localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber)
             );
           } else {
             const fragments = findValidAdjacentFragments(remainingTeeth);
             const remainingGroups = localSelectedGroups.filter(
-              (g) => g !== groupContainingTooth,
+              (g) => g !== groupContainingTooth
             );
             const newGroups = [...remainingGroups];
             const newIndividualTeeth = [
               ...localSelectedTeeth.filter(
-                (t) => t.toothNumber !== toothNumber,
+                (t) => t.toothNumber !== toothNumber
               ),
             ];
             fragments.forEach((fragment, index) => {
@@ -706,10 +742,10 @@ const ToothSelector = ({
                         type: "abutment" as "abutment",
                       }
                     );
-                  },
+                  }
                 );
                 const hasPontics = fragmentTeethDetails.some(
-                  (tooth) => tooth.type === "pontic",
+                  (tooth) => tooth.type === "pontic"
                 );
                 const newGroup: ToothGroup = {
                   groupType: hasPontics ? "bridge" : "joint",
@@ -726,7 +762,7 @@ const ToothSelector = ({
       // Not in a group, remove from individual teeth
       updateSelection(
         localSelectedGroups,
-        localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber),
+        localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber)
       );
     }
   };
@@ -770,7 +806,7 @@ const ToothSelector = ({
     if (clickedTooth === null) return;
     // Find the group containing this tooth
     const groupContainingTooth = localSelectedGroups.find((g) =>
-      g.teethDetails.flat().some((tooth) => tooth.teethNumber === clickedTooth),
+      g.teethDetails.flat().some((tooth) => tooth.teethNumber === clickedTooth)
     );
 
     if (groupContainingTooth) {
@@ -799,7 +835,7 @@ const ToothSelector = ({
           ...groupArr.slice(lastToothIdx + 1),
         ];
         const updatedTeethDetails = groupContainingTooth.teethDetails.map(
-          (arr, idx) => (idx === lastGroupIdx ? updatedGroupArr : arr),
+          (arr, idx) => (idx === lastGroupIdx ? updatedGroupArr : arr)
         );
         // Check if any pontics remain in the group after addition
         const flatTeeth = updatedTeethDetails.flat();
@@ -811,16 +847,16 @@ const ToothSelector = ({
         };
         updateSelection(
           localSelectedGroups.map((g) =>
-            g === groupContainingTooth ? updatedGroup : g,
+            g === groupContainingTooth ? updatedGroup : g
           ),
-          localSelectedTeeth,
+          localSelectedTeeth
         );
         return;
       }
     }
     // If it's an individual tooth, convert it to a group with two pontics
     const individualTooth = localSelectedTeeth.find(
-      (t) => t.toothNumber === clickedTooth,
+      (t) => t.toothNumber === clickedTooth
     );
     if (individualTooth) {
       const newGroup: ToothGroup = {
@@ -828,12 +864,12 @@ const ToothSelector = ({
         prescriptionType: prescriptionType,
         subcategoryType: subcategoryType || "",
         productName: [],
-        shade: '',
-        occlusalStaining: '',
-        ponticDesign: '',
+        shade: "",
+        occlusalStaining: "",
+        ponticDesign: "",
         // shadeGuide: [],
-        trial: '',
-        shadeNote: '',
+        trial: "",
+        shadeNote: "",
         teethDetails: [
           [
             {
@@ -863,24 +899,24 @@ const ToothSelector = ({
       };
       updateSelection(
         [...localSelectedGroups, newGroup],
-        localSelectedTeeth.filter((t) => t.toothNumber !== clickedTooth),
+        localSelectedTeeth.filter((t) => t.toothNumber !== clickedTooth)
       );
     }
   };
 
   const handleToothTypeSelection = (
-    type: 'abutment' | 'pontic',
+    type: "abutment" | "pontic",
     toothNumber: number,
-    implantDetails?: any,
+    implantDetails?: any
   ) => {
     // If prescriptionType is 'implant', ensure implantDetails is set
     let details = implantDetails;
-    if (prescriptionType === 'implant' && !details) {
+    if (prescriptionType === "implant" && !details) {
       // Placeholder: In real UI, collect these from a modal or form
       details = {
-        companyName: '',
-        systemName: '',
-        remarks: '',
+        companyName: "",
+        systemName: "",
+        remarks: "",
         photo: undefined,
       };
     }
@@ -889,20 +925,20 @@ const ToothSelector = ({
       type: type,
       productName: [],
       productDetails: {
-        shade: 'B1 - Vita Classic',
+        shade: "B1 - Vita Classic",
         productName: [],
-        notes: '',
-        ponticDesign: '',
-        occlusalStaining: 'medium',
+        notes: "",
+        ponticDesign: "",
+        occlusalStaining: "medium",
       },
       selectedProducts: [],
       shadeGuide: [],
-      shadeNotes: '',
-      shadeDetails: '',
+      shadeNotes: "",
+      shadeDetails: "",
       productQuantity: 1,
-      occlusalStaining: '',
-      trialRequirements: '',
-      implantDetails: prescriptionType === 'implant' ? details : undefined,
+      occlusalStaining: "",
+      trialRequirements: "",
+      implantDetails: prescriptionType === "implant" ? details : undefined,
     };
 
     updateSelection(
@@ -914,8 +950,8 @@ const ToothSelector = ({
         subcategoryType,
         selectedProducts: [],
         productDetails: {},
-        implantDetails: prescriptionType === 'implant' ? details : undefined,
-      }),
+        implantDetails: prescriptionType === "implant" ? details : undefined,
+      })
     );
 
     setShowTypeDialog(false);
@@ -952,7 +988,7 @@ const ToothSelector = ({
         } else if (
           areTeethStrictlyAdjacent(
             toothNumber,
-            groupArr[groupArr.length - 1].teethNumber,
+            groupArr[groupArr.length - 1].teethNumber
           )
         ) {
           updatedTeethDetails[0] = [...groupArr, newToothDetail];
@@ -974,9 +1010,9 @@ const ToothSelector = ({
 
     updateSelection(
       localSelectedGroups.map((g, index) =>
-        index === groupIndex ? updatedGroup : g,
+        index === groupIndex ? updatedGroup : g
       ),
-      localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber),
+      localSelectedTeeth.filter((t) => t.toothNumber !== toothNumber)
     );
 
     setShowTypeDialog(false);
@@ -1011,7 +1047,7 @@ const ToothSelector = ({
           }
           updateSelection(
             localSelectedGroups.filter((g) => g !== foundGroup),
-            newIndividualTeeth,
+            newIndividualTeeth
           );
         }
         return;
@@ -1030,12 +1066,12 @@ const ToothSelector = ({
             return a === b;
           });
           const updatedGroups = localSelectedGroups.filter(
-            (g) => g !== foundGroup,
+            (g) => g !== foundGroup
           );
           let finalGroups = [...updatedGroups];
           let newIndividualTeeth = [
             ...localSelectedTeeth.filter(
-              (t) => !originalGroup.teeth.includes(t.toothNumber),
+              (t) => !originalGroup.teeth.includes(t.toothNumber)
             ),
           ];
           newGroups.forEach((group: LegacyToothGroup) => {
@@ -1065,10 +1101,10 @@ const ToothSelector = ({
                     // trialRequirements: "",
                     type: isPontic ? "pontic" : "abutment",
                   };
-                },
+                }
               );
               const hasPontics = fragmentTeethDetails.some(
-                (tooth) => tooth.type === "pontic",
+                (tooth) => tooth.type === "pontic"
               );
               const newGroup: ToothGroup = {
                 groupType: hasPontics ? "bridge" : "joint",
@@ -1090,7 +1126,7 @@ const ToothSelector = ({
       const involvedGroups = localSelectedGroups.filter((group) =>
         group.teethDetails
           .flat()
-          .some((tooth) => teeth.includes(tooth.teethNumber)),
+          .some((tooth) => teeth.includes(tooth.teethNumber))
       );
 
       console.log("Involved groups:", involvedGroups);
@@ -1167,7 +1203,7 @@ const ToothSelector = ({
 
               // Check if it exists in individual teeth
               const individualTooth = localSelectedTeeth.find(
-                (t) => t.toothNumber === toothNumber,
+                (t) => t.toothNumber === toothNumber
               );
               if (individualTooth) {
                 return {
@@ -1181,7 +1217,9 @@ const ToothSelector = ({
                   shadeNotes: "",
                   trialRequirements: "",
                   type: individualTooth.type,
-                  implantDetails: individualTooth ? individualTooth.implantDetails : undefined,
+                  implantDetails: individualTooth
+                    ? individualTooth.implantDetails
+                    : undefined,
                 };
               }
 
@@ -1198,7 +1236,7 @@ const ToothSelector = ({
                 // trialRequirements: "",
                 type: "abutment",
               };
-            },
+            }
           );
 
           const hasPontics = newTeethDetails.some((t) => t.type === "pontic");
@@ -1212,15 +1250,15 @@ const ToothSelector = ({
 
           // Remove the old group and any individual teeth now in the group
           const remainingGroups = localSelectedGroups.filter(
-            (g) => g !== existingGroup,
+            (g) => g !== existingGroup
           );
           const remainingIndividualTeeth = localSelectedTeeth.filter(
-            (t) => !completeSequence.includes(t.toothNumber),
+            (t) => !completeSequence.includes(t.toothNumber)
           );
 
           updateSelection(
             [...remainingGroups, updatedGroup],
-            remainingIndividualTeeth,
+            remainingIndividualTeeth
           );
           return;
         }
@@ -1234,10 +1272,10 @@ const ToothSelector = ({
         // This might be connecting an individual tooth to an existing group
         const [tooth1, tooth2] = teeth;
         const group1 = localSelectedGroups.find((g) =>
-          g.teethDetails.flat().some((t) => t.teethNumber === tooth1),
+          g.teethDetails.flat().some((t) => t.teethNumber === tooth1)
         );
         const group2 = localSelectedGroups.find((g) =>
-          g.teethDetails.flat().some((t) => t.teethNumber === tooth2),
+          g.teethDetails.flat().some((t) => t.teethNumber === tooth2)
         );
 
         if (group1 && !group2) {
@@ -1265,7 +1303,7 @@ const ToothSelector = ({
 
               if (validateTeethSequence(newSequence)) {
                 const individualTooth = localSelectedTeeth.find(
-                  (t) => t.toothNumber === tooth2,
+                  (t) => t.toothNumber === tooth2
                 );
                 const newToothDetail: ToothDetail = {
                   teethNumber: tooth2,
@@ -1285,11 +1323,11 @@ const ToothSelector = ({
                       .flat()
                       .find((t) => t.teethNumber === toothNumber);
                     return existing || newToothDetail;
-                  },
+                  }
                 );
 
                 const hasPontics = newTeethDetails.some(
-                  (t) => t.type === "pontic",
+                  (t) => t.type === "pontic"
                 );
                 const updatedGroup: ToothGroup = {
                   ...group1,
@@ -1298,15 +1336,15 @@ const ToothSelector = ({
                 };
 
                 const remainingGroups = localSelectedGroups.filter(
-                  (g) => g !== group1,
+                  (g) => g !== group1
                 );
                 const remainingIndividualTeeth = localSelectedTeeth.filter(
-                  (t) => t.toothNumber !== tooth2,
+                  (t) => t.toothNumber !== tooth2
                 );
 
                 updateSelection(
                   [...remainingGroups, updatedGroup],
-                  remainingIndividualTeeth,
+                  remainingIndividualTeeth
                 );
                 return;
               }
@@ -1337,7 +1375,7 @@ const ToothSelector = ({
 
               if (validateTeethSequence(newSequence)) {
                 const individualTooth = localSelectedTeeth.find(
-                  (t) => t.toothNumber === tooth1,
+                  (t) => t.toothNumber === tooth1
                 );
                 const newToothDetail: ToothDetail = {
                   teethNumber: tooth1,
@@ -1357,11 +1395,11 @@ const ToothSelector = ({
                       .flat()
                       .find((t) => t.teethNumber === toothNumber);
                     return existing || newToothDetail;
-                  },
+                  }
                 );
 
                 const hasPontics = newTeethDetails.some(
-                  (t) => t.type === "pontic",
+                  (t) => t.type === "pontic"
                 );
                 const updatedGroup: ToothGroup = {
                   ...group2,
@@ -1370,15 +1408,15 @@ const ToothSelector = ({
                 };
 
                 const remainingGroups = localSelectedGroups.filter(
-                  (g) => g !== group2,
+                  (g) => g !== group2
                 );
                 const remainingIndividualTeeth = localSelectedTeeth.filter(
-                  (t) => t.toothNumber !== tooth1,
+                  (t) => t.toothNumber !== tooth1
                 );
 
                 updateSelection(
                   [...remainingGroups, updatedGroup],
-                  remainingIndividualTeeth,
+                  remainingIndividualTeeth
                 );
                 return;
               }
@@ -1391,7 +1429,7 @@ const ToothSelector = ({
       const connectedTeethData: ToothDetail[] = teeth.map((toothNumber) => {
         // Check if tooth exists in individual teeth
         const individualTooth = localSelectedTeeth.find(
-          (t) => t.toothNumber === toothNumber,
+          (t) => t.toothNumber === toothNumber
         );
         if (individualTooth) {
           return {
@@ -1436,7 +1474,7 @@ const ToothSelector = ({
       // Validate adjacency
       if (!validateTeethSequence(teeth)) {
         console.log(
-          "Connection rejected: final sequence would create non-adjacent connections",
+          "Connection rejected: final sequence would create non-adjacent connections"
         );
         return;
       }
@@ -1456,10 +1494,10 @@ const ToothSelector = ({
       // Remove involved groups and individual teeth
       const allTeethInConnection = new Set(teeth);
       const remainingGroups = localSelectedGroups.filter(
-        (g) => !involvedGroups.includes(g),
+        (g) => !involvedGroups.includes(g)
       );
       const remainingIndividualTeeth = localSelectedTeeth.filter(
-        (t) => !allTeethInConnection.has(t.toothNumber),
+        (t) => !allTeethInConnection.has(t.toothNumber)
       );
 
       updateSelection([...remainingGroups, newGroup], remainingIndividualTeeth);
@@ -1468,7 +1506,7 @@ const ToothSelector = ({
 
   const handleUpdateGroup = (
     groupId: string,
-    updatedGroup: LegacyToothGroup,
+    updatedGroup: LegacyToothGroup
   ) => {
     console.log("Updating group:", groupId, "with:", updatedGroup);
     const newGroups = convertToNewGroups([updatedGroup]);
@@ -1481,23 +1519,23 @@ const ToothSelector = ({
     if (groupIndex !== -1) {
       updateSelection(
         localSelectedGroups.map((g, index) =>
-          index === groupIndex ? newGroups[0] : g,
+          index === groupIndex ? newGroups[0] : g
         ),
-        localSelectedTeeth,
+        localSelectedTeeth
       );
     }
   };
 
   const handleUpdateTooth = (
     toothNumber: number,
-    newType: "abutment" | "pontic",
+    newType: "abutment" | "pontic"
   ) => {
     console.log("Updating individual tooth:", toothNumber, "to type:", newType);
     updateSelection(
       localSelectedGroups,
       localSelectedTeeth.map((tooth) =>
-        tooth.toothNumber === toothNumber ? { ...tooth, type: newType } : tooth,
-      ),
+        tooth.toothNumber === toothNumber ? { ...tooth, type: newType } : tooth
+      )
     );
   };
 
@@ -1514,12 +1552,12 @@ const ToothSelector = ({
             prescriptionType,
             selectedProducts: [],
             productDetails: {},
-          }) as SelectedTooth,
+          } as SelectedTooth)
       );
 
       updateSelection(
         localSelectedGroups.filter((_, index) => index !== groupIndex),
-        [...localSelectedTeeth, ...groupTeeth],
+        [...localSelectedTeeth, ...groupTeeth]
       );
     }
   };
@@ -1528,7 +1566,7 @@ const ToothSelector = ({
     console.log("Removing individual tooth:", toothNumber);
     updateSelection(
       localSelectedGroups,
-      localSelectedTeeth.filter((tooth) => tooth.toothNumber !== toothNumber),
+      localSelectedTeeth.filter((tooth) => tooth.toothNumber !== toothNumber)
     );
   };
 
@@ -1566,7 +1604,7 @@ const ToothSelector = ({
                   setSelectedTeeth={(teeth) =>
                     updateSelection(
                       localSelectedGroups,
-                      teeth as SelectedTooth[],
+                      teeth as SelectedTooth[]
                     )
                   }
                   allowedTeeth={allowedTeeth}
@@ -1574,217 +1612,251 @@ const ToothSelector = ({
                 />
               </div>
             </div>
+            <div className="absolute right-2 top-2 text-green-600 border-green-300 hover:bg-green-100 print:hidden h-7 px-2 text-xs border rounded">
+              <button
+                type="button"
+                className="ml-2 p-1 text-gray-400 hover:text-blue-600"
+                onClick={() => {}}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>
-      <div className="w-full md:w-1/2 space-y-4 mt-4 md:mt-0">
-        {(localSelectedGroups.length > 0 || localSelectedTeeth.length > 0) && (
+      {!readMode && (
+        <div className="w-full md:w-1/2 space-y-4 mt-4 md:mt-0">
+          {(localSelectedGroups.length > 0 ||
+            localSelectedTeeth.length > 0) && (
+            <Card className="border shadow-sm">
+              <CardContent className="p-2 sm:p-3">
+                <SelectedToothGroups
+                  selectedGroups={legacyGroups}
+                  selectedTeeth={localSelectedTeeth}
+                  onRemoveGroup={(groupId) => {
+                    const index = legacyGroups.findIndex(
+                      (g) => g.groupId === groupId
+                    );
+                    if (index !== -1) handleRemoveGroup(index);
+                  }}
+                  onRemoveTooth={handleRemoveTooth}
+                  onRemoveAllSelectedTeeth={handleRemoveAllSelectedTeeth}
+                  onUpdateGroup={handleUpdateGroup}
+                  onUpdateTooth={handleUpdateTooth}
+                  onAddIndividualTooth={(toothNumber, type) =>
+                    updateSelection(
+                      localSelectedGroups,
+                      localSelectedTeeth.concat({
+                        toothNumber,
+                        type,
+                        prescriptionType,
+                      })
+                    )
+                  }
+                  prescriptionType={
+                    prescriptionType === "fixed-restoration"
+                      ? "fixed-restoration"
+                      : prescriptionType
+                  }
+                />
+              </CardContent>
+            </Card>
+          )}
           <Card className="border shadow-sm">
             <CardContent className="p-2 sm:p-3">
-              <SelectedToothGroups
-                selectedGroups={legacyGroups}
-                selectedTeeth={localSelectedTeeth}
-                onRemoveGroup={(groupId) => {
-                  const index = legacyGroups.findIndex(
-                    (g) => g.groupId === groupId,
-                  );
-                  if (index !== -1) handleRemoveGroup(index);
-                }}
-                onRemoveTooth={handleRemoveTooth}
-                onRemoveAllSelectedTeeth={handleRemoveAllSelectedTeeth}
-                onUpdateGroup={handleUpdateGroup}
-                onUpdateTooth={handleUpdateTooth}
-                onAddIndividualTooth={(toothNumber, type) =>
-                  updateSelection(
-                    localSelectedGroups,
-                    localSelectedTeeth.concat({
-                      toothNumber,
-                      type,
-                      prescriptionType,
-                    }),
-                  )
-                }
-                prescriptionType={
-                  prescriptionType === "fixed-restoration"
-                    ? "fixed-restoration"
-                    : prescriptionType
-                }
-              />
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">
+                Instructions
+              </h4>
+              {needsArchSelection && !showImplantSelection && (
+                <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs font-medium text-blue-800 mb-2">
+                    {isImplantFullArch
+                      ? "Select Arch for Implant Full Arch:"
+                      : "Quick Arch Selection:"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleArchSelection("upper")}
+                      className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Upper Arch (11-18, 21-28)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleArchSelection("lower")}
+                      className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
+                    >
+                      Lower Arch (31-38, 41-48)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleArchSelection("both")}
+                      className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
+                    >
+                      Both Arches
+                    </button>
+                  </div>
+                </div>
+              )}
+              {showImplantSelection && (
+                <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                  <p className="text-sm font-medium text-orange-800 mb-3">
+                    Select Implant Teeth (others will be pontics):
+                  </p>
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {selectedArchTeeth
+                      .sort((a, b) => a - b)
+                      .map((toothNumber) => (
+                        <button
+                          key={toothNumber}
+                          type="button"
+                          onClick={() => handleImplantToothToggle(toothNumber)}
+                          className={`px-2 py-1 text-xs rounded border transition-colors ${
+                            selectedImplantTeeth.includes(toothNumber)
+                              ? "bg-blue-500 text-white border-blue-600"
+                              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          {toothNumber}
+                        </button>
+                      ))}
+                  </div>
+                  <div className="text-xs text-gray-600 mb-3">
+                    <p>
+                      <span className="font-medium">Selected Implants:</span>{" "}
+                      {selectedImplantTeeth.sort((a, b) => a - b).join(", ") ||
+                        "None"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Pontics:</span>{" "}
+                      {selectedArchTeeth
+                        .filter((t) => !selectedImplantTeeth.includes(t))
+                        .sort((a, b) => a - b)
+                        .join(", ") || "None"}
+                    </p>
+                    {selectedImplantTeeth.length > 0 && (
+                      <p className="mt-1">
+                        <span className="font-medium">
+                          Implant Details Collected:
+                        </span>{" "}
+                        {
+                          selectedImplantTeeth.filter(
+                            (t) => implantDetailsData[t]
+                          ).length
+                        }
+                        /{selectedImplantTeeth.length}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleConfirmImplantSelection}
+                      disabled={selectedImplantTeeth.length === 0}
+                      className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Confirm Selection
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImplantTeeth([]);
+                        setImplantDetailsData({});
+                      }}
+                      className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelImplantSelection}
+                      className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              {hasTeethRestriction && (
+                <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-xs font-medium text-yellow-800 mb-1">
+                    Teeth Selection Restriction:
+                  </p>
+                  <p className="text-xs text-yellow-700">
+                    Only teeth {allowedTeeth.join(", ")} are selectable for{" "}
+                    {subcategoryType}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-2 text-xs text-gray-600">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">1.</span>
+                  <span>Click any tooth to select as Abutment or Pontic</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">2.</span>
+                  <span>
+                    Click selected pontic teeth to remove or add another Pointic
+                    teeth
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">3.</span>
+                  <span>Drag between teeth to create groups</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">4.</span>
+                  <span>
+                    Groups with pontics become Bridges, without pontics become
+                    Joints
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">5.</span>
+                  <span>Double-click connector lines to split groups</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-500">6.</span>
+                  <span>
+                    ⚠️ Connections that skip teeth are blocked for clinical
+                    accuracy
+                  </span>
+                </div>
+              </div>
+              <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3 mt-3 sm:mt-4">
+                Visual Legend
+              </h4>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                  <span>Abutment (Individual)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Joint Group</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span>Bridge Group</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                  <span>Pontic</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        )}
-        <Card className="border shadow-sm">
-          <CardContent className="p-2 sm:p-3">
-            <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">
-              Instructions
-            </h4>
-            {needsArchSelection && !showImplantSelection && (
-              <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                <p className="text-xs font-medium text-blue-800 mb-2">
-                  {isImplantFullArch ? "Select Arch for Implant Full Arch:" : "Quick Arch Selection:"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleArchSelection('upper')}
-                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Upper Arch (11-18, 21-28)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleArchSelection('lower')}
-                    className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-colors"
-                  >
-                    Lower Arch (31-38, 41-48)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleArchSelection('both')}
-                    className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
-                  >
-                    Both Arches
-                  </button>
-                </div>
-              </div>
-            )}
-            {showImplantSelection && (
-              <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                <p className="text-sm font-medium text-orange-800 mb-3">
-                  Select Implant Teeth (others will be pontics):
-                </p>
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {selectedArchTeeth.sort((a, b) => a - b).map((toothNumber) => (
-                      <button
-                        key={toothNumber}
-                        type="button"
-                        onClick={() => handleImplantToothToggle(toothNumber)}
-                      className={`px-2 py-1 text-xs rounded border transition-colors ${selectedImplantTeeth.includes(toothNumber)
-                          ? 'bg-blue-500 text-white border-blue-600'
-                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {toothNumber}
-                      </button>
-                    ))}
-                </div>
-                <div className="text-xs text-gray-600 mb-3">
-                  <p>
-                    <span className="font-medium">Selected Implants:</span> {selectedImplantTeeth.sort((a, b) => a - b).join(', ') || 'None'}
-                  </p>
-                  <p>
-                    <span className="font-medium">Pontics:</span> {selectedArchTeeth.filter(t => !selectedImplantTeeth.includes(t)).sort((a, b) => a - b).join(', ') || 'None'}
-                  </p>
-                  {selectedImplantTeeth.length > 0 && (
-                    <p className="mt-1">
-                      <span className="font-medium">Implant Details Collected:</span> {selectedImplantTeeth.filter(t => implantDetailsData[t]).length}/{selectedImplantTeeth.length}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleConfirmImplantSelection}
-                    disabled={selectedImplantTeeth.length === 0}
-                    className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Confirm Selection
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedImplantTeeth([]);
-                      setImplantDetailsData({});
-                    }}
-                    className="px-3 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors"
-                  >
-                    Clear All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelImplantSelection}
-                    className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-            {hasTeethRestriction && (
-              <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-xs font-medium text-yellow-800 mb-1">
-                  Teeth Selection Restriction:
-                </p>
-                <p className="text-xs text-yellow-700">
-                  Only teeth {allowedTeeth.join(", ")} are selectable for {subcategoryType}
-                </p>
-              </div>
-            )}
-            <div className="space-y-2 text-xs text-gray-600">
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">1.</span>
-                <span>Click any tooth to select as Abutment or Pontic</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">2.</span>
-                <span>
-                  Click selected pontic teeth to remove or add another Pointic
-                  teeth
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">3.</span>
-                <span>Drag between teeth to create groups</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">4.</span>
-                <span>
-                  Groups with pontics become Bridges, without pontics become
-                  Joints
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">5.</span>
-                <span>Double-click connector lines to split groups</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="text-blue-500">6.</span>
-                <span>
-                  ⚠️ Connections that skip teeth are blocked for clinical
-                  accuracy
-                </span>
-              </div>
-            </div>
-            <h4 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3 mt-3 sm:mt-4">
-              Visual Legend
-            </h4>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                <span>Abutment (Individual)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span>Joint Group</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                <span>Bridge Group</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                <span>Pontic</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </div>
+      )}
       <ToothTypeDialog
         isOpen={showTypeDialog}
         onClose={() => setShowTypeDialog(false)}
         toothNumber={clickedTooth || 0}
         position={dialogPosition}
-        onSelectType={(type, implantDetails) => handleToothTypeSelection(type, clickedTooth!, implantDetails)}
+        onSelectType={(type, implantDetails) =>
+          handleToothTypeSelection(type, clickedTooth!, implantDetails)
+        }
         selectedGroups={legacyGroups}
         onJoinGroup={(toothNumber, groupId) => {
           const index = legacyGroups.findIndex((g) => g.groupId === groupId);

@@ -11,7 +11,7 @@ export const useOrderValidation = () => {
         case 1:
           if (!formData.firstName.trim()) errors.push("First name is required");
           if (!formData.lastName.trim()) errors.push("Last name is required");
-          if (!formData.caseHandledBy.trim())
+          if (!formData.caseHandleBy.trim())
             errors.push("Case handler is required");
           if (!formData.orderMethod)
             errors.push("Please select an order Type");
@@ -66,9 +66,9 @@ export const useOrderValidation = () => {
           break;
         case 4:
           // Step 4: Teeth Selection - validate that teeth are selected
-          const toothGroups = formData.toothGroups || [];
+          const teethGroups = formData.teethGroups || [];
           const selectedTeeth = (formData as any).selectedTeeth || [];
-          if (toothGroups.length === 0 && selectedTeeth.length === 0) {
+          if (teethGroups.length === 0 && selectedTeeth.length === 0) {
             errors.push("Please select at least one tooth group");
           }
           // Additional validation: single pontic in bridge group
@@ -86,15 +86,15 @@ export const useOrderValidation = () => {
           break;
         case 5:
           // Step 5: Product Selection - validate that products are configured
-          const productToothGroups = formData.toothGroups || [];
+          const productteethGroups = formData.teethGroups || [];
           const individualTeeth = formData.selectedTeeth || [];
 
           // Check if we have either tooth groups or individual teeth
-          if (productToothGroups.length === 0 && individualTeeth.length === 0) {
+          if (productteethGroups.length === 0 && individualTeeth.length === 0) {
             errors.push("At least one restoration product group is required");
           } else {
             // Validate tooth groups have required product details
-            const incompleteGroups = productToothGroups.filter((group: any) => {
+            const incompleteGroups = productteethGroups.filter((group: any) => {
               const allTeeth = group.teethDetails?.flat() || [];
               return (
                 allTeeth.length === 0 ||

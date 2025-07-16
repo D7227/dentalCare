@@ -117,7 +117,7 @@ export interface FormData {
   lastName: string;
   age: string;
   sex: string;
-  caseHandledBy: string;
+  caseHandleBy: string;
   doctorMobile: string;
   consultingDoctor: string;
   consultingDoctorMobile: string;

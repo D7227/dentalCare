@@ -365,7 +365,7 @@ export default function OrderReviewModal({
                   </div>
                   <div>
                     <p className="text-sm font-medium">Case Handled By:</p>
-                    <p className="text-sm">{dentalCase.caseHandledBy}</p>
+                    <p className="text-sm">{dentalCase.caseHandleBy}</p>
                   </div>
                 </div>
 

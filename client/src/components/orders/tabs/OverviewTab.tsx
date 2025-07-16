@@ -43,7 +43,7 @@ interface OverviewTabProps {
       gender?: string;
     };
     doctor?: {
-      caseHandledBy?: string;
+      caseHandleBy?: string;
       consultingDoctor?: string;
       location?: string;
     };

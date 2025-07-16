@@ -70,14 +70,16 @@ const ProductSearch = ({
         // Build query parameters for filtering
         const queryParams = new URLSearchParams();
         if (prescriptionType) {
-          queryParams.append('prescriptionType', prescriptionType);
+          queryParams.append("prescriptionType", prescriptionType);
         }
         if (subcategoryType) {
-          queryParams.append('subcategoryType', subcategoryType);
+          queryParams.append("subcategoryType", subcategoryType);
         }
 
-        const url = `/api/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        const token = localStorage.getItem('token');
+        const url = `/api/products${
+          queryParams.toString() ? `?${queryParams.toString()}` : ""
+        }`;
+        const token = localStorage.getItem("token");
         const response = await fetch(url, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -91,7 +93,7 @@ const ProductSearch = ({
       } catch (err) {
         console.error("Error fetching products:", err);
         setError(
-          err instanceof Error ? err.message : "Failed to fetch products",
+          err instanceof Error ? err.message : "Failed to fetch products"
         );
         toast({
           title: "Error",
@@ -112,19 +114,27 @@ const ProductSearch = ({
 
     // For these prescription types, quantity is based on arch selection
     const archBasedPrescriptionTypes = [
-      'splints-guards',
-      'ortho',
-      'dentures',
-      'sleep-accessories'
+      "splints-guards",
+      "ortho",
+      "dentures",
+      "sleep-accessories",
     ];
 
-    if (archBasedPrescriptionTypes.includes(prescriptionType || '')) {
+    if (archBasedPrescriptionTypes.includes(prescriptionType || "")) {
       // Calculate quantity based on arch selection
-      const upperArchTeeth = [11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28];
-      const lowerArchTeeth = [31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48];
+      const upperArchTeeth = [
+        11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28,
+      ];
+      const lowerArchTeeth = [
+        31, 32, 33, 34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
+      ];
 
-      const hasUpperTeeth = selectedTeeth.some(tooth => upperArchTeeth.includes(tooth));
-      const hasLowerTeeth = selectedTeeth.some(tooth => lowerArchTeeth.includes(tooth));
+      const hasUpperTeeth = selectedTeeth.some((tooth) =>
+        upperArchTeeth.includes(tooth)
+      );
+      const hasLowerTeeth = selectedTeeth.some((tooth) =>
+        lowerArchTeeth.includes(tooth)
+      );
 
       if (hasUpperTeeth && hasLowerTeeth) {
         return 2; // Both arches
@@ -147,7 +157,7 @@ const ProductSearch = ({
         product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (product.description &&
-          product.description.toLowerCase().includes(searchTerm.toLowerCase())),
+          product.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, products]);
 
@@ -183,20 +193,20 @@ const ProductSearch = ({
     const minQuantity = 1;
     const finalQuantity = Math.max(
       minQuantity,
-      Math.min(maxQuantity, newQuantity),
+      Math.min(maxQuantity, newQuantity)
     );
 
     const updatedProducts = selectedProducts.map((product) =>
       product.id === productId
         ? { ...product, quantity: finalQuantity }
-        : product,
+        : product
     );
     onProductsChange(updatedProducts);
   };
 
   const handleRemoveProduct = (productId: string) => {
     const updatedProducts = selectedProducts.filter(
-      (product) => product.id !== productId,
+      (product) => product.id !== productId
     );
     onProductsChange(updatedProducts);
   };

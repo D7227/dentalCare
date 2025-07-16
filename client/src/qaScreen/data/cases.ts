@@ -55,7 +55,7 @@ export type DentalCase = {
   rejectionReason:string;
   firstName: string;
   lastName:string;
-  caseHandledBy: string;
+  caseHandleBy: string;
   consultingDoctor: string;
   receivedAt: string;
   orderStatus: CaseStatus;
@@ -99,7 +99,7 @@ const transformJsonToCase = (jsonData: any): DentalCase => {
     refId: jsonData.refId,
     firstName:jsonData.firstName,
     lastName:jsonData.lastName,
-    caseHandledBy: jsonData.caseHandledBy,
+    caseHandleBy: jsonData.caseHandleBy,
     consultingDoctor: jsonData.consultingDoctor,
     receivedAt,
     status: "Pending",
@@ -133,7 +133,7 @@ const jsonCases = [
     "lastName": "PENA",
     "age": "39",
     "sex": "female",
-    "caseHandledBy": "Dr. Robert Taylor",
+    "caseHandleBy": "Dr. Robert Taylor",
     "doctorMobile": "513",
     "consultingDoctor": "Dolores enim archite",
     "consultingDoctorMobile": "341",
@@ -200,7 +200,7 @@ const jsonCases = [
     "lastName": "MOORE",
     "age": null,
     "sex": "other",
-    "caseHandledBy": "Dr. Emily Davis",
+    "caseHandleBy": "Dr. Emily Davis",
     "doctorMobile": "681",
     "consultingDoctor": "Duis excepturi omnis",
     "consultingDoctorMobile": "222",
@@ -257,7 +257,7 @@ const jsonCases = [
     "lastName": "KLEIN",
     "age": "80",
     "sex": "female",
-    "caseHandledBy": "Dr. Emily Davis",
+    "caseHandleBy": "Dr. Emily Davis",
     "doctorMobile": "99",
     "consultingDoctor": "Voluptate deserunt u",
     "consultingDoctorMobile": "169",
