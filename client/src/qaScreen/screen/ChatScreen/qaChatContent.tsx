@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import QaChatModule from './qaChatModule';
+import { useGetChatsQuery } from '@/store/slices/chatApi';
+import { useAppSelector } from '@/store/hooks';
 
-const MOCK_USER = { fullName: 'Dr. Alice Smith', roleName: 'main_doctor', clinicId: 'clinic1' };
+// const MOCK_USER = { fullName: 'Dr. Alice Smith', roleName: 'main_doctor', clinicId: 'clinic1' };
 const MOCK_ORDERS = [
   { id: 'order1', orderId: 'ORD-1234', refId: 'REF-001' },
   { id: 'order2', orderId: 'ORD-5678', refId: 'REF-002' },
@@ -43,11 +45,13 @@ const QaChatContent = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [newChatTitle, setNewChatTitle] = useState('');
   const [selectedOrder, setSelectedOrder] = useState('');
-  const [chats, setChats] = useState(MOCK_CHATS);
+  // const [chats, setChats] = useState(MOCK_CHATS);
+  const user = useAppSelector(state => state.userData.userData);
+  const { data: chats = [] , isLoading, error, refetch } = useGetChatsQuery({ clinicId: user?.clinicId, userId: "qa dental" });
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-  const user = MOCK_USER;
+  // const user = MOCK_USER;
   const orders = MOCK_ORDERS;
-  const isMainDoctor = user.roleName === 'main_doctor';
+  const isMainDoctor = user?.roleName === 'main_doctor';
 
   // Filter chats based on active tab and search
   const filteredChats = useMemo(() => {
@@ -88,13 +92,13 @@ const QaChatContent = () => {
       updatedAt: new Date().toISOString(),
       unreadCount: 0,
     };
-    setChats((prev) => [...prev, newChat]);
+    // setChats((prev) => [...prev, newChat]);
     setNewChatTitle('');
     setSelectedOrder('');
   };
 
   const handleDeleteChat = (chatId: string) => {
-    setChats((prev) => prev.filter((chat) => chat.id !== chatId));
+    // setChats((prev) => prev.filter((chat) => chat.id !== chatId));
     if (selectedChat === chatId) setSelectedChat(null);
   };
 
@@ -163,7 +167,7 @@ const QaChatContent = () => {
               </div>
             ) : (
               <div className="space-y-2">
-                {filteredChats.map((chat) => (
+                {filteredChats.map((chat:any) => (
                   <div
                     key={chat.id}
                     className={`group p-4 border-b border-border cursor-pointer transition-colors hover:bg-muted/50 ${

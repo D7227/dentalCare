@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { orderStorage } from "./orderController";
 import { chatStorage } from "../chat/chatController";
+import { QaStatusApiBody } from "./ordersType";
 
 export const setupOrderRoutes = (app: Express) => {
 
@@ -68,6 +69,23 @@ export const setupOrderRoutes = (app: Express) => {
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });
+    }
+  });
+
+
+  // this api for Qa
+  app.patch("/api/qa/status/:orderId", async (req, res) => {
+    try {
+      const orderId = req.params.orderId;
+      const body: QaStatusApiBody = req.body;
+
+      const updateData = await orderStorage.updateStatus(orderId , body);
+      console.log(updateData,"updateData");
+
+      res.status(201).json(updateData);
+    } catch (error) {
+      console.log(error)
+      res.status(400).json({ error: error });
     }
   });
 

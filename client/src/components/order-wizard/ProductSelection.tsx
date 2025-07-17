@@ -109,7 +109,7 @@ const ProductSelection = ({
 
   // --- MIGRATION: On mount, move any group-level fields from first tooth to group if needed ---
   useEffect(() => {
-    const updatedGroups = (formData.teethGroups as any[]).map((group: any) => {
+    const updatedGroups = (formData?.teethGroups as any[])?.map((group: any) => {
       const firstTooth = group.teethDetails?.[0]?.[0];
       let changed = false;
       const newGroup = { ...group };

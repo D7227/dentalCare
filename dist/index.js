@@ -1063,7 +1063,9 @@ var OrderStorage = class {
         selectedTeethId: teethGroup.id,
         // Defensive: ensure all array fields are arrays
         prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
-        subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId) ? insertOrder.subPrescriptionTypesId : [],
+        subPrescriptionTypesId: Array.isArray(
+          insertOrder.subPrescriptionTypesId
+        ) ? insertOrder.subPrescriptionTypesId : [],
         accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
         selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
         teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
@@ -1089,7 +1091,9 @@ var OrderStorage = class {
         }
         return null;
       };
-      orderToInsert.acpectedDileveryData = fixDate(orderToInsert.acpectedDileveryData);
+      orderToInsert.acpectedDileveryData = fixDate(
+        orderToInsert.acpectedDileveryData
+      );
       orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
       orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
       orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
@@ -1110,6 +1114,81 @@ var OrderStorage = class {
       }
       throw error;
     }
+  }
+  async updateStatus(orderId, body) {
+    const orderData = await orderStorage.getOrder(orderId);
+    console.log(orderData, "orderData");
+    if (body?.status === "active") {
+      const chatData = await chatStorage.getChatByOrderId(orderId);
+      console.log("chat Data", chatData);
+      if (!chatData) {
+        const clinicData = await clinicStorage.getClinicById(
+          orderData?.clinicId
+        );
+        if (!clinicData) return "Clinic Data Not Found";
+        const clinicFullname = `${clinicData?.firstname} ${clinicData?.lastname}`;
+        const chatPayload = {
+          clinicId: orderData?.clinicId,
+          createdBy: clinicFullname,
+          orderId: orderData?.id,
+          participants: [clinicFullname, body?.userName],
+          roleName: "main_doctor",
+          title: body.orderId,
+          type: "order",
+          userRole: "main_doctor"
+        };
+        const createNewChat = await chatStorage.createChat(chatPayload);
+        if (!createNewChat) return "Something Went Wrong On Create Chat";
+        const updateOrder2 = {
+          orderStatus: body?.status,
+          orderId: body?.orderId,
+          crateNo: body?.crateNo,
+          qaNote: body?.qaNote
+        };
+        const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
+        if (!UpdateOrderData2) return "Order Not Update";
+        return UpdateOrderData2;
+      }
+      const chatParticipentList = chatData?.participants || [];
+      if (!chatParticipentList.includes(body?.userName)) {
+        const newParticipantsList = [...chatParticipentList, body?.userName];
+        const updateChatData = {
+          ...chatData,
+          participants: newParticipantsList
+        };
+        const updateParticipant = await chatStorage.updateChat(
+          chatData?.id || "",
+          updateChatData
+        );
+        if (!updateParticipant) return "Chat Is Not Update";
+      } else {
+        const updateOrder2 = {
+          orderStatus: body?.status,
+          orderId: body?.orderId,
+          crateNo: body?.crateNo,
+          qaNote: body?.qaNote
+        };
+        const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
+        if (!UpdateOrderData2) return "Order Not Update";
+        return UpdateOrderData2;
+      }
+    } else if (body?.status === "rejected") {
+      const updateOrder2 = {
+        orderStatus: body?.status,
+        resonOfReject: body?.resonOfReject
+      };
+      const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
+      if (!UpdateOrderData2) return "Order Not Update";
+      return UpdateOrderData2;
+    }
+    const updateOrder = {
+      orderStatus: body?.status,
+      resonOfRescan: body?.resonOfRescan,
+      rejectNote: body?.resonOfRescan
+    };
+    const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+    if (!UpdateOrderData) return "Order Not Update";
+    return UpdateOrderData;
   }
   async getOrders() {
     return await db.select().from(orderSchema);
@@ -1279,12 +1358,21 @@ var OrderStorage = class {
     }
     let clinicInformationId = order.clinicInformationId;
     if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
-      await clinicInformationStorage.updateClinicInformation(clinicInformationId, {
-        ...updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy },
-        ...updates.doctorMobileNumber && { doctorMobileNumber: updates.doctorMobileNumber },
-        ...updates.consultingDoctorName && { consultingDoctorName: updates.consultingDoctorName },
-        ...updates.consultingDoctorMobileNumber && { consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber }
-      });
+      await clinicInformationStorage.updateClinicInformation(
+        clinicInformationId,
+        {
+          ...updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy },
+          ...updates.doctorMobileNumber && {
+            doctorMobileNumber: updates.doctorMobileNumber
+          },
+          ...updates.consultingDoctorName && {
+            consultingDoctorName: updates.consultingDoctorName
+          },
+          ...updates.consultingDoctorMobileNumber && {
+            consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber
+          }
+        }
+      );
     }
     let selectedTeethId = order.selectedTeethId;
     if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
@@ -1820,6 +1908,18 @@ var setupOrderRoutes = (app2) => {
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });
+    }
+  });
+  app2.patch("/api/qa/status/:orderId", async (req, res) => {
+    try {
+      const orderId = req.params.orderId;
+      const body = req.body;
+      const updateData = await orderStorage.updateStatus(orderId, body);
+      console.log(updateData, "updateData");
+      res.status(201).json(updateData);
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ error });
     }
   });
   app2.get("/api/orders/:orderId/chat", async (req, res) => {

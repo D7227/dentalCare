@@ -9,7 +9,9 @@ import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
 import { OrderType } from "@/types/orderType";
-import { doctorOrderTableType } from "./ordersType";
+import { doctorOrderTableType, QaStatusApiBody } from "./ordersType";
+import { chatStorage } from "../chat/chatController";
+import { clinicStorage } from "../clinic/clinicController";
 
 export interface orderStore {
   getOrder(id: string): Promise<any | undefined>;
@@ -34,11 +36,12 @@ export interface orderStore {
   //   dateTo?: string;
   //   categories?: string[];
   // }): Promise<number>;
+  updateStatus(orderId: string, body: QaStatusApiBody): Promise<any[]>;
   getOrdersByPatient(patientId: string): Promise<any[]>;
   getToothGroupsByOrder(orderId: string): Promise<any[]>;
   updateOrderStatus(id: string, status: string): Promise<any | undefined>;
   updateOrder(id: string, updates: Partial<any>): Promise<any | undefined>;
-  getFullOrderData(order: any):Promise<any>;
+  getFullOrderData(order: any): Promise<any>;
   initializeData(): Promise<void>;
 }
 
@@ -46,12 +49,15 @@ export class OrderStorage implements orderStore {
   getOrdersByPatient(patientId: string): Promise<any[]> {
     throw new Error("Method not implemented.");
   }
-    async getOrder(id: string): Promise<any | undefined> {
-        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
+  async getOrder(id: string): Promise<any | undefined> {
+    const [order] = await db
+      .select()
+      .from(orderSchema)
+      .where(eq(orderSchema.id, id));
 
-        const orderData = this.getFullOrderData(order);
-        return orderData;
-      }
+    const orderData = this.getFullOrderData(order);
+    return orderData;
+  }
 
   async createOrder(insertOrder: any): Promise<any> {
     let insertPatient = null;
@@ -76,7 +82,7 @@ export class OrderStorage implements orderStore {
         consultingDoctorName: insertOrder?.consultingDoctorName,
         consultingDoctorMobileNumber: insertOrder?.consultingDoctorMobileNumber,
       };
-      console.log("dasdasdadasdwdqwdqwd",clinicInformationData);
+      console.log("dasdasdadasdwdqwdqwd", clinicInformationData);
       clinicInformation =
         await clinicInformationStorage.createClinicInformation(
           clinicInformationData
@@ -84,7 +90,7 @@ export class OrderStorage implements orderStore {
       if (!clinicInformation) {
         throw new Error("Failed to create clinic information record");
       }
-      console.log(clinicInformation)
+      console.log(clinicInformation);
 
       const teethGroupData = {
         selectedTeeth: insertOrder.selectedTeeth,
@@ -92,42 +98,72 @@ export class OrderStorage implements orderStore {
       };
 
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
-      console.log(insertOrder.courierData,"courierData");
+      console.log(insertOrder.courierData, "courierData");
       const orderToInsert = {
         ...insertOrder,
         patientId: insertPatient.id,
         clinicInformationId: clinicInformation.id,
         selectedTeethId: teethGroup.id,
         // Defensive: ensure all array fields are arrays
-        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
-        subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId) ? insertOrder.subPrescriptionTypesId : [],
-        accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
-        selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
-        teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
-        teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
-        products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
-        pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
+        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId)
+          ? insertOrder.prescriptionTypesId
+          : [],
+        subPrescriptionTypesId: Array.isArray(
+          insertOrder.subPrescriptionTypesId
+        )
+          ? insertOrder.subPrescriptionTypesId
+          : [],
+        accessorios: Array.isArray(insertOrder.accessorios)
+          ? insertOrder.accessorios
+          : [],
+        selectedTeeth: Array.isArray(insertOrder.selectedTeeth)
+          ? insertOrder.selectedTeeth
+          : [],
+        teethGroup: Array.isArray(insertOrder.teethGroup)
+          ? insertOrder.teethGroup
+          : [],
+        teethNumber: Array.isArray(insertOrder.teethNumber)
+          ? insertOrder.teethNumber
+          : [],
+        products: Array.isArray(insertOrder.products)
+          ? insertOrder.products
+          : [],
+        pickupData: Array.isArray(insertOrder.pickupData)
+          ? insertOrder.pickupData
+          : [],
         courierData: insertOrder.courierData,
-        lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
+        lifeCycle: Array.isArray(insertOrder.lifeCycle)
+          ? insertOrder.lifeCycle
+          : [],
         files: {
-          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
-          faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
-          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan) ? insertOrder.files.intraOralScan : [],
-          referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : [],
+          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos)
+            ? insertOrder.files.addPatientPhotos
+            : [],
+          faceScan: Array.isArray(insertOrder.files?.faceScan)
+            ? insertOrder.files.faceScan
+            : [],
+          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan)
+            ? insertOrder.files.intraOralScan
+            : [],
+          referralImages: Array.isArray(insertOrder.files?.referralImages)
+            ? insertOrder.files.referralImages
+            : [],
         },
       };
-      console.log(orderToInsert,"orderToInsert");
+      console.log(orderToInsert, "orderToInsert");
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
         if (!val) return null;
         if (val instanceof Date) return val;
-        if (typeof val === 'string') {
+        if (typeof val === "string") {
           const d = new Date(val);
           return isNaN(d.getTime()) ? null : d;
         }
         return null;
       };
-      orderToInsert.acpectedDileveryData = fixDate(orderToInsert.acpectedDileveryData);
+      orderToInsert.acpectedDileveryData = fixDate(
+        orderToInsert.acpectedDileveryData
+      );
       orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
       orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
       orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
@@ -154,6 +190,95 @@ export class OrderStorage implements orderStore {
     }
   }
 
+  async updateStatus(
+    orderId: string,
+    body: QaStatusApiBody
+  ): Promise<any | undefined> {
+    const orderData = await orderStorage.getOrder(orderId);
+    console.log(orderData, "orderData");
+    if (body?.status === "active") {
+      const chatData = await chatStorage.getChatByOrderId(orderId);
+      console.log("chat Data", chatData);
+      if (!chatData) {
+        const clinicData = await clinicStorage.getClinicById(
+          orderData?.clinicId
+        );
+
+        if (!clinicData) return "Clinic Data Not Found";
+
+        const clinicFullname = `${clinicData?.firstname} ${clinicData?.lastname}`;
+        const chatPayload = {
+          clinicId: orderData?.clinicId,
+          createdBy: clinicFullname,
+          orderId: orderData?.id,
+          participants: [clinicFullname, body?.userName],
+          roleName: "main_doctor",
+          title: body.orderId,
+          type: "order",
+          userRole: "main_doctor",
+        };
+        const createNewChat = await chatStorage.createChat(chatPayload);
+
+        if (!createNewChat) return "Something Went Wrong On Create Chat";
+
+        const updateOrder = {
+          orderStatus: body?.status,
+          orderId: body?.orderId,
+          crateNo: body?.crateNo,
+          qaNote: body?.qaNote,
+        };
+        const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+        if (!UpdateOrderData) return "Order Not Update";
+
+        return UpdateOrderData;
+      }
+      const chatParticipentList = chatData?.participants || [];
+      if (!chatParticipentList.includes(body?.userName)) {
+        const newParticipantsList = [...chatParticipentList, body?.userName];
+
+        const updateChatData = {
+          ...chatData,
+          participants: newParticipantsList,
+        };
+
+        const updateParticipant = await chatStorage.updateChat(
+          chatData?.id || "",
+          updateChatData
+        );
+        if (!updateParticipant) return "Chat Is Not Update";
+      } else {
+        const updateOrder = {
+          orderStatus: body?.status,
+          orderId: body?.orderId,
+          crateNo: body?.crateNo,
+          qaNote: body?.qaNote,
+        };
+        const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+        if (!UpdateOrderData) return "Order Not Update";
+
+        return UpdateOrderData;
+      }
+    } else if (body?.status === "rejected") {
+      const updateOrder = {
+        orderStatus: body?.status,
+        resonOfReject: body?.resonOfReject,
+      };
+      const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+      if (!UpdateOrderData) return "Order Not Update";
+
+      return UpdateOrderData;
+    }
+    const updateOrder = {
+      orderStatus: body?.status,
+      resonOfRescan: body?.resonOfRescan,
+      rejectNote: body?.resonOfRescan,
+    };
+    const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+    if (!UpdateOrderData) return "Order Not Update";
+
+    return UpdateOrderData;
+  }
+
   async getOrders(): Promise<any[]> {
     return await db.select().from(orderSchema);
   }
@@ -167,25 +292,25 @@ export class OrderStorage implements orderStore {
     if (!orders || orders.length === 0) return [];
     let newOrderList = [];
     for (const order of orders) {
-      const updateOrder =await this.getFullOrderData(order);
-      const allClinicOrder:doctorOrderTableType = {
-        id:updateOrder?.id,
-        refId:updateOrder?.refId,
-        orderId:updateOrder?.orderId,
-        prescriptionTypes:updateOrder?.prescriptionTypesId,
-        subPrescriptionTypes:updateOrder?.subPrescriptionTypesId,
-        orderDate:order?.createdAt,
-        orderType:updateOrder?.orderType,
-        orderStatus:updateOrder?.orderStatus,
-        products:updateOrder?.products,
-        paymentStatus:updateOrder?.paymentStatus || "Pandding",
-        firstName:updateOrder?.firstName,
-        lastName:updateOrder?.lastName,
-        percentage:updateOrder?.percentage || 10,
-        orderMethod:updateOrder?.orderMethod,
-        logs:updateOrder?.logs || [],
-        message:updateOrder?.message || "",
-      }      
+      const updateOrder = await this.getFullOrderData(order);
+      const allClinicOrder: doctorOrderTableType = {
+        id: updateOrder?.id,
+        refId: updateOrder?.refId,
+        orderId: updateOrder?.orderId,
+        prescriptionTypes: updateOrder?.prescriptionTypesId,
+        subPrescriptionTypes: updateOrder?.subPrescriptionTypesId,
+        orderDate: order?.createdAt,
+        orderType: updateOrder?.orderType,
+        orderStatus: updateOrder?.orderStatus,
+        products: updateOrder?.products,
+        paymentStatus: updateOrder?.paymentStatus || "Pandding",
+        firstName: updateOrder?.firstName,
+        lastName: updateOrder?.lastName,
+        percentage: updateOrder?.percentage || 10,
+        orderMethod: updateOrder?.orderMethod,
+        logs: updateOrder?.logs || [],
+        message: updateOrder?.message || "",
+      };
       newOrderList.push(allClinicOrder);
     }
     // const allClinicOrder =
@@ -206,69 +331,49 @@ export class OrderStorage implements orderStore {
   //   }
 
   async getFullOrderData(order: any): Promise<any | undefined> {
-    console.log(order.patientId,"order.patientId");
-    console.log(order.clinicInformationId,"order.clinicInformationId");
+    console.log(order.patientId, "order.patientId");
+    console.log(order.clinicInformationId, "order.clinicInformationId");
     const patient = order.patientId
-        ? await patientStorage.getPatient(order.patientId)
-        : undefined;
-        console.log(patient,"patient")
-      const clinicInformation = order.clinicInformationId
-        ? await clinicInformationStorage.getClinicInformationById(
-            order.clinicInformationId
-          )
-        : undefined;
-        console.log(clinicInformation,"clinicInformation");
-      const teethGroup = order.selectedTeethId
-        ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId)
-        : undefined;
+      ? await patientStorage.getPatient(order.patientId)
+      : undefined;
+    console.log(patient, "patient");
+    const clinicInformation = order.clinicInformationId
+      ? await clinicInformationStorage.getClinicInformationById(
+          order.clinicInformationId
+        )
+      : undefined;
+    console.log(clinicInformation, "clinicInformation");
+    const teethGroup = order.selectedTeethId
+      ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId)
+      : undefined;
 
-      // Extract all teeth numbers
-      const groupTeethNumbers =
-        teethGroup?.teethGroup.flatMap((group: any) =>
-          (group.teethDetails || [])
-            .flat()
-            .map((tooth: any) => tooth.teethNumber)
-        ) || [];
-      const selectedTeethNumbers =
-        (teethGroup?.selectedTeeth || []).map(
-          (tooth: any) => tooth.toothNumber ?? tooth.teethNumber
-        ) || [];
-      const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+    // Extract all teeth numbers
+    const groupTeethNumbers =
+      teethGroup?.teethGroup.flatMap((group: any) =>
+        (group.teethDetails || []).flat().map((tooth: any) => tooth.teethNumber)
+      ) || [];
+    const selectedTeethNumbers =
+      (teethGroup?.selectedTeeth || []).map(
+        (tooth: any) => tooth.toothNumber ?? tooth.teethNumber
+      ) || [];
+    const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
 
-      // --- Robust Product summary logic ---
-      const productMap: Record<string, number> = {};
-      const addProduct = (name: string, qty: number) => {
-        if (!name) return;
-        if (!productMap[name]) productMap[name] = 0;
-        productMap[name] += qty || 1;
-      };
-      // From teethGroup
-      if (teethGroup?.teethGroup) {
-        teethGroup.teethGroup.forEach((group: any) => {
-          // Group-level selectedProducts
-          (group.selectedProducts || []).forEach((prod: any) => {
-            addProduct(prod.name, Number(prod.quantity) || 1);
-          });
-          // Teeth details
-          (group.teethDetails || []).flat().forEach((tooth: any) => {
-            // Tooth-level selectedProducts
-            (tooth.selectedProducts || []).forEach((prod: any) => {
-              addProduct(prod.name, Number(prod.quantity) || 1);
-            });
-            // Tooth-level productName(s)
-            if (Array.isArray(tooth.productName)) {
-              tooth.productName.forEach((name: string) =>
-                addProduct(name, Number(tooth.productQuantity) || 1)
-              );
-            } else if (tooth.productName) {
-              addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
-            }
-          });
+    // --- Robust Product summary logic ---
+    const productMap: Record<string, number> = {};
+    const addProduct = (name: string, qty: number) => {
+      if (!name) return;
+      if (!productMap[name]) productMap[name] = 0;
+      productMap[name] += qty || 1;
+    };
+    // From teethGroup
+    if (teethGroup?.teethGroup) {
+      teethGroup.teethGroup.forEach((group: any) => {
+        // Group-level selectedProducts
+        (group.selectedProducts || []).forEach((prod: any) => {
+          addProduct(prod.name, Number(prod.quantity) || 1);
         });
-      }
-      // From selectedTeeth
-      if (teethGroup?.selectedTeeth) {
-        teethGroup.selectedTeeth.forEach((tooth: any) => {
+        // Teeth details
+        (group.teethDetails || []).flat().forEach((tooth: any) => {
           // Tooth-level selectedProducts
           (tooth.selectedProducts || []).forEach((prod: any) => {
             addProduct(prod.name, Number(prod.quantity) || 1);
@@ -282,75 +387,113 @@ export class OrderStorage implements orderStore {
             addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
           }
         });
-      }
-      const productSummary = Object.entries(productMap).map(([name, qty]) => ({
-        name,
-        qty,
-      }));
-      // --- End product summary logic ---
+      });
+    }
+    // From selectedTeeth
+    if (teethGroup?.selectedTeeth) {
+      teethGroup.selectedTeeth.forEach((tooth: any) => {
+        // Tooth-level selectedProducts
+        (tooth.selectedProducts || []).forEach((prod: any) => {
+          addProduct(prod.name, Number(prod.quantity) || 1);
+        });
+        // Tooth-level productName(s)
+        if (Array.isArray(tooth.productName)) {
+          tooth.productName.forEach((name: string) =>
+            addProduct(name, Number(tooth.productQuantity) || 1)
+          );
+        } else if (tooth.productName) {
+          addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
+        }
+      });
+    }
+    const productSummary = Object.entries(productMap).map(([name, qty]) => ({
+      name,
+      qty,
+    }));
+    // --- End product summary logic ---
 
-      const orderData: OrderType = {
-        id: order?.id,
-        firstName: patient?.firstName || "",
-        lastName: patient?.lastName || "",
-        age: patient?.age || 0,
-        sex: patient?.sex || "",
-        clinicId: clinicInformation?.clinicId || "",
-        caseHandleBy: clinicInformation?.caseHandleBy || "",
-        doctorMobileNumber: clinicInformation?.doctorMobileNumber || "",
-        consultingDoctorName: clinicInformation?.consultingDoctorName || "",
-        consultingDoctorMobileNumber:
-          clinicInformation?.consultingDoctorMobileNumber || "",
-        orderMethod: order.orderMethod || "",
-        accessorios: (Array.isArray(order.accessorios) ? order.accessorios : []) as any,
-        selectedTeeth: (Array.isArray(teethGroup?.selectedTeeth) ? teethGroup.selectedTeeth : []) as any,
-        teethGroup: (Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : []) as any,
-        teethNumber: (Array.isArray(teethnumber) ? teethnumber : []) as any,
-        products: (Array.isArray(productSummary) ? productSummary : []) as any,
-        acpectedDileveryData: order.acpectedDileveryData
-          ? new Date(order.acpectedDileveryData)
-          : new Date(),
-        prescriptionTypesId: (Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : []) as any,
-        subPrescriptionTypesId: (Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : []) as any,
-        files: {
-          addPatientPhotos: (Array.isArray((order.files ?? {}).addPatientPhotos) ? (order.files ?? {}).addPatientPhotos : []) as any,
-          faceScan: (Array.isArray((order.files ?? {}).faceScan) ? (order.files ?? {}).faceScan : []) as any,
-          intraOralScan: (Array.isArray((order.files ?? {}).intraOralScan) ? (order.files ?? {}).intraOralScan : []) as any,
-          referralImages: (Array.isArray((order.files ?? {}).referralImages) ? (order.files ?? {}).referralImages : []) as any,
-        } as any,
-        handllingType: order.handllingType || "",
-        pickupData: (Array.isArray(order.pickupData) ? order.pickupData : []) as any,
-        courierData: order.courierData,
-        resonOfReject: order.resonOfReject || "",
-        resonOfRescan: order.resonOfRescan || "",
-        rejectNote: order.rejectNote || "",
-        orderId: order.orderId || "",
-        crateNo: order.crateNo || "",
-        qaNote: order.qaNote || "",
-        orderBy: order.orderBy || "",
-        lifeCycle: (Array.isArray(order.lifeCycle) ? order.lifeCycle : []) as any,
-        orderStatus: order.orderStatus || "",
-        refId: order.refId || "",
-        orderDate:
-          typeof order.orderDate === "string"
-            ? order.orderDate
-            : order.orderDate
-            ? new Date(order.orderDate).toISOString()
-            : new Date().toISOString(),
-        updateDate:
-          typeof order.updateDate === "string"
-            ? order.updateDate
-            : order.updateDate
-            ? new Date(order.updateDate).toISOString()
-            : "",
-        totalAmount: order.totalAmount || "",
-        paymentType: order.paymentType || "",
-        doctorNote: order.doctorNote || "",
-        orderType: order.orderType || "",
-        paymentStatus: order.paymentStatus || "",
-        percentage: order.percentage || "",
-        // ...add any other fields from OrderType with appropriate fallbacks
-      } as any;
+    const orderData: OrderType = {
+      id: order?.id,
+      firstName: patient?.firstName || "",
+      lastName: patient?.lastName || "",
+      age: patient?.age || 0,
+      sex: patient?.sex || "",
+      clinicId: clinicInformation?.clinicId || "",
+      caseHandleBy: clinicInformation?.caseHandleBy || "",
+      doctorMobileNumber: clinicInformation?.doctorMobileNumber || "",
+      consultingDoctorName: clinicInformation?.consultingDoctorName || "",
+      consultingDoctorMobileNumber:
+        clinicInformation?.consultingDoctorMobileNumber || "",
+      orderMethod: order.orderMethod || "",
+      accessorios: (Array.isArray(order.accessorios)
+        ? order.accessorios
+        : []) as any,
+      selectedTeeth: (Array.isArray(teethGroup?.selectedTeeth)
+        ? teethGroup.selectedTeeth
+        : []) as any,
+      teethGroup: (Array.isArray(teethGroup?.teethGroup)
+        ? teethGroup.teethGroup
+        : []) as any,
+      teethNumber: (Array.isArray(teethnumber) ? teethnumber : []) as any,
+      products: (Array.isArray(productSummary) ? productSummary : []) as any,
+      acpectedDileveryData: order.acpectedDileveryData
+        ? new Date(order.acpectedDileveryData)
+        : new Date(),
+      prescriptionTypesId: (Array.isArray(order.prescriptionTypesId)
+        ? order.prescriptionTypesId
+        : []) as any,
+      subPrescriptionTypesId: (Array.isArray(order.subPrescriptionTypesId)
+        ? order.subPrescriptionTypesId
+        : []) as any,
+      files: {
+        addPatientPhotos: (Array.isArray((order.files ?? {}).addPatientPhotos)
+          ? (order.files ?? {}).addPatientPhotos
+          : []) as any,
+        faceScan: (Array.isArray((order.files ?? {}).faceScan)
+          ? (order.files ?? {}).faceScan
+          : []) as any,
+        intraOralScan: (Array.isArray((order.files ?? {}).intraOralScan)
+          ? (order.files ?? {}).intraOralScan
+          : []) as any,
+        referralImages: (Array.isArray((order.files ?? {}).referralImages)
+          ? (order.files ?? {}).referralImages
+          : []) as any,
+      } as any,
+      handllingType: order.handllingType || "",
+      pickupData: (Array.isArray(order.pickupData)
+        ? order.pickupData
+        : []) as any,
+      courierData: order.courierData,
+      resonOfReject: order.resonOfReject || "",
+      resonOfRescan: order.resonOfRescan || "",
+      rejectNote: order.rejectNote || "",
+      orderId: order.orderId || "",
+      crateNo: order.crateNo || "",
+      qaNote: order.qaNote || "",
+      orderBy: order.orderBy || "",
+      lifeCycle: (Array.isArray(order.lifeCycle) ? order.lifeCycle : []) as any,
+      orderStatus: order.orderStatus || "",
+      refId: order.refId || "",
+      orderDate:
+        typeof order.orderDate === "string"
+          ? order.orderDate
+          : order.orderDate
+          ? new Date(order.orderDate).toISOString()
+          : new Date().toISOString(),
+      updateDate:
+        typeof order.updateDate === "string"
+          ? order.updateDate
+          : order.updateDate
+          ? new Date(order.updateDate).toISOString()
+          : "",
+      totalAmount: order.totalAmount || "",
+      paymentType: order.paymentType || "",
+      doctorNote: order.doctorNote || "",
+      orderType: order.orderType || "",
+      paymentStatus: order.paymentStatus || "",
+      percentage: order.percentage || "",
+      // ...add any other fields from OrderType with appropriate fallbacks
+    } as any;
     return orderData;
   }
 
@@ -366,63 +509,87 @@ export class OrderStorage implements orderStore {
     return order;
   }
 
-      async updateOrder(id: string, updates: Partial<any>): Promise<any | undefined> {
-        // 1. Fetch the order
-        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
-        if (!order) return undefined;
+  async updateOrder(
+    id: string,
+    updates: Partial<any>
+  ): Promise<any | undefined> {
+    // 1. Fetch the order
+    const [order] = await db
+      .select()
+      .from(orderSchema)
+      .where(eq(orderSchema.id, id));
+    if (!order) return undefined;
 
-        // 2. Update patient if patient fields are present
-        let patientId = order.patientId;
-        if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
-          await patientStorage.updatePatient(patientId, {
-            ...(updates.firstName && { firstName: updates.firstName }),
-            ...(updates.lastName && { lastName: updates.lastName }),
-            ...(updates.age && { age: updates.age }),
-            ...(updates.sex && { sex: updates.sex })
-          });
+    // 2. Update patient if patient fields are present
+    let patientId = order.patientId;
+    if (
+      patientId &&
+      (updates.firstName || updates.lastName || updates.age || updates.sex)
+    ) {
+      await patientStorage.updatePatient(patientId, {
+        ...(updates.firstName && { firstName: updates.firstName }),
+        ...(updates.lastName && { lastName: updates.lastName }),
+        ...(updates.age && { age: updates.age }),
+        ...(updates.sex && { sex: updates.sex }),
+      });
+    }
+
+    // 3. Update clinicInformation if fields are present
+    let clinicInformationId = order.clinicInformationId;
+    if (
+      clinicInformationId &&
+      (updates.caseHandleBy ||
+        updates.doctorMobileNumber ||
+        updates.consultingDoctorName ||
+        updates.consultingDoctorMobileNumber)
+    ) {
+      await clinicInformationStorage.updateClinicInformation(
+        clinicInformationId,
+        {
+          ...(updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy }),
+          ...(updates.doctorMobileNumber && {
+            doctorMobileNumber: updates.doctorMobileNumber,
+          }),
+          ...(updates.consultingDoctorName && {
+            consultingDoctorName: updates.consultingDoctorName,
+          }),
+          ...(updates.consultingDoctorMobileNumber && {
+            consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber,
+          }),
         }
+      );
+    }
 
-        // 3. Update clinicInformation if fields are present
-        let clinicInformationId = order.clinicInformationId;
-        if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
-          await clinicInformationStorage.updateClinicInformation(clinicInformationId, {
-            ...(updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy }),
-            ...(updates.doctorMobileNumber && { doctorMobileNumber: updates.doctorMobileNumber }),
-            ...(updates.consultingDoctorName && { consultingDoctorName: updates.consultingDoctorName }),
-            ...(updates.consultingDoctorMobileNumber && { consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber })
-          });
-        }
+    // 4. Update teethGroup if fields are present
+    let selectedTeethId = order.selectedTeethId;
+    if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
+      await teethGroupStorage.updateTeethGroup(selectedTeethId, {
+        ...(updates.selectedTeeth && { selectedTeeth: updates.selectedTeeth }),
+        ...(updates.teethGroup && { teethGroup: updates.teethGroup }),
+      });
+    }
 
-        // 4. Update teethGroup if fields are present
-        let selectedTeethId = order.selectedTeethId;
-        if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
-          await teethGroupStorage.updateTeethGroup(selectedTeethId, {
-            ...(updates.selectedTeeth && { selectedTeeth: updates.selectedTeeth }),
-            ...(updates.teethGroup && { teethGroup: updates.teethGroup })
-          });
-        }
+    // 5. Prepare order update object (excluding patient/clinic/teeth fields)
+    const orderUpdate: any = { ...updates };
+    delete orderUpdate.firstName;
+    delete orderUpdate.lastName;
+    delete orderUpdate.age;
+    delete orderUpdate.sex;
+    delete orderUpdate.caseHandleBy;
+    delete orderUpdate.doctorMobileNumber;
+    delete orderUpdate.consultingDoctorName;
+    delete orderUpdate.consultingDoctorMobileNumber;
+    delete orderUpdate.selectedTeeth;
+    delete orderUpdate.teethGroup;
 
-        // 5. Prepare order update object (excluding patient/clinic/teeth fields)
-        const orderUpdate: any = { ...updates };
-        delete orderUpdate.firstName;
-        delete orderUpdate.lastName;
-        delete orderUpdate.age;
-        delete orderUpdate.sex;
-        delete orderUpdate.caseHandleBy;
-        delete orderUpdate.doctorMobileNumber;
-        delete orderUpdate.consultingDoctorName;
-        delete orderUpdate.consultingDoctorMobileNumber;
-        delete orderUpdate.selectedTeeth;
-        delete orderUpdate.teethGroup;
-
-        // 6. Update the order
-        const [updatedOrder] = await db
-          .update(orderSchema)
-          .set(orderUpdate)
-          .where(eq(orderSchema.id, id))
-          .returning();
-        return updatedOrder;
-      }
+    // 6. Update the order
+    const [updatedOrder] = await db
+      .update(orderSchema)
+      .set(orderUpdate)
+      .where(eq(orderSchema.id, id))
+      .returning();
+    return updatedOrder;
+  }
 
   async initializeData(): Promise<void> {
     console.log("Starting order database initialization...");
@@ -508,6 +675,4 @@ export const getProducts = async (req: Request, res: Response) => {
 
     res.json(products);
   }
-
- 
 };
