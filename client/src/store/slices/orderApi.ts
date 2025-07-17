@@ -18,7 +18,7 @@ export interface FilterOrdersQuery {
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/orders",
+    baseUrl: "/api",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("token");
       if (token) {
@@ -31,7 +31,7 @@ export const orderApi = createApi({
   endpoints: (builder) => ({
     // Get all orders
     getOrders: builder.query<OrderType[], void>({
-      query: () => ({ url: "", method: "GET" }),
+      query: () => ({ url: "/orders", method: "GET" }),
       providesTags: (result) =>
         result
           ? [
@@ -44,15 +44,21 @@ export const orderApi = createApi({
           : [{ type: "OrderList", id: "LIST" }],
     }),
 
-    // Get order by ID (clinicId)
-    getOrderById: builder.query<OrderType[], string>({
-      query: (id) => ({ url: `/${id}`, method: "GET" }),
-      providesTags: (result, error, id) => [{ type: "Order", id }],
+    // Get order by ID (ClinicId)
+    getOrderById: builder.query<OrderType, string>({
+      query: (clinicId) => ({ url: `/orders/${clinicId}`, method: "GET" }),
+      providesTags: (result, error, clinicId) => [{ type: "Order", clinicId }],
     }),
 
-    // Create order
+    // Get order by ID (OrderId)
+    getOrderByOrderId: builder.query<OrderType, string>({
+      query: (orderId) => ({ url: `/orderData/${orderId}`, method: "GET" }),
+      providesTags: (result, error, orderId) => [{ type: "Order", orderId }],
+    }),
+
+    // Create New order
     createOrder: builder.mutation<OrderType, CreateOrderRequest>({
-      query: (body) => ({ url: "", method: "POST", body }),
+      query: (body) => ({ url: "/orders", method: "POST", body }),
       invalidatesTags: [{ type: "OrderList", id: "LIST" }],
     }),
 
@@ -62,7 +68,7 @@ export const orderApi = createApi({
       { id: string; body: UpdateOrderRequest }
     >({
       query: ({ id, body }) => ({
-        url: `updateOrders/${id}`,
+        url: `/updateOrders/${id}`,
         method: "PUT",
         body,
       }),
@@ -72,7 +78,7 @@ export const orderApi = createApi({
       ],
     }),
 
-    // Update order status
+    // Update order status - not working
     updateOrderStatus: builder.mutation<
       OrderType,
       { id: string; orderStatus: string }
@@ -101,7 +107,7 @@ export const orderApi = createApi({
       providesTags: [{ type: "OrderList", id: "LIST" }],
     }),
 
-    // Get chat by orderId
+    // Get chat by orderId - not working
     getOrderChat: builder.query<any, string>({
       query: (orderId) => ({ url: `/${orderId}/chat`, method: "GET" }),
       providesTags: (result, error, orderId) => [
@@ -114,6 +120,7 @@ export const orderApi = createApi({
 export const {
   useGetOrdersQuery,
   useGetOrderByIdQuery,
+  useGetOrderByOrderIdQuery,
   useCreateOrderMutation,
   useUpdateOrderMutation,
   useUpdateOrderStatusMutation,

@@ -74,6 +74,10 @@ export type DentalCase = {
   log: string[];
 };
 
+export interface qaOrdarTable {
+  
+}
+
 // Transform the JSON data to match our structure
 const transformJsonToCase = (jsonData: any): DentalCase => {
   const patient = `${jsonData.firstName} ${jsonData.lastName}`;

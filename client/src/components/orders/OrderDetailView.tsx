@@ -6,10 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Truck,
   CreditCard,
@@ -23,12 +20,15 @@ import PickupTab from "./tabs/PickupTab";
 import PaymentTab from "./tabs/PaymentTab";
 import { useAppSelector } from "@/store/hooks";
 import { getLifecycleStages } from "../shared/progress/lifecycleData";
-import { useGetOrderChatQuery } from '@/store/slices/orderApi';
+import {
+  useGetOrderByOrderIdQuery,
+  useGetOrderChatQuery,
+} from "@/store/slices/orderApi";
 
 interface OrderDetailViewProps {
   isOpen: boolean;
   onClose: () => void;
-  order: any;
+  orderId: string;
   isEmbedded?: boolean;
   initialTab?: string;
 }
@@ -36,40 +36,47 @@ interface OrderDetailViewProps {
 const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   isOpen,
   onClose,
-  order,
+  orderId,
   isEmbedded = false,
-  initialTab = 'overview',
+  initialTab = "overview",
 }) => {
-  const [activeTab, setActiveTab] = useState(initialTab);
   const { toast } = useToast();
-  const [attachments, setAttachments] = useState<{ name: string }[]>(order?.files?.map((f: string) => ({ name: f })) || []);
-  const { data: chatData, isLoading: chatLoading, error: chatError } = useGetOrderChatQuery(order?.id, { skip: !order?.id });
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(orderId);
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const {
+    data: orderData,
+    error: orderGetError,
+    isLoading: orderIsLoding,
+    refetch,
+  } = useGetOrderByOrderIdQuery(selectedOrderId);
+
+  useEffect(() => {
+    setSelectedOrderId(orderId);
+    refetch();
+  }, [orderId]);
+
+  const {
+    data: chatData,
+    isLoading: chatLoading,
+    error: chatError,
+  } = useGetOrderChatQuery(orderId, { skip: !orderId });
   const chatId = chatData?.id || null;
-  const UserData = useAppSelector(state => state.userData);
+  const UserData = useAppSelector((state) => state.userData);
   const user = UserData.userData;
 
-  const patient = order?.firstName
+  const doctor = orderData?.caseHandleBy
     ? {
-      firstName: order.firstName || '-',
-      lastName: order.lastName || '-',
-      age: order.age || '-',
-      gender: order.sex || '-',
-    }
-    : undefined;
-
-  const doctor = order?.caseHandleBy
-    ? {
-      caseHandleBy: order.caseHandleBy || '-',
-      consultingDoctor: order.consultingDoctor || '-',
-      location: '-',
-    }
+        caseHandleBy: orderData?.caseHandleBy || "-",
+        consultingDoctor: orderData?.consultingDoctorName || "-",
+        location: "-",
+      }
     : undefined;
 
   useEffect(() => {
     setActiveTab(initialTab);
-  }, [order, initialTab]);
+  }, [selectedOrderId, initialTab]);
 
-  if (!isOpen || !order) return null;
+  if (!isOpen || !orderData) return null;
 
   const handlePaymentClick = (type: "online" | "collection") => {
     if (type === "online") {
@@ -80,7 +87,9 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       setTimeout(() => {
         toast({
           title: "Payment Successful",
-          description: `Payment of ₹${order.outstandingAmount || "10,000"} processed successfully.`,
+          description: `Payment of ₹${
+            orderData?.totalAmount || "10,000"
+          } processed successfully.`,
         });
       }, 2000);
     } else {
@@ -91,61 +100,12 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const rawStages = getLifecycleStages(order.statusLabel);
-  const stages = rawStages.map(stage => ({
-    label: stage.title,
-    date: stage.timestamp,
-    completed: stage.status === 'completed',
-  }));
-
-  const details = {
-    restorationType: order.restorationType,
-    selectedTeeth: order.selectedTeeth,
-    teethGroup: (Array.isArray(order.selectedTeeth) ? order.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : ''),
-    productSelection: order.restorationProducts?.map((p: any) => ({ name: p.product, count: p.quantity })) || [],
-    accessories: order.accessories?.map((a: string) => ({ name: a, count: null })) || [],
-    pontic: order.ponticDesign || '-',
-    trial: order.trial || '-',
-    occlusalStaining: order.occlusalStaining || '-',
-    shade: order.shade || [],
-    orderDate: order.createdAt || '-',
-  };
-
-  const notes = order.notes || "No additional notes provided.";
-
-  const onRemoveFile = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAddFile = (fileName: string) => {
-    setAttachments((prev) => [...prev, { name: fileName }]);
-  };
-
   const tabs = [
     { value: "overview", label: "Overview", icon: FileChartColumnIncreasing },
     { value: "chat", label: "Chat", icon: MessageCircle },
     { value: "pickup", label: "Pickup", icon: Truck },
     { value: "payment", label: "Payment", icon: CreditCard },
   ];
-
-  const overViewData = {
-    stages,
-    details,
-    message: notes ? [notes] : [],
-    patient,
-    doctor,
-    order,
-  };
-
 
   const content = (
     <div className="h-full flex flex-col">
@@ -168,8 +128,11 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="flex-1 w-full overflow-y-auto p-4 pb-6">
-          <OverviewTab data={overViewData} attachments={attachments} onRemoveFile={onRemoveFile} />
+        <TabsContent
+          value="overview"
+          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+        >
+          <OverviewTab data={orderData} />
         </TabsContent>
 
         {/* Chat Tab */}
@@ -178,9 +141,13 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
             <CardContent className="p-0  max-h-[70vh] flex-1 flex flex-col">
               <div className="flex-1 min-h-0 overflow-y-auto">
                 {chatLoading ? (
-                  <div className="flex items-center justify-center h-full">Loading chat...</div>
+                  <div className="flex items-center justify-center h-full">
+                    Loading chat...
+                  </div>
                 ) : chatError ? (
-                  <div className="flex items-center justify-center h-full text-gray-500">No chat found for this order</div>
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No chat found for this orderData
+                  </div>
                 ) : chatId ? (
                   <ChatModule chatId={chatId} userData={user} />
                 ) : (
@@ -193,16 +160,20 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
           </Card>
         </TabsContent>
 
-
-
         {/* Pickup Tab */}
-        <TabsContent value="pickup" className="flex-1 w-full overflow-y-auto p-4 pb-6">
-          <PickupTab order={order} doctor={doctor} />
+        <TabsContent
+          value="pickup"
+          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+        >
+          <PickupTab order={orderData} doctor={doctor} />
         </TabsContent>
 
         {/* Payment Tab */}
-        <TabsContent value="payment" className="flex-1 w-full overflow-y-auto p-4 pb-6">
-          <PaymentTab order={order} onPayment={handlePaymentClick} />
+        <TabsContent
+          value="payment"
+          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+        >
+          <PaymentTab order={orderData} onPayment={handlePaymentClick} />
         </TabsContent>
       </Tabs>
     </div>

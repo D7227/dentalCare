@@ -11,7 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import Combined3DPreview from "../Combined3DPreview";
 import { useToast } from "@/hooks/use-toast";
-import { Download } from "lucide-react";
+import { Download, FileChartColumnIncreasing } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UploadFileSectionProps {
   formData: any;
@@ -156,12 +157,30 @@ const UploadFileSection: React.FC<UploadFileSectionProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg sm:text-xl font-semibold">
-          Upload Files
-        </CardTitle>
-        <CardDescription className="text-xs sm:text-base">
-          Please upload patient details
-        </CardDescription>
+        {readMode || download ? (
+          <>
+            <CardTitle className="text-xl font-semibold flex gap-2 items-center">
+              <div
+                className={cn(
+                  "p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]",
+                  readMode || download ? "flex" : "hidden"
+                )}
+              >
+                <FileChartColumnIncreasing className="h-4 w-4" />
+              </div>
+              File Upload Summary
+            </CardTitle>
+          </>
+        ) : (
+          <>
+            <CardTitle className="text-lg sm:text-xl font-semibold">
+              Upload Files
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-base">
+              Please upload patient details
+            </CardDescription>
+          </>
+        )}
       </CardHeader>
       <CardContent className="space-y-4 sm:space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

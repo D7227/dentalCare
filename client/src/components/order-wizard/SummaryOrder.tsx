@@ -1,10 +1,7 @@
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import PatientInfoCard from "./components/PatientInfoCard";
 import CaseInfoCard from "./components/CaseInfoCard";
 import OrderTypeSection from "./components/OrderTypeSection";
-import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
 import UploadFileSection from "./components/UploadFileSection";
 import AccessorySelection from "./components/AccessorySelection";
 import ProductCard from "./components/ProductCard";
@@ -13,15 +10,24 @@ import ToothSelector from "./ToothSelector";
 interface AccessoryTaggingProps {
   formData: any;
   setFormData: (data: any) => void;
+  readMode?: boolean;
+  editMode?: boolean;
+  download?: boolean;
 }
 
-const SummaryOrder = ({ formData, setFormData }: AccessoryTaggingProps) => {
+const SummaryOrder = ({
+  formData,
+  setFormData,
+  readMode = false,
+  editMode = false,
+  download = false,
+}: AccessoryTaggingProps) => {
   console.log("formData", formData);
   const getAllGroups = () => {
-    const teethGroups = formData.teethGroups || [];
+    const teethGroup = formData.teethGroup || [];
     const groupedTeeth = new Set(
-      teethGroups.flatMap(
-        (g: any) => g.teethDetails?.flat().map((t: any) => t.toothNumber) || []
+      teethGroup.flatMap(
+        (g: any) => g.teethDetails?.flat().map((t: any) => t.teethNumber) || []
       )
     );
     const individualTeeth = (formData.selectedTeeth || [])
@@ -30,7 +36,7 @@ const SummaryOrder = ({ formData, setFormData }: AccessoryTaggingProps) => {
         selectedProducts: t.selectedProducts || [],
         productDetails: t.productDetails || {},
       }))
-      .filter((t: any) => !groupedTeeth.has(t.toothNumber));
+      .filter((t: any) => !groupedTeeth.has(t.teethNumber));
 
     // Group individual teeth by prescription type
     const groupedByPrescriptionType = individualTeeth.reduce(
@@ -45,12 +51,7 @@ const SummaryOrder = ({ formData, setFormData }: AccessoryTaggingProps) => {
       {}
     );
 
-    let allGroups = [...teethGroups];
-    console.log(
-      "%c allGroups",
-      "background: #0000FF; color: white;",
-      allGroups
-    );
+    let allGroups = [...teethGroup];
 
     // Process each prescription type separately
     Object.entries(groupedByPrescriptionType).forEach(
@@ -119,7 +120,6 @@ const SummaryOrder = ({ formData, setFormData }: AccessoryTaggingProps) => {
       return isConfigured;
     });
 
-    // console.log(`Group ${group.groupType} configuration status:`, result);
     if (!result) {
       console.log("Unconfigured group:", group, "teeth:", allTeeth);
     }
@@ -127,165 +127,98 @@ const SummaryOrder = ({ formData, setFormData }: AccessoryTaggingProps) => {
   };
   return (
     <>
-      {/* <h1>doctorrrrrrrrrrrrrrrrrrrrrrrrr</h1> */}
-      <PatientInfoCard
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-      />
-      <CaseInfoCard
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-      />
-      <OrderTypeSection
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-      />
-      <ToothSelector
-        prescriptionType={formData?.prescriptionType}
-        selectedGroups={formData?.teethGroups || []}
-        selectedTeeth={formData?.selectedTeeth || []}
-        onSelectionChange={(groups, teeth) =>
-          setFormData({
-            ...formData,
-            teethGroups: groups,
-            selectedTeeth: teeth,
-          })
-        }
-        subcategoryType={formData?.subcategoryType}
-        formData={formData}
-        readMode={true}
-      />
-      {renderableGroups.filter((group) => isGroupConfigured(group)).length >
-        0 &&
-        (
-          Object.entries(
-            renderableGroups
-              .filter((group) => isGroupConfigured(group))
-              .reduce((acc: any, group: any) => {
-                const type =
-                  group.prescriptionType || formData.prescriptionType;
-                if (!acc[type]) acc[type] = [];
-                acc[type].push(group);
-                return acc;
-              }, {})
-          ) as [string, any[]][]
-        ).map(([type, groups], idx) => {
-          return (
-            <ProductCard
-              type={type}
-              groups={groups}
-              allGroups={allGroups}
-              formData={formData}
-              groupIdx={idx}
-              onSaveGroupFields={(groupIdx, field, value) => {
-                // Update formData in parent
-                const updatedGroups = [...formData.teethGroups];
-                updatedGroups[groupIdx] = {
-                  ...updatedGroups[groupIdx],
-                  [field]: value,
-                };
-                setFormData({ ...formData, teethGroups: updatedGroups });
-              }}
-              setFormData={setFormData}
-              readMode={true}
-            />
-          );
-        })}
-      <UploadFileSection
-        formData={formData}
-        setFormData={setFormData}
-        readMode={true}
-      />
-      <AccessorySelection
-        formData={formData}
-        setFormData={setFormData}
-        readMode={true}
-      />
+      <div className="md:flex item-start gap-2">
+        <div className="w-full md:w-[50%] flex flex-col gap-2">
+          <ToothSelector
+            prescriptionType={formData?.prescriptionType}
+            selectedGroups={formData?.teethGroup || []}
+            selectedTeeth={formData?.selectedTeeth || []}
+            onSelectionChange={(groups, teeth) =>
+              setFormData({
+                ...formData,
+                teethGroup: groups,
+                selectedTeeth: teeth,
+              })
+            }
+            subcategoryType={formData?.subcategoryType}
+            formData={formData}
+            readMode={readMode}
+          />
 
-      {/* <p>QAAAAAAAAAAAAAAAAAAAAAAAAAAAA</p>
-      <PatientInfoCard
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-        editing={true}
-      />
-      <CaseInfoCard
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-        editing={true}
-      />
-      <OrderTypeSection
-        formData={formData}
-        setFormData={setFormData}
-        render={true}
-        editing={true}
-      />
-      <ToothSelector
-        prescriptionType={formData?.prescriptionType}
-        selectedGroups={formData?.teethGroups || []}
-        selectedTeeth={formData?.selectedTeeth || []}
-        onSelectionChange={(groups, teeth) =>
-          setFormData({
-            ...formData,
-            teethGroups: groups,
-            selectedTeeth: teeth,
-          })
-        }
-        subcategoryType={formData?.subcategoryType}
-        formData={formData}
-        readMode={true}
-      />
-      {renderableGroups.filter((group) => isGroupConfigured(group)).length >
-        0 &&
-        (
-          Object.entries(
-            renderableGroups
-              .filter((group) => isGroupConfigured(group))
-              .reduce((acc: any, group: any) => {
-                const type =
-                  group.prescriptionType || formData.prescriptionType;
-                if (!acc[type]) acc[type] = [];
-                acc[type].push(group);
-                return acc;
-              }, {})
-          ) as [string, any[]][]
-        ).map(([type, groups], idx) => {
-          return (
-            <ProductCard
-              type={type}
-              groups={groups}
-              allGroups={allGroups}
-              formData={formData}
-              groupIdx={idx}
-              onSaveGroupFields={(groupIdx, field, value) => {
-                // Update formData in parent
-                const updatedGroups = [...formData.teethGroups];
-                updatedGroups[groupIdx] = {
-                  ...updatedGroups[groupIdx],
-                  [field]: value,
-                };
-                setFormData({ ...formData, teethGroups: updatedGroups });
-              }}
-              setFormData={setFormData}
-            />
-          );
-        })}
-      <UploadFileSection
-        formData={formData}
-        setFormData={setFormData}
-        readMode={true}
-        download={true}
-      />
-      <AccessorySelection
-        formData={formData}
-        setFormData={setFormData}
-        readMode={true}
-        editMode={true}
-      /> */}
+          <AccessorySelection
+            formData={formData}
+            setFormData={setFormData}
+            readMode={readMode}
+            editMode={editMode}
+          />
+        </div>
+        <div className="w-full md:w-[50%] flex flex-col gap-2 mt-2 md:mt-0">
+          <PatientInfoCard
+            formData={formData}
+            setFormData={setFormData}
+            readMode={readMode}
+            editMode={editMode}
+          />
+          <CaseInfoCard
+            formData={formData}
+            setFormData={setFormData}
+            readMode={readMode}
+            editMode={editMode}
+          />
+
+          <OrderTypeSection
+            formData={formData}
+            setFormData={setFormData}
+            readMode={readMode}
+            editMode={editMode}
+          />
+
+          {renderableGroups.filter((group) => isGroupConfigured(group)).length >
+            0 &&
+            (
+              Object.entries(
+                renderableGroups
+                  .filter((group) => isGroupConfigured(group))
+                  .reduce((acc: any, group: any) => {
+                    const type =
+                      group.prescriptionType || formData.prescriptionType;
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(group);
+                    return acc;
+                  }, {})
+              ) as [string, any[]][]
+            ).map(([type, groups], idx) => {
+              return (
+                <ProductCard
+                  type={type}
+                  groups={groups}
+                  allGroups={allGroups}
+                  formData={formData}
+                  groupIdx={idx}
+                  onSaveGroupFields={(groupIdx, field, value) => {
+                    // Update formData in parent
+                    const updatedGroups = [...formData.teethGroup];
+                    updatedGroups[groupIdx] = {
+                      ...updatedGroups[groupIdx],
+                      [field]: value,
+                    };
+                    setFormData({ ...formData, teethGroup: updatedGroups });
+                  }}
+                  setFormData={setFormData}
+                  readMode={readMode}
+                />
+              );
+            })}
+        </div>
+      </div>
+      <div className="mt-2">
+        <UploadFileSection
+          formData={formData}
+          setFormData={setFormData}
+          readMode={readMode}
+          download={download}
+        />
+      </div>
     </>
   );
 };

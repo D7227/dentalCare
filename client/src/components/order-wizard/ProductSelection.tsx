@@ -510,7 +510,7 @@ const ProductSelection = ({
           updatedGroups = updatedGroups.map((group: any) => {
             if (
               (group.prescriptionType || formData.prescriptionType) ===
-              typeToEdit &&
+                typeToEdit &&
               (group.groupType === "joint" ||
                 group.groupType === "bridge" ||
                 group.groupType === "implant")
@@ -917,24 +917,6 @@ const ProductSelection = ({
             ).map(([type, groups], idx) => {
               return (
                 <>
-                  <ProductCard
-                    type={type}
-                    groups={groups}
-                    allGroups={allGroups}
-                    formData={formData}
-                    groupIdx={idx}
-                    onSaveGroupFields={(groupIdx, field, value) => {
-                      // Update formData in parent
-                      const updatedGroups = [...formData.teethGroups];
-                      updatedGroups[groupIdx] = {
-                        ...updatedGroups[groupIdx],
-                        [field]: value,
-                      };
-                      setFormData({ ...formData, teethGroups: updatedGroups });
-                    }}
-                    setFormData={setFormData}
-                    readMode={true}
-                  />
                   <ProductCard
                     type={type}
                     groups={groups}

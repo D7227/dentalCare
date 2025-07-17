@@ -1,20 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import {
-  Search,
-  FileText,
-  XCircle,
-} from "lucide-react";
+import { Search, FileText, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import OrderDetailView from "@/components/orders/OrderDetailView.tsx";
-import { useGetOrdersQuery } from '@/store/slices/orderApi';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import { useGetOrderByIdQuery } from "@/store/slices/orderApi";
+import { useSelector, useDispatch } from "react-redux";
+import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import DropdownSelector from "../common/DropdownSelector";
 import { OrderCard } from "./OrderCard.tsx";
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector } from "@/store/hooks";
 // import CustomStatusLabel from '../common/CustomStatusLabel';
 
 interface OrdersContentProps {
@@ -23,237 +19,253 @@ interface OrdersContentProps {
 }
 
 const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
-  const UserData = useAppSelector(state => state.userData);
+  const UserData = useAppSelector((state) => state.userData);
   const user = UserData.userData;
-  const [location, setLocation] = useLocation();
+  // const [location, setLocation] = useLocation();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [activeTab, setAvtiveTab] = useState();
+  // const [activeTab, setAvtiveTab] = useState();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [detailsHeight, setDetailsHeight] = useState(600);
   const orderDetailRef = useRef(null);
-  const dispatch = useDispatch();
+
+  const [clinicId, setClinicId] = useState<string>(user?.clinicId ?? "");
 
   // Use orderApi for fetching orders
-  const { data: dbOrders = [], isLoading, isError: error, refetch } = useGetOrdersQuery();
+  const {
+    data: dbOrders = [],
+    isLoading,
+    isError: error,
+    refetch,
+  } = useGetOrderByIdQuery(clinicId);
 
+  useEffect(() => {
+    if (user?.clinicId) {
+      setClinicId(user.clinicId);
+      refetch();
+    }
+  }, [user, refetch]);
+  // ! dont remove this code. --- filter code  --- old functionality
   // Use orderLocalSlice for local order state if needed
-  const localOrder = useSelector((state: any) => state.orderLocal.order);
-  const localStep = useSelector((state: any) => state.orderLocal.step);
+  // const localOrder = useSelector((state: any) => state.orderLocal.order);
+  // const localStep = useSelector((state: any) => state.orderLocal.step);
 
   // Orders page shows all orders - no filtering needed
 
-  const getOrderType = (orderId: number) => {
-    const order = dbOrders.find((o: any) => o.id === orderId);
-    if (!order) return "New Order";
+  // const getOrderType = (orderId: number) => {
+  //   const order = dbOrders.find((o: any) => o.id === orderId);
+  //   if (!order) return "New Order";
 
-    // Check if orderType exists in the order data
-    if (order.orderType === "repeat") return "Repeat Order";
-    if (order.orderType === "repair") return "Repair Order";
-    return "New Order";
-  };
+  //   // Check if orderType exists in the order data
+  //   if (order.orderType === "repeat") return "Repeat Order";
+  //   if (order.orderType === "repair") return "Repair Order";
+  //   return "New Order";
+  // };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+  // const formatDate = (dateString: string) => {
+  //   return new Date(dateString).toLocaleDateString("en-US", {
+  //     year: "numeric",
+  //     month: "short",
+  //     day: "numeric",
+  //   });
+  // };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; variant: any }> = {
-      pending: { label: "Pending", variant: "outline" },
-      in_progress: { label: "In Progress", variant: "default" },
-      trial_ready: { label: "Trial Ready", variant: "secondary" },
-      completed: { label: "Completed", variant: "default" },
-      delivered: { label: "Delivered", variant: "default" },
-    };
-    return statusMap[status] || { label: status, variant: "outline" };
-  };
+  // const getStatusBadge = (status: string) => {
+  //   const statusMap: Record<string, { label: string; variant: any }> = {
+  //     pending: { label: "Pending", variant: "outline" },
+  //     in_progress: { label: "In Progress", variant: "default" },
+  //     trial_ready: { label: "Trial Ready", variant: "secondary" },
+  //     completed: { label: "Completed", variant: "default" },
+  //     delivered: { label: "Delivered", variant: "default" },
+  //   };
+  //   return statusMap[status] || { label: status, variant: "outline" };
+  // };
 
-  const filters = [
-    { id: "all", label: "All", count: dbOrders.length },
-    {
-      id: "new_today",
-      label: "New Today",
-      count: dbOrders.filter((o: any) => {
-        const today = new Date().toDateString();
-        return new Date(o.createdAt).toDateString() === today;
-      }).length,
-    },
-    {
-      id: "trial_ready",
-      label: "Trial Work Ready",
-      count: dbOrders.filter((o: any) => o.status === "trial_ready").length,
-    },
-    {
-      id: "in_progress",
-      label: "In Progress",
-      count: dbOrders.filter((o: any) => o.status === "in_progress").length,
-    },
-    {
-      id: "completed",
-      label: "Completed",
-      count: dbOrders.filter((o: any) => o.status === "completed").length,
-    },
-    {
-      id: "rejected",
-      label: "Rejected",
-      count: dbOrders.filter((o: any) => o.status === "rejected").length,
-    },
-  ];
+  // const filters = [
+  //   { id: "all", label: "All", count: dbOrders.length },
+  //   {
+  //     id: "new_today",
+  //     label: "New Today",
+  //     count: dbOrders.filter((o: any) => {
+  //       const today = new Date().toDateString();
+  //       return new Date(o.createdAt).toDateString() === today;
+  //     }).length,
+  //   },
+  //   {
+  //     id: "trial_ready",
+  //     label: "Trial Work Ready",
+  //     count: dbOrders.filter((o: any) => o.status === "trial_ready").length,
+  //   },
+  //   {
+  //     id: "in_progress",
+  //     label: "In Progress",
+  //     count: dbOrders.filter((o: any) => o.status === "in_progress").length,
+  //   },
+  //   {
+  //     id: "completed",
+  //     label: "Completed",
+  //     count: dbOrders.filter((o: any) => o.status === "completed").length,
+  //   },
+  //   {
+  //     id: "rejected",
+  //     label: "Rejected",
+  //     count: dbOrders.filter((o: any) => o.status === "rejected").length,
+  //   },
+  // ];
 
-  const filteredOrders = dbOrders.filter((order: any) => {
-    const patientName = order.patientName || "Unknown Patient";
-    const matchesSearch =
-      searchTerm === "" ||
-      patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.refId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
+  // const filteredOrders = dbOrders.filter((order: any) => {
+  //   const patientName = order.patientName || "Unknown Patient";
+  //   const matchesSearch =
+  //     searchTerm === "" ||
+  //     patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     order.refId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
 
-    let matchesFilter = true;
-    if (activeFilter === "new_today") {
-      const today = new Date().toDateString();
-      matchesFilter = new Date(order.createdAt).toDateString() === today;
-    } else if (activeFilter !== "all") {
-      matchesFilter = order.status === activeFilter;
-    }
+  //   let matchesFilter = true;
+  //   if (activeFilter === "new_today") {
+  //     const today = new Date().toDateString();
+  //     matchesFilter = new Date(order.createdAt).toDateString() === today;
+  //   } else if (activeFilter !== "all") {
+  //     matchesFilter = order.status === activeFilter;
+  //   }
 
-    return matchesSearch && matchesFilter;
-  });
+  //   return matchesSearch && matchesFilter;
+  // });
 
-  // Helper to map API order data to DentalOrder structure for OrderCard
-  const mapApiOrderToDentalOrder = (order: any): any => {
-    // Map status to statusLabel/orderStatus for UI
-    let statusLabel: any = "pending";
-    let orderStatus: any = order.orderStatus;
-    // Map API status/orderType to UI enums
-    switch (order.orderStatus) {
-      case "pending_approval":
-        statusLabel = "pending";
-        orderStatus = "pending";
-        break;
-      case "active":
-        statusLabel = "active";
-        orderStatus = "active";
-      case "in_process":
-        statusLabel = "active";
-        orderStatus = "active";
-        break;
-      case "trial_ready":
-        statusLabel = "trial";
-        orderStatus = "trial";
-        break;
-      case "completed":
-        statusLabel = "dispatched";
-        orderStatus = "dispatched";
-        break;
-      case "delivered":
-        statusLabel = "delivered";
-        orderStatus = "delivered";
-        break;
-      case "rejected":
-        statusLabel = "rejected";
-        orderStatus = "rejected";
-        break;
-      default:
-        statusLabel = "pending";
-        orderStatus = "pending";
-    }
-    // switch (order.orderType) {
-    //   case "repeat":
-    //     orderStatus = "repeat";
-    //     break;
-    //   case "repair":
-    //     orderStatus = "repair";
-    //     break;
-    //   default:
-    //     orderStatus = "new";
-    // }
-    // Payment status mapping
-    let paymentStatus: any = "pending";
-    if (order.paymentStatus === "paid") paymentStatus = "paid";
-    else if (order.paymentStatus === "rejected") paymentStatus = "rejected";
-    else paymentStatus = "pending";
-    // Compose teeth string
-    let teethNo = Array.isArray(order.toothGroups) && order.toothGroups.length > 0
-      ? order.toothGroups.map((tg: any) => tg.teeth).flat().join(", ")
-      : "";
-    // Compose patient name
-    const patientName = order.patientName || "Unknown Patient";
-    // Compose messages (demo: show status as message)
-    const messages = [
-      { label: `Status: ${statusLabel}`, messageBy: "lab" as const }
-    ];
-    // Compose product name
-    const productName = order.productSelection || order.restorationType || "-";
-    // Compose order date
-    const orderDate = order.createdAt ? formatDate(order.createdAt) : "-";
-    // Compose quantity (if available)
-    const quantity = 1;
-    // Compose percentage (demo: based on status)
-    let percentage = 10;
-    if (statusLabel === "active") percentage = 30;
-    else if (statusLabel === "trial") percentage = 60;
-    else if (statusLabel === "dispatched" || statusLabel === "delivered") percentage = 100;
-    else if (statusLabel === "rejected") percentage = 0;
-    // Compose chatConnection (demo: true if delivered or active)
-    const chatConnection = ["active", "trial", "dispatched", "delivered"].includes(statusLabel);
-    // Compose unreadMessages (demo: 0)
-    const unreadMessages = 0;
-    // Compose currency/exportQuality/category
-    const currency = "INR";
-    const exportQuality = "Standard";
-    const category = order.category || "crown_bridge";
-    // Return all original fields, but override/add the mapped ones for the card
-    return {
-      ...order,
-      id: order.id,
-      refId: order.refId,
-      orderId: order.orderId, // Use orderId if exists, otherwise refId, fallback to id
-      prescription: order.restorationType || order.productSelection || "-",
-      patientName,
-      teethNo,
-      productName,
-      quantity,
-      orderDate,
-      orderCategory: order.category || "-",
-      orderStatus,
-      statusLabel,
-      percentage,
-      chatConnection,
-      unreadMessages,
-      messages,
-      isUrgent: false,
-      currency,
-      exportQuality,
-      paymentStatus,
-      category,
-    };
-  };
-
-  console.log('filteredOrders dashbored', filteredOrders)
+  // // Helper to map API order data to DentalOrder structure for OrderCard
+  // const mapApiOrderToDentalOrder = (order: any): any => {
+  //   // Map status to statusLabel/orderStatus for UI
+  //   let statusLabel: any = "pending";
+  //   let orderStatus: any = order.orderStatus;
+  //   // Map API status/orderType to UI enums
+  //   switch (order.orderStatus) {
+  //     case "pending_approval":
+  //       statusLabel = "pending";
+  //       orderStatus = "pending";
+  //       break;
+  //     case "active":
+  //       statusLabel = "active";
+  //       orderStatus = "active";
+  //     case "in_process":
+  //       statusLabel = "active";
+  //       orderStatus = "active";
+  //       break;
+  //     case "trial_ready":
+  //       statusLabel = "trial";
+  //       orderStatus = "trial";
+  //       break;
+  //     case "completed":
+  //       statusLabel = "dispatched";
+  //       orderStatus = "dispatched";
+  //       break;
+  //     case "delivered":
+  //       statusLabel = "delivered";
+  //       orderStatus = "delivered";
+  //       break;
+  //     case "rejected":
+  //       statusLabel = "rejected";
+  //       orderStatus = "rejected";
+  //       break;
+  //     default:
+  //       statusLabel = "pending";
+  //       orderStatus = "pending";
+  //   }
+  //   // switch (order.orderType) {
+  //   //   case "repeat":
+  //   //     orderStatus = "repeat";
+  //   //     break;
+  //   //   case "repair":
+  //   //     orderStatus = "repair";
+  //   //     break;
+  //   //   default:
+  //   //     orderStatus = "new";
+  //   // }
+  //   // Payment status mapping
+  //   let paymentStatus: any = "pending";
+  //   if (order.paymentStatus === "paid") paymentStatus = "paid";
+  //   else if (order.paymentStatus === "rejected") paymentStatus = "rejected";
+  //   else paymentStatus = "pending";
+  //   // Compose teeth string
+  //   let teethNo =
+  //     Array.isArray(order.toothGroups) && order.toothGroups.length > 0
+  //       ? order.toothGroups
+  //           .map((tg: any) => tg.teeth)
+  //           .flat()
+  //           .join(", ")
+  //       : "";
+  //   // Compose patient name
+  //   const patientName = order.patientName || "Unknown Patient";
+  //   // Compose messages (demo: show status as message)
+  //   const messages = [
+  //     { label: `Status: ${statusLabel}`, messageBy: "lab" as const },
+  //   ];
+  //   // Compose product name
+  //   const productName = order.productSelection || order.restorationType || "-";
+  //   // Compose order date
+  //   const orderDate = order.createdAt ? formatDate(order.createdAt) : "-";
+  //   // Compose quantity (if available)
+  //   const quantity = 1;
+  //   // Compose percentage (demo: based on status)
+  //   let percentage = 10;
+  //   if (statusLabel === "active") percentage = 30;
+  //   else if (statusLabel === "trial") percentage = 60;
+  //   else if (statusLabel === "dispatched" || statusLabel === "delivered")
+  //     percentage = 100;
+  //   else if (statusLabel === "rejected") percentage = 0;
+  //   // Compose chatConnection (demo: true if delivered or active)
+  //   const chatConnection = [
+  //     "active",
+  //     "trial",
+  //     "dispatched",
+  //     "delivered",
+  //   ].includes(statusLabel);
+  //   // Compose unreadMessages (demo: 0)
+  //   const unreadMessages = 0;
+  //   // Compose currency/exportQuality/category
+  //   const currency = "INR";
+  //   const exportQuality = "Standard";
+  //   const category = order.category || "crown_bridge";
+  //   // Return all original fields, but override/add the mapped ones for the card
+  //   return {
+  //     ...order,
+  //     id: order.id,
+  //     refId: order.refId,
+  //     orderId: order.orderId, // Use orderId if exists, otherwise refId, fallback to id
+  //     prescription: order.restorationType || order.productSelection || "-",
+  //     patientName,
+  //     teethNo,
+  //     productName,
+  //     quantity,
+  //     orderDate,
+  //     orderCategory: order.category || "-",
+  //     orderStatus,
+  //     statusLabel,
+  //     percentage,
+  //     chatConnection,
+  //     unreadMessages,
+  //     messages,
+  //     isUrgent: false,
+  //     currency,
+  //     exportQuality,
+  //     paymentStatus,
+  //     category,
+  //   };
+  // };
 
   // Use filteredOrders (from API) and map to DentalOrder for rendering
-  const dentalOrders = filteredOrders.map(mapApiOrderToDentalOrder);
+  // const dentalOrders = filteredOrders.map(mapApiOrderToDentalOrder);
+  const dentalOrders = dbOrders;
 
   useEffect(() => {
     const el = orderDetailRef.current as HTMLElement | null;
     if (el) {
       setDetailsHeight(el.offsetHeight);
     }
-  }, [selectedOrder, dentalOrders]); // update height when selected order or orders list changes
+  }, [selectedOrderId, dentalOrders]); // update height when selected order or orders list changes
 
-  const handleViewOrder = (order: any) => {
-    setSelectedOrder(order);
-    // Don't trigger popup on dashboard - just update selection
-  };
-
-  const handleResubmitFromCard = (order: any) => {
-    setLocation(`/resubmit-order/${order.id}`);
+  const handleViewOrder = (orderId: string) => {
+    setSelectedOrderId(orderId);
   };
 
   if (isLoading) {
@@ -276,7 +288,9 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
               Error Loading Orders
             </h3>
             <p className="text-muted-foreground">
-              {typeof error === 'object' && error && 'message' in error ? (error as any).message : 'Failed to load orders'}
+              {typeof error === "object" && error && "message" in error
+                ? (error as any).message
+                : "Failed to load orders"}
             </p>
             {!user?.clinicId && (
               <p className="text-sm text-red-500 mt-2">
@@ -306,11 +320,6 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
       </Card>
     );
   }
-
-  const handleViewOrder2 = (orderId: string) => {
-    console.log("Viewing order:", orderId);
-    setSelectedOrderId(orderId);
-  };
 
   const handlePricing = (orderId: string) => {
     console.log("Viewing pricing for order:", orderId);
@@ -369,9 +378,15 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
         <div className="space-y-4">
           <Tabs value={activeFilter} onValueChange={setActiveFilter}>
             <TabsContent value={activeFilter} className="mt-4">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6" style={{ alignItems: 'stretch' }}>
+              <div
+                className="grid grid-cols-1 xl:grid-cols-3 gap-6"
+                style={{ alignItems: "stretch" }}
+              >
                 {/* Orders List */}
-                <div className="xl:col-span-1 flex flex-col" style={{ minHeight: 600, maxHeight: detailsHeight }}>
+                <div
+                  className="xl:col-span-1 flex flex-col"
+                  style={{ minHeight: 600, maxHeight: detailsHeight }}
+                >
                   {/* Search Bar - sticky */}
                   <div className="sticky top-0 z-10 bg-white pb-2">
                     <div className="relative w-full">
@@ -389,25 +404,27 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
                     className="flex-1 overflow-y-auto pr-2 pb-2 pt-1"
                     style={{ minHeight: 0, maxHeight: detailsHeight - 60 }} // adjust for sticky search bar
                   >
-                    {dentalOrders.map((order) => (
-                      <div key={order.id} className="mb-4 last:mb-0 px-1">
-                        <OrderCard
-                          order={order}
-                          onView={() => handleViewOrder(order)}
-                          onPricing={handlePricing}
-                          onPayNow={handlePayNow}
-                          onResubmit={handleResubmit}
-                          isSelected={selectedOrder?.id === order.id}
-                        />
-                      </div>
-                    ))}
-                    {dentalOrders.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">
-                          No orders found matching your criteria
-                        </p>
-                      </div>
-                    )}
+                    {Array.isArray(dentalOrders) &&
+                      dentalOrders.map((order: any) => (
+                        <div key={order.id} className="mb-4 last:mb-0 px-1">
+                          <OrderCard
+                            order={order}
+                            onView={(orderId) => handleViewOrder(orderId)}
+                            onPricing={handlePricing}
+                            onPayNow={handlePayNow}
+                            onResubmit={handleResubmit}
+                            isSelected={selectedOrderId === order.id}
+                          />
+                        </div>
+                      ))}
+                    {Array.isArray(dentalOrders) &&
+                      dentalOrders.length === 0 && (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            No orders found matching your criteria
+                          </p>
+                        </div>
+                      )}
                   </div>
                 </div>
 
@@ -416,11 +433,11 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
                   className="xl:col-span-2 border rounded-lg bg-background h-full flex flex-col overflow-y-auto"
                   ref={orderDetailRef}
                 >
-                  {selectedOrder ? (
+                  {selectedOrderId ? (
                     <OrderDetailView
-                      isOpen={!!selectedOrder}
-                      onClose={() => setSelectedOrder(null)}
-                      order={selectedOrder}
+                      isOpen={!!selectedOrderId}
+                      onClose={() => setSelectedOrderId(null)}
+                      orderId={selectedOrderId}
                       isEmbedded={true}
                     />
                   ) : (

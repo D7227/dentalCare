@@ -9,17 +9,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Phone, Search } from "lucide-react";
+import { Phone, Search, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/hooks";
 import { useGetTeamMembersByClinicQuery } from "@/store/slices/teamMemberApi";
 import CommonModal from "@/components/common/CommonModal";
+import { cn } from "@/lib/utils";
 
 interface CaseInfoCardProps {
   formData: any;
   setFormData: (data: any) => void;
-  render?: boolean;
-  editing?: boolean;
+  readMode?: boolean;
+  editMode?: boolean;
 }
 
 interface Clinic {
@@ -32,8 +33,8 @@ interface Clinic {
 const CaseInfoCard = ({
   formData,
   setFormData,
-  render = false,
-  editing = false,
+  readMode = false,
+  editMode = false,
 }: CaseInfoCardProps) => {
   const [errors, setErrors] = useState<{
     doctorMobile?: string;
@@ -328,15 +329,23 @@ const CaseInfoCard = ({
     </div>
   );
 
-  // --- Main render ---
+  // --- Main readMode ---
   return (
     <>
       <Card>
         <CardHeader className="py-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-xl font-semibold">
+          <CardTitle className="text-xl font-semibold flex gap-2 items-center">
+            <div
+              className={cn(
+                "p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]",
+                readMode || editMode ? "flex" : "hidden"
+              )}
+            >
+              <User className="h-4 w-4" />
+            </div>
             Clinic Information
           </CardTitle>
-          {editing && (
+          {editMode && (
             <button
               onClick={() => {
                 setEditData(formData);
@@ -349,7 +358,7 @@ const CaseInfoCard = ({
           )}
         </CardHeader>
         <CardContent>
-          {render || editing
+          {readMode || editMode
             ? renderSummary(formData)
             : renderInputs(
                 formData,

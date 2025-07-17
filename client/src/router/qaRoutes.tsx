@@ -4,15 +4,16 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 
 export const qaRoutes = [
-    {
-        path: "/qa",
-        element: <div>
-            <h2>QA Panel </h2>
-            < Outlet />
-        </div>,
-        children: [
-            { index: true, element: <QaDashboard /> },
-            { path: "place-order", element: <PlaceOrder /> },
-        ],
-    },
+  {
+    path: "/qa",
+    element: (
+      <div>
+        <Outlet />
+      </div>
+    ),
+    children: [
+      { index: true, element: <QaDashboard /> },
+      { path: "place-order", element: <PlaceOrder /> },
+    ],
+  },
 ];

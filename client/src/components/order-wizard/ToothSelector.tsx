@@ -10,6 +10,7 @@ import ImplantDetailsModal from "./components/ImplantDetailsModal";
 import { ToothGroup, ToothDetail, LegacyToothGroup } from "./types/tooth";
 import { CrownBridgeTeeth, ImpantTeeth } from "@/assets/svg";
 import RadioCardGroup from "../common/RadioCardGroup";
+import { cn } from "@/lib/utils";
 
 interface ToothSelectorProps {
   prescriptionType: string;
@@ -371,11 +372,11 @@ const ToothSelector = ({
     return allowedTeeth.includes(toothNumber);
   };
 
-  console.log("selectedTeeth", selectedTeeth);
-  console.log("selectedGroups", selectedGroups);
-  console.log("onGroupsChange", onGroupsChange);
-  console.log("onSelectionChange", onSelectionChange);
-  console.log("onProductComplete", onProductComplete);
+  // console.log("selectedTeeth", selectedTeeth);
+  // console.log("selectedGroups", selectedGroups);
+  // console.log("onGroupsChange", onGroupsChange);
+  // console.log("onSelectionChange", onSelectionChange);
+  // console.log("onProductComplete", onProductComplete);
 
   useEffect(() => {
     setLocalSelectedTeeth(selectedTeeth || []);
@@ -1585,9 +1586,14 @@ const ToothSelector = ({
 
   return (
     <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full">
-      <div className="w-full md:w-1/2 min-w-0">
+      <div
+        className={cn(
+          "",
+          readMode || editMode ? "w-full" : "w-full md:w-1/2 min-w-0"
+        )}
+      >
         <Card className="shadow-sm bg-[#E2F4F1]">
-          <CardContent className="p-2 sm:p-3">
+          <CardContent className="p-2 sm:p-3 relative">
             <div className="mb-4 overflow-x-auto">
               <div className="min-w-[320px] sm:min-w-0">
                 <ToothChart

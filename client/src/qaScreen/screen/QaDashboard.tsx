@@ -138,7 +138,7 @@ const QaDashboard = () => {
             </TabsContent> */}
 
                 <TabsContent value="production" className="mt-6">
-                  <ProductionTable cases={cases} onUpdate={updateCase} />
+                  <ProductionTable />
                 </TabsContent>
 
                 <TabsContent value="daily-reports" className="mt-6">

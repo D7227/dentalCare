@@ -9,9 +9,11 @@ import PaymentOptionModal from "../../components/shared/PaymentOptionModal";
 import ScanBookingConfirmationModal from "../../components/shared/ScanBookingConfirmationModal";
 import { tooth } from "@/assets/svg";
 import CustomButton from "../../components/common/customButtom";
-import { useGetOrderByIdQuery, useGetOrdersQuery } from '@/store/slices/orderApi';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import {
+  useGetOrderByIdQuery,
+} from "@/store/slices/orderApi";
+import { useSelector, useDispatch } from "react-redux";
+import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import { useAppSelector } from "@/store/hooks";
 
 interface DashboardContentProps {
@@ -31,18 +33,22 @@ const DashboardContent = ({
   const user = useAppSelector((state) => state.userData.userData);
 
   const dispatch = useDispatch();
-  const { data: allOrders = [], isLoading } = useGetOrderByIdQuery(user?.clinicId);
+  const { data: allOrders = [], isLoading } = useGetOrderByIdQuery(
+    user?.clinicId ?? ""
+  );
   // Optionally, sync to local slice
   React.useEffect(() => {
     if (allOrders) {
-      allOrders.forEach(order => dispatch(setOrder(order)));
+      allOrders.forEach((order) => dispatch(setOrder(order)));
     }
   }, [allOrders, dispatch]);
 
   // Filter orders for dashboard: only ongoing orders (not completed or rejected)
   const orders = allOrders.filter((order: any) => {
     // Show only ongoing orders (not completed, not rejected)
-    return order.orderStatus !== "completed" && order.orderStatus !== "rejected";
+    return (
+      order.orderStatus !== "completed" && order.orderStatus !== "rejected"
+    );
   });
 
   const handleViewOrder = (order: any) => {
@@ -77,7 +83,7 @@ const DashboardContent = ({
             </p>
           </div>
         </div>
-        <CustomButton onClick={onNewCase} leftIcon={Plus} variant='primary'>
+        <CustomButton onClick={onNewCase} leftIcon={Plus} variant="primary">
           Place Order
         </CustomButton>
       </div>
@@ -90,11 +96,11 @@ const DashboardContent = ({
         onScanBooking={handleScanBooking}
       />
 
-      <OrderDetailView
+      {/* <OrderDetailView
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         order={selectedOrder}
-      />
+      /> */}
 
       <PaymentOptionModal
         isOpen={paymentModalOpen}

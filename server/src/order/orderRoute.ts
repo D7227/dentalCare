@@ -4,7 +4,6 @@ import { chatStorage } from "../chat/chatController";
 import { QaStatusApiBody } from "./ordersType";
 
 export const setupOrderRoutes = (app: Express) => {
-
   // GET OEDER BY CLINIC ID
   app.get("/api/orders/:id", async (req, res) => {
     try {
@@ -18,7 +17,7 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
-
+  // get order details
   app.get("/api/orderData/:id", async (req, res) => {
     try {
       const order = await orderStorage.getOrder(req.params.id);
@@ -27,7 +26,7 @@ export const setupOrderRoutes = (app: Express) => {
       }
       res.json(order);
     } catch (error) {
-      console.log(error)
+      console.log(error);
       res.status(500).json({ error: error });
     }
   });
@@ -150,7 +149,7 @@ export const setupOrderRoutes = (app: Express) => {
   //   }
   // });
 
-  // Get chat by orderId 
+  // Get chat by orderId
   app.get("/api/orders/:orderId/chat", async (req, res) => {
     try {
       const chat = await chatStorage.getChatByOrderId(req.params.orderId);
@@ -162,5 +161,4 @@ export const setupOrderRoutes = (app: Express) => {
       res.status(500).json({ error: "Failed to fetch chat for order" });
     }
   });
-
 };

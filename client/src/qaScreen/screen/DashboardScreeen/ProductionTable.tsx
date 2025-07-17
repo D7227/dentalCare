@@ -1,26 +1,47 @@
-
 import React, { useState, useEffect } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Calendar, Filter, Plus } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import OrderReviewModal from "../../components/OrderReviewModal";
 import { CaseStatus, DentalCase } from "../../data/cases";
 import CustomButton from "@/components/common/customButtom";
 import { useLocation } from "wouter";
 import CustomStatusLabel from "@/components/common/customStatusLabel";
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useGetOrderByIdQuery, useGetOrdersQuery } from '@/store/slices/orderApi';
-import { useSelector, useDispatch } from 'react-redux';
-import { setOrder, setStep } from '@/store/slices/orderLocalSlice';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  useGetOrderByIdQuery,
+  useGetOrdersQuery,
+} from "@/store/slices/orderApi";
+import { useSelector, useDispatch } from "react-redux";
+import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import { useAppSelector } from "@/store/hooks";
 
-const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, notes?: string) => void }> = ({ onUpdate }) => {
-  const [cases, setCases] = useState<DentalCase[]>([]);
+const ProductionTable: React.FC<{}> = ({}) => {
+  const [allOrder, setAllOrder] = useState();
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  // const [cases, setCases] = useState<DentalCase[]>([]);
   const [error, setError] = useState<string | null>(null);
   // Add state for each filter input
   const [refNo, setRefNo] = useState("");
@@ -32,7 +53,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
   const [prescription, setPrescription] = useState("");
   const [product, setProduct] = useState("");
   const [scanStatus, setScanStatus] = useState("");
-  const [selectedCase, setSelectedCase] = useState<DentalCase | null>(null);
+  // const [selectedCase, setSelectedCase] = useState<DentalCase | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [location, setLocation] = useLocation();
 
@@ -44,53 +65,68 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
     { name: "Dentures", key: "dentures" },
     { name: "Sleep Accessories", key: "sleep-accessories" },
   ];
-  const user = useAppSelector((state) => state.userData.userData);
+  // const user = useAppSelector((state) => state.userData.userData);
 
-  // Use orderApi for fetching orders, and orderLocalSlice for local state
+  // Get all order list
   const { data: orders, isLoading, error: apiError } = useGetOrdersQuery();
-  const dispatch = useDispatch();
+  console.log("orders -- ", orders);
 
   useEffect(() => {
     if (orders) {
-      dispatch(setOrder(orders));
-      setCases(orders); // Assuming orders directly map to cases for now
+      setAllOrder(orders);
     }
-  }, [orders, dispatch]);
+  }, [orders]);
 
   useEffect(() => {
     if (apiError) {
-      setError(apiError.message || "Unknown error");
+      setError(apiError?.message || "Unknown error");
     }
   }, [apiError]);
 
-  const openModal = (dentalCase: DentalCase) => {
-    setSelectedCase(dentalCase);
+  const openModal = (id: string) => {
+    setSelectedOrderId(id);
     setModalOpen(true);
   };
 
   // Update filtering logic to use all filter states
-  const filteredCases = cases.filter(dentalCase => {
+  const filteredCases = allOrder?.filter((dentalCase) => {
     // Product filter: check restorationProducts and selectedTeeth
-    const matchesProduct = !product ||
-      dentalCase.restorationProducts?.some(rp => rp.product.toLowerCase().includes(product.toLowerCase())) ||
-      dentalCase.selectedTeeth?.some(st => st.selectedProducts?.some(sp => sp.name.toLowerCase().includes(product.toLowerCase())));
+    const matchesProduct =
+      !product ||
+      dentalCase.restorationProducts?.some((rp) =>
+        rp.product.toLowerCase().includes(product.toLowerCase())
+      ) ||
+      dentalCase.selectedTeeth?.some((st) =>
+        st.selectedProducts?.some((sp) =>
+          sp.name.toLowerCase().includes(product.toLowerCase())
+        )
+      );
     // Scan status filter: check fileCategories for 'Scan file'
     let matchesScanStatus = true;
     if (scanStatus === "scanned") {
-      matchesScanStatus = dentalCase.fileCategories?.some(fc => fc.type.toLowerCase() === "scan file");
+      matchesScanStatus = dentalCase.fileCategories?.some(
+        (fc) => fc.type.toLowerCase() === "scan file"
+      );
     } else if (scanStatus === "pending") {
-      matchesScanStatus = !dentalCase.fileCategories?.some(fc => fc.type.toLowerCase() === "scan file");
+      matchesScanStatus = !dentalCase.fileCategories?.some(
+        (fc) => fc.type.toLowerCase() === "scan file"
+      );
     }
 
-    const patientName = `${dentalCase.firstName} ${dentalCase.lastName}`
+    const patientName = `${dentalCase.firstName} ${dentalCase.lastName}`;
     return (
-      (!refNo || dentalCase.refId.toLowerCase().includes(refNo.toLowerCase())) &&
-      (!orderNo || dentalCase.id.toLowerCase().includes(orderNo.toLowerCase())) &&
-      (!clinicName || "Smile Dental".toLowerCase().includes(clinicName.toLowerCase())) &&
-      (!doctor || dentalCase.caseHandleBy.toLowerCase().includes(doctor.toLowerCase())) &&
+      (!refNo ||
+        dentalCase.refId.toLowerCase().includes(refNo.toLowerCase())) &&
+      (!orderNo ||
+        dentalCase.id.toLowerCase().includes(orderNo.toLowerCase())) &&
+      (!clinicName ||
+        "Smile Dental".toLowerCase().includes(clinicName.toLowerCase())) &&
+      (!doctor ||
+        dentalCase.caseHandleBy.toLowerCase().includes(doctor.toLowerCase())) &&
       (!patient || patientName.toLowerCase().includes(patient.toLowerCase())) &&
       (!orderType || dentalCase.orderMethod === orderType) &&
-      (!prescription || dentalCase.prescriptionType === prescription.toLocaleLowerCase()) &&
+      (!prescription ||
+        dentalCase.prescriptionType === prescription.toLocaleLowerCase()) &&
       matchesProduct &&
       matchesScanStatus
       // Add more filter conditions as needed
@@ -100,34 +136,48 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
   // Pagination state and logic (moved after filteredCases)
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  const totalPages = Math.ceil(filteredCases.length / pageSize);
-  const paginatedCases = filteredCases.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(filteredCases?.length / pageSize);
+  const paginatedCases = filteredCases?.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const getOrderTypeColor = (orderMethod: string) => {
     switch (orderMethod) {
-      case "digital": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "manual": return "bg-purple-100 text-purple-800 border-purple-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
+      case "digital":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "manual":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const getPrescriptionColor = (prescriptionType: string) => {
     switch (prescriptionType) {
-      case "fixed-restoration": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "implant": return "bg-green-100 text-green-800 border-green-200";
-      case "ortho": return "bg-blue-100 text-blue-800 border-blue-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
+      case "fixed-restoration":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "implant":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "ortho":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   // Statistics calculations
-  const totalOrders = cases.length;
-  const processingOrders = cases.filter(c => c.orderStatus === "Pending").length;
-  const completedOrders = cases.filter(c => c.orderStatus === "Approved").length;
-  const runningOrders = cases.length;
+  const totalOrders = allOrder?.length;
+  const processingOrders = allOrder?.filter(
+    (c) => c.orderStatus === "Pending"
+  ).length;
+  const completedOrders = allOrder?.filter(
+    (c) => c.orderStatus === "Approved"
+  ).length;
+  const runningOrders = allOrder?.length;
 
   const handleNewCase = () => {
-    setLocation('/qa-dashboard/place-order');
+    setLocation("/qa/place-order");
   };
 
   const clearFilter = () => {
@@ -140,7 +190,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
     setPrescription("");
     setProduct("");
     setScanStatus("");
-  }
+  };
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -283,7 +333,11 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Case Management</h2>
-          <CustomButton onClick={handleNewCase} leftIcon={Plus} variant='primary'>
+          <CustomButton
+            onClick={handleNewCase}
+            leftIcon={Plus}
+            variant="primary"
+          >
             Place Order
           </CustomButton>
         </div>
@@ -293,23 +347,48 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
           <div className="flex gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Ref no." className="pl-10 w-32" value={refNo} onChange={e => setRefNo(e.target.value)} />
+              <Input
+                placeholder="Ref no."
+                className="pl-10 w-32"
+                value={refNo}
+                onChange={(e) => setRefNo(e.target.value)}
+              />
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Order no." className="pl-10 w-32" value={orderNo} onChange={e => setOrderNo(e.target.value)} />
+              <Input
+                placeholder="Order no."
+                className="pl-10 w-32"
+                value={orderNo}
+                onChange={(e) => setOrderNo(e.target.value)}
+              />
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Clinic name" className="pl-10 w-32" value={clinicName} onChange={e => setClinicName(e.target.value)} />
+              <Input
+                placeholder="Clinic name"
+                className="pl-10 w-32"
+                value={clinicName}
+                onChange={(e) => setClinicName(e.target.value)}
+              />
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Doctor" className="pl-10 w-32" value={doctor} onChange={e => setDoctor(e.target.value)} />
+              <Input
+                placeholder="Doctor"
+                className="pl-10 w-32"
+                value={doctor}
+                onChange={(e) => setDoctor(e.target.value)}
+              />
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Patient na..." className="pl-10 w-32" value={patient} onChange={e => setPatient(e.target.value)} />
+              <Input
+                placeholder="Patient na..."
+                className="pl-10 w-32"
+                value={patient}
+                onChange={(e) => setPatient(e.target.value)}
+              />
             </div>
             <Select value={orderType} onValueChange={setOrderType}>
               <SelectTrigger className="w-32">
@@ -325,11 +404,9 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                 <SelectValue placeholder="Prescription" />
               </SelectTrigger>
               <SelectContent>
-                {
-                  PrescriptionType.map((value) => (
-                    <SelectItem value={value.key}>{value.name}</SelectItem>
-                  ))
-                }
+                {PrescriptionType.map((value) => (
+                  <SelectItem value={value.key}>{value.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={product} onValueChange={setProduct}>
@@ -352,7 +429,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
               </SelectContent>
             </Select>
           </div>
-          <CustomButton onClick={clearFilter} variant='primary'>
+          <CustomButton onClick={clearFilter} variant="primary">
             Clear
           </CustomButton>
         </div>
@@ -383,67 +460,140 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedCases.map((dentalCase, index) => {
+                  {paginatedCases?.map((dentalCase, index) => {
                     // Extract from selectedTeeth
-                    const teethFromSelected = Array.isArray((dentalCase as any).selectedTeeth)
+                    const teethFromSelected = Array.isArray(
+                      (dentalCase as any).selectedTeeth
+                    )
                       ? (dentalCase as any).selectedTeeth
-                        .map((t: any) => t && typeof t === 'object' && 'toothNumber' in t ? Number(t.toothNumber) : undefined)
-                        .filter((num: any) => typeof num === 'number' && !isNaN(num))
+                          .map((t: any) =>
+                            t && typeof t === "object" && "toothNumber" in t
+                              ? Number(t.toothNumber)
+                              : undefined
+                          )
+                          .filter(
+                            (num: any) => typeof num === "number" && !isNaN(num)
+                          )
                       : [];
 
                     // Extract from toothGroups' teethDetails
-                    const teethFromGroups = Array.isArray((dentalCase as any).toothGroups)
-                      ? (dentalCase as any).toothGroups.flatMap((group: any) =>
-                        Array.isArray(group.teethDetails)
-                          ? group.teethDetails.flat().map((t: any) =>
-                            t && typeof t === 'object' && 'teethNumber' in t ? Number(t.teethNumber) : undefined
+                    const teethFromGroups = Array.isArray(
+                      (dentalCase as any).toothGroups
+                    )
+                      ? (dentalCase as any).toothGroups
+                          .flatMap((group: any) =>
+                            Array.isArray(group.teethDetails)
+                              ? group.teethDetails
+                                  .flat()
+                                  .map((t: any) =>
+                                    t &&
+                                    typeof t === "object" &&
+                                    "teethNumber" in t
+                                      ? Number(t.teethNumber)
+                                      : undefined
+                                  )
+                              : []
                           )
-                          : []
-                      ).filter((num: any) => typeof num === 'number' && !isNaN(num))
+                          .filter(
+                            (num: any) => typeof num === "number" && !isNaN(num)
+                          )
                       : [];
 
                     // Combine, deduplicate, and sort
-                    const allTeethNumbers = Array.from(new Set([...teethFromSelected, ...teethFromGroups])).sort((a, b) => a - b);
+                    const allTeethNumbers = Array.from(
+                      new Set([...teethFromSelected, ...teethFromGroups])
+                    ).sort((a, b) => a - b);
 
                     // Defensive checks for dynamic fields
-                    const clinicName = typeof (dentalCase as any)?.clinicName === 'string' ? (dentalCase as any).clinicName : 'N/A';
-                    const department = typeof (dentalCase as any)?.department === 'string' ? (dentalCase as any).department : 'N/A';
-                    const lastStatus = typeof (dentalCase as any)?.lastStatus === 'string' ? (dentalCase as any).lastStatus : undefined;
-                    const createdAt = (dentalCase as any)?.createdAt ? new Date((dentalCase as any).createdAt).toLocaleDateString() : undefined;
+                    const clinicName =
+                      typeof (dentalCase as any)?.clinicName === "string"
+                        ? (dentalCase as any).clinicName
+                        : "N/A";
+                    const department =
+                      typeof (dentalCase as any)?.department === "string"
+                        ? (dentalCase as any).department
+                        : "N/A";
+                    const lastStatus =
+                      typeof (dentalCase as any)?.lastStatus === "string"
+                        ? (dentalCase as any).lastStatus
+                        : undefined;
+                    const createdAt = (dentalCase as any)?.createdAt
+                      ? new Date(
+                          (dentalCase as any).createdAt
+                        ).toLocaleDateString()
+                      : undefined;
                     // Count all file types
                     const filesCount =
-                      (Array.isArray((dentalCase as any)?.files) ? (dentalCase as any).files.length : 0) +
-                      (Array.isArray((dentalCase as any)?.intraOralScans) ? (dentalCase as any).intraOralScans.length : 0) +
-                      (Array.isArray((dentalCase as any)?.faceScans) ? (dentalCase as any).faceScans.length : 0) +
-                      (Array.isArray((dentalCase as any)?.patientPhotos) ? (dentalCase as any).patientPhotos.length : 0) +
-                      (Array.isArray((dentalCase as any)?.referralFiles) ? (dentalCase as any).referralFiles.length : 0);
+                      (Array.isArray((dentalCase as any)?.files)
+                        ? (dentalCase as any).files.length
+                        : 0) +
+                      (Array.isArray((dentalCase as any)?.intraOralScans)
+                        ? (dentalCase as any).intraOralScans.length
+                        : 0) +
+                      (Array.isArray((dentalCase as any)?.faceScans)
+                        ? (dentalCase as any).faceScans.length
+                        : 0) +
+                      (Array.isArray((dentalCase as any)?.patientPhotos)
+                        ? (dentalCase as any).patientPhotos.length
+                        : 0) +
+                      (Array.isArray((dentalCase as any)?.referralFiles)
+                        ? (dentalCase as any).referralFiles.length
+                        : 0);
 
                     return (
-                      <TableRow key={dentalCase.id}>
-                        <TableCell className="font-medium">{(currentPage - 1) * pageSize + index + 1}</TableCell>
-                        <TableCell className="font-medium text-blue-600">{dentalCase.refId}</TableCell>
-                        <TableCell>{dentalCase.orderId}</TableCell>
-                        <TableCell>{clinicName !== 'N/A' ? clinicName : "Smile Dental"}</TableCell>
-                        <TableCell>{dentalCase.caseHandleBy}</TableCell>
-                        <TableCell>{dentalCase.firstName} {dentalCase.lastName}</TableCell>
+                      <TableRow key={dentalCase?.id}>
+                        <TableCell className="font-medium">
+                          {(currentPage - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell className="font-medium text-blue-600">
+                          {dentalCase?.refId}
+                        </TableCell>
+                        <TableCell>{dentalCase?.orderId}</TableCell>
                         <TableCell>
-                          <Badge className={getOrderTypeColor(dentalCase.orderMethod)} variant="outline">
+                          {clinicName !== "N/A" ? clinicName : "Smile Dental"}
+                          {/* 
+                          // TODO : set the clinic Name not the
+                           */}
+                        </TableCell>
+                        <TableCell>{dentalCase.caseHandleBy}</TableCell>
+                        <TableCell>
+                          {dentalCase.firstName} {dentalCase.lastName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={getOrderTypeColor(
+                              dentalCase.orderMethod
+                            )}
+                            variant="outline"
+                          >
                             {dentalCase.orderMethod}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={getPrescriptionColor(dentalCase.prescriptionType)} variant="outline">
+                          <Badge
+                            className={getPrescriptionColor(
+                              dentalCase.prescriptionType
+                            )}
+                            variant="outline"
+                          >
                             {dentalCase.prescriptionType}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <ProductDetailsPopOver products={dentalCase.restorationProducts || []} />
+                          <ProductDetailsPopOver
+                            products={dentalCase.restorationProducts || []}
+                          />
                         </TableCell>
                         <TableCell>{department}</TableCell>
-                        <TableCell>{dentalCase.technician || 'N/A'}</TableCell>
-                        <TableCell>{lastStatus || createdAt || 'N/A'}</TableCell>
+                        <TableCell>{dentalCase.technician || "N/A"}</TableCell>
                         <TableCell>
-                          <CustomStatusLabel status={dentalCase.orderStatus} label={dentalCase.orderStatus} />
+                          {lastStatus || createdAt || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <CustomStatusLabel
+                            status={dentalCase.orderStatus}
+                            label={dentalCase.orderStatus}
+                          />
                         </TableCell>
                         <TableCell>
                           {allTeethNumbers.length > 0 ? (
@@ -454,12 +604,18 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent className="w-56">
-                                <div className="font-semibold mb-2">Selected Teeth ({allTeethNumbers.length})</div>
-                                <div className="text-sm">{allTeethNumbers.join(", ")}</div>
+                                <div className="font-semibold mb-2">
+                                  Selected Teeth ({allTeethNumbers.length})
+                                </div>
+                                <div className="text-sm">
+                                  {allTeethNumbers.join(", ")}
+                                </div>
                               </PopoverContent>
                             </Popover>
                           ) : (
-                            <span className="text-gray-400 text-xs">No teeth</span>
+                            <span className="text-gray-400 text-xs">
+                              No teeth
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -470,39 +626,98 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                               </button>
                             </PopoverTrigger>
                             <PopoverContent className="w-64">
-                              <div className="font-semibold mb-2">File Details</div>
+                              <div className="font-semibold mb-2">
+                                File Details
+                              </div>
                               <ul className="space-y-1 text-sm">
                                 <li>
-                                  <span className="font-medium">General Files:</span> {Array.isArray((dentalCase as any)?.files) && (dentalCase as any).files.length > 0
-                                    ? (dentalCase as any).files.map((f: any, i: number) => f?.name || `File ${i + 1}`).join(', ')
-                                    : 'None'}
+                                  <span className="font-medium">
+                                    General Files:
+                                  </span>{" "}
+                                  {Array.isArray((dentalCase as any)?.files) &&
+                                  (dentalCase as any).files.length > 0
+                                    ? (dentalCase as any).files
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `File ${i + 1}`
+                                        )
+                                        .join(", ")
+                                    : "None"}
                                 </li>
                                 <li>
-                                  <span className="font-medium">IntraOral Scans:</span> {Array.isArray((dentalCase as any)?.intraOralScans) && (dentalCase as any).intraOralScans.length > 0
-                                    ? (dentalCase as any).intraOralScans.map((f: any, i: number) => f?.name || `Scan ${i + 1}`).join(', ')
-                                    : 'None'}
+                                  <span className="font-medium">
+                                    IntraOral Scans:
+                                  </span>{" "}
+                                  {Array.isArray(
+                                    (dentalCase as any)?.intraOralScans
+                                  ) &&
+                                  (dentalCase as any).intraOralScans.length > 0
+                                    ? (dentalCase as any).intraOralScans
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Scan ${i + 1}`
+                                        )
+                                        .join(", ")
+                                    : "None"}
                                 </li>
                                 <li>
-                                  <span className="font-medium">Face Scans:</span> {Array.isArray((dentalCase as any)?.faceScans) && (dentalCase as any).faceScans.length > 0
-                                    ? (dentalCase as any).faceScans.map((f: any, i: number) => f?.name || `Face Scan ${i + 1}`).join(', ')
-                                    : 'None'}
+                                  <span className="font-medium">
+                                    Face Scans:
+                                  </span>{" "}
+                                  {Array.isArray(
+                                    (dentalCase as any)?.faceScans
+                                  ) && (dentalCase as any).faceScans.length > 0
+                                    ? (dentalCase as any).faceScans
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Face Scan ${i + 1}`
+                                        )
+                                        .join(", ")
+                                    : "None"}
                                 </li>
                                 <li>
-                                  <span className="font-medium">Patient Photos:</span> {Array.isArray((dentalCase as any)?.patientPhotos) && (dentalCase as any).patientPhotos.length > 0
-                                    ? (dentalCase as any).patientPhotos.map((f: any, i: number) => f?.name || `Photo ${i + 1}`).join(', ')
-                                    : 'None'}
+                                  <span className="font-medium">
+                                    Patient Photos:
+                                  </span>{" "}
+                                  {Array.isArray(
+                                    (dentalCase as any)?.patientPhotos
+                                  ) &&
+                                  (dentalCase as any).patientPhotos.length > 0
+                                    ? (dentalCase as any).patientPhotos
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Photo ${i + 1}`
+                                        )
+                                        .join(", ")
+                                    : "None"}
                                 </li>
                                 <li>
-                                  <span className="font-medium">Referral Files:</span> {Array.isArray((dentalCase as any)?.referralFiles) && (dentalCase as any).referralFiles.length > 0
-                                    ? (dentalCase as any).referralFiles.map((f: any, i: number) => f?.name || `Referral ${i + 1}`).join(', ')
-                                    : 'None'}
+                                  <span className="font-medium">
+                                    Referral Files:
+                                  </span>{" "}
+                                  {Array.isArray(
+                                    (dentalCase as any)?.referralFiles
+                                  ) &&
+                                  (dentalCase as any).referralFiles.length > 0
+                                    ? (dentalCase as any).referralFiles
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Referral ${i + 1}`
+                                        )
+                                        .join(", ")
+                                    : "None"}
                                 </li>
                               </ul>
                             </PopoverContent>
                           </Popover>
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" onClick={() => openModal(dentalCase)}>Review</Button>
+                          <Button
+                            size="sm"
+                            onClick={() => openModal(dentalCase?.id)}
+                          >
+                            Review
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -516,12 +731,20 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
         {/* Pagination Info */}
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {filteredCases.length === 0
+            {filteredCases?.length === 0
               ? "No cases"
-              : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredCases.length)} of ${filteredCases.length} cases`}
+              : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(
+                  currentPage * pageSize,
+                  filteredCases?.length
+                )} of ${filteredCases?.length} cases`}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
               «
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -529,13 +752,20 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                 key={page}
                 variant={currentPage === page ? "default" : "ghost"}
                 size="sm"
-                className={currentPage === page ? "bg-teal-600 hover:bg-teal-700" : ""}
+                className={
+                  currentPage === page ? "bg-teal-600 hover:bg-teal-700" : ""
+                }
                 onClick={() => setCurrentPage(page)}
               >
                 {page}
               </Button>
             ))}
-            <Button variant="ghost" size="sm" onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
               »
             </Button>
           </div>
@@ -573,7 +803,10 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                     <TableCell className="text-orange-600">1</TableCell>
                     <TableCell className="text-blue-600">1</TableCell>
                     <TableCell>
-                      <Badge className="bg-green-100 text-green-800" variant="outline">
+                      <Badge
+                        className="bg-green-100 text-green-800"
+                        variant="outline"
+                      >
                         Submitted
                       </Badge>
                     </TableCell>
@@ -588,7 +821,10 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
                     <TableCell className="text-orange-600">2</TableCell>
                     <TableCell className="text-blue-600">0</TableCell>
                     <TableCell>
-                      <Badge className="bg-gray-100 text-gray-800" variant="outline">
+                      <Badge
+                        className="bg-gray-100 text-gray-800"
+                        variant="outline"
+                      >
                         Reviewed
                       </Badge>
                     </TableCell>
@@ -603,8 +839,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
       <OrderReviewModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        dentalCase={selectedCase}
-        onUpdate={onUpdate}
+        selectedOrderId={selectedOrderId}
       />
     </div>
   );

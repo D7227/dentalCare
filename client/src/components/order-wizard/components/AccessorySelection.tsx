@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Package, Search, Plus, Minus, X, Pencil } from "lucide-react";
+import { Package, Search, Plus, Minus, X, Pencil, Wrench } from "lucide-react";
 import BaseModal from "@/components/shared/BaseModal";
+import { cn } from "@/lib/utils";
 
 interface AccessorySelectionProps {
   formData: any;
@@ -266,7 +267,14 @@ const AccessorySelection = ({
           ) : (
             <div className="flex items-center gap-2 justify-between">
               <CardTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
-                <Package size={20} />
+                <div
+                  className={cn(
+                    "p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]",
+                    readMode || editMode ? "flex" : "hidden"
+                  )}
+                >
+                  <Wrench className="h-4 w-4" />
+                </div>
                 Accessories
               </CardTitle>
               {editMode && (

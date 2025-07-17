@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -299,9 +299,9 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
   // }, [getSocket, dispatch]);
 
   // Auto-scroll to bottom when new messages arrive
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+  const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior });
     }
   };
 
@@ -314,9 +314,17 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
     }
   };
 
+  // When chatId or messagesList changes, scroll instantly (no animation)
+  useLayoutEffect(() => {
+    scrollToBottom("auto");
+  }, [chatId, messagesList]);
+
+  // When new messages arrive in the same chat, scroll smoothly
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messagesList.length > 0) {
+      scrollToBottom("smooth");
+    }
+  }, [messagesList]);
 
   // Reset selected participant when chat details change
   useEffect(() => {

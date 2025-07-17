@@ -10,19 +10,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CommonModal from "@/components/common/CommonModal";
+import { User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface PatientInfoCardProps {
   formData: any;
   setFormData: (data: any) => void;
-  render?: boolean;
-  editing?: boolean;
+  readMode?: boolean;
+  editMode?: boolean;
 }
 
 const PatientInfoCard = ({
   formData,
   setFormData,
-  render = false,
-  editing = false,
+  readMode = false,
+  editMode = false,
 }: PatientInfoCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState(formData);
@@ -30,7 +32,10 @@ const PatientInfoCard = ({
   const capitalizeWords = (text: string): string => text.toUpperCase();
 
   // Handlers for editData (modal)
-  const handleEditNameChange = (field: "firstName" | "lastName", value: string) => {
+  const handleEditNameChange = (
+    field: "firstName" | "lastName",
+    value: string
+  ) => {
     setEditData((prev: any) => ({
       ...prev,
       [field]: capitalizeWords(value),
@@ -56,7 +61,10 @@ const PatientInfoCard = ({
   };
 
   // Handlers for formData (default mode)
-  const handleFormNameChange = (field: "firstName" | "lastName", value: string) => {
+  const handleFormNameChange = (
+    field: "firstName" | "lastName",
+    value: string
+  ) => {
     setFormData((prev: any) => ({
       ...prev,
       [field]: capitalizeWords(value),
@@ -87,7 +95,12 @@ const PatientInfoCard = ({
   };
 
   // Updated renderInputs to accept handlers
-  const renderInputs = (data: any, onNameChange: any, onAgeChange: any, onSexChange: any) => (
+  const renderInputs = (
+    data: any,
+    onNameChange: any,
+    onAgeChange: any,
+    onSexChange: any
+  ) => (
     <div className="space-y-4">
       <div className="space-y-1">
         <Label>First Name *</Label>
@@ -159,10 +172,18 @@ const PatientInfoCard = ({
     <>
       <Card>
         <CardHeader className="py-3 flex justify-between items-center flex-row">
-          <CardTitle className="text-xl font-semibold">
+          <CardTitle className="text-xl font-semibold flex gap-2 items-center">
+            <div
+              className={cn(
+                "p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]",
+                readMode || editMode ? "flex" : "hidden"
+              )}
+            >
+              <User className="h-4 w-4" />
+            </div>
             Patient Information
           </CardTitle>
-          {editing && (
+          {editMode && (
             <button
               onClick={() => {
                 setEditData(formData);
@@ -170,14 +191,19 @@ const PatientInfoCard = ({
               }}
               className="ml-2 px-3 py-1 rounded bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200"
             >
-              edit
+              Edit
             </button>
           )}
         </CardHeader>
         <CardContent>
-          {render || editing
+          {readMode || editMode
             ? renderSummary(formData)
-            : renderInputs(formData, handleFormNameChange, handleFormAgeChange, handleFormSexChange)}
+            : renderInputs(
+                formData,
+                handleFormNameChange,
+                handleFormAgeChange,
+                handleFormSexChange
+              )}
         </CardContent>
       </Card>
 
@@ -186,7 +212,14 @@ const PatientInfoCard = ({
         onOpenChange={setIsModalOpen}
         title="Update Patient Details"
       >
-        <div className="space-y-4 p-2 ">{renderInputs(editData, handleEditNameChange, handleEditAgeChange, handleEditSexChange)}</div>
+        <div className="space-y-4 p-2 ">
+          {renderInputs(
+            editData,
+            handleEditNameChange,
+            handleEditAgeChange,
+            handleEditSexChange
+          )}
+        </div>
         <div className="flex justify-end pt-4 gap-2">
           <button
             className="px-4 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"

@@ -128,10 +128,10 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
   onResubmit,
   isSelected = false,
 }) => {
-  const statusStyle = statusConfig[order?.orderStatus as keyof typeof statusConfig];
-  const orderStatusStyle = orderStatusConfig[order?.orderStatus as keyof typeof orderStatusConfig];
-
-  console.log('order[0]', order)
+  const statusStyle =
+    statusConfig[order?.orderStatus as keyof typeof statusConfig];
+  const orderStatusStyle =
+    orderStatusConfig[order?.orderStatus as keyof typeof orderStatusConfig];
 
   const isPaymentCompleted =
     order?.paymentStatus === "paid" || order?.orderStatus === "delivered";
@@ -145,7 +145,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
       )}
       style={{
         // background: statusStyle?.gradient,
-        background: 'white'
+        background: "white",
         // minHeight: "294px",
       }}
     >
@@ -241,12 +241,17 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
               <div className="text-base text-gray-600 font-semibold mb-1">
                 {order?.firstName && order?.lastName
                   ? `${order.firstName} ${order.lastName}`.trim()
-                  : order?.firstName || 'Unknown Patient'}
+                  : order?.firstName || "Unknown Patient"}
               </div>
               <div className="text-sm text-gray-600">
                 Teeth No :{" "}
                 <span className="text-gray-900 font-medium">
-                  {order?.teethNo || (Array.isArray(order?.selectedTeeth) ? order.selectedTeeth.map((t: any) => t.toothNumber || t).join(', ') : '')}
+                  {order?.teethNo ||
+                    (Array.isArray(order?.selectedTeeth)
+                      ? order.selectedTeeth
+                          .map((t: any) => t.toothNumber || t)
+                          .join(", ")
+                      : "")}
                 </span>
               </div>
               {/* Dates */}
@@ -275,7 +280,9 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                 E-max 10 year x {order?.quantity}
               </div>
               <div className="flex items-center my-2">
-                <CustomStatusBatch label={order?.type as "new" | "repair" | "repeat"} />
+                <CustomStatusBatch
+                  label={order?.type as "new" | "repair" | "repeat"}
+                />
               </div>
               <CustomStatusLabel
                 label={order?.orderStatus || ""}
