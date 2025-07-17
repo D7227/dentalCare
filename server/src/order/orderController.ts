@@ -9,7 +9,12 @@ import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
 import { OrderType } from "@/types/orderType";
-import { doctorOrderTableType, FilterBody, QaStatusApiBody } from "./ordersType";
+import {
+  doctorOrderTableType,
+  FilterBody,
+  qaOrderTableType,
+  QaStatusApiBody,
+} from "./ordersType";
 import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
 
@@ -318,11 +323,36 @@ export class OrderStorage implements orderStore {
     return newOrderList;
   }
 
-  async getOrderByStatus(body:FilterBody): Promise<any[]>{
-    return await db
+  async getOrderByStatus(body: FilterBody): Promise<qaOrderTableType[]> {
+    const orders = await db
       .select()
       .from(orderSchema)
       .where(eq(orderSchema.orderStatus, body.status));
+
+    let updateOrder = [];
+    for (const order of orders) {
+      const fullData = await this.getFullOrderData(order);
+      const clinicData = await clinicStorage.getClinicById(fullData?.clinicId);
+
+      updateOrder.push({
+        id: fullData?.id,
+        refId: fullData?.refId,
+        orderId: fullData?.orderId,
+        clinicName: clinicData?.clinicName,
+        handleBy: fullData?.caseHandleBy,
+        patientName: `${fullData?.firstName} ${fullData?.lastName}`,
+        orderType: fullData?.orderType,
+        prescription: fullData?.prescriptionTypesId,
+        product: fullData?.products,
+        department: fullData?.id,
+        technician: fullData?.id,
+        lastStatus: fullData?.updateDate,
+        orderStatus: fullData?.orderStatus,
+        selectedTeeth: fullData?.teethNumber,
+        files: fullData?.files?.addPatientPhotos?.length,
+      } as qaOrderTableType);
+    }
+    return updateOrder;
   }
 
   async getToothGroupsByOrder(orderId: string): Promise<any[]> {
@@ -364,61 +394,49 @@ export class OrderStorage implements orderStore {
       (teethGroup?.selectedTeeth || []).map(
         (tooth: any) => tooth.toothNumber ?? tooth.teethNumber
       ) || [];
-    const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+    let teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+    // Remove null or undefined teeth numbers
+    teethnumber = teethnumber.filter((n) => n !== null && n !== undefined);
 
-    // --- Robust Product summary logic ---
-    const productMap: Record<string, number> = {};
-    const addProduct = (name: string, qty: number) => {
-      if (!name) return;
-      if (!productMap[name]) productMap[name] = 0;
-      productMap[name] += qty || 1;
-    };
-    // From teethGroup
+    // --- New Product Name Count Logic ---
+    const allProductNames: string[] = [];
+
+    // Collect from selectedTeeth
+    // if (teethGroup?.selectedTeeth) {
+    //   teethGroup.selectedTeeth.forEach((tooth: any) => {
+    //     if (Array.isArray(tooth.productName)) {
+    //       allProductNames.push(...tooth.productName);
+    //     }
+    //   });
+    // }
+
+    // Collect from teethGroup
     if (teethGroup?.teethGroup) {
       teethGroup.teethGroup.forEach((group: any) => {
-        // Group-level selectedProducts
-        (group.selectedProducts || []).forEach((prod: any) => {
-          addProduct(prod.name, Number(prod.quantity) || 1);
-        });
-        // Teeth details
-        (group.teethDetails || []).flat().forEach((tooth: any) => {
-          // Tooth-level selectedProducts
-          (tooth.selectedProducts || []).forEach((prod: any) => {
-            addProduct(prod.name, Number(prod.quantity) || 1);
+        if (Array.isArray(group.teethDetails)) {
+          group.teethDetails.forEach((row: any) => {
+            if (Array.isArray(row)) {
+              row.forEach((tooth: any) => {
+                if (Array.isArray(tooth.productName)) {
+                  allProductNames.push(...tooth.productName);
+                }
+              });
+            }
           });
-          // Tooth-level productName(s)
-          if (Array.isArray(tooth.productName)) {
-            tooth.productName.forEach((name: string) =>
-              addProduct(name, Number(tooth.productQuantity) || 1)
-            );
-          } else if (tooth.productName) {
-            addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
-          }
-        });
-      });
-    }
-    // From selectedTeeth
-    if (teethGroup?.selectedTeeth) {
-      teethGroup.selectedTeeth.forEach((tooth: any) => {
-        // Tooth-level selectedProducts
-        (tooth.selectedProducts || []).forEach((prod: any) => {
-          addProduct(prod.name, Number(prod.quantity) || 1);
-        });
-        // Tooth-level productName(s)
-        if (Array.isArray(tooth.productName)) {
-          tooth.productName.forEach((name: string) =>
-            addProduct(name, Number(tooth.productQuantity) || 1)
-          );
-        } else if (tooth.productName) {
-          addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
         }
       });
     }
-    const productSummary = Object.entries(productMap).map(([name, qty]) => ({
-      name,
-      qty,
-    }));
-    // --- End product summary logic ---
+
+    // Count occurrences
+    const productCountMap: Record<string, number> = {};
+    for (const name of allProductNames) {
+      if (!name) continue;
+      console.log(name,"name s")
+      productCountMap[name] = (productCountMap[name] || 0) + 1;
+    }
+
+    const productSummary = Object.entries(productCountMap).map(([name, qty]) => ({ name, qty }));
+    // --- End New Product Name Count Logic ---
 
     const orderData: OrderType = {
       id: order?.id,
@@ -516,8 +534,6 @@ export class OrderStorage implements orderStore {
       .returning();
     return order;
   }
-
-  
 
   async updateOrder(
     id: string,
