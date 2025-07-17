@@ -1221,6 +1221,33 @@ var OrderStorage = class {
     }
     return newOrderList;
   }
+  async getOrderByStatus(body) {
+    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.orderStatus, body.status));
+    let updateOrder = [];
+    for (const order of orders) {
+      const fullData = await this.getFullOrderData(order);
+      const clinicData = await clinicStorage.getClinicById(fullData?.clinicId);
+      console.log(fullData?.updateDate, "fullData?.updateDate");
+      updateOrder.push({
+        id: fullData?.id,
+        refId: fullData?.refId,
+        orderId: fullData?.orderId,
+        clinicName: clinicData?.clinicName,
+        handleBy: fullData?.caseHandleBy,
+        patientName: `${fullData?.firstName} ${fullData?.lastName}`,
+        orderType: fullData?.orderType,
+        prescription: fullData?.prescriptionTypesId,
+        product: fullData?.products,
+        department: fullData?.department,
+        technician: fullData?.technician,
+        lastStatus: fullData?.updateDate,
+        orderStatus: fullData?.orderStatus,
+        selectedTeeth: fullData?.teethNumber,
+        files: fullData?.files?.addPatientPhotos?.length
+      });
+    }
+    return updateOrder;
+  }
   async getToothGroupsByOrder(orderId) {
     console.log("orderId", orderId);
     return await db.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
@@ -1245,50 +1272,41 @@ var OrderStorage = class {
     const selectedTeethNumbers = (teethGroup?.selectedTeeth || []).map(
       (tooth) => tooth.toothNumber ?? tooth.teethNumber
     ) || [];
-    const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
-    const productMap = {};
-    const addProduct = (name, qty) => {
-      if (!name) return;
-      if (!productMap[name]) productMap[name] = 0;
-      productMap[name] += qty || 1;
-    };
-    if (teethGroup?.teethGroup) {
-      teethGroup.teethGroup.forEach((group) => {
-        (group.selectedProducts || []).forEach((prod) => {
-          addProduct(prod.name, Number(prod.quantity) || 1);
-        });
-        (group.teethDetails || []).flat().forEach((tooth) => {
-          (tooth.selectedProducts || []).forEach((prod) => {
-            addProduct(prod.name, Number(prod.quantity) || 1);
-          });
-          if (Array.isArray(tooth.productName)) {
-            tooth.productName.forEach(
-              (name) => addProduct(name, Number(tooth.productQuantity) || 1)
-            );
-          } else if (tooth.productName) {
-            addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
-          }
-        });
-      });
-    }
+    let teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+    teethnumber = teethnumber.filter((n) => n !== null && n !== void 0);
+    const allProductNames = [];
     if (teethGroup?.selectedTeeth) {
       teethGroup.selectedTeeth.forEach((tooth) => {
-        (tooth.selectedProducts || []).forEach((prod) => {
-          addProduct(prod.name, Number(prod.quantity) || 1);
-        });
         if (Array.isArray(tooth.productName)) {
-          tooth.productName.forEach(
-            (name) => addProduct(name, Number(tooth.productQuantity) || 1)
-          );
-        } else if (tooth.productName) {
-          addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
+          allProductNames.push(...tooth.productName);
         }
       });
     }
-    const productSummary = Object.entries(productMap).map(([name, qty]) => ({
-      name,
-      qty
-    }));
+    if (teethGroup?.teethGroup) {
+      teethGroup.teethGroup.forEach((group) => {
+        if (Array.isArray(group.teethDetails)) {
+          group.teethDetails.forEach((row) => {
+            if (Array.isArray(row)) {
+              row.forEach((tooth) => {
+                if (Array.isArray(tooth.productName)) {
+                  allProductNames.push(...tooth.productName);
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    const productCountMap = {};
+    for (const name of allProductNames) {
+      if (!name) continue;
+      console.log(name, "name s");
+      productCountMap[name] = (productCountMap[name] || 0) + 1;
+    }
+    const productSummary = Object.entries(productCountMap).map(
+      ([name, qty]) => ({ name, qty })
+    );
+    console.log("order.updateDate", order.updateDate);
     const orderData = {
       id: order?.id,
       firstName: patient?.firstName || "",
@@ -1329,7 +1347,7 @@ var OrderStorage = class {
       orderStatus: order.orderStatus || "",
       refId: order.refId || "",
       orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-      updateDate: typeof order.updateDate === "string" ? order.updateDate : order.updateDate ? new Date(order.updateDate).toISOString() : "",
+      updateDate: typeof order.updatedAt === "string" ? order.updatedAt : order.updatedAt ? new Date(order.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
       totalAmount: order.totalAmount || "",
       paymentType: order.paymentType || "",
       doctorNote: order.doctorNote || "",
@@ -1877,6 +1895,16 @@ var setupOrderRoutes = (app2) => {
       res.status(500).json({ error });
     }
   });
+  app2.get("/api/qa/filter/order", async (req, res) => {
+    try {
+      const status = req.query.status;
+      const filterBody = { status };
+      const order = await orderStorage.getOrderByStatus(filterBody);
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error });
+    }
+  });
   app2.get("/api/orders", async (req, res) => {
     try {
       const order = await orderStorage.getOrders();
@@ -2081,18 +2109,6 @@ var setuRoleRoutes = (app2) => {
   });
 };
 
-// server/src/patient/patientRoute.ts
-var setupPatientRoute = async (app2) => {
-  app2.get("/api/patients", async (req, res) => {
-    try {
-      const patients2 = await patientStorage.getPatients();
-      res.json(patients2);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch patients" });
-    }
-  });
-};
-
 // server/src/draftOrder/draftOrderSchema.tsx
 import {
   pgTable as pgTable13,
@@ -2215,11 +2231,9 @@ var setupDraftOrderRoutes = (app2) => {
 // server/routes.ts
 async function registerRoutes(app2) {
   passport.use(
-    new LocalStrategy(
-      (username, password, done) => {
-        done(null, { username });
-      }
-    )
+    new LocalStrategy((username, password, done) => {
+      done(null, { username });
+    })
   );
   app2.get("/api/products", async (req, res) => {
     try {
@@ -2270,9 +2284,15 @@ async function registerRoutes(app2) {
   });
   app2.post("/api/tooth-groups", async (req, res) => {
     try {
-      console.log("Received tooth group data:", JSON.stringify(req.body, null, 2));
+      console.log(
+        "Received tooth group data:",
+        JSON.stringify(req.body, null, 2)
+      );
       const toothGroupData = insertToothGroupSchema.parse(req.body);
-      console.log("Parsed tooth group data:", JSON.stringify(toothGroupData, null, 2));
+      console.log(
+        "Parsed tooth group data:",
+        JSON.stringify(toothGroupData, null, 2)
+      );
       const toothGroup = await storage.createToothGroup(toothGroupData);
       res.status(201).json(toothGroup);
     } catch (error) {
@@ -2285,7 +2305,9 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/orders/:orderId/tooth-groups", async (req, res) => {
     try {
-      const toothGroups2 = await storage.getToothGroupsByOrder(req.params.orderId);
+      const toothGroups2 = await storage.getToothGroupsByOrder(
+        req.params.orderId
+      );
       res.json(toothGroups2);
     } catch (error) {
       console.error("Error fetching tooth groups", error);
@@ -2300,7 +2322,6 @@ async function registerRoutes(app2) {
   setupOrderRoutes(app2);
   setupTeamMemberRoutes(app2);
   setuRoleRoutes(app2);
-  setupPatientRoute(app2);
   setupDraftOrderRoutes(app2);
   const httpServer2 = createServer(app2);
   return httpServer2;

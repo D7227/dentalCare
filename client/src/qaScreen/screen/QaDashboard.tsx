@@ -13,6 +13,7 @@ import { FileText } from "lucide-react";
 import type { DailyReport } from "../data/dailyReports";
 import { SidebarProvider, SidebarTrigger } from "../components/ui/sidebar";
 import QaChatContent from "./ChatScreen/qaChatContent";
+import ProductionScreen from "./ProductionScreen/productionScreen";
 
 const QaDashboard = () => {
   const [cases, setCases] = useState(initialCases);
@@ -157,6 +158,11 @@ const QaDashboard = () => {
                 onSubmitReport={handleSubmitDailyReport}
               />
             </main>
+          )
+        }
+        {
+          selectedPage === "Production" &&(
+            <ProductionScreen />
           )
         }
         {

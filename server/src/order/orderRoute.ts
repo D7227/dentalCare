@@ -34,8 +34,9 @@ export const setupOrderRoutes = (app: Express) => {
   // Get Order Api
   app.get("/api/qa/filter/order", async (req, res) => {
     try {
-      const body:FilterBody = req.body;
-      const order =  await orderStorage.getOrderByStatus(body);
+      const status = req.query.status as string;
+      const filterBody: FilterBody = { status };
+      const order = await orderStorage.getOrderByStatus(filterBody);
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: error });

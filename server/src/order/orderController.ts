@@ -328,12 +328,10 @@ export class OrderStorage implements orderStore {
       .select()
       .from(orderSchema)
       .where(eq(orderSchema.orderStatus, body.status));
-
     let updateOrder = [];
     for (const order of orders) {
       const fullData = await this.getFullOrderData(order);
       const clinicData = await clinicStorage.getClinicById(fullData?.clinicId);
-
       updateOrder.push({
         id: fullData?.id,
         refId: fullData?.refId,
@@ -344,8 +342,8 @@ export class OrderStorage implements orderStore {
         orderType: fullData?.orderType,
         prescription: fullData?.prescriptionTypesId,
         product: fullData?.products,
-        department: fullData?.id,
-        technician: fullData?.id,
+        department: fullData?.department,
+        technician: fullData?.technician,
         lastStatus: fullData?.updateDate,
         orderStatus: fullData?.orderStatus,
         selectedTeeth: fullData?.teethNumber,
@@ -431,13 +429,13 @@ export class OrderStorage implements orderStore {
     const productCountMap: Record<string, number> = {};
     for (const name of allProductNames) {
       if (!name) continue;
-      console.log(name,"name s")
+      console.log(name, "name s");
       productCountMap[name] = (productCountMap[name] || 0) + 1;
     }
 
-    const productSummary = Object.entries(productCountMap).map(([name, qty]) => ({ name, qty }));
-    // --- End New Product Name Count Logic ---
-
+    const productSummary = Object.entries(productCountMap).map(
+      ([name, qty]) => ({ name, qty })
+    );
     const orderData: OrderType = {
       id: order?.id,
       firstName: patient?.firstName || "",
@@ -507,11 +505,11 @@ export class OrderStorage implements orderStore {
           ? new Date(order.orderDate).toISOString()
           : new Date().toISOString(),
       updateDate:
-        typeof order.updateDate === "string"
-          ? order.updateDate
-          : order.updateDate
-          ? new Date(order.updateDate).toISOString()
-          : "",
+        typeof order.updatedAt === "string"
+          ? order.updatedAt
+          : order.updatedAt
+          ? new Date(order.updatedAt).toISOString()
+          : new Date().toISOString(),
       totalAmount: order.totalAmount || "",
       paymentType: order.paymentType || "",
       doctorNote: order.doctorNote || "",

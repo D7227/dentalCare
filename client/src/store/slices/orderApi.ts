@@ -49,6 +49,16 @@ export const orderApi = createApi({
       query: (clinicId) => ({ url: `/orders/${clinicId}`, method: "GET" }),
       providesTags: (result, error, clinicId) => [{ type: "Order", clinicId }],
     }),
+    
+    // Get order by ID (ClinicId)
+    getQaOrder: builder.query<OrderType[], string>({
+      query: (status) => ({
+        url: `/qa/filter/order`,
+        method: "GET",
+        params: { status },
+      }),
+      providesTags: (result, error, status) => [{ type: "Order", status }],
+    }),
 
     // Get order by ID (OrderId)
     getOrderByOrderId: builder.query<OrderType, string>({
@@ -120,6 +130,7 @@ export const orderApi = createApi({
 export const {
   useGetOrdersQuery,
   useGetOrderByIdQuery,
+  useGetQaOrderQuery,
   useGetOrderByOrderIdQuery,
   useCreateOrderMutation,
   useUpdateOrderMutation,
