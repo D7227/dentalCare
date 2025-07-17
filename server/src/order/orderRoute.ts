@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { orderStorage } from "./orderController";
 import { chatStorage } from "../chat/chatController";
-import { QaStatusApiBody } from "./ordersType";
+import { FilterBody, QaStatusApiBody } from "./ordersType";
 
 export const setupOrderRoutes = (app: Express) => {
   // GET OEDER BY CLINIC ID
@@ -30,6 +30,17 @@ export const setupOrderRoutes = (app: Express) => {
       res.status(500).json({ error: error });
     }
   });
+
+  // Get Order Api
+  app.get("/api/qa/filter/order", async (req, res) => {
+    try {
+      const body:FilterBody = req.body;
+      const order =  await orderStorage.getOrderByStatus(body);
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: error });
+    }
+  })
 
   // GET ALL ORDER
   app.get("/api/orders", async (req, res) => {

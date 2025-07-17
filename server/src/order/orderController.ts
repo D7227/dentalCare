@@ -9,7 +9,7 @@ import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
 import { OrderType } from "@/types/orderType";
-import { doctorOrderTableType, QaStatusApiBody } from "./ordersType";
+import { doctorOrderTableType, FilterBody, QaStatusApiBody } from "./ordersType";
 import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
 
@@ -38,6 +38,7 @@ export interface orderStore {
   // }): Promise<number>;
   updateStatus(orderId: string, body: QaStatusApiBody): Promise<any[]>;
   getOrdersByPatient(patientId: string): Promise<any[]>;
+  getOrderByStatus(body: FilterBody): Promise<any[]>;
   getToothGroupsByOrder(orderId: string): Promise<any[]>;
   updateOrderStatus(id: string, status: string): Promise<any | undefined>;
   updateOrder(id: string, updates: Partial<any>): Promise<any | undefined>;
@@ -317,6 +318,13 @@ export class OrderStorage implements orderStore {
     return newOrderList;
   }
 
+  async getOrderByStatus(body:FilterBody): Promise<any[]>{
+    return await db
+      .select()
+      .from(orderSchema)
+      .where(eq(orderSchema.orderStatus, body.status));
+  }
+
   async getToothGroupsByOrder(orderId: string): Promise<any[]> {
     console.log("orderId", orderId);
     return await db
@@ -508,6 +516,8 @@ export class OrderStorage implements orderStore {
       .returning();
     return order;
   }
+
+  
 
   async updateOrder(
     id: string,

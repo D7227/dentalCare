@@ -27,3 +27,8 @@ export interface QaStatusApiBody {
     rejectNote:string;
     userName:string;
 }
+
+
+export interface FilterBody {
+    status : string;
+}
