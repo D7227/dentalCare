@@ -12,29 +12,29 @@ import { setupMessageRoutes } from "./src/message/messageRoute";
 import { setupOrderRoutes } from "./src/order/orderRoute";
 import { setupTeamMemberRoutes } from "./src/teamMember/teamMemberRoute";
 import { setuRoleRoutes } from "./src/role/roleRoute";
-import { setupPatientRoute } from "./src/patient/patientRoute";
+// import { setupPatientRoute } from "./src/patient/patientRoute";
 import { setupDraftOrderRoutes } from "./src/draftOrder/draftOrderRoute";
 
 // Mapping from incoming snake_case keys to Drizzle schema field names
 const clinicFieldMap: { [key: string]: string } = {
-  first_name: 'firstname',
-  last_name: 'lastname',
-  clinic_name: 'clinicName',
-  license_number: 'clinicLicenseNumber',
-  clinic_address_line1: 'clinicAddressLine1',
-  clinic_address_line2: 'clinicAddressLine2',
-  clinic_city: 'clinicCity',
-  clinic_state: 'clinicState',
-  clinic_pincode: 'clinicPincode',
-  clinic_country: 'clinicCountry',
-  gst_number: 'gstNumber',
-  pan_number: 'panNumber',
-  billing_address_line1: 'billingAddressLine1',
-  billing_address_line2: 'billingAddressLine2',
-  billing_city: 'billingCity',
-  billing_state: 'billingState',
-  billing_pincode: 'billingPincode',
-  billing_country: 'billingCountry',
+  first_name: "firstname",
+  last_name: "lastname",
+  clinic_name: "clinicName",
+  license_number: "clinicLicenseNumber",
+  clinic_address_line1: "clinicAddressLine1",
+  clinic_address_line2: "clinicAddressLine2",
+  clinic_city: "clinicCity",
+  clinic_state: "clinicState",
+  clinic_pincode: "clinicPincode",
+  clinic_country: "clinicCountry",
+  gst_number: "gstNumber",
+  pan_number: "panNumber",
+  billing_address_line1: "billingAddressLine1",
+  billing_address_line2: "billingAddressLine2",
+  billing_city: "billingCity",
+  billing_state: "billingState",
+  billing_pincode: "billingPincode",
+  billing_country: "billingCountry",
   // Add more fields as needed
 };
 
@@ -51,15 +51,11 @@ function mapClinicFields(obj: Record<string, any>): Record<string, any> {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Passport configuration
   passport.use(
-    new LocalStrategy(
-      (username, password, done) => {
-        // Implement the strategy logic here
-        done(null, { username });
-      }
-    )
+    new LocalStrategy((username, password, done) => {
+      // Implement the strategy logic here
+      done(null, { username });
+    })
   );
-
-  
 
   // Products API
   app.get("/api/products", async (req, res) => {
@@ -118,23 +114,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tooth Groups API
   app.post("/api/tooth-groups", async (req, res) => {
     try {
-      console.log("Received tooth group data:", JSON.stringify(req.body, null, 2));
+      console.log(
+        "Received tooth group data:",
+        JSON.stringify(req.body, null, 2)
+      );
       const toothGroupData = insertToothGroupSchema.parse(req.body);
-      console.log("Parsed tooth group data:", JSON.stringify(toothGroupData, null, 2));
+      console.log(
+        "Parsed tooth group data:",
+        JSON.stringify(toothGroupData, null, 2)
+      );
       const toothGroup = await storage.createToothGroup(toothGroupData);
       res.status(201).json(toothGroup);
     } catch (error) {
       console.error("Tooth group validation error:", error);
-      res.status(400).json({ 
+      res.status(400).json({
         error: "Invalid tooth group data",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : "Unknown error",
       });
     }
   });
 
   app.get("/api/orders/:orderId/tooth-groups", async (req, res) => {
     try {
-      const toothGroups = await storage.getToothGroupsByOrder(req.params.orderId);
+      const toothGroups = await storage.getToothGroupsByOrder(
+        req.params.orderId
+      );
       res.json(toothGroups);
     } catch (error) {
       console.error("Error fetching tooth groups", error);
@@ -153,13 +157,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupOrderRoutes(app);
   setupTeamMemberRoutes(app);
   setuRoleRoutes(app);
-  setupPatientRoute(app);
+  // setupPatientRoute(app);
   setupDraftOrderRoutes(app);
-  
+
   const httpServer = createServer(app);
 
   return httpServer;
 }
-
-
-

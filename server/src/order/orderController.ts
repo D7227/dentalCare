@@ -402,13 +402,13 @@ export class OrderStorage implements orderStore {
     const allProductNames: string[] = [];
 
     // Collect from selectedTeeth
-    // if (teethGroup?.selectedTeeth) {
-    //   teethGroup.selectedTeeth.forEach((tooth: any) => {
-    //     if (Array.isArray(tooth.productName)) {
-    //       allProductNames.push(...tooth.productName);
-    //     }
-    //   });
-    // }
+    if (teethGroup?.selectedTeeth) {
+      teethGroup.selectedTeeth.forEach((tooth: any) => {
+        if (Array.isArray(tooth.productName)) {
+          allProductNames.push(...tooth.productName);
+        }
+      });
+    }
 
     // Collect from teethGroup
     if (teethGroup?.teethGroup) {

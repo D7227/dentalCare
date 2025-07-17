@@ -29,8 +29,11 @@ import CustomStatusBatch from "../../components/common/customStatusBatch";
 import CustomStatusLabel from "../../components/common/customStatusLabel";
 import OptionsMenu from "../../components/common/OptionsMenu";
 import CircularProgress from "../../components/common/CircularProgress";
-import { useAppSelector } from '@/store/hooks';
-import { useFilterOrdersQuery, useGetOrderByIdQuery } from '@/store/slices/orderApi';
+import { useAppSelector } from "@/store/hooks";
+import {
+  useFilterOrdersQuery,
+  useGetOrderByIdQuery,
+} from "@/store/slices/orderApi";
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
 
 interface OrderTableProps {
@@ -50,10 +53,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [orderTypeFilter, setOrderTypeFilter] = useState("all");
   const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
 
-  const UserData = useAppSelector(state => state.userData);
+  const UserData = useAppSelector((state) => state.userData);
   const user = UserData.userData;
   const clinicId = user?.clinicId;
-  console.log('clinicId', clinicId)
+  console.log("clinicId", clinicId);
 
   // Only call the query if clinicId is defined
   const {
@@ -64,8 +67,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     refetch,
   } = useGetOrderByIdQuery(clinicId ?? "", { skip: !clinicId });
 
-  console.log('dbOrders   ---table', dbOrders)
-
+  console.log("dbOrders   ---table", dbOrders);
 
   //   const clinicId = user?.clinicId;
   // const filters = {
@@ -84,10 +86,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   // const data = await response.json();
   // Orders page shows all orders - no filtering needed
 
-  const { data: patients = [] } = useQuery<any[]>({
-    queryKey: ["/api/patients"],
-    refetchInterval: 30000,
-  });
+  // const { data: patients = [] } = useQuery<any[]>({
+  //   queryKey: ["/api/patients"],
+  //   refetchInterval: 30000,
+  // });
 
   // Replace getOrderTeeth and getOrderToothGroups to use order data directly
   const getOrderTeeth = (orderId: number) => {
@@ -100,13 +102,14 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
       }
     });
     return Array.from(new Set(allTeeth)).sort(
-      (a, b) => parseInt(a) - parseInt(b),
+      (a, b) => parseInt(a) - parseInt(b)
     );
   };
 
   const getOrderToothGroups = (orderId: number) => {
     const order = dbOrders.find((o: any) => o.id === orderId);
-    if (!order || !order.teethGroup || !Array.isArray(order.teethGroup)) return [];
+    if (!order || !order.teethGroup || !Array.isArray(order.teethGroup))
+      return [];
     return order.teethGroup;
   };
 
@@ -173,7 +176,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
   // Get unique patient names for filter dropdown
   const uniquePatients = Array.from(
-    new Set(dbOrders.map((order: any) => `${order.firstName} ${order.lastName}`)),
+    new Set(
+      dbOrders.map((order: any) => `${order.firstName} ${order.lastName}`)
+    )
   ).sort();
 
   // Clear all filters function
@@ -198,7 +203,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     const matchesSearch =
       searchTerm === "" ||
       patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase())
+      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase());
     //  ||
     // getOrderType(order.id).toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -232,7 +237,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
       const orderDate = new Date(order.createdAt);
       const today = new Date();
       const daysDiff = Math.floor(
-        (today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24),
+        (today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       switch (dateFilter) {
@@ -273,10 +278,12 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const totalPages = Math.ceil(filteredOrders.length / pageSize);
-  const paginatedOrders = filteredOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
-
-  console.log('filteredOrders', filteredOrders)
+  console.log("filteredOrders", filteredOrders);
 
   const handleViewOrder = (order: any, tab: string = "overview") => {
     setSelectedOrder(order);
@@ -380,7 +387,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 </Select>
 
                 {/* Category/Status Filter */}
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
                   <SelectTrigger className="h-[40px] text-xs w-32">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -403,75 +413,75 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
               dateFilter !== "all" ||
               orderTypeFilter !== "all" ||
               searchTerm !== "") && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {searchTerm && (
-                    <Badge variant="secondary" className="text-xs">
-                      Search: {searchTerm}
-                      <button
-                        onClick={() => setSearchTerm("")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                  {patientFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Patient: {patientFilter}
-                      <button
-                        onClick={() => setPatientFilter("all")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                  {paymentFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Payment: {paymentFilter}
-                      <button
-                        onClick={() => setPaymentFilter("all")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                  {orderTypeFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Type: {orderTypeFilter}
-                      <button
-                        onClick={() => setOrderTypeFilter("all")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                  {dateFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Date: {dateFilter}
-                      <button
-                        onClick={() => setDateFilter("all")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                  {categoryFilter !== "all" && (
-                    <Badge variant="secondary" className="text-xs">
-                      Category: {categoryFilter}
-                      <button
-                        onClick={() => setCategoryFilter("all")}
-                        className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {searchTerm && (
+                  <Badge variant="secondary" className="text-xs">
+                    Search: {searchTerm}
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {patientFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Patient: {patientFilter}
+                    <button
+                      onClick={() => setPatientFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {paymentFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Payment: {paymentFilter}
+                    <button
+                      onClick={() => setPaymentFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {orderTypeFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Type: {orderTypeFilter}
+                    <button
+                      onClick={() => setOrderTypeFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {dateFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Date: {dateFilter}
+                    <button
+                      onClick={() => setDateFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                {categoryFilter !== "all" && (
+                  <Badge variant="secondary" className="text-xs">
+                    Category: {categoryFilter}
+                    <button
+                      onClick={() => setCategoryFilter("all")}
+                      className="ml-1 hover:bg-secondary-foreground/20 rounded-full w-3 h-3 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <Button
@@ -492,17 +502,39 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b bg-gray-50 rounded-t-[10px]">
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Order Date</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">ID</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Patient name</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Prescription</th>
-                      <th className="text-left p-3 text-sm font-medium text-gray-600">Product</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Progress</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Order Method</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Category</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Status</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Message</th>
-                      <th className="text-center p-3 text-sm font-medium text-gray-600">Actions</th>
+                      <th className="text-left p-3 text-sm font-medium text-gray-600">
+                        Order Date
+                      </th>
+                      <th className="text-left p-3 text-sm font-medium text-gray-600">
+                        ID
+                      </th>
+                      <th className="text-left p-3 text-sm font-medium text-gray-600">
+                        Patient name
+                      </th>
+                      <th className="text-left p-3 text-sm font-medium text-gray-600">
+                        Prescription
+                      </th>
+                      <th className="text-left p-3 text-sm font-medium text-gray-600">
+                        Product
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Progress
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Order Method
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Category
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Status
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Message
+                      </th>
+                      <th className="text-center p-3 text-sm font-medium text-gray-600">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -514,31 +546,55 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                       return (
                         <tr
                           key={order.id}
-                          className={`border-b hover:bg-gray-50 ${selectedOrder?.id === order?.id ? "bg-blue-50" : ""}`}
+                          className={`border-b hover:bg-gray-50 ${
+                            selectedOrder?.id === order?.id ? "bg-blue-50" : ""
+                          }`}
                         >
-                          <td className="p-3 text-sm">{formatDate(order?.createdAt)}</td>
-                          <td className="p-3 text-sm font-medium text-blue-600 cursor-pointer" onClick={() => handleViewOrder(order, "overview")}>
+                          <td className="p-3 text-sm">
+                            {formatDate(order?.createdAt)}
+                          </td>
+                          <td
+                            className="p-3 text-sm font-medium text-blue-600 cursor-pointer"
+                            onClick={() => handleViewOrder(order, "overview")}
+                          >
                             {order?.orderId || order?.refId}
                           </td>
-                          <td className="p-3 text-sm">{order?.firstName} {order?.lastName}</td>
-                          <td className="p-3 text-sm capitalize">{order?.prescriptionType}</td>
                           <td className="p-3 text-sm">
-                            <ProductDetailsPopOver products={order.restorationProducts || []} />
+                            {order?.firstName} {order?.lastName}
+                          </td>
+                          <td className="p-3 text-sm capitalize">
+                            {order?.prescriptionTypes}
+                          </td>
+                          <td className="p-3 text-sm">
+                            <ProductDetailsPopOver
+                              products={order.products || []}
+                            />
                           </td>
                           <td className="p-3 text-sm text-center">
                             {/* Circular Progress UI */}
                             <div className="flex justify-center items-center">
-                              <CircularProgress value={order?.percentage ?? 0} size={48} />
+                              <CircularProgress
+                                value={order?.percentage ?? 0}
+                                size={48}
+                              />
                             </div>
                           </td>
                           <td className="p-3 text-center capitalize">
                             {order?.orderMethod}
                           </td>
                           <td className="p-3 text-center ">
-                            <CustomStatusBatch label={order?.category} variant='outline' className='m-auto' />
+                            <CustomStatusBatch
+                              label={order?.category}
+                              variant="outline"
+                              className="m-auto"
+                            />
                           </td>
                           <td className="p-3 text-center">
-                            <CustomStatusLabel label={order?.orderStatus} status={order?.orderStatus} rounded={true} />
+                            <CustomStatusLabel
+                              label={order?.orderStatus}
+                              status={order?.orderStatus}
+                              rounded={true}
+                            />
                           </td>
                           <td className="p-3 text-center">
                             {/* Message Icon in rounded box with badge */}
@@ -550,10 +606,22 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                                   handleViewOrder(order, "chat");
                                 }}
                               >
-                                <MessageCircle size={20} className="text-gray-500" />
+                                <MessageCircle
+                                  size={20}
+                                  className="text-gray-500"
+                                />
                               </button>
                               {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 border-2 border-white shadow" style={{ minWidth: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span
+                                  className="absolute -top-1 -right-1 bg-teal-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 border-2 border-white shadow"
+                                  style={{
+                                    minWidth: "20px",
+                                    height: "20px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
                                   {unreadCount}
                                 </span>
                               )}
@@ -565,21 +633,38 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                               <OptionsMenu
                                 options={[
                                   {
-                                    icon: <Eye size={20} />, label: "View", onClick: () => handleViewOrder(order, "overview")
+                                    icon: <Eye size={20} />,
+                                    label: "View",
+                                    onClick: () =>
+                                      handleViewOrder(order, "overview"),
                                   },
                                   {
-                                    icon: <DollarSign size={20} />, label: "Pricing", onClick: () => alert("Pricing clicked")
+                                    icon: <DollarSign size={20} />,
+                                    label: "Pricing",
+                                    onClick: () => alert("Pricing clicked"),
                                   },
                                   {
-                                    icon: <CreditCard size={20} />, label: "Pay now", onClick: () => alert("Pay now clicked")
+                                    icon: <CreditCard size={20} />,
+                                    label: "Pay now",
+                                    onClick: () => alert("Pay now clicked"),
                                   },
                                   {
-                                    icon: <Truck size={20} />, label: "Pickup Request", onClick: () => alert("Pickup Request clicked")
+                                    icon: <Truck size={20} />,
+                                    label: "Pickup Request",
+                                    onClick: () =>
+                                      alert("Pickup Request clicked"),
                                   },
                                 ]}
                                 trigger={
                                   <div className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg
+                                      width="20"
+                                      height="20"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                    >
                                       <circle cx="12" cy="6" r="1" />
                                       <circle cx="12" cy="12" r="1" />
                                       <circle cx="12" cy="18" r="1" />
@@ -608,7 +693,12 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                   <div className="text-sm text-gray-500">
                     {filteredOrders.length === 0
                       ? "No entries"
-                      : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, filteredOrders.length)} of ${filteredOrders.length} entries`}
+                      : `Showing ${
+                          (currentPage - 1) * pageSize + 1
+                        } to ${Math.min(
+                          currentPage * pageSize,
+                          filteredOrders.length
+                        )} of ${filteredOrders.length} entries`}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -618,18 +708,24 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                     >
                       ←
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === page ? "bg-teal-600 text-white" : ""}`}
-                        onClick={() => setCurrentPage(page)}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <button
+                          key={page}
+                          className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${
+                            currentPage === page ? "bg-teal-600 text-white" : ""
+                          }`}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                      )
+                    )}
                     <button
                       className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={currentPage === totalPages}
                     >
                       →
