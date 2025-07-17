@@ -136,7 +136,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         </TabsContent>
 
         {/* Chat Tab */}
-        <TabsContent value="chat" className="flex-1 w-full p-4 pb-6">
+        <TabsContent value="chat" className="flex-1 w-full pb-6">
           <Card className="w-full h-full max-h-[90vh] flex flex-col">
             <CardContent className="p-0  max-h-[70vh] flex-1 flex flex-col">
               <div className="flex-1 min-h-0 overflow-y-auto">

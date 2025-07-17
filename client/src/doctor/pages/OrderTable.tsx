@@ -45,7 +45,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
   const [location, setLocation] = useLocation();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>("");
   const [patientFilter, setPatientFilter] = useState("all");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -285,8 +285,11 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
 
   console.log("filteredOrders", filteredOrders);
 
-  const handleViewOrder = (order: any, tab: string = "overview") => {
-    setSelectedOrder(order);
+  const handleViewOrder = (
+    selectedOrderId: string,
+    tab: string = "overview"
+  ) => {
+    setSelectedOrderId(selectedOrderId);
     setOrderDetailTab(tab);
   };
 
@@ -547,7 +550,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                         <tr
                           key={order.id}
                           className={`border-b hover:bg-gray-50 ${
-                            selectedOrder?.id === order?.id ? "bg-blue-50" : ""
+                            selectedOrderId === order?.id ? "bg-blue-50" : ""
                           }`}
                         >
                           <td className="p-3 text-sm">
@@ -555,7 +558,9 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                           </td>
                           <td
                             className="p-3 text-sm font-medium text-blue-600 cursor-pointer"
-                            onClick={() => handleViewOrder(order, "overview")}
+                            onClick={() =>
+                              handleViewOrder(order?.id, "overview")
+                            }
                           >
                             {order?.orderId || order?.refId}
                           </td>
@@ -603,7 +608,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                                 className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleViewOrder(order, "chat");
+                                  handleViewOrder(order?.id, "chat");
                                 }}
                               >
                                 <MessageCircle
@@ -636,7 +641,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
                                     icon: <Eye size={20} />,
                                     label: "View",
                                     onClick: () =>
-                                      handleViewOrder(order, "overview"),
+                                      handleViewOrder(order?.id, "overview"),
                                   },
                                   {
                                     icon: <DollarSign size={20} />,
@@ -735,13 +740,13 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
               </div>
 
               {/* Order Details Modal/Panel - Only show when order is selected */}
-              {selectedOrder && (
+              {selectedOrderId && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                   <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
                     <OrderDetailView
                       isOpen={true}
-                      onClose={() => setSelectedOrder(null)}
-                      order={selectedOrder}
+                      onClose={() => setSelectedOrderId(null)}
+                      orderId={selectedOrderId}
                       isEmbedded={false}
                       initialTab={orderDetailTab}
                     />

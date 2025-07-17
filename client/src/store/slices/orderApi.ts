@@ -109,7 +109,7 @@ export const orderApi = createApi({
 
     // Get chat by orderId - not working
     getOrderChat: builder.query<any, string>({
-      query: (orderId) => ({ url: `/${orderId}/chat`, method: "GET" }),
+      query: (orderId) => ({ url: `/orders/${orderId}/chat`, method: "GET" }),
       providesTags: (result, error, orderId) => [
         { type: "OrderChat", id: orderId },
       ],
