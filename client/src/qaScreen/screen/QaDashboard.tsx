@@ -3,37 +3,37 @@ import { AppSidebar } from "../components/AppSidebar";
 import { dentalCases as initialCases } from "../data/cases";
 import { dailyReports as initialReports } from "../data/dailyReports";
 import CaseTable from "../components/CaseTable";
-import ReportsLogs from "../components/ReportsLogs";
-import DailyReportsTable from "../components/DailyReportsTable";
-import ProductionTable from "../components/ProductionTable";
+import ReportsLogs from "./DashboardScreeen/ReportsLogs";
+import DailyReportsTable from "./DashboardScreeen/DailyReportsTable";
+import ProductionTable from "./DashboardScreeen/ProductionTable";
 import SubmitDailyReportModal from "../components/SubmitDailyReportModal";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText } from "lucide-react";
 import type { DailyReport } from "../data/dailyReports";
 import { SidebarProvider, SidebarTrigger } from "../components/ui/sidebar";
+import QaChatContent from "./ChatScreen/qaChatContent";
 
 const QaDashboard = () => {
   const [cases, setCases] = useState(initialCases);
   const [dailyReports, setDailyReports] = useState(initialReports);
   const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
+  const [selectedPage, setSelectedPage] = useState("Dashboard");
 
   const updateCase = (id: string, status: any, notes?: string) => {
     setCases((cases) =>
       cases.map((c) =>
         c.id === id
           ? {
-              ...c,
-              status,
-              notes: notes || c.notes,
-              log: [
-                ...c.log,
-                `${status} by Dr.Sagar on ${new Date().toLocaleString()}${
-                  notes ? ` — ${notes}` : ""
-                }`,
-              ],
-            }
+            ...c,
+            status,
+            notes: notes || c.notes,
+            log: [
+              ...c.log,
+              `${status} by Dr.Sagar on ${new Date().toLocaleString()}${notes ? ` — ${notes}` : ""
+              }`,
+            ],
+          }
           : c
       )
     );
@@ -68,26 +68,29 @@ const QaDashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <main className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">
-              Dental ERP Dashboard – Dr. Sagar
-            </h1>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={() => setIsDailyReportModalOpen(true)}
-                className="flex items-center gap-2"
-              >
-                <FileText size={18} />
-                Submit Daily Report
-              </Button>
-              <SidebarTrigger />
-            </div>
-          </div>
+        <AppSidebar selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
 
-          {/* Quick Stats */}
-          {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        {
+          selectedPage === "Dashboard" && (
+            <main className="flex-1 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold">
+                  Dental ERP Dashboard – Dr. Sagar
+                </h1>
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={() => setIsDailyReportModalOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText size={18} />
+                    Submit Daily Report
+                  </Button>
+                  <SidebarTrigger />
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Cases</CardTitle>
@@ -122,38 +125,46 @@ const QaDashboard = () => {
             </Card>
           </div> */}
 
-          <Tabs defaultValue="production" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              {/* <TabsTrigger value="cases">Case Management</TabsTrigger> */}
-              <TabsTrigger value="production">Production</TabsTrigger>
-              <TabsTrigger value="daily-reports">Daily Reports</TabsTrigger>
-              <TabsTrigger value="reports">Reports & Logs</TabsTrigger>
-            </TabsList>
+              <Tabs defaultValue="production" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  {/* <TabsTrigger value="cases">Case Management</TabsTrigger> */}
+                  <TabsTrigger value="production">Production</TabsTrigger>
+                  <TabsTrigger value="daily-reports">Daily Reports</TabsTrigger>
+                  <TabsTrigger value="reports">Reports & Logs</TabsTrigger>
+                </TabsList>
 
-            {/* <TabsContent value="cases" className="mt-6">
+                {/* <TabsContent value="cases" className="mt-6">
               <CaseTable cases={cases} onUpdate={updateCase} />
             </TabsContent> */}
 
-            <TabsContent value="production" className="mt-6">
-              <ProductionTable cases={cases} onUpdate={updateCase} />
-            </TabsContent>
+                <TabsContent value="production" className="mt-6">
+                  <ProductionTable cases={cases} onUpdate={updateCase} />
+                </TabsContent>
 
-            <TabsContent value="daily-reports" className="mt-6">
-              <DailyReportsTable reports={dailyReports} />
-            </TabsContent>
+                <TabsContent value="daily-reports" className="mt-6">
+                  <DailyReportsTable reports={dailyReports} />
+                </TabsContent>
 
-            <TabsContent value="reports" className="mt-6">
-              <ReportsLogs cases={cases} />
-            </TabsContent>
-          </Tabs>
+                <TabsContent value="reports" className="mt-6">
+                  <ReportsLogs cases={cases} />
+                </TabsContent>
+              </Tabs>
 
-          <SubmitDailyReportModal
-            isOpen={isDailyReportModalOpen}
-            onClose={() => setIsDailyReportModalOpen(false)}
-            cases={cases}
-            onSubmitReport={handleSubmitDailyReport}
-          />
-        </main>
+              <SubmitDailyReportModal
+                isOpen={isDailyReportModalOpen}
+                onClose={() => setIsDailyReportModalOpen(false)}
+                cases={cases}
+                onSubmitReport={handleSubmitDailyReport}
+              />
+            </main>
+          )
+        }
+        {
+          selectedPage === "Chat" &&(
+            <QaChatContent />
+          )
+        }
+
       </div>
     </SidebarProvider>
   );

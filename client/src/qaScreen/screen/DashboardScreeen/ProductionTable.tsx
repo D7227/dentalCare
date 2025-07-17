@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Calendar, Filter, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import OrderReviewModal from "./OrderReviewModal";
-import { CaseStatus, DentalCase } from "../data/cases";
+import OrderReviewModal from "../../components/OrderReviewModal";
+import { CaseStatus, DentalCase } from "../../data/cases";
 import CustomButton from "@/components/common/customButtom";
 import { useLocation } from "wouter";
 import CustomStatusLabel from "@/components/common/customStatusLabel";
@@ -47,7 +47,7 @@ const ProductionTable: React.FC<{ onUpdate: (id: string, status: CaseStatus, not
   const user = useAppSelector((state) => state.userData.userData);
 
   // Use orderApi for fetching orders, and orderLocalSlice for local state
-  const { data: orders, isLoading, error: apiError } = useGetOrderByIdQuery(user?.clinicId || "");
+  const { data: orders, isLoading, error: apiError } = useGetOrdersQuery();
   const dispatch = useDispatch();
 
   useEffect(() => {

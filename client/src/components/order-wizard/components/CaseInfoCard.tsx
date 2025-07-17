@@ -134,7 +134,7 @@ const CaseInfoCard = ({
     isEdit = false
   ) => (
     <div className="space-y-4">
-      {endPort === "/qa-dashboard/place-order" && (
+      {endPort === "/qa/place-order" && (
         <div className="relative">
           <Label className="text-sm font-medium mb-2 block">
             Clinic Name *

@@ -42,6 +42,8 @@ export const orderSchema = pgTable("orders", {
   updateDate: timestamp("update_date"),
   totalAmount: text("total_amount"),
   paymentType: text("payment_type"),
+  paymentStatus: text("payment_status"),
+  percentage: text("percentage"),
   doctorNote: text("doctor_note"),
   orderType: text("order_type"),
   createdAt: timestamp("created_at").defaultNow(),

@@ -9,6 +9,7 @@ import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
 import { OrderType } from "@/types/orderType";
+import { doctorOrderTableType } from "./ordersType";
 
 export interface orderStore {
   getOrder(id: string): Promise<any | undefined>;
@@ -37,6 +38,7 @@ export interface orderStore {
   getToothGroupsByOrder(orderId: string): Promise<any[]>;
   updateOrderStatus(id: string, status: string): Promise<any | undefined>;
   updateOrder(id: string, updates: Partial<any>): Promise<any | undefined>;
+  getFullOrderData(order: any):Promise<any>;
   initializeData(): Promise<void>;
 }
 
@@ -46,7 +48,9 @@ export class OrderStorage implements orderStore {
   }
     async getOrder(id: string): Promise<any | undefined> {
         const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, id));
-        return order;
+
+        const orderData = this.getFullOrderData(order);
+        return orderData;
       }
 
   async createOrder(insertOrder: any): Promise<any> {
@@ -88,7 +92,7 @@ export class OrderStorage implements orderStore {
       };
 
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
-
+      console.log(insertOrder.courierData,"courierData");
       const orderToInsert = {
         ...insertOrder,
         patientId: insertPatient.id,
@@ -103,7 +107,7 @@ export class OrderStorage implements orderStore {
         teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
         products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
         pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
-        courierData: Array.isArray(insertOrder.courierData) ? insertOrder.courierData : [],
+        courierData: insertOrder.courierData,
         lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
         files: {
           addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
@@ -112,6 +116,7 @@ export class OrderStorage implements orderStore {
           referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : [],
         },
       };
+      console.log(orderToInsert,"orderToInsert");
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
         if (!val) return null;
@@ -153,24 +158,66 @@ export class OrderStorage implements orderStore {
     return await db.select().from(orderSchema);
   }
 
-  async getOrdersByClinicId(clinicId: string): Promise<any[]> {
+  async getOrdersByClinicId(clinicId: string): Promise<doctorOrderTableType[]> {
     // Fetch all orders for the given clinicId
     const orders = await db
       .select()
       .from(orderSchema)
       .where(eq(orderSchema.clinicId, clinicId));
     if (!orders || orders.length === 0) return [];
-    const results = [];
+    let newOrderList = [];
     for (const order of orders) {
-      // Fetch related data
-      const patient = order.patientId
+      const updateOrder =await this.getFullOrderData(order);
+      const allClinicOrder:doctorOrderTableType = {
+        id:updateOrder?.id,
+        refId:updateOrder?.refId,
+        orderId:updateOrder?.orderId,
+        prescriptionTypes:updateOrder?.prescriptionTypesId,
+        subPrescriptionTypes:updateOrder?.subPrescriptionTypesId,
+        orderDate:order?.createdAt,
+        orderType:updateOrder?.orderType,
+        orderStatus:updateOrder?.orderStatus,
+        products:updateOrder?.products,
+        paymentStatus:updateOrder?.paymentStatus || "Pandding",
+        firstName:updateOrder?.firstName,
+        lastName:updateOrder?.lastName,
+        percentage:updateOrder?.percentage || 10,
+        orderMethod:updateOrder?.orderMethod,
+        logs:updateOrder?.logs || [],
+        message:updateOrder?.message || "",
+      }      
+      newOrderList.push(allClinicOrder);
+    }
+    // const allClinicOrder =
+    return newOrderList;
+  }
+
+  async getToothGroupsByOrder(orderId: string): Promise<any[]> {
+    console.log("orderId", orderId);
+    return await db
+      .select()
+      .from(toothGroups)
+      .where(eq(toothGroups.orderId, orderId));
+  }
+
+  //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
+  //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
+  //     return chat;
+  //   }
+
+  async getFullOrderData(order: any): Promise<any | undefined> {
+    console.log(order.patientId,"order.patientId");
+    console.log(order.clinicInformationId,"order.clinicInformationId");
+    const patient = order.patientId
         ? await patientStorage.getPatient(order.patientId)
         : undefined;
+        console.log(patient,"patient")
       const clinicInformation = order.clinicInformationId
         ? await clinicInformationStorage.getClinicInformationById(
             order.clinicInformationId
           )
         : undefined;
+        console.log(clinicInformation,"clinicInformation");
       const teethGroup = order.selectedTeethId
         ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId)
         : undefined;
@@ -243,6 +290,7 @@ export class OrderStorage implements orderStore {
       // --- End product summary logic ---
 
       const orderData: OrderType = {
+        id: order?.id,
         firstName: patient?.firstName || "",
         lastName: patient?.lastName || "",
         age: patient?.age || 0,
@@ -272,7 +320,7 @@ export class OrderStorage implements orderStore {
         } as any,
         handllingType: order.handllingType || "",
         pickupData: (Array.isArray(order.pickupData) ? order.pickupData : []) as any,
-        courierData: (Array.isArray(order.courierData) ? order.courierData : []) as any,
+        courierData: order.courierData,
         resonOfReject: order.resonOfReject || "",
         resonOfRescan: order.resonOfRescan || "",
         rejectNote: order.rejectNote || "",
@@ -299,25 +347,12 @@ export class OrderStorage implements orderStore {
         paymentType: order.paymentType || "",
         doctorNote: order.doctorNote || "",
         orderType: order.orderType || "",
+        paymentStatus: order.paymentStatus || "",
+        percentage: order.percentage || "",
         // ...add any other fields from OrderType with appropriate fallbacks
       } as any;
-      results.push(orderData);
-    }
-    return results;
+    return orderData;
   }
-
-  async getToothGroupsByOrder(orderId: string): Promise<any[]> {
-    console.log("orderId", orderId);
-    return await db
-      .select()
-      .from(toothGroups)
-      .where(eq(toothGroups.orderId, orderId));
-  }
-
-  //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
-  //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
-  //     return chat;
-  //   }
 
   async updateOrderStatus(
     id: string,
@@ -473,4 +508,6 @@ export const getProducts = async (req: Request, res: Response) => {
 
     res.json(products);
   }
+
+ 
 };

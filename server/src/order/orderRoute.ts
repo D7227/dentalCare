@@ -3,6 +3,8 @@ import { orderStorage } from "./orderController";
 import { chatStorage } from "../chat/chatController";
 
 export const setupOrderRoutes = (app: Express) => {
+
+  // GET OEDER BY CLINIC ID
   app.get("/api/orders/:id", async (req, res) => {
     try {
       const order = await orderStorage.getOrdersByClinicId(req.params.id);
@@ -15,6 +17,21 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
+
+  app.get("/api/orderData/:id", async (req, res) => {
+    try {
+      const order = await orderStorage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      console.log(error)
+      res.status(500).json({ error: error });
+    }
+  });
+
+  // GET ALL ORDER
   app.get("/api/orders", async (req, res) => {
     try {
       const order = await orderStorage.getOrders();
@@ -27,6 +44,7 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
+  // CREATE A ORDER
   app.post("/api/orders", async (req, res) => {
     try {
       const order = await orderStorage.createOrder(req.body);
@@ -37,6 +55,7 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
+  //UPDATE ORDER
   app.patch("/api/updateOrders/:id", async (req, res) => {
     try {
       const orderId = req.params.id;
@@ -100,7 +119,7 @@ export const setupOrderRoutes = (app: Express) => {
   //   }
   // });
 
-  // // Get chat by orderId
+  // Get chat by orderId
   // app.get("/api/orders/:orderId/chat", async (req, res) => {
   //   try {
   //     const chat = await chatStorage.getChatByOrderId(req.params.orderId);
@@ -113,7 +132,7 @@ export const setupOrderRoutes = (app: Express) => {
   //   }
   // });
 
-  // Get chat by orderId
+  // Get chat by orderId 
   app.get("/api/orders/:orderId/chat", async (req, res) => {
     try {
       const chat = await chatStorage.getChatByOrderId(req.params.orderId);

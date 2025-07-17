@@ -88,6 +88,7 @@ export default function OrderReviewModal({
       dentalCase.crateNo = crateNumber;
       await updateOrder({ id: dentalCase.id, body: dentalCase });
       onUpdate(dentalCase.id, action, additionalNotes);
+      updateOrderAPI(dentalCase.id, action);
       setAdditionalNotes("");
       onClose();
     } catch (error) {

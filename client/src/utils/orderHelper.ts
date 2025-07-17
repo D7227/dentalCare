@@ -99,7 +99,7 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     orderMethod: formData.orderMethod || "",
 
     // Teeth Configuration - Store as separate fields for database
-    teethGroup: formData.teethGroup || [],
+    teethGroup: formData.teethGroups || [],
     selectedTeeth: formData.selectedTeeth || [],
     teethNumber: formData.teethNumber || [],
 
@@ -112,7 +112,7 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     },
 
     // Accessories and Additional Items
-    accessorios: formData.accessorios || [],
+    accessorios: formData.selectedAccessories || [],
     handllingType: formData.handllingType || "",
 
     // Pickup/Delivery Information
@@ -141,6 +141,10 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     // Order References
     previousOrderId: formData.previousOrderId || "",
     repairOrderId: formData.repairOrderId || "",
+    courierData:{
+      courierName: formData?.scanBooking?.courierName,
+      trackingId :formData?.scanBooking?.trackingId
+    },
 
     // Notes and Instructions
     notes: formData.notes || "",

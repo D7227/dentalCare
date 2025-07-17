@@ -76,6 +76,8 @@ var orderSchema = pgTable("orders", {
   updateDate: timestamp("update_date"),
   totalAmount: text("total_amount"),
   paymentType: text("payment_type"),
+  paymentStatus: text("payment_status"),
+  percentage: text("percentage"),
   doctorNote: text("doctor_note"),
   orderType: text("order_type"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -1015,7 +1017,8 @@ var OrderStorage = class {
   }
   async getOrder(id) {
     const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
-    return order;
+    const orderData = this.getFullOrderData(order);
+    return orderData;
   }
   async createOrder(insertOrder) {
     let insertPatient = null;
@@ -1052,6 +1055,7 @@ var OrderStorage = class {
         teethGroup: insertOrder.teethGroup
       };
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
+      console.log(insertOrder.courierData, "courierData");
       const orderToInsert = {
         ...insertOrder,
         patientId: insertPatient.id,
@@ -1066,7 +1070,7 @@ var OrderStorage = class {
         teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
         products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
         pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
-        courierData: Array.isArray(insertOrder.courierData) ? insertOrder.courierData : [],
+        courierData: insertOrder.courierData,
         lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
         files: {
           addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
@@ -1075,6 +1079,7 @@ var OrderStorage = class {
           referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : []
         }
       };
+      console.log(orderToInsert, "orderToInsert");
       const fixDate = (val) => {
         if (!val) return null;
         if (val instanceof Date) return val;
@@ -1112,47 +1117,68 @@ var OrderStorage = class {
   async getOrdersByClinicId(clinicId) {
     const orders = await db.select().from(orderSchema).where(eq9(orderSchema.clinicId, clinicId));
     if (!orders || orders.length === 0) return [];
-    const results = [];
+    let newOrderList = [];
     for (const order of orders) {
-      const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
-      const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(
-        order.clinicInformationId
-      ) : void 0;
-      const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
-      const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
-        (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
-      ) || [];
-      const selectedTeethNumbers = (teethGroup?.selectedTeeth || []).map(
-        (tooth) => tooth.toothNumber ?? tooth.teethNumber
-      ) || [];
-      const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
-      const productMap = {};
-      const addProduct = (name, qty) => {
-        if (!name) return;
-        if (!productMap[name]) productMap[name] = 0;
-        productMap[name] += qty || 1;
+      const updateOrder = await this.getFullOrderData(order);
+      const allClinicOrder = {
+        id: updateOrder?.id,
+        refId: updateOrder?.refId,
+        orderId: updateOrder?.orderId,
+        prescriptionTypes: updateOrder?.prescriptionTypesId,
+        subPrescriptionTypes: updateOrder?.subPrescriptionTypesId,
+        orderDate: order?.createdAt,
+        orderType: updateOrder?.orderType,
+        orderStatus: updateOrder?.orderStatus,
+        products: updateOrder?.products,
+        paymentStatus: updateOrder?.paymentStatus || "Pandding",
+        firstName: updateOrder?.firstName,
+        lastName: updateOrder?.lastName,
+        percentage: updateOrder?.percentage || 10,
+        orderMethod: updateOrder?.orderMethod,
+        logs: updateOrder?.logs || [],
+        message: updateOrder?.message || ""
       };
-      if (teethGroup?.teethGroup) {
-        teethGroup.teethGroup.forEach((group) => {
-          (group.selectedProducts || []).forEach((prod) => {
-            addProduct(prod.name, Number(prod.quantity) || 1);
-          });
-          (group.teethDetails || []).flat().forEach((tooth) => {
-            (tooth.selectedProducts || []).forEach((prod) => {
-              addProduct(prod.name, Number(prod.quantity) || 1);
-            });
-            if (Array.isArray(tooth.productName)) {
-              tooth.productName.forEach(
-                (name) => addProduct(name, Number(tooth.productQuantity) || 1)
-              );
-            } else if (tooth.productName) {
-              addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
-            }
-          });
+      newOrderList.push(allClinicOrder);
+    }
+    return newOrderList;
+  }
+  async getToothGroupsByOrder(orderId) {
+    console.log("orderId", orderId);
+    return await db.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
+  }
+  //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
+  //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
+  //     return chat;
+  //   }
+  async getFullOrderData(order) {
+    console.log(order.patientId, "order.patientId");
+    console.log(order.clinicInformationId, "order.clinicInformationId");
+    const patient = order.patientId ? await patientStorage.getPatient(order.patientId) : void 0;
+    console.log(patient, "patient");
+    const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(
+      order.clinicInformationId
+    ) : void 0;
+    console.log(clinicInformation2, "clinicInformation");
+    const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
+    const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
+      (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
+    ) || [];
+    const selectedTeethNumbers = (teethGroup?.selectedTeeth || []).map(
+      (tooth) => tooth.toothNumber ?? tooth.teethNumber
+    ) || [];
+    const teethnumber = [...groupTeethNumbers, ...selectedTeethNumbers];
+    const productMap = {};
+    const addProduct = (name, qty) => {
+      if (!name) return;
+      if (!productMap[name]) productMap[name] = 0;
+      productMap[name] += qty || 1;
+    };
+    if (teethGroup?.teethGroup) {
+      teethGroup.teethGroup.forEach((group) => {
+        (group.selectedProducts || []).forEach((prod) => {
+          addProduct(prod.name, Number(prod.quantity) || 1);
         });
-      }
-      if (teethGroup?.selectedTeeth) {
-        teethGroup.selectedTeeth.forEach((tooth) => {
+        (group.teethDetails || []).flat().forEach((tooth) => {
           (tooth.selectedProducts || []).forEach((prod) => {
             addProduct(prod.name, Number(prod.quantity) || 1);
           });
@@ -1164,69 +1190,77 @@ var OrderStorage = class {
             addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
           }
         });
-      }
-      const productSummary = Object.entries(productMap).map(([name, qty]) => ({
-        name,
-        qty
-      }));
-      const orderData = {
-        firstName: patient?.firstName || "",
-        lastName: patient?.lastName || "",
-        age: patient?.age || 0,
-        sex: patient?.sex || "",
-        clinicId: clinicInformation2?.clinicId || "",
-        caseHandleBy: clinicInformation2?.caseHandleBy || "",
-        doctorMobileNumber: clinicInformation2?.doctorMobileNumber || "",
-        consultingDoctorName: clinicInformation2?.consultingDoctorName || "",
-        consultingDoctorMobileNumber: clinicInformation2?.consultingDoctorMobileNumber || "",
-        orderMethod: order.orderMethod || "",
-        accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
-        selectedTeeth: Array.isArray(teethGroup?.selectedTeeth) ? teethGroup.selectedTeeth : [],
-        teethGroup: Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : [],
-        teethNumber: Array.isArray(teethnumber) ? teethnumber : [],
-        products: Array.isArray(productSummary) ? productSummary : [],
-        acpectedDileveryData: order.acpectedDileveryData ? new Date(order.acpectedDileveryData) : /* @__PURE__ */ new Date(),
-        prescriptionTypesId: Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : [],
-        subPrescriptionTypesId: Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : [],
-        files: {
-          addPatientPhotos: Array.isArray((order.files ?? {}).addPatientPhotos) ? (order.files ?? {}).addPatientPhotos : [],
-          faceScan: Array.isArray((order.files ?? {}).faceScan) ? (order.files ?? {}).faceScan : [],
-          intraOralScan: Array.isArray((order.files ?? {}).intraOralScan) ? (order.files ?? {}).intraOralScan : [],
-          referralImages: Array.isArray((order.files ?? {}).referralImages) ? (order.files ?? {}).referralImages : []
-        },
-        handllingType: order.handllingType || "",
-        pickupData: Array.isArray(order.pickupData) ? order.pickupData : [],
-        courierData: Array.isArray(order.courierData) ? order.courierData : [],
-        resonOfReject: order.resonOfReject || "",
-        resonOfRescan: order.resonOfRescan || "",
-        rejectNote: order.rejectNote || "",
-        orderId: order.orderId || "",
-        crateNo: order.crateNo || "",
-        qaNote: order.qaNote || "",
-        orderBy: order.orderBy || "",
-        lifeCycle: Array.isArray(order.lifeCycle) ? order.lifeCycle : [],
-        orderStatus: order.orderStatus || "",
-        refId: order.refId || "",
-        orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-        updateDate: typeof order.updateDate === "string" ? order.updateDate : order.updateDate ? new Date(order.updateDate).toISOString() : "",
-        totalAmount: order.totalAmount || "",
-        paymentType: order.paymentType || "",
-        doctorNote: order.doctorNote || "",
-        orderType: order.orderType || ""
-        // ...add any other fields from OrderType with appropriate fallbacks
-      };
-      results.push(orderData);
+      });
     }
-    return results;
+    if (teethGroup?.selectedTeeth) {
+      teethGroup.selectedTeeth.forEach((tooth) => {
+        (tooth.selectedProducts || []).forEach((prod) => {
+          addProduct(prod.name, Number(prod.quantity) || 1);
+        });
+        if (Array.isArray(tooth.productName)) {
+          tooth.productName.forEach(
+            (name) => addProduct(name, Number(tooth.productQuantity) || 1)
+          );
+        } else if (tooth.productName) {
+          addProduct(tooth.productName, Number(tooth.productQuantity) || 1);
+        }
+      });
+    }
+    const productSummary = Object.entries(productMap).map(([name, qty]) => ({
+      name,
+      qty
+    }));
+    const orderData = {
+      id: order?.id,
+      firstName: patient?.firstName || "",
+      lastName: patient?.lastName || "",
+      age: patient?.age || 0,
+      sex: patient?.sex || "",
+      clinicId: clinicInformation2?.clinicId || "",
+      caseHandleBy: clinicInformation2?.caseHandleBy || "",
+      doctorMobileNumber: clinicInformation2?.doctorMobileNumber || "",
+      consultingDoctorName: clinicInformation2?.consultingDoctorName || "",
+      consultingDoctorMobileNumber: clinicInformation2?.consultingDoctorMobileNumber || "",
+      orderMethod: order.orderMethod || "",
+      accessorios: Array.isArray(order.accessorios) ? order.accessorios : [],
+      selectedTeeth: Array.isArray(teethGroup?.selectedTeeth) ? teethGroup.selectedTeeth : [],
+      teethGroup: Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : [],
+      teethNumber: Array.isArray(teethnumber) ? teethnumber : [],
+      products: Array.isArray(productSummary) ? productSummary : [],
+      acpectedDileveryData: order.acpectedDileveryData ? new Date(order.acpectedDileveryData) : /* @__PURE__ */ new Date(),
+      prescriptionTypesId: Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : [],
+      subPrescriptionTypesId: Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : [],
+      files: {
+        addPatientPhotos: Array.isArray((order.files ?? {}).addPatientPhotos) ? (order.files ?? {}).addPatientPhotos : [],
+        faceScan: Array.isArray((order.files ?? {}).faceScan) ? (order.files ?? {}).faceScan : [],
+        intraOralScan: Array.isArray((order.files ?? {}).intraOralScan) ? (order.files ?? {}).intraOralScan : [],
+        referralImages: Array.isArray((order.files ?? {}).referralImages) ? (order.files ?? {}).referralImages : []
+      },
+      handllingType: order.handllingType || "",
+      pickupData: Array.isArray(order.pickupData) ? order.pickupData : [],
+      courierData: order.courierData,
+      resonOfReject: order.resonOfReject || "",
+      resonOfRescan: order.resonOfRescan || "",
+      rejectNote: order.rejectNote || "",
+      orderId: order.orderId || "",
+      crateNo: order.crateNo || "",
+      qaNote: order.qaNote || "",
+      orderBy: order.orderBy || "",
+      lifeCycle: Array.isArray(order.lifeCycle) ? order.lifeCycle : [],
+      orderStatus: order.orderStatus || "",
+      refId: order.refId || "",
+      orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      updateDate: typeof order.updateDate === "string" ? order.updateDate : order.updateDate ? new Date(order.updateDate).toISOString() : "",
+      totalAmount: order.totalAmount || "",
+      paymentType: order.paymentType || "",
+      doctorNote: order.doctorNote || "",
+      orderType: order.orderType || "",
+      paymentStatus: order.paymentStatus || "",
+      percentage: order.percentage || ""
+      // ...add any other fields from OrderType with appropriate fallbacks
+    };
+    return orderData;
   }
-  async getToothGroupsByOrder(orderId) {
-    console.log("orderId", orderId);
-    return await db.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
-  }
-  //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
-  //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
-  //     return chat;
-  //   }
   async updateOrderStatus(id, orderStatus) {
     const [order] = await db.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
     return order;
@@ -1741,6 +1775,18 @@ var setupOrderRoutes = (app2) => {
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+  app2.get("/api/orderData/:id", async (req, res) => {
+    try {
+      const order = await orderStorage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error });
     }
   });
   app2.get("/api/orders", async (req, res) => {

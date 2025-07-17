@@ -344,7 +344,7 @@ const PlaceOrder = () => {
       formData.orderType = formData.orderType || "new";
       const orderDataRaw = createOrderObject(formData, user);
       const orderData = {
-        ...orderDataRaw,
+        ...orderDataRaw,  
         age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
       };
       console.log("formData", formData);
