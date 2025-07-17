@@ -109,7 +109,7 @@ const ProductSelection = ({
 
   // --- MIGRATION: On mount, move any group-level fields from first tooth to group if needed ---
   useEffect(() => {
-    const updatedGroups = (formData?.teethGroups as any[])?.map((group: any) => {
+    const updatedGroups = (formData?.teethGroup as any[])?.map((group: any) => {
       const firstTooth = group.teethDetails?.[0]?.[0];
       let changed = false;
       const newGroup = { ...group };
@@ -127,14 +127,14 @@ const ProductSelection = ({
       });
       return newGroup;
     });
-    setFormData((f: any) => ({ ...f, teethGroups: updatedGroups }));
+    setFormData((f: any) => ({ ...f, teethGroup: updatedGroups }));
     // eslint-disable-next-line
   }, []);
 
   const getAllGroups = () => {
-    const teethGroups = formData.teethGroups || [];
+    const teethGroup = formData.teethGroup || [];
     const groupedTeeth = new Set(
-      teethGroups.flatMap(
+      teethGroup.flatMap(
         (g: any) => g.teethDetails?.flat().map((t: any) => t.toothNumber) || []
       )
     );
@@ -159,7 +159,7 @@ const ProductSelection = ({
       {}
     );
 
-    let allGroups = [...teethGroups];
+    let allGroups = [...teethGroup];
     console.log(
       "%c allGroups",
       "background: #0000FF; color: white;",
@@ -695,7 +695,7 @@ const ProductSelection = ({
 
       const newFormData = {
         ...formData,
-        teethGroups: updatedGroups, // only real groups
+        teethGroup: updatedGroups, // only real groups
         selectedTeeth: updatedSelectedTeeth, // all individual teeth
         restorationProducts,
         accessories,
@@ -758,7 +758,7 @@ const ProductSelection = ({
     const restorationInfo = {
       prescriptionType: formData.prescriptionType,
       orderMethod: formData.orderMethod,
-      teethGroups: formData.teethGroups,
+      teethGroup: formData.teethGroup,
       completedAt: new Date().toISOString(),
     };
 
@@ -925,12 +925,12 @@ const ProductSelection = ({
                     groupIdx={idx}
                     onSaveGroupFields={(groupIdx, field, value) => {
                       // Update formData in parent
-                      const updatedGroups = [...formData.teethGroups];
+                      const updatedGroups = [...formData.teethGroup];
                       updatedGroups[groupIdx] = {
                         ...updatedGroups[groupIdx],
                         [field]: value,
                       };
-                      setFormData({ ...formData, teethGroups: updatedGroups });
+                      setFormData({ ...formData, teethGroup: updatedGroups });
                     }}
                     setFormData={setFormData}
                   />

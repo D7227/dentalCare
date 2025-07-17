@@ -307,7 +307,7 @@ const AccessorySelection = ({
                   onValueChange={(value) =>
                     setFormData({
                       ...formData,
-                      orderType: value,
+                      accessoriesPersalType: value,
                     })
                   }
                   className="space-y-3"
@@ -345,12 +345,15 @@ const AccessorySelection = ({
                       <Input
                         id="pickupDate"
                         type="date"
-                        value={formData.pickupDate}
+                        value={formData?.pickupData?.pickupDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            pickupDate: e.target.value,
+                            pickupData: {
+                              ...formData?.pickupData,
+                              pickupDate: e.target.value,
+                            },
                           })
                         }
                         className="mt-1"
@@ -366,11 +369,14 @@ const AccessorySelection = ({
                       <Input
                         id="pickupTime"
                         type="time"
-                        value={formData.pickupTime}
+                        value={formData?.pickupData?.pickupTime}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            pickupTime: e.target.value,
+                            pickupData: {
+                              ...formData?.pickupData,
+                              pickupTime: e.target.value,
+                            },
                           })
                         }
                         className="mt-1"
@@ -385,11 +391,14 @@ const AccessorySelection = ({
                       </Label>
                       <Textarea
                         id="pickupRemarks"
-                        value={formData.pickupRemarks}
+                        value={formData?.pickupData?.pickupRemarks}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            pickupRemarks: e.target.value,
+                            pickupData: {
+                              ...formData?.pickupData,
+                              pickupRemarks: e.target.value,
+                            },
                           })
                         }
                         className="mt-1"
@@ -414,12 +423,12 @@ const AccessorySelection = ({
                         id="courierName"
                         type="text"
                         placeholder="Search courier name..."
-                        value={formData.scanBooking?.courierName || ""}
+                        value={formData.courierData?.courierName || ""}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            scanBooking: {
-                              ...formData.scanBooking,
+                            courierData: {
+                              ...formData.courierData,
                               courierName: e.target.value,
                             },
                           })
@@ -438,12 +447,12 @@ const AccessorySelection = ({
                         id="trackingId"
                         type="text"
                         placeholder="Enter tracking ID..."
-                        value={formData.scanBooking?.trackingId || ""}
+                        value={formData.courierData?.trackingId || ""}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            scanBooking: {
-                              ...formData.scanBooking,
+                            courierData: {
+                              ...formData.courierData,
                               trackingId: e.target.value,
                             },
                           })

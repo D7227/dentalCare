@@ -130,7 +130,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     // console.log("updatedGroups", updatedGroups)
     setFormData({
       ...formData,
-      teethGroups: updatedGroups,
+      teethGroup: updatedGroups,
     });
     setIsProductModalOpen(false);
     setSelectedTeethForProducts([]);

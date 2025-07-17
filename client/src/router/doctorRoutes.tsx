@@ -54,7 +54,6 @@ export const doctorRoutes = [
         children: [
             { index: true, element: <DoctorDashboard /> },
             { path: "place-order", element: <PlaceOrder /> },
-            { path: "order/:orderId", element: <OrderDetails /> },
             { path: "resubmit-order/:orderId", element: <ResubmitOrder /> },
         ],
     },

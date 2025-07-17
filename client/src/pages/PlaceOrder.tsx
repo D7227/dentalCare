@@ -36,7 +36,6 @@ import {
 } from "@/store/slices/orderApi";
 import { useSelector, useDispatch } from "react-redux";
 import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
-import { OrderType } from "@/types/orderType";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 import { useLocation as useRouterLocation } from "react-router-dom";
 
@@ -123,42 +122,42 @@ const PlaceOrder = () => {
     }
   }, [initialized, draftOrderData, draftStep, shouldRemoveDraftOrderEdit]);
 
-  const [formData, setFormData] = useState<OrderType>({
+  const [formData, setFormData] = useState<FormData>({
+    clinicId: "",
     orderId: "",
     refId: "",
-    category: null,
-    type: null,
     firstName: "",
     lastName: "",
     age: 0,
     sex: "",
-    caseHandleBy: "",
+    doctorMobileNumber: "",
     doctorMobile: "",
     consultingDoctor: "",
-    consultingDoctorMobile: "",
+    consultingDoctorMobileNumber: "",
     orderMethod: "" as any,
     prescriptionType: "",
-    subcategoryType: "",
+    prescriptionTypesId: [],
+    subPrescriptionTypes: "",
+    subPrescriptionTypesId: [],
+    selectedTeeth: [],
+    teethGroup: [],
     restorationType: null,
     productSelection: null,
     orderType: "",
     selectedFileType: null,
-    selectedTeeth: [],
-    teethGroups: [],
     toothNumbers: [],
     abutmentDetails: {
       abutmentType: "",
       quantity: 0,
       product: [{ name: "", provider: "" }],
     },
-    clinicId: "",
     abutmentType: "",
     restorationProducts: [],
     ponticDesign: null,
     occlusalStaining: "medium",
     shadeInstruction: null,
     clearance: null,
-    accessories: [],
+    accessorios: [],
     otherAccessory: null,
     returnAccessories: false,
     notes: null,
@@ -168,10 +167,13 @@ const PlaceOrder = () => {
       intraOralScan: [] as File[],
       referralImages: [] as File[],
     },
-    expectedDeliveryDate: null,
-    pickupDate: null,
-    pickupTime: null,
-    pickupRemarks: null,
+    AcpectedDileveryData: null as unknown as Date, // Fix type error: null is not assignable to type 'Date'
+    // expectedDeliveryDate: null,
+    pickupDats: {
+      pickUpDate: "",
+      pickUpTime: "",
+      pickUpMessage: "",
+    },
     scanBooking: {
       areaManagerId: "",
       scanDate: "",
@@ -186,17 +188,11 @@ const PlaceOrder = () => {
     repairType: null,
     returnWithTrial: false,
     teethEditedByUser: false,
-    intraOralScans: [],
-    faceScans: [],
-    patientPhotos: [],
-    referralFiles: [],
 
     // --- Order display fields (for OrderCard) ---
     orderStatus: "pending",
     percentage: 10,
     isUrgent: false,
-    currency: "INR",
-    exportQuality: "Standard",
     paymentStatus: "pending",
     totalAmount: "6565",
   });
@@ -226,9 +222,9 @@ const PlaceOrder = () => {
     return errors.length === 0;
   };
 
-  const handleCategorySelect = (category: OrderCategoryType) => {
-    setOrderCategory(category);
-    setFormData({ ...formData, category });
+  const handleCategorySelect = (orderType: OrderCategoryType) => {
+    setOrderCategory(orderType);
+    setFormData({ ...formData, orderType });
     setCurrentStep(1);
     setStepValidationErrors({});
   };
@@ -239,9 +235,8 @@ const PlaceOrder = () => {
     // Clear current prescription and order method for new selection
     setFormData({
       ...formData,
-      prescriptionTypesId: "",
-      type: "new",
-      orderType: "",
+      prescriptionTypesId: [],
+      orderType: "new",
     });
   };
 
@@ -365,42 +360,42 @@ const PlaceOrder = () => {
         });
       }
 
-      // Create tooth groups for the order
-      if (formData.teethGroup && formData.teethGroup.length > 0) {
-        for (const toothGroup of formData.teethGroup) {
-          const toothGroupData = {
-            orderId: orderLocal.id, // Use orderLocal.id for the new order
-            groupId: `group_${Date.now()}_${Math.random()
-              .toString(36)
-              .substr(2, 9)}`,
-            teeth:
-              toothGroup.teethDetails
-                ?.flat()
-                .map((detail) => detail.teethNumber) || [],
-            type: toothGroup.groupType || "separate",
-            notes: toothGroup.shadeNotes || "",
-            material: toothGroup.selectedProducts?.[0]?.material || "",
-            shade: toothGroup.shadeDetails || "",
-          };
+      // // Create tooth groups for the order
+      // if (formData.teethGroup && formData.teethGroup.length > 0) {
+      //   for (const toothGroup of formData.teethGroup) {
+      //     const toothGroupData = {
+      //       orderId: orderLocal.id, // Use orderLocal.id for the new order
+      //       groupId: `group_${Date.now()}_${Math.random()
+      //         .toString(36)
+      //         .substr(2, 9)}`,
+      //       teeth:
+      //         toothGroup.teethDetails
+      //           ?.flat()
+      //           .map((detail) => detail.teethNumber) || [],
+      //       type: toothGroup.groupType || "separate",
+      //       notes: toothGroup.shadeNotes || "",
+      //       material: toothGroup.selectedProducts?.[0]?.material || "",
+      //       shade: toothGroup.shadeDetails || "",
+      //     };
 
-          try {
-            const response = await fetch("/api/tooth-groups", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(toothGroupData),
-            });
+      //     try {
+      //       const response = await fetch("/api/tooth-groups", {
+      //         method: "POST",
+      //         headers: {
+      //           "Content-Type": "application/json",
+      //         },
+      //         body: JSON.stringify(toothGroupData),
+      //       });
 
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.error("Failed to create tooth group:", errorData);
-            }
-          } catch (error) {
-            console.error("Error creating tooth group:", error);
-          }
-        }
-      }
+      //       if (!response.ok) {
+      //         const errorData = await response.json();
+      //         console.error("Failed to create tooth group:", errorData);
+      //       }
+      //     } catch (error) {
+      //       console.error("Error creating tooth group:", error);
+      //     }
+      //   }
+      // }
 
       // Invalidate the orders cache to refresh the list
       // queryClient.invalidateQueries({ queryKey: ['/api/orders'] });

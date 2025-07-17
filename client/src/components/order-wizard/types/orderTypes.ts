@@ -1,4 +1,4 @@
-export type OrderCategoryType = "new" | "repeat" | "repair" | null;
+export type OrderCategoryType = "new" | "repeat" | "repair" | "" | null;
 
 export type OrderMethodType = "digital" | "manual";
 
@@ -106,31 +106,94 @@ export interface Message {
   messageBy: string;
 }
 
+export interface UploadedFile {
+  intraOralScan: File;
+  faceScan: File;
+  addPatientPhotos: File;
+  referralImages: File;
+}
+
+export interface Accessorios {
+  name: string;
+  qut: number;
+}
+
+export interface PickUpData {
+  pickUpDate: string;
+  pickUpTime: string;
+  pickUpMessage: string;
+}
+
+export interface CourierData {
+  courierName: string;
+  courierTrakingId: string;
+}
+
 export interface FormData {
   // --- Core order fields ---
   id: string;
   orderId: string;
   refId: string;
-  category: OrderCategoryType;
-  type: OrderCategoryType;
+  crateNo: string;
+  clinicId: string;
+
+  orderType: OrderCategoryType;
   firstName: string;
   lastName: string;
-  age: string;
+  age: string | number;
   sex: string;
   caseHandleBy: string;
-  doctorMobile: string;
-  consultingDoctor: string;
-  consultingDoctorMobile: string;
+  doctorMobileNumber: string;
+  consultingDoctorName: string;
+  consultingDoctorMobileNumber: string;
   orderMethod: OrderMethodType;
   prescriptionType: PrescriptionType;
-  subcategoryType: string;
+  prescriptionTypesId: string[];
+  subPrescriptionTypes: string;
+  subPrescriptionTypesId: string[];
+  selectedTeeth: SelectedTooth[];
+  teethGroup: ToothGroup[];
   restorationType: string | null;
   productSelection: string | null;
-  orderType: string;
-  selectedFileType: string | null;
-  selectedTeeth: SelectedTooth[];
-  toothGroups: ToothGroup[];
-  toothNumbers: string[] | null;
+  teethNumbers: string[] | null;
+  products?: Array<{
+    id: string;
+    name: string;
+    category: string;
+    material: string;
+    description: string;
+    quantity: number;
+  }>;
+  files: UploadedFile;
+
+  accessorios: Accessorios[];
+
+  handllingType: string;
+  pickupData: PickUpData[];
+  courierData: CourierData[];
+
+  resonOfReject: string;
+  resonOfRescan: string;
+  rejectNote: string;
+
+  qaNote: string;
+
+  orderBy: string;
+
+  AcpectedDileveryData: Date;
+  // expectedDeliveryDate: string | null;
+
+  lifeCycle: [];
+
+  orderStatus: string;
+
+  orderDate: string;
+  updateDate: string;
+  paymentType: string;
+  doctorNote: string;
+  paymentStatus: string;
+  totalAmount: string | null;
+
   abutmentDetails?: {
     abutmentType: string;
     quantity: number;
@@ -140,22 +203,17 @@ export interface FormData {
       provider: string;
     }[];
   } | null;
-  clinicId: string;
+
   abutmentType: string;
   restorationProducts: any[];
   ponticDesign: string | null;
   occlusalStaining: string;
   shadeInstruction: string | null;
   clearance: string | null;
-  accessories: string[] | null;
   otherAccessory: string | null;
   returnAccessories: boolean | undefined;
   notes: string | null;
-  files: File[] | null;
-  expectedDeliveryDate: string | null;
-  pickupDate: string | null;
-  pickupTime: string | null;
-  pickupRemarks: string | null;
+
   scanBooking: {
     areaManagerId: string;
     scanDate: string;
@@ -164,25 +222,16 @@ export interface FormData {
     trackingId: string;
     courierName: string;
   };
+  teethEditedByUser?: boolean;
   previousOrderId: string | null;
   repairOrderId: string | null;
   issueDescription: string | null;
   repairType: string | null;
   returnWithTrial: boolean;
-  teethEditedByUser?: boolean;
-  intraOralScans: any[];
-  faceScans: any[];
-  patientPhotos: any[];
-  referralFiles: any[];
-  
+
   // --- Order display fields (for OrderCard) ---
   percentage: number;
   isUrgent: boolean;
-  currency: string;
-  exportQuality: string;
-  paymentStatus: string;
-  orderStatus: string | null;
-  totalAmount:string | null;
 }
 
 export interface Step {

@@ -5,35 +5,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useState, useRef } from "react";
 import ToothSelector from "./ToothSelector";
 import ProductSelection from "./ProductSelection";
-import FileUploader from "@/components/shared/FileUploader";
-import AccessoryTagging from "./AccessoryTagging";
 import PatientInfoCard from "./components/PatientInfoCard";
 import CaseInfoCard from "./components/CaseInfoCard";
 import AccessorySelection from "./components/AccessorySelection";
-import SelectedTeethViewer from "./components/SelectedTeethViewer";
-import { Camera } from "lucide-react";
-import Webcam from "react-webcam";
-import { useIsMobile } from "@/hooks/use-mobile";
 import OrderTypeSection from "./components/OrderTypeSection";
 import { SelectPrescriptionSection } from "./components/SelectPrescriptionSection";
-import Combined3DPreview from "./Combined3DPreview";
 import { FormData } from "./types/orderTypes";
 import UploadFileSection from "./components/UploadFileSection";
-import { useLocation } from 'react-router-dom';
+import { useLocation } from "react-router-dom";
 
 interface NewOrderFlowProps {
   currentStep: number;
@@ -45,12 +27,12 @@ interface NewOrderFlowProps {
 }
 
 // Helper to build deduplicated, prioritized group list for summary
-function buildSummaryGroups(teethGroups: any[], selectedTeeth: any[]) {
+function buildSummaryGroups(teethGroup: any[], selectedTeeth: any[]) {
   // Priority: bridge > joint > individual
   const usedTeeth = new Set<number>();
   const summaryGroups: any[] = [];
   // Add bridge groups first
-  teethGroups
+  teethGroup
     .filter((g) => g.type === "bridge")
     .forEach((group) => {
       const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t));
@@ -60,7 +42,7 @@ function buildSummaryGroups(teethGroups: any[], selectedTeeth: any[]) {
       }
     });
   // Then joint groups
-  teethGroups
+  teethGroup
     .filter((g) => g.type === "joint")
     .forEach((group) => {
       const teeth = group.teeth.filter((t: number) => !usedTeeth.has(t));
@@ -254,14 +236,6 @@ const NewOrderFlow = ({
   const location = useLocation();
   const { draftOrder, step } = location.state || {};
   const [initialized, setInitialized] = useState(false);
-  const [companies, setCompanies] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
-  const [companiesError, setCompaniesError] = useState<string | null>(null);
-  const isMobile = useIsMobile();
-  const [showInstructions, setShowInstructions] = useState(false);
-  const viewerRef = useRef(null);
 
   // Defensive defaulting for arrays in propFormData
   const safeFormData = {
@@ -270,34 +244,9 @@ const NewOrderFlow = ({
     faceScans: propFormData?.faceScans || [],
     patientPhotos: propFormData?.patientPhotos || [],
     referralFiles: propFormData?.referralFiles || [],
-    toothGroups: propFormData?.toothGroups || [],
+    toothGroups: propFormData?.teethGroup || [],
     selectedTeeth: propFormData?.selectedTeeth || [],
   };
-
-  // Fetch companies from API
-  useEffect(() => {
-    const fetchCompanies = async () => {
-      setLoadingCompanies(true);
-      setCompaniesError(null);
-      try {
-        const response = await fetch("/api/companies");
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
-        } else {
-          console.error("Failed to fetch companies");
-          setCompaniesError("Failed to load companies");
-        }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
-        setCompaniesError("Error loading companies");
-      } finally {
-        setLoadingCompanies(false);
-      }
-    };
-
-    fetchCompanies();
-  }, []);
 
   useEffect(() => {
     if (!initialized && draftOrder && step) {
@@ -317,10 +266,14 @@ const NewOrderFlow = ({
         </div>
 
         {/* Order Method */}
-        {(safeFormData?.teethGroups?.length === 0 || !safeFormData?.teethGroups) &&
+        {(safeFormData?.teethGroup?.length === 0 ||
+          !safeFormData?.teethGroup) &&
           (!safeFormData?.selectedTeeth ||
             safeFormData?.selectedTeeth.length === 0) && (
-            <OrderTypeSection formData={safeFormData} setFormData={setFormData} />
+            <OrderTypeSection
+              formData={safeFormData}
+              setFormData={setFormData}
+            />
           )}
       </div>
     );
@@ -370,12 +323,12 @@ const NewOrderFlow = ({
           <CardContent className="p-0 mt-4">
             <ToothSelector
               prescriptionType={safeFormData?.prescriptionType}
-              selectedGroups={safeFormData?.teethGroups || []}
+              selectedGroups={safeFormData?.teethGroup || []}
               selectedTeeth={safeFormData?.selectedTeeth || []}
               onSelectionChange={(groups, teeth) =>
                 setFormData({
                   ...safeFormData,
-                  teethGroups: groups,
+                  teethGroup: groups,
                   selectedTeeth: teeth,
                 })
               }

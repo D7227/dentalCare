@@ -1,19 +1,21 @@
-import { OrderCategory, FormData } from "../types/orderTypes";
+import { OrderCategoryType, FormData } from "../types/orderTypes";
 export const useOrderValidation = () => {
   const validateStep = (
     currentStep: number,
-    orderCategory: OrderCategory,
-    formData: FormData,
+    orderCategory: OrderCategoryType,
+    formData: FormData
   ): string[] => {
+    console.log("formData --- validation ", formData);
     const errors: string[] = [];
     if (orderCategory === "new") {
       switch (currentStep) {
         case 1:
-          if (!formData.firstName.trim()) errors.push("First name is required");
-          if (!formData.lastName.trim()) errors.push("Last name is required");
-          if (!formData.caseHandleBy.trim())
+          if (!formData?.firstName.trim())
+            errors.push("First name is required");
+          if (!formData?.lastName.trim()) errors.push("Last name is required");
+          if (!formData?.caseHandleBy?.trim())
             errors.push("Case handler is required");
-          if (!formData.orderMethod)
+          if (!formData?.orderMethod)
             errors.push("Please select an order Type");
           break;
         case 2:
@@ -23,7 +25,7 @@ export const useOrderValidation = () => {
           break;
         case 3:
           // Step 3: Subcategory Selection - validate subcategory is selected
-          if (formData.prescriptionType && !formData.subcategoryType) {
+          if (formData.prescriptionType && !formData.subPrescriptionTypes) {
             // Check if this prescription type requires subcategory selection
             const requiresSubcategory = [
               "fixed-restoration",
@@ -31,7 +33,7 @@ export const useOrderValidation = () => {
               "splints-guards",
               "ortho",
               "dentures",
-              "sleep-accessories"
+              "sleep-accessories",
             ].includes(formData.prescriptionType);
 
             if (requiresSubcategory) {
@@ -40,8 +42,8 @@ export const useOrderValidation = () => {
           }
 
           // Subcategory-specific validations
-          if (formData.subcategoryType) {
-            switch (formData.subcategoryType) {
+          if (formData.subPrescriptionTypes) {
+            switch (formData.subPrescriptionTypes) {
               case "implant-crown":
               case "implant-bridge":
               case "all-on-4":
@@ -66,9 +68,9 @@ export const useOrderValidation = () => {
           break;
         case 4:
           // Step 4: Teeth Selection - validate that teeth are selected
-          const teethGroups = formData.teethGroups || [];
+          const teethGroup = formData.teethGroup || [];
           const selectedTeeth = (formData as any).selectedTeeth || [];
-          if (teethGroups.length === 0 && selectedTeeth.length === 0) {
+          if (teethGroup.length === 0 && selectedTeeth.length === 0) {
             errors.push("Please select at least one tooth group");
           }
           // Additional validation: single pontic in bridge group
@@ -78,7 +80,7 @@ export const useOrderValidation = () => {
                 return true;
               }
               return false;
-            },
+            }
           );
           if (singlePonticBridge) {
             errors.push("Single pontic is not allowed make a bridge group.");
@@ -86,7 +88,7 @@ export const useOrderValidation = () => {
           break;
         case 5:
           // Step 5: Product Selection - validate that products are configured
-          const productteethGroups = formData.teethGroups || [];
+          const productteethGroups = formData.teethGroup || [];
           const individualTeeth = formData.selectedTeeth || [];
 
           // Check if we have either tooth groups or individual teeth
@@ -131,18 +133,18 @@ export const useOrderValidation = () => {
           break;
         case 6:
           // Step 6: Upload & Logistics
-          if (formData.orderType === "request-scan") {
-            if (!formData.scanBooking?.areaManagerId?.trim())
-              errors.push("Area manager is required for scan booking");
-            if (!formData.scanBooking?.scanDate?.trim())
-              errors.push("Scan date is required for scan booking");
-            if (!formData.scanBooking?.scanTime?.trim())
-              errors.push("Scan time is required for scan booking");
-          }
+          // if (formData.orderType === "request-scan") {
+          //   if (!formData.scanBooking?.areaManagerId?.trim())
+          //     errors.push("Area manager is required for scan booking");
+          //   if (!formData.scanBooking?.scanDate?.trim())
+          //     errors.push("Scan date is required for scan booking");
+          //   if (!formData.scanBooking?.scanTime?.trim())
+          //     errors.push("Scan time is required for scan booking");
+          // }
           break;
         case 7:
           // Step 7: Final Details & Accessories
-          const accessories = formData.accessories || [];
+          const accessories = formData.accessorios || [];
           if (
             accessories.includes("other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")
@@ -155,19 +157,19 @@ export const useOrderValidation = () => {
     if (orderCategory === "repeat") {
       switch (currentStep) {
         case 1:
-          if (!formData.previousOrderId.trim())
+          if (!formData?.previousOrderId.trim())
             errors.push("Please select a previous order");
           break;
         case 3:
-          if (formData.orderType === "request-scan") {
-            if (!formData.scanBooking?.areaManagerId?.trim())
-              errors.push("Area manager is required for scan booking");
-            if (!formData.scanBooking?.scanDate?.trim())
-              errors.push("Scan date is required for scan booking");
-            if (!formData.scanBooking?.scanTime?.trim())
-              errors.push("Scan time is required for scan booking");
-          }
-          const accessories = formData.accessories || [];
+          // if (formData?.orderType === "request-scan") {
+          //   if (!formData.scanBooking?.areaManagerId?.trim())
+          //     errors.push("Area manager is required for scan booking");
+          //   if (!formData.scanBooking?.scanDate?.trim())
+          //     errors.push("Scan date is required for scan booking");
+          //   if (!formData.scanBooking?.scanTime?.trim())
+          //     errors.push("Scan time is required for scan booking");
+          // }
+          const accessories = formData.accessorios || [];
           if (
             accessories.includes("other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")
@@ -180,19 +182,19 @@ export const useOrderValidation = () => {
     if (orderCategory === "repair") {
       switch (currentStep) {
         case 1:
-          if (!formData.repairOrderId.trim())
+          if (!formData?.repairOrderId.trim())
             errors.push("Please select an order to repair");
           break;
         case 2:
-          if (!formData.issueDescription.trim())
+          if (!formData?.issueDescription.trim())
             errors.push("Please describe the issue");
           break;
         case 3:
-          if (!formData.repairType.trim())
+          if (!formData?.repairType.trim())
             errors.push("Please select a repair type");
           break;
         case 4:
-          if (formData.orderType === "request-scan") {
+          if (formData?.orderType === "request-scan") {
             if (!formData.scanBooking?.areaManagerId?.trim())
               errors.push("Area manager is required for scan booking");
             if (!formData.scanBooking?.scanDate?.trim())
@@ -200,7 +202,7 @@ export const useOrderValidation = () => {
             if (!formData.scanBooking?.scanTime?.trim())
               errors.push("Scan time is required for scan booking");
           }
-          const repairAccessories = formData.accessories || [];
+          const repairAccessories = formData.accessorios || [];
           if (
             repairAccessories.includes("other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")

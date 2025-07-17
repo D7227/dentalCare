@@ -498,16 +498,16 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                             {subcategories.map((subcategory) => (
                                 <Card
                                     key={subcategory.id}
-                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 ${formData.subcategoryType === subcategory.id
+                                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border-2 ${formData.subPrescriptionTypes === subcategory.id
                                         ? "border-teal-500 shadow-md"
                                         : "border-gray-200 hover:border-gray-300"
                                         }`}
-                                    onClick={() => handleChange("subcategoryType", subcategory?.id)}
-                                    onDoubleClick={() => handleDoubleClick("subcategoryType", subcategory?.id)}
+                                    onClick={() => handleChange("subPrescriptionTypes", subcategory?.id)}
+                                    onDoubleClick={() => handleDoubleClick("subPrescriptionTypes", subcategory?.id)}
                                 >
                                     <CardContent className="p-4 text-center">
                                         <div
-                                            className={`w-[160px] h-[160px] mx-auto mb-3 rounded-lg flex items-center justify-center ${formData.subcategoryType === subcategory.id
+                                            className={`w-[160px] h-[160px] mx-auto mb-3 rounded-lg flex items-center justify-center ${formData.subPrescriptionTypes === subcategory.id
                                                 ? "bg-teal-100"
                                                 : "bg-gray-100"
                                                 }`}
@@ -515,7 +515,7 @@ export const SelectPrescriptionSection: React.FC<SelectPrescriptionSectionProps>
                                             {subcategory.icon}
                                         </div>
                                         <h3
-                                            className={`font-medium text-sm ${formData.subcategoryType === subcategory.id
+                                            className={`font-medium text-sm ${formData.subPrescriptionTypes === subcategory.id
                                                 ? "text-teal-500"
                                                 : "text-gray-700"
                                                 }`}

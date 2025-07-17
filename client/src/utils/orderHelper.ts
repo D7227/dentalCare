@@ -1,4 +1,4 @@
-import { OrderType } from "@/types/orderType";
+import { FormData } from "@/components/order-wizard/types/orderTypes";
 
 // Define a local type for the form data that includes all fields used below
 export type OrderFormData = OrderType & {
@@ -38,7 +38,7 @@ export type OrderFormData = OrderType & {
 };
 
 // Function to create comprehensive order object
-export const createOrderObject = (formData: OrderFormData, user: any) => {
+export const createOrderObject = (formData: FormData, user: any) => {
   // Handle subcategory-specific conditions
   const getOrderTypeBasedOnSubcategory = () => {
     if (formData.subcategoryType) {
@@ -94,14 +94,14 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     consultingDoctorMobileNumber: formData.consultingDoctorMobileNumber || "",
 
     // Order Details
-    prescriptionTypesId: formData.prescriptionTypesId || "",
-    subPrescriptionTypesId: formData.subPrescriptionTypesId || "",
+    prescriptionTypesId: [formData.prescriptionType] || "",
+    subPrescriptionTypesId: [formData.subPrescriptionTypes] || "",
     orderMethod: formData.orderMethod || "",
 
     // Teeth Configuration - Store as separate fields for database
-    teethGroup: formData.teethGroups || [],
+    teethGroup: formData.teethGroup || [],
     selectedTeeth: formData.selectedTeeth || [],
-    teethNumber: formData.teethNumber || [],
+    teethNumber: formData.teethNumbers || [],
 
     // Files and Documentation
     files: {
@@ -112,7 +112,7 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     },
 
     // Accessories and Additional Items
-    accessorios: formData.selectedAccessories || [],
+    accessorios: formData.selectedAccessories || formData?.accessories || [],
     handllingType: formData.handllingType || "",
 
     // Pickup/Delivery Information
@@ -141,9 +141,14 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
     // Order References
     previousOrderId: formData.previousOrderId || "",
     repairOrderId: formData.repairOrderId || "",
-    courierData:{
-      courierName: formData?.scanBooking?.courierName,
-      trackingId :formData?.scanBooking?.trackingId
+    courierData: {
+      courierName: formData?.courierData?.courierName,
+      trackingId: formData?.courierData?.trackingId,
+    },
+    pickupData: {
+      pickupDate: formData?.pickupData?.pickupDate,
+      pickupTime: formData?.pickupData?.pickupTime,
+      pickupRemarks: formData?.pickupData?.pickupRemarks,
     },
 
     // Notes and Instructions
@@ -168,51 +173,77 @@ export const createOrderObject = (formData: OrderFormData, user: any) => {
 
 export const createDraftOrderObject = (formData: any, clinicId: string) => {
   return {
-    orderId: formData.orderId || '',
-    refId: formData.refId || `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-    category: formData.category || '',
-    type: formData.type || '',
-    firstName: formData.firstName || '',
-    lastName: formData.lastName || '',
-    age: formData.age || '',
-    sex: formData.sex || '',
-    caseHandledBy: formData.caseHandledBy || '',
-    doctorMobile: formData.doctorMobile || '',
-    consultingDoctor: formData.consultingDoctor || '',
-    consultingDoctorMobile: formData.consultingDoctorMobile || '',
-    orderMethod: formData.orderMethod || '',
-    prescriptionType: formData.prescriptionType || '',
-    subcategoryType: formData.subcategoryType || '',
-    restorationType: formData.restorationType || '',
-    productSelection: formData.productSelection || '',
-    orderType: formData.orderType || '',
-    selectedFileType: formData.selectedFileType || '',
-    selectedTeeth: Array.isArray(formData.selectedTeeth) ? formData.selectedTeeth : [],
-    toothGroups: Array.isArray(formData.toothGroups) ? formData.toothGroups : [],
-    toothNumbers: Array.isArray(formData.toothNumbers) ? formData.toothNumbers : [],
+    orderId: formData.orderId || "",
+    refId:
+      formData.refId ||
+      `REF-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 4)
+        .toUpperCase()}`,
+    category: formData.category || "",
+    type: formData.type || "",
+    firstName: formData.firstName || "",
+    lastName: formData.lastName || "",
+    age: formData.age || "",
+    sex: formData.sex || "",
+    caseHandledBy: formData.caseHandledBy || "",
+    doctorMobile: formData.doctorMobile || "",
+    consultingDoctor: formData.consultingDoctor || "",
+    consultingDoctorMobile: formData.consultingDoctorMobile || "",
+    orderMethod: formData.orderMethod || "",
+    prescriptionType: formData.prescriptionType || "",
+    subcategoryType: formData.subcategoryType || "",
+    restorationType: formData.restorationType || "",
+    productSelection: formData.productSelection || "",
+    orderType: formData.orderType || "",
+    selectedFileType: formData.selectedFileType || "",
+    selectedTeeth: Array.isArray(formData.selectedTeeth)
+      ? formData.selectedTeeth
+      : [],
+    toothGroups: Array.isArray(formData.toothGroups)
+      ? formData.toothGroups
+      : [],
+    toothNumbers: Array.isArray(formData.toothNumbers)
+      ? formData.toothNumbers
+      : [],
     abutmentDetails: formData.abutmentDetails || null,
-    abutmentType: formData.abutmentType || '',
-    restorationProducts: Array.isArray(formData.restorationProducts) ? formData.restorationProducts : [],
-    clinicId: clinicId || formData.clinicId || '',
-    ponticDesign: formData.ponticDesign || '',
-    occlusalStaining: formData.occlusalStaining || '',
-    shadeInstruction: formData.shadeInstruction || '',
-    clearance: formData.clearance || '',
-    accessories: Array.isArray(formData.accessories) ? formData.accessories : [],
-    otherAccessory: formData.otherAccessory || '',
+    abutmentType: formData.abutmentType || "",
+    restorationProducts: Array.isArray(formData.restorationProducts)
+      ? formData.restorationProducts
+      : [],
+    clinicId: clinicId || formData.clinicId || "",
+    ponticDesign: formData.ponticDesign || "",
+    occlusalStaining: formData.occlusalStaining || "",
+    shadeInstruction: formData.shadeInstruction || "",
+    clearance: formData.clearance || "",
+    accessories: Array.isArray(formData.accessories)
+      ? formData.accessories
+      : [],
+    otherAccessory: formData.otherAccessory || "",
     returnAccessories: !!formData.returnAccessories,
-    notes: formData.notes || '',
+    notes: formData.notes || "",
     files: Array.isArray(formData.files) ? formData.files : [],
     expectedDeliveryDate: formData.expectedDeliveryDate || null,
     pickupDate: formData.pickupDate || null,
-    pickupTime: formData.pickupTime || '',
-    step: typeof formData.step === 'string' ? formData.step : (formData.step !== undefined && formData.step !== null ? String(formData.step) : ''),
-    pickupRemarks: formData.pickupRemarks || '',
+    pickupTime: formData.pickupTime || "",
+    step:
+      typeof formData.step === "string"
+        ? formData.step
+        : formData.step !== undefined && formData.step !== null
+        ? String(formData.step)
+        : "",
+    pickupRemarks: formData.pickupRemarks || "",
     scanBooking: formData.scanBooking || null,
-    intraOralScans: Array.isArray(formData.intraOralScans) ? formData.intraOralScans : [],
+    intraOralScans: Array.isArray(formData.intraOralScans)
+      ? formData.intraOralScans
+      : [],
     faceScans: Array.isArray(formData.faceScans) ? formData.faceScans : [],
-    patientPhotos: Array.isArray(formData.patientPhotos) ? formData.patientPhotos : [],
-    referralFiles: Array.isArray(formData.referralFiles) ? formData.referralFiles : [],
+    patientPhotos: Array.isArray(formData.patientPhotos)
+      ? formData.patientPhotos
+      : [],
+    referralFiles: Array.isArray(formData.referralFiles)
+      ? formData.referralFiles
+      : [],
     // createdAt and id are handled by backend
   };
 };

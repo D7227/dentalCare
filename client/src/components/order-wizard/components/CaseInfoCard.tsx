@@ -37,8 +37,8 @@ const CaseInfoCard = ({
   editMode = false,
 }: CaseInfoCardProps) => {
   const [errors, setErrors] = useState<{
-    doctorMobile?: string;
-    consultingDoctorMobile?: string;
+    doctorMobileNumber?: string;
+    consultingDoctorMobileNumber?: string;
   }>({});
   const [clinicSearchTerm, setClinicSearchTerm] = useState("");
   const [isClinicDropdownOpen, setIsClinicDropdownOpen] = useState(false);
@@ -203,9 +203,10 @@ const CaseInfoCard = ({
             );
             onChange("caseHandledById", selectedMember?.id || "");
             onChange("caseHandleBy", selectedMember?.fullName || "");
+            onChange("consultingDoctor", selectedMember?.fullName || "");
             onChange(
-              "doctorMobile",
-              selectedMember?.contactNumber || data.doctorMobile
+              "doctorMobileNumber",
+              selectedMember?.contactNumber || data.doctorMobileNumber
             );
           }}
           disabled={isLoading || !!error}
@@ -247,49 +248,51 @@ const CaseInfoCard = ({
         </Select>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="doctorMobile">Doctor Mobile Number</Label>
+        <Label htmlFor="doctorMobileNumber">Doctor Mobile Number</Label>
         <div className="relative">
           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
           <Input
-            id="doctorMobile"
+            id="doctorMobileNumber"
             style={{ borderRadius: "0.5rem" }}
-            value={data.doctorMobile}
-            onChange={(e) => onMobileChange("doctorMobile", e.target.value)}
+            value={data.doctorMobileNumber}
+            onChange={(e) =>
+              onMobileChange("doctorMobileNumber", e.target.value)
+            }
             className="mt-1 pl-10"
             placeholder="Enter mobile number (numbers only)"
-            error={!!errors.doctorMobile}
-            errorMessage={errors.doctorMobile}
+            error={!!errors.doctorMobileNumber}
+            errorMessage={errors.doctorMobileNumber}
           />
         </div>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
+        <Label htmlFor="consultingDoctorName">Consulting Doctor</Label>
         <Input
-          id="consultingDoctor"
+          id="consultingDoctorName"
           style={{ borderRadius: "0.5rem" }}
-          value={data.consultingDoctor}
-          onChange={(e) => onChange("consultingDoctor", e.target.value)}
+          value={data.consultingDoctorName}
+          onChange={(e) => onChange("consultingDoctorName", e.target.value)}
           className="mt-1"
           placeholder="Enter Consulting Doctor Name"
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="consultingDoctorMobile">
+        <Label htmlFor="consultingDoctorMobileNumber">
           Consulting Doctor Mobile Number
         </Label>
         <div className="relative">
           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
           <Input
-            id="consultingDoctorMobile"
+            id="consultingDoctorMobileNumber"
             style={{ borderRadius: "0.5rem" }}
-            value={data.consultingDoctorMobile}
+            value={data.consultingDoctorMobileNumber}
             onChange={(e) =>
-              onMobileChange("consultingDoctorMobile", e.target.value)
+              onMobileChange("consultingDoctorMobileNumber", e.target.value)
             }
             className="mt-1 pl-10"
             placeholder="Enter mobile number (numbers only)"
-            error={!!errors.doctorMobile}
-            errorMessage={errors.consultingDoctorMobile}
+            error={!!errors.consultingDoctorMobileNumber}
+            errorMessage={errors.consultingDoctorMobileNumber}
           />
         </div>
       </div>
@@ -308,14 +311,16 @@ const CaseInfoCard = ({
       </div>
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Doctor Mobile</Label>
-        <div className="text-sm font-medium">{data.doctorMobile || "-"}</div>
+        <div className="text-sm font-medium">
+          {data.doctorMobileNumber || "-"}
+        </div>
       </div>
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">
           Consulting Doctor
         </Label>
         <div className="text-sm font-medium">
-          {data.consultingDoctor || "-"}
+          {data.consultingDoctorName || "-"}
         </div>
       </div>
       <div className="space-y-1">
@@ -323,7 +328,7 @@ const CaseInfoCard = ({
           Consulting Doctor Mobile
         </Label>
         <div className="text-sm font-medium">
-          {data.consultingDoctorMobile || "-"}
+          {data.consultingDoctorMobileNumber || "-"}
         </div>
       </div>
     </div>
