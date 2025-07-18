@@ -202,24 +202,24 @@ export class OrderStorage implements orderStore {
   ): Promise<any | undefined> {
     const orderData = await orderStorage.getOrder(orderId);
     console.log(orderData, "orderData");
-    if (body?.status === "active") {
+    if ((body?.status || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
       console.log("chat Data", chatData);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
-          orderData?.clinicId
+          orderData?.clinicId || ""
         );
 
         if (!clinicData) return "Clinic Data Not Found";
 
-        const clinicFullname = `${clinicData?.firstname} ${clinicData?.lastname}`;
+        const clinicFullname = `${clinicData?.firstname || ""} ${clinicData?.lastname || ""}`;
         const chatPayload = {
-          clinicId: orderData?.clinicId,
+          clinicId: orderData?.clinicId || "",
           createdBy: clinicFullname,
-          orderId: orderData?.id,
-          participants: [clinicFullname, body?.userName],
+          orderId: orderData?.id || "",
+          participants: [clinicFullname, body?.userName || ""],
           roleName: "main_doctor",
-          title: body.orderId,
+          title: body?.orderId || "",
           type: "order",
           userRole: "main_doctor",
         };
@@ -228,10 +228,10 @@ export class OrderStorage implements orderStore {
         if (!createNewChat) return "Something Went Wrong On Create Chat";
 
         const updateOrder = {
-          orderStatus: body?.status,
-          orderId: body?.orderId,
-          crateNo: body?.crateNo,
-          qaNote: body?.qaNote,
+          orderStatus: body?.status || "",
+          orderId: body?.orderId || "",
+          crateNo: body?.crateNo || "",
+          qaNote: body?.qaNote || "",
         };
         const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
         if (!UpdateOrderData) return "Order Not Update";
@@ -239,8 +239,8 @@ export class OrderStorage implements orderStore {
         return UpdateOrderData;
       }
       const chatParticipentList = chatData?.participants || [];
-      if (!chatParticipentList.includes(body?.userName)) {
-        const newParticipantsList = [...chatParticipentList, body?.userName];
+      if (!chatParticipentList.includes(body?.userName || "")) {
+        const newParticipantsList = [...chatParticipentList, body?.userName || ""];
 
         const updateChatData = {
           ...chatData,
@@ -254,20 +254,20 @@ export class OrderStorage implements orderStore {
         if (!updateParticipant) return "Chat Is Not Update";
       } else {
         const updateOrder = {
-          orderStatus: body?.status,
-          orderId: body?.orderId,
-          crateNo: body?.crateNo,
-          qaNote: body?.qaNote,
+          orderStatus: body?.status || "",
+          orderId: body?.orderId || "",
+          crateNo: body?.crateNo || "",
+          qaNote: body?.qaNote || "",
         };
         const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
         if (!UpdateOrderData) return "Order Not Update";
 
         return UpdateOrderData;
       }
-    } else if (body?.status === "rejected") {
+    } else if ((body?.status || "") === "rejected") {
       const updateOrder = {
-        orderStatus: body?.status,
-        resonOfReject: body?.resonOfReject,
+        orderStatus: body?.status || "",
+        resonOfReject: body?.resonOfReject || "",
       };
       const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
       if (!UpdateOrderData) return "Order Not Update";
@@ -275,9 +275,9 @@ export class OrderStorage implements orderStore {
       return UpdateOrderData;
     }
     const updateOrder = {
-      orderStatus: body?.status,
-      resonOfRescan: body?.resonOfRescan,
-      rejectNote: body?.resonOfRescan,
+      orderStatus: body?.status || "",
+      resonOfRescan: body?.resonOfRescan || "",
+      rejectNote: body?.resonOfRescan || "",
     };
     const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
     if (!UpdateOrderData) return "Order Not Update";

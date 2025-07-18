@@ -26,7 +26,7 @@ import { FileText, Edit, X } from "lucide-react";
 import type { CaseStatus } from "../data/cases";
 import {
   useGetOrderByOrderIdQuery,
-  useUpdateOrderMutation,
+  useUpdateQaOrderStatusMutation,
 } from "@/store/slices/orderApi";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 
@@ -73,7 +73,7 @@ export default function OrderReviewModal({
   const [rescanReason, setRescanReason] = useState("");
   const [rescanNotes, setRescanNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
-  const [updateOrder, { isLoading: isUpdating }] = useUpdateOrderMutation();
+  const [updateOrder, { isLoading: isUpdating }] = useUpdateQaOrderStatusMutation();
 
   const {
     data: orderData,
@@ -116,14 +116,19 @@ export default function OrderReviewModal({
     if (!formData) return;
     try {
       const updatedOrder = {
-        ...formData,
-        orderStatus: "approved", // or "active" if that's your convention
-        orderId,
-        additionalNote: additionalNotes,
+        status: 'active',
+        orderId: orderId,
+        qaNote: additionalNotes,
         crateNo: crateNumber,
+        userName: "qa dental",
+        resonOfReject: "",
+        resonOfRescan: "",
+        rejectNote: ""
       };
       console.log("updatedOrder", updatedOrder);
-      // await updateOrder({ id: formData.id, body: updatedOrder }).unwrap();
+
+
+      await updateOrder({ orderId: formData.id, orderStatus: updatedOrder }).unwrap();
       setAdditionalNotes("");
       onClose();
     } catch (error) {
@@ -135,15 +140,19 @@ export default function OrderReviewModal({
     if (!formData) return;
     try {
       const updatedOrder = {
-        ...formData,
-        orderStatus: "rejected",
-        orderId,
-        additionalNote: additionalNotes,
-        rejectionReason,
+        status: 'rejected',
+        orderId: orderId,
+        qaNote: additionalNotes,
         crateNo: crateNumber,
+        userName: "qa dental",
+        resonOfReject: rejectionReason,
+        resonOfRescan: "",
+        rejectNote: ""
       };
       console.log("updatedOrder", updatedOrder);
-      // await updateOrder({ id: formData.id, body: updatedOrder }).unwrap();
+
+
+      await updateOrder({ orderId: formData.id, orderStatus: updatedOrder }).unwrap();
       setRejectionReason("");
       setAdditionalNotes("");
       onClose();
@@ -156,7 +165,7 @@ export default function OrderReviewModal({
     if (!formData) return;
     try {
       const combinedNotes = `Rescan Reason: ${rescanReason}\nNotes: ${rescanNotes}`;
-      await updateOrder({ id: formData.id, body: formData });
+      await updateOrder({ orderId: formData.id, orderStatus: formData });
       setRescanReason("");
       setRescanNotes("");
       onClose();

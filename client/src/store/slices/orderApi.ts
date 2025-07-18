@@ -124,6 +124,22 @@ export const orderApi = createApi({
         { type: "OrderChat", id: orderId },
       ],
     }),
+
+    // Update QA order status
+    updateQaOrderStatus: builder.mutation<
+      OrderType,
+      { orderId: string; orderStatus: any }
+    >({
+      query: ({ orderId, orderStatus }) => ({
+        url: `/qa/status/${orderId}`,
+        method: "PATCH",
+        body:orderStatus,
+      }),
+      invalidatesTags: (result, error, { orderId }) => [
+        { type: "Order", id: orderId },
+        { type: "OrderList", id: "LIST" },
+      ],
+    }),
   }),
 });
 
@@ -137,4 +153,5 @@ export const {
   useUpdateOrderStatusMutation,
   useFilterOrdersQuery,
   useGetOrderChatQuery,
+  useUpdateQaOrderStatusMutation,
 } = orderApi;

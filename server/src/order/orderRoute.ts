@@ -89,11 +89,11 @@ export const setupOrderRoutes = (app: Express) => {
     try {
       const orderId = req.params.orderId;
       const body: QaStatusApiBody = req.body;
-
+      console.log(body?.status,"body");
       const updateData = await orderStorage.updateStatus(orderId , body);
       console.log(updateData,"updateData");
 
-      res.status(201).json(updateData);
+      res.status(201).json("updateData");
     } catch (error) {
       console.log(error)
       res.status(400).json({ error: error });
