@@ -49,7 +49,7 @@ export const orderApi = createApi({
       query: (clinicId) => ({ url: `/orders/${clinicId}`, method: "GET" }),
       providesTags: (result, error, clinicId) => [{ type: "Order", clinicId }],
     }),
-    
+
     // Get order by ID (ClinicId)
     getQaOrder: builder.query<OrderType[], string>({
       query: (status) => ({

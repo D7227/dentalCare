@@ -5,6 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Product {
   id: string;
@@ -42,6 +49,7 @@ const ProductSearch = ({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>("All");
 
   // Click-away logic
   useEffect(() => {
@@ -148,18 +156,38 @@ const ProductSearch = ({
     return selectedTeeth.length;
   };
 
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm) return products;
+  // Get unique materials from products
+  const materialOptions = useMemo(() => {
+    const mats = Array.from(new Set(products.map((p) => p.material)));
+    return ["All", ...mats];
+  }, [products]);
 
-    return products.filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.description &&
-          product.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, products]);
+  const filteredProducts = useMemo(() => {
+    let filtered = products;
+    if (selectedMaterial !== "All") {
+      filtered = filtered.filter(
+        (product) => product.material === selectedMaterial
+      );
+    }
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.material.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (product.description &&
+            product.description
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
+      );
+    }
+    return filtered;
+  }, [searchTerm, products, selectedMaterial]);
+
+  // Reset search term when material changes
+  useEffect(() => {
+    setSearchTerm("");
+  }, [selectedMaterial]);
 
   const handleProductSelect = (product: Product) => {
     // Check if product is already added
@@ -219,7 +247,23 @@ const ProductSearch = ({
   return (
     <div className="space-y-4" ref={containerRef}>
       <div className="relative">
-        <Label className="text-sm font-medium mb-2 block">Product list *</Label>
+        <div className="flex w-full justify-between items-center mb-2 gap-2">
+          <Label className="text-sm font-medium block">Product list *</Label>
+          <div className="min-w-[180px]">
+            <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
+              <SelectTrigger className="h-9 w-full border rounded px-2 text-sm">
+                <SelectValue placeholder="Filter by Material" />
+              </SelectTrigger>
+              <SelectContent>
+                {materialOptions.map((mat) => (
+                  <SelectItem key={mat} value={mat}>
+                    {mat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <div className="relative">
           <Input
             placeholder={

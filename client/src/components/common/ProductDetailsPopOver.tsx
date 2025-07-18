@@ -25,7 +25,7 @@ const ProductDetailsPopOver: React.FC<ProductDetailsPopOverProps> = ({
   trigger,
   triggerText,
 }) => {
-  if (!products || products.length === 0) {
+  if (!products || products?.length === 0) {
     return <span className="text-gray-400">No products</span>;
   }
   return (
@@ -36,7 +36,7 @@ const ProductDetailsPopOver: React.FC<ProductDetailsPopOverProps> = ({
         ) : (
           <button className="font-medium focus:outline-none">
             {triggerText ||
-              (products.length === 1
+              (products?.length === 1
                 ? `${products[0].product || products[0].name} x ${
                     products[0].qty
                   }`
@@ -49,26 +49,29 @@ const ProductDetailsPopOver: React.FC<ProductDetailsPopOverProps> = ({
       <PopoverContent className="w-80">
         <div className="font-semibold mb-2">Product Details</div>
         <ul className="space-y-1">
-          {products.map((prod, idx) => (
-            <li
-              key={idx}
-              className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm"
-            >
-              <div className="flex justify-between">
-                <span>{prod.product || prod.name}</span>
-                <span className="text-gray-500">x{prod.qty}</span>
-              </div>
-              {prod.material && (
-                <div className="text-xs text-gray-500">
-                  Material: {prod.material}
+          {products &&
+            products?.map((prod, idx) => (
+              <li
+                key={idx}
+                className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm"
+              >
+                <div className="flex justify-between">
+                  <span>{prod.product || prod.name}</span>
+                  <span className="text-gray-500">x{prod.qty}</span>
                 </div>
-              )}
-              {prod.shade && (
-                <div className="text-xs text-gray-500">Shade: {prod.shade}</div>
-              )}
-              {/* Add more fields as needed */}
-            </li>
-          ))}
+                {prod.material && (
+                  <div className="text-xs text-gray-500">
+                    Material: {prod.material}
+                  </div>
+                )}
+                {prod.shade && (
+                  <div className="text-xs text-gray-500">
+                    Shade: {prod.shade}
+                  </div>
+                )}
+                {/* Add more fields as needed */}
+              </li>
+            ))}
         </ul>
       </PopoverContent>
     </Popover>

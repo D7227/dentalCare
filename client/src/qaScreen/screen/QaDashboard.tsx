@@ -26,15 +26,16 @@ const QaDashboard = () => {
       cases.map((c) =>
         c.id === id
           ? {
-            ...c,
-            status,
-            notes: notes || c.notes,
-            log: [
-              ...c.log,
-              `${status} by Dr.Sagar on ${new Date().toLocaleString()}${notes ? ` — ${notes}` : ""
-              }`,
-            ],
-          }
+              ...c,
+              status,
+              notes: notes || c.notes,
+              log: [
+                ...c.log,
+                `${status} by Dr.Sagar on ${new Date().toLocaleString()}${
+                  notes ? ` — ${notes}` : ""
+                }`,
+              ],
+            }
           : c
       )
     );
@@ -68,12 +69,14 @@ const QaDashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
-
-        {
-          selectedPage === "Dashboard" && (
-            <main className="flex-1 p-6">
+      <div className="min-h-screen flex w-full overflow-hidden">
+        <AppSidebar
+          selectedPage={selectedPage}
+          setSelectedPage={setSelectedPage}
+        />
+        <div className="flex-1 ml-0 h-screen overflow-auto">
+          {selectedPage === "Dashboard" && (
+            <main className="p-6 min-h-screen">
               <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold">
                   Dental ERP Dashboard – Dr. Sagar
@@ -86,7 +89,7 @@ const QaDashboard = () => {
                     <FileText size={18} />
                     Submit Daily Report
                   </Button>
-                  <SidebarTrigger />
+                  {/* <SidebarTrigger /> */}
                 </div>
               </div>
 
@@ -126,30 +129,32 @@ const QaDashboard = () => {
             </Card>
           </div> */}
 
-              <Tabs defaultValue="production" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  {/* <TabsTrigger value="cases">Case Management</TabsTrigger> */}
-                  <TabsTrigger value="production">Production</TabsTrigger>
-                  <TabsTrigger value="daily-reports">Daily Reports</TabsTrigger>
-                  <TabsTrigger value="reports">Reports & Logs</TabsTrigger>
-                </TabsList>
+              <ProductionTable />
 
-                {/* <TabsContent value="cases" className="mt-6">
+              {/* <Tabs defaultValue="production" className="w-full">
+              <TabsList className="grid w-full grid-cols-3"> */}
+              {/* <TabsTrigger value="cases">Case Management</TabsTrigger> */}
+              {/* <TabsTrigger value="production">Production</TabsTrigger>
+                <TabsTrigger value="daily-reports">Daily Reports</TabsTrigger>
+                <TabsTrigger value="reports">Reports & Logs</TabsTrigger>
+              </TabsList> */}
+
+              {/* <TabsContent value="cases" className="mt-6">
               <CaseTable cases={cases} onUpdate={updateCase} />
             </TabsContent> */}
 
-                <TabsContent value="production" className="mt-6">
-                  <ProductionTable />
-                </TabsContent>
+              {/* <TabsContent value="production" className="mt-6">
+                <ProductionTable />
+              </TabsContent> */}
 
-                <TabsContent value="daily-reports" className="mt-6">
-                  <DailyReportsTable reports={dailyReports} />
-                </TabsContent>
+              {/* <TabsContent value="daily-reports" className="mt-6">
+                <DailyReportsTable reports={dailyReports} />
+              </TabsContent> */}
 
-                <TabsContent value="reports" className="mt-6">
-                  <ReportsLogs cases={cases} />
-                </TabsContent>
-              </Tabs>
+              {/* <TabsContent value="reports" className="mt-6">
+                <ReportsLogs cases={cases} />
+              </TabsContent> */}
+              {/* </Tabs> */}
 
               <SubmitDailyReportModal
                 isOpen={isDailyReportModalOpen}
@@ -158,19 +163,14 @@ const QaDashboard = () => {
                 onSubmitReport={handleSubmitDailyReport}
               />
             </main>
-          )
-        }
-        {
-          selectedPage === "Production" &&(
-            <ProductionScreen />
-          )
-        }
-        {
-          selectedPage === "Chat" &&(
-            <QaChatContent />
-          )
-        }
-
+          )}
+          {selectedPage === "Production" && <ProductionScreen />}
+          {selectedPage === "Daily Reports" && (
+            <DailyReportsTable reports={dailyReports} />
+          )}
+          {selectedPage === "Reports & Logs" && <ReportsLogs cases={cases} />}
+          {selectedPage === "Chat" && <QaChatContent />}
+        </div>
       </div>
     </SidebarProvider>
   );
