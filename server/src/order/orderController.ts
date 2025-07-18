@@ -17,6 +17,7 @@ import {
 } from "./ordersType";
 import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
+import { orderLogsStorage } from "../order_logs/orderLogsController";
 
 export interface orderStore {
   getOrder(id: string): Promise<any | undefined>;
@@ -61,7 +62,19 @@ export class OrderStorage implements orderStore {
       .from(orderSchema)
       .where(eq(orderSchema.id, id));
 
-    const orderData = this.getFullOrderData(order);
+      const orderFulldData = await this.getFullOrderData(order);
+      if (!orderFulldData) {
+        throw new Error("order not found");
+      }
+
+      const logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
+      if (!logsData) {
+        throw new Error("Order Logs Not Found");
+      }
+    const orderData = {
+      ...orderFulldData,
+      notes: logsData?.logs,
+    } ;
     return orderData;
   }
 
@@ -88,7 +101,6 @@ export class OrderStorage implements orderStore {
         consultingDoctorName: insertOrder?.consultingDoctorName,
         consultingDoctorMobileNumber: insertOrder?.consultingDoctorMobileNumber,
       };
-      console.log("dasdasdadasdwdqwdqwd", clinicInformationData);
       clinicInformation =
         await clinicInformationStorage.createClinicInformation(
           clinicInformationData
@@ -156,7 +168,10 @@ export class OrderStorage implements orderStore {
             : [],
         },
       };
-      console.log(orderToInsert, "orderToInsert");
+
+      
+
+
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
         if (!val) return null;
@@ -178,6 +193,23 @@ export class OrderStorage implements orderStore {
         .insert(orderSchema)
         .values(orderToInsert)
         .returning();
+        if(order?.additionalNote && order?.additionalNote){
+          const subLogsData = {
+            addedBy: order?.orderBy,
+            additionalNote: order?.additionalNote,
+            extraAdditionalNote:order?.extraAdditionalNote,
+            createdAt: new Date(),
+          }
+  
+          const logsData = {
+            logs: [subLogsData],
+            orderId: order.id,
+          }
+
+          const updateLogs = await orderLogsStorage.createLogs(logsData);
+          if(!updateLogs)return "Somethings want Wrong In Logs"; 
+        }
+
       return order;
     } catch (error) {
       // Rollback created records if error occurs
@@ -204,7 +236,6 @@ export class OrderStorage implements orderStore {
     console.log(orderData, "orderData");
     if ((body?.status || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
-      console.log("chat Data", chatData);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
           orderData?.clinicId || ""
@@ -279,6 +310,30 @@ export class OrderStorage implements orderStore {
       resonOfRescan: body?.resonOfRescan || "",
       rejectNote: body?.resonOfRescan || "",
     };
+
+    if(body?.additionalNote && body?.additionalNote){
+      const subLogsData = {
+        addedBy: body?.userName,
+        additionalNote: body?.additionalNote,
+        extraAdditionalNote:body?.extraAdditionalNote,
+        createdAt: new Date(),
+      }
+
+      const getLogsData = await orderLogsStorage.getLogsByOrderId(orderData?.id);
+
+      console.log(getLogsData,"getLogsData")
+      
+      const logsData = {
+        logs: [...getLogsData?.logs , subLogsData],
+        orderId: orderData.id,
+      }
+
+
+      const updateLogs = await orderLogsStorage.updateLogs(orderData?.id , logsData);
+      console.log("updated this is amopte",updateLogs);
+      if(!updateLogs)return "Somethings want Wrong In Logs"; 
+    }
+
     const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
     if (!UpdateOrderData) return "Order Not Update";
 

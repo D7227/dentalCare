@@ -66,7 +66,9 @@ var orderSchema = pgTable("orders", {
   rejectNote: text("reject_note"),
   orderId: text("order_id"),
   crateNo: text("crate_no"),
-  qaNote: text("qa_note"),
+  notes: text("notes"),
+  additionalNote: text("additional_note"),
+  extraAdditionalNote: text("extra_additional_note"),
   orderBy: text("order_by"),
   acpectedDileveryData: timestamp("acpected_dilevery_data"),
   lifeCycle: jsonb("life_cycle"),
@@ -941,7 +943,7 @@ var ChatStorage = class {
 var chatStorage = new ChatStorage();
 
 // server/src/order/orderController.ts
-import { eq as eq9 } from "drizzle-orm";
+import { eq as eq10 } from "drizzle-orm";
 
 // server/src/clinicInformation/clinicInformationSchema.ts
 import { pgTable as pgTable10, text as text10, uuid as uuid10 } from "drizzle-orm/pg-core";
@@ -1010,14 +1012,53 @@ var TeethGroupStorage = class {
 };
 var teethGroupStorage = new TeethGroupStorage();
 
+// server/src/order_logs/orderLogsController.ts
+import { eq as eq9 } from "drizzle-orm";
+
+// server/src/order_logs/orderLogsSchema.ts
+import { pgTable as pgTable12, uuid as uuid12, jsonb as jsonb9 } from "drizzle-orm/pg-core";
+var orderLogs = pgTable12("order_logs", {
+  id: uuid12("id").defaultRandom().primaryKey(),
+  logs: jsonb9("logs").$type(),
+  orderId: uuid12("order_id")
+});
+
+// server/src/order_logs/orderLogsController.ts
+var OrderLogsStorage = class {
+  async getLogsByOrderId(orderId) {
+    const [logsData] = await db.select().from(orderLogs).where(eq9(orderLogs.orderId, orderId));
+    return logsData;
+  }
+  async createLogs(log2) {
+    const [orderLog] = await db.insert(orderLogs).values(log2).returning();
+    return orderLog;
+  }
+  async updateLogs(id, updates) {
+    const [updatedLog] = await db.update(orderLogs).set(updates).where(eq9(orderLogs.orderId, id)).returning();
+    return updatedLog;
+  }
+};
+var orderLogsStorage = new OrderLogsStorage();
+
 // server/src/order/orderController.ts
 var OrderStorage = class {
   getOrdersByPatient(patientId) {
     throw new Error("Method not implemented.");
   }
   async getOrder(id) {
-    const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
-    const orderData = this.getFullOrderData(order);
+    const [order] = await db.select().from(orderSchema).where(eq10(orderSchema.id, id));
+    const orderFulldData = await this.getFullOrderData(order);
+    if (!orderFulldData) {
+      throw new Error("order not found");
+    }
+    const logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
+    if (!logsData) {
+      throw new Error("Order Logs Not Found");
+    }
+    const orderData = {
+      ...orderFulldData,
+      notes: logsData?.logs
+    };
     return orderData;
   }
   async createOrder(insertOrder) {
@@ -1042,7 +1083,6 @@ var OrderStorage = class {
         consultingDoctorName: insertOrder?.consultingDoctorName,
         consultingDoctorMobileNumber: insertOrder?.consultingDoctorMobileNumber
       };
-      console.log("dasdasdadasdwdqwdqwd", clinicInformationData);
       clinicInformation2 = await clinicInformationStorage.createClinicInformation(
         clinicInformationData
       );
@@ -1081,7 +1121,6 @@ var OrderStorage = class {
           referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : []
         }
       };
-      console.log(orderToInsert, "orderToInsert");
       const fixDate = (val) => {
         if (!val) return null;
         if (val instanceof Date) return val;
@@ -1099,6 +1138,20 @@ var OrderStorage = class {
       orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
       orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
       const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
+      if (order?.additionalNote && order?.additionalNote) {
+        const subLogsData = {
+          addedBy: order?.orderBy,
+          additionalNote: order?.additionalNote,
+          extraAdditionalNote: order?.extraAdditionalNote,
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        const logsData = {
+          logs: [subLogsData],
+          orderId: order.id
+        };
+        const updateLogs = await orderLogsStorage.createLogs(logsData);
+        if (!updateLogs) return "Somethings want Wrong In Logs";
+      }
       return order;
     } catch (error) {
       if (insertPatient && insertPatient.id) {
@@ -1120,7 +1173,6 @@ var OrderStorage = class {
     console.log(orderData, "orderData");
     if ((body?.status || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
-      console.log("chat Data", chatData);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
           orderData?.clinicId || ""
@@ -1186,6 +1238,23 @@ var OrderStorage = class {
       resonOfRescan: body?.resonOfRescan || "",
       rejectNote: body?.resonOfRescan || ""
     };
+    if (body?.additionalNote && body?.additionalNote) {
+      const subLogsData = {
+        addedBy: body?.userName,
+        additionalNote: body?.additionalNote,
+        extraAdditionalNote: body?.extraAdditionalNote,
+        createdAt: /* @__PURE__ */ new Date()
+      };
+      const getLogsData = await orderLogsStorage.getLogsByOrderId(orderData?.id);
+      console.log(getLogsData, "getLogsData");
+      const logsData = {
+        logs: [...getLogsData?.logs, subLogsData],
+        orderId: orderData.id
+      };
+      const updateLogs = await orderLogsStorage.updateLogs(orderData?.id, logsData);
+      console.log("updated this is amopte", updateLogs);
+      if (!updateLogs) return "Somethings want Wrong In Logs";
+    }
     const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
     if (!UpdateOrderData) return "Order Not Update";
     return UpdateOrderData;
@@ -1194,7 +1263,7 @@ var OrderStorage = class {
     return await db.select().from(orderSchema);
   }
   async getOrdersByClinicId(clinicId) {
-    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.clinicId, clinicId));
+    const orders = await db.select().from(orderSchema).where(eq10(orderSchema.clinicId, clinicId));
     if (!orders || orders.length === 0) return [];
     let newOrderList = [];
     for (const order of orders) {
@@ -1222,7 +1291,7 @@ var OrderStorage = class {
     return newOrderList;
   }
   async getOrderByStatus(body) {
-    const orders = await db.select().from(orderSchema).where(eq9(orderSchema.orderStatus, body.status));
+    const orders = await db.select().from(orderSchema).where(eq10(orderSchema.orderStatus, body.status));
     let updateOrder = [];
     for (const order of orders) {
       const fullData = await this.getFullOrderData(order);
@@ -1249,7 +1318,7 @@ var OrderStorage = class {
   }
   async getToothGroupsByOrder(orderId) {
     console.log("orderId", orderId);
-    return await db.select().from(toothGroups).where(eq9(toothGroups.orderId, orderId));
+    return await db.select().from(toothGroups).where(eq10(toothGroups.orderId, orderId));
   }
   //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
   //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
@@ -1357,11 +1426,11 @@ var OrderStorage = class {
     return orderData;
   }
   async updateOrderStatus(id, orderStatus) {
-    const [order] = await db.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
+    const [order] = await db.update(orderSchema).set({ orderStatus }).where(eq10(orderSchema.id, id)).returning();
     return order;
   }
   async updateOrder(id, updates) {
-    const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
+    const [order] = await db.select().from(orderSchema).where(eq10(orderSchema.id, id));
     if (!order) return void 0;
     let patientId = order.patientId;
     if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
@@ -1408,7 +1477,7 @@ var OrderStorage = class {
     delete orderUpdate.consultingDoctorMobileNumber;
     delete orderUpdate.selectedTeeth;
     delete orderUpdate.teethGroup;
-    const [updatedOrder] = await db.update(orderSchema).set(orderUpdate).where(eq9(orderSchema.id, id)).returning();
+    const [updatedOrder] = await db.update(orderSchema).set(orderUpdate).where(eq10(orderSchema.id, id)).returning();
     return updatedOrder;
   }
   async initializeData() {
@@ -1429,7 +1498,7 @@ var OrderStorage = class {
 var orderStorage = new OrderStorage();
 
 // server/src/message/messageController.ts
-import { eq as eq10, asc as asc3 } from "drizzle-orm";
+import { eq as eq11, asc as asc3 } from "drizzle-orm";
 var MessageStorage = class {
   async createMessage(insertMessage) {
     console.log("insertMessage", insertMessage);
@@ -1443,12 +1512,12 @@ var MessageStorage = class {
     return message;
   }
   async getMessagesByOrder(orderId) {
-    const orderChats = await db.select().from(chats).where(eq10(chats.orderId, orderId));
+    const orderChats = await db.select().from(chats).where(eq11(chats.orderId, orderId));
     if (orderChats.length === 0) return [];
-    return await db.select().from(messages).where(eq10(messages.chatId, orderChats[0].id));
+    return await db.select().from(messages).where(eq11(messages.chatId, orderChats[0].id));
   }
   async getMessagesByChat(chatId) {
-    return await db.select().from(messages).where(eq10(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
+    return await db.select().from(messages).where(eq11(messages.chatId, chatId)).orderBy(asc3(messages.createdAt));
   }
   async initializeData() {
     console.log("Starting database initialization...");
@@ -1494,7 +1563,7 @@ var MessageStorage = class {
       console.log(`User ${userId} is not a participant in chat ${chatId}, returning 0`);
       return 0;
     }
-    const messageList = await db.select().from(messages).where(eq10(messages.chatId, chatId));
+    const messageList = await db.select().from(messages).where(eq11(messages.chatId, chatId));
     const unreadCount = messageList.filter((message) => {
       const readBy = message.readBy || [];
       const isUnread = !readBy.includes(userId);
@@ -1505,12 +1574,12 @@ var MessageStorage = class {
     return unreadCount;
   }
   async markAllMessagesAsRead(chatId, userId) {
-    const messageList = await db.select().from(messages).where(eq10(messages.chatId, chatId));
+    const messageList = await db.select().from(messages).where(eq11(messages.chatId, chatId));
     for (const messageItem of messageList) {
       const currentReadBy = messageItem.readBy || [];
       if (!currentReadBy.includes(userId)) {
         const updatedReadBy = [...currentReadBy, userId];
-        await db.update(messages).set({ readBy: updatedReadBy }).where(eq10(messages.id, messageItem.id));
+        await db.update(messages).set({ readBy: updatedReadBy }).where(eq11(messages.id, messageItem.id));
       }
     }
   }
@@ -1831,9 +1900,9 @@ var setupClinicRoutes = (app2) => {
 };
 
 // server/src/lifeCycle/lifeCycleSchema.ts
-import { date as date8, pgTable as pgTable12, text as text11, timestamp as timestamp8, uuid as uuid12 } from "drizzle-orm/pg-core";
-var lifecycleStages = pgTable12("lifecycle_stages", {
-  id: uuid12("id").primaryKey().defaultRandom(),
+import { date as date8, pgTable as pgTable13, text as text11, timestamp as timestamp8, uuid as uuid13 } from "drizzle-orm/pg-core";
+var lifecycleStages = pgTable13("lifecycle_stages", {
+  id: uuid13("id").primaryKey().defaultRandom(),
   title: text11("title").notNull(),
   date: date8("date"),
   time: text11("time"),
@@ -2110,16 +2179,16 @@ var setuRoleRoutes = (app2) => {
 
 // server/src/draftOrder/draftOrderSchema.tsx
 import {
-  pgTable as pgTable13,
-  uuid as uuid13,
+  pgTable as pgTable14,
+  uuid as uuid14,
   text as text12,
   integer as integer10,
-  jsonb as jsonb10,
+  jsonb as jsonb11,
   timestamp as timestamp9,
   date as date9
 } from "drizzle-orm/pg-core";
-var draftOrders = pgTable13("draft_order", {
-  id: uuid13("id").defaultRandom().primaryKey(),
+var draftOrders = pgTable14("draft_order", {
+  id: uuid14("id").defaultRandom().primaryKey(),
   firstName: text12("first_name"),
   lastName: text12("last_name"),
   age: integer10("age"),
@@ -2131,17 +2200,17 @@ var draftOrders = pgTable13("draft_order", {
   consultingDoctorMobileNumber: text12("consulting_doctor_mobile_number"),
   orderMethod: text12("order_method"),
   // "Digital" or "Manual"
-  prescriptionTypesId: jsonb10("prescription_types_id").$type(),
-  subPrescriptionTypesId: jsonb10("sub_prescription_types_id").$type(),
-  selectedTeeth: jsonb10("selected_teeth").$type(),
-  teethGroup: jsonb10("teeth_group").$type(),
-  teethNumber: jsonb10("teeth_number").$type(),
-  products: jsonb10("products").$type(),
-  files: jsonb10("files").$type(),
-  accessorios: jsonb10("accessorios").$type(),
+  prescriptionTypesId: jsonb11("prescription_types_id").$type(),
+  subPrescriptionTypesId: jsonb11("sub_prescription_types_id").$type(),
+  selectedTeeth: jsonb11("selected_teeth").$type(),
+  teethGroup: jsonb11("teeth_group").$type(),
+  teethNumber: jsonb11("teeth_number").$type(),
+  products: jsonb11("products").$type(),
+  files: jsonb11("files").$type(),
+  accessorios: jsonb11("accessorios").$type(),
   handllingType: text12("handlling_type"),
-  pickupData: jsonb10("pickup_data").$type(),
-  courierData: jsonb10("courier_data").$type(),
+  pickupData: jsonb11("pickup_data").$type(),
+  courierData: jsonb11("courier_data").$type(),
   resonOfReject: text12("reson_of_reject"),
   resonOfRescan: text12("reson_of_rescan"),
   rejectNote: text12("reject_note"),
@@ -2150,7 +2219,7 @@ var draftOrders = pgTable13("draft_order", {
   qaNote: text12("qa_note"),
   orderBy: text12("order_by"),
   AcpectedDileveryData: date9("acpected_dilevery_data"),
-  lifeCycle: jsonb10("life_cycle").$type(),
+  lifeCycle: jsonb11("life_cycle").$type(),
   orderStatus: text12("order_status"),
   refId: text12("ref_id"),
   orderDate: text12("order_date"),
@@ -2164,10 +2233,10 @@ var draftOrders = pgTable13("draft_order", {
 });
 
 // server/src/draftOrder/draftOrderController.tsx
-import { eq as eq11 } from "drizzle-orm";
+import { eq as eq12 } from "drizzle-orm";
 var DraftOrderStorage = class {
   async getDraftOrder(id) {
-    const [order] = await db.select().from(draftOrders).where(eq11(draftOrders.id, id));
+    const [order] = await db.select().from(draftOrders).where(eq12(draftOrders.id, id));
     return order;
   }
   async createDraftOrder(order) {
@@ -2175,10 +2244,10 @@ var DraftOrderStorage = class {
     return created;
   }
   async getDraftOrdersByClinicId(clinicId) {
-    return await db.select().from(draftOrders).where(eq11(draftOrders.clinicId, clinicId));
+    return await db.select().from(draftOrders).where(eq12(draftOrders.clinicId, clinicId));
   }
   async deleteDraftOrder(id) {
-    await db.delete(draftOrders).where(eq11(draftOrders.id, id));
+    await db.delete(draftOrders).where(eq12(draftOrders.id, id));
   }
 };
 var draftOrderStorage = new DraftOrderStorage();
@@ -2462,7 +2531,7 @@ function authMiddleware(req, res, next) {
 
 // server/socket/socket.ts
 import { Server } from "socket.io";
-import { eq as eq12 } from "drizzle-orm";
+import { eq as eq13 } from "drizzle-orm";
 function setupSocket(httpServer2, app2) {
   const io = new Server(httpServer2, {
     cors: {
@@ -2508,7 +2577,7 @@ function setupSocket(httpServer2, app2) {
           chatId: data.chatId
         });
         console.log("savedMessage", savedMessage);
-        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq12(chats.id, data.chatId));
+        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq13(chats.id, data.chatId));
         console.log("updatedChat");
         io.to(`chat-${data.chatId}`).emit("new-message", {
           chatId: data.chatId,
