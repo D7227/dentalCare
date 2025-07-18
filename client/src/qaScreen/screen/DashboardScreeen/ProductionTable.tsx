@@ -348,7 +348,7 @@ const ProductionTable: React.FC<{}> = ({}) => {
 
         {/* Filters */}
         <div className="flex items-center gap-4 flex-wrap justify-between">
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
