@@ -130,7 +130,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         {/* Overview Tab */}
         <TabsContent
           value="overview"
-          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+          className="flex-1 w-full overflow-y-auto pb-6"
         >
           <OverviewTab data={orderData} />
         </TabsContent>
@@ -163,7 +163,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         {/* Pickup Tab */}
         <TabsContent
           value="pickup"
-          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+          className="flex-1 w-full overflow-y-auto pb-6"
         >
           <PickupTab order={orderData} doctor={doctor} />
         </TabsContent>
@@ -171,7 +171,7 @@ const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         {/* Payment Tab */}
         <TabsContent
           value="payment"
-          className="flex-1 w-full overflow-y-auto p-4 pb-6"
+          className="flex-1 w-full overflow-y-auto pb-6"
         >
           <PaymentTab order={orderData} onPayment={handlePaymentClick} />
         </TabsContent>

@@ -1,7 +1,6 @@
 // INFOR : This is the order table component that is used to display the orders in the order table page. in Order tab in sidebar
 
 import React, { useState } from "react";
-import { useLocation } from "wouter";
 import {
   Search,
   Plus,
@@ -23,18 +22,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import OrderDetailView from "@/components/orders/OrderDetailView";
-import { OrderStatusBadge } from "../../components/shared/OrderStatusBadge";
-import { useQuery } from "@tanstack/react-query";
 import CustomStatusBatch from "../../components/common/customStatusBatch";
 import CustomStatusLabel from "../../components/common/customStatusLabel";
 import OptionsMenu from "../../components/common/OptionsMenu";
 import CircularProgress from "../../components/common/CircularProgress";
 import { useAppSelector } from "@/store/hooks";
 import {
-  useFilterOrdersQuery,
   useGetOrderByIdQuery,
 } from "@/store/slices/orderApi";
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
+import { useNavigate } from "react-router-dom";
 
 interface OrderTableProps {
   onViewOrder?: (order: any) => void;
@@ -42,7 +39,7 @@ interface OrderTableProps {
 }
 
 const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
-  const [location, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>("");
@@ -66,30 +63,6 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     error: errorMessage,
     refetch,
   } = useGetOrderByIdQuery(clinicId ?? "", { skip: !clinicId });
-
-  console.log("dbOrders   ---table", dbOrders);
-
-  //   const clinicId = user?.clinicId;
-  // const filters = {
-  //   patientName: "Jane",
-  //   prescription: "Bridge",
-  //   reference_id: "REF123",
-  //   order_id: "ORD456"
-  // };
-
-  // const params = new URLSearchParams();
-  // Object.entries(filters).forEach(([key, value]) => {
-  //   if (value) params.append(key, value);
-  // });
-
-  // const response = await fetch(`/api/orders/filter/${clinicId}?${params.toString()}`);
-  // const data = await response.json();
-  // Orders page shows all orders - no filtering needed
-
-  // const { data: patients = [] } = useQuery<any[]>({
-  //   queryKey: ["/api/patients"],
-  //   refetchInterval: 30000,
-  // });
 
   // Replace getOrderTeeth and getOrderToothGroups to use order data directly
   const getOrderTeeth = (orderId: number) => {
@@ -293,10 +266,6 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     setOrderDetailTab(tab);
   };
 
-  const handleResubmitFromCard = (order: any) => {
-    setLocation(`/resubmit-order/${order.id}`);
-  };
-
   if (isLoading) {
     return (
       <Card>
@@ -488,7 +457,7 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
           </div>
         </div>
         <Button
-          onClick={() => setLocation("/place-order")}
+          onClick={() => navigate("/place-order")}
           className="flex items-center gap-2"
         >
           <Plus size={16} />

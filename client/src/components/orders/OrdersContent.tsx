@@ -335,7 +335,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-3 pb-0">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
           <CardTitle>Recent Orders</CardTitle>
           {/* Filter Tabs */}
@@ -374,12 +374,12 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 pt-0">
         <div className="space-y-4">
           <Tabs value={activeFilter} onValueChange={setActiveFilter}>
             <TabsContent value={activeFilter} className="mt-4">
               <div
-                className="grid grid-cols-1 xl:grid-cols-3 gap-6"
+                className="grid grid-cols-1 xl:grid-cols-3 gap-3"
                 style={{ alignItems: "stretch" }}
               >
                 {/* Orders List */}
@@ -401,7 +401,7 @@ const OrdersContent = ({ onViewOrder, onPayNow }: OrdersContentProps) => {
                   </div>
                   {/* Card List */}
                   <div
-                    className="flex-1 overflow-y-auto pr-2 pb-2 pt-1"
+                    className="flex-1 overflow-y-auto pt-1"
                     style={{ minHeight: 0, maxHeight: detailsHeight - 60 }} // adjust for sticky search bar
                   >
                     {Array.isArray(dentalOrders) &&

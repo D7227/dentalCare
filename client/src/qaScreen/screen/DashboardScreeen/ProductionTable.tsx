@@ -177,10 +177,10 @@ const ProductionTable: React.FC<{}> = ({}) => {
   // Statistics calculations
   const totalOrders = allOrder?.length;
   const processingOrders = allOrder?.filter(
-    (c) => c.orderStatus === "Pending"
+    (c: any) => c.orderStatus === "Pending"
   ).length;
   const completedOrders = allOrder?.filter(
-    (c) => c.orderStatus === "Approved"
+    (c: any) => c.orderStatus === "Approved"
   ).length;
   const runningOrders = allOrder?.length;
 
@@ -488,7 +488,10 @@ const ProductionTable: React.FC<{}> = ({}) => {
                 <TableBody>
                   {paginatedCases?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={16} className="text-center text-gray-500">
+                      <TableCell
+                        colSpan={16}
+                        className="text-center text-gray-500"
+                      >
                         No data available
                       </TableCell>
                     </TableRow>
@@ -505,7 +508,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                 : undefined
                             )
                             .filter(
-                              (num: any) => typeof num === "number" && !isNaN(num)
+                              (num: any) =>
+                                typeof num === "number" && !isNaN(num)
                             )
                         : [];
 
@@ -528,7 +532,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                 : []
                             )
                             .filter(
-                              (num: any) => typeof num === "number" && !isNaN(num)
+                              (num: any) =>
+                                typeof num === "number" && !isNaN(num)
                             )
                         : [];
 
@@ -599,7 +604,9 @@ const ProductionTable: React.FC<{}> = ({}) => {
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             <Badge
-                              className={getOrderTypeColor(dentalCase.orderType)}
+                              className={getOrderTypeColor(
+                                dentalCase.orderType
+                              )}
                               variant="outline"
                             >
                               {dentalCase.orderType}
@@ -633,7 +640,9 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                       )
                                     }
                                     aria-haspopup="true"
-                                    aria-expanded={productPopoverIndex === index}
+                                    aria-expanded={
+                                      productPopoverIndex === index
+                                    }
                                   >
                                     {dentalCase.product[0].product ||
                                       dentalCase.product[0].name}
@@ -660,7 +669,9 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                         className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm"
                                       >
                                         <div className="flex justify-between">
-                                          <span>{prod.product || prod.name}</span>
+                                          <span>
+                                            {prod.product || prod.name}
+                                          </span>
                                           <span className="text-gray-500">
                                             x{prod.qty}
                                           </span>
@@ -730,8 +741,12 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                 </PopoverTrigger>
                                 <PopoverContent
                                   className="w-56"
-                                  onMouseEnter={() => setTeethPopoverIndex(index)}
-                                  onMouseLeave={() => setTeethPopoverIndex(null)}
+                                  onMouseEnter={() =>
+                                    setTeethPopoverIndex(index)
+                                  }
+                                  onMouseLeave={() =>
+                                    setTeethPopoverIndex(null)
+                                  }
                                 >
                                   <div className="font-semibold mb-2">
                                     Selected Teeth ({allTeethNumbers.length})
@@ -766,8 +781,9 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     <span className="font-medium">
                                       General Files:
                                     </span>{" "}
-                                    {Array.isArray((dentalCase as any)?.files) &&
-                                    (dentalCase as any).files.length > 0
+                                    {Array.isArray(
+                                      (dentalCase as any)?.files
+                                    ) && (dentalCase as any).files.length > 0
                                       ? (dentalCase as any).files
                                           .map(
                                             (f: any, i: number) =>
@@ -783,7 +799,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     {Array.isArray(
                                       (dentalCase as any)?.intraOralScans
                                     ) &&
-                                    (dentalCase as any).intraOralScans.length > 0
+                                    (dentalCase as any).intraOralScans.length >
+                                      0
                                       ? (dentalCase as any).intraOralScans
                                           .map(
                                             (f: any, i: number) =>
@@ -798,7 +815,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     </span>{" "}
                                     {Array.isArray(
                                       (dentalCase as any)?.faceScans
-                                    ) && (dentalCase as any).faceScans.length > 0
+                                    ) &&
+                                    (dentalCase as any).faceScans.length > 0
                                       ? (dentalCase as any).faceScans
                                           .map(
                                             (f: any, i: number) =>
