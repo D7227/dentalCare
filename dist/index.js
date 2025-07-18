@@ -1118,40 +1118,40 @@ var OrderStorage = class {
   async updateStatus(orderId, body) {
     const orderData = await orderStorage.getOrder(orderId);
     console.log(orderData, "orderData");
-    if (body?.status === "active") {
+    if ((body?.status || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
       console.log("chat Data", chatData);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
-          orderData?.clinicId
+          orderData?.clinicId || ""
         );
         if (!clinicData) return "Clinic Data Not Found";
-        const clinicFullname = `${clinicData?.firstname} ${clinicData?.lastname}`;
+        const clinicFullname = `${clinicData?.firstname || ""} ${clinicData?.lastname || ""}`;
         const chatPayload = {
-          clinicId: orderData?.clinicId,
+          clinicId: orderData?.clinicId || "",
           createdBy: clinicFullname,
-          orderId: orderData?.id,
-          participants: [clinicFullname, body?.userName],
+          orderId: orderData?.id || "",
+          participants: [clinicFullname, body?.userName || ""],
           roleName: "main_doctor",
-          title: body.orderId,
+          title: body?.orderId || "",
           type: "order",
           userRole: "main_doctor"
         };
         const createNewChat = await chatStorage.createChat(chatPayload);
         if (!createNewChat) return "Something Went Wrong On Create Chat";
         const updateOrder2 = {
-          orderStatus: body?.status,
-          orderId: body?.orderId,
-          crateNo: body?.crateNo,
-          qaNote: body?.qaNote
+          orderStatus: body?.status || "",
+          orderId: body?.orderId || "",
+          crateNo: body?.crateNo || "",
+          qaNote: body?.qaNote || ""
         };
         const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
         if (!UpdateOrderData2) return "Order Not Update";
         return UpdateOrderData2;
       }
       const chatParticipentList = chatData?.participants || [];
-      if (!chatParticipentList.includes(body?.userName)) {
-        const newParticipantsList = [...chatParticipentList, body?.userName];
+      if (!chatParticipentList.includes(body?.userName || "")) {
+        const newParticipantsList = [...chatParticipentList, body?.userName || ""];
         const updateChatData = {
           ...chatData,
           participants: newParticipantsList
@@ -1163,28 +1163,28 @@ var OrderStorage = class {
         if (!updateParticipant) return "Chat Is Not Update";
       } else {
         const updateOrder2 = {
-          orderStatus: body?.status,
-          orderId: body?.orderId,
-          crateNo: body?.crateNo,
-          qaNote: body?.qaNote
+          orderStatus: body?.status || "",
+          orderId: body?.orderId || "",
+          crateNo: body?.crateNo || "",
+          qaNote: body?.qaNote || ""
         };
         const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
         if (!UpdateOrderData2) return "Order Not Update";
         return UpdateOrderData2;
       }
-    } else if (body?.status === "rejected") {
+    } else if ((body?.status || "") === "rejected") {
       const updateOrder2 = {
-        orderStatus: body?.status,
-        resonOfReject: body?.resonOfReject
+        orderStatus: body?.status || "",
+        resonOfReject: body?.resonOfReject || ""
       };
       const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
       if (!UpdateOrderData2) return "Order Not Update";
       return UpdateOrderData2;
     }
     const updateOrder = {
-      orderStatus: body?.status,
-      resonOfRescan: body?.resonOfRescan,
-      rejectNote: body?.resonOfRescan
+      orderStatus: body?.status || "",
+      resonOfRescan: body?.resonOfRescan || "",
+      rejectNote: body?.resonOfRescan || ""
     };
     const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
     if (!UpdateOrderData) return "Order Not Update";
@@ -1227,7 +1227,6 @@ var OrderStorage = class {
     for (const order of orders) {
       const fullData = await this.getFullOrderData(order);
       const clinicData = await clinicStorage.getClinicById(fullData?.clinicId);
-      console.log(fullData?.updateDate, "fullData?.updateDate");
       updateOrder.push({
         id: fullData?.id,
         refId: fullData?.refId,
@@ -1306,7 +1305,6 @@ var OrderStorage = class {
     const productSummary = Object.entries(productCountMap).map(
       ([name, qty]) => ({ name, qty })
     );
-    console.log("order.updateDate", order.updateDate);
     const orderData = {
       id: order?.id,
       firstName: patient?.firstName || "",
@@ -1942,9 +1940,10 @@ var setupOrderRoutes = (app2) => {
     try {
       const orderId = req.params.orderId;
       const body = req.body;
+      console.log(body?.status, "body");
       const updateData = await orderStorage.updateStatus(orderId, body);
       console.log(updateData, "updateData");
-      res.status(201).json(updateData);
+      res.status(201).json("updateData");
     } catch (error) {
       console.log(error);
       res.status(400).json({ error });
