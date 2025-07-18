@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { useGetQaOrderQuery } from "@/store/slices/orderApi";
 import OrderDetailView from "@/components/orders/OrderDetailView";
+import moment from "moment";
 
 const PrescriptionType = [
   { name: "Fixed Restoration", key: "fixed-restoration" },
@@ -53,16 +54,21 @@ const ProductionScreen: React.FC = () => {
   const { data, isLoading } = useGetQaOrderQuery("active");
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderDetailTab, setOrderDetailTab] = useState<string>("overview");
-
+  const [teethPopoverIndex, setTeethPopoverIndex] = useState<number | null>(
+    null
+  );
+  const [productPopoverIndex, setProductPopoverIndex] = useState<number | null>(
+    null
+  );
 
   const orders = (data ?? []) as any[];
 
-  const handleViewOrder = (order:any , type:string)=>{
-    console.log(order)
-    console.log(order?.id)
+  const handleViewOrder = (order: any, type: string) => {
+    console.log(order);
+    console.log(order?.id);
     setSelectedOrder(order?.id);
     setOrderDetailTab(type);
-  }
+  };
 
   // Filtering logic
   const filteredCases = orders.filter((orderRaw) => {
@@ -88,10 +94,16 @@ const ProductionScreen: React.FC = () => {
     // Patient name filter
     const patientName = order.patientName ?? "";
     return (
-      (!refNo || (order.refId ?? "").toLowerCase().includes(refNo.toLowerCase())) &&
-      (!orderNo || (order.orderId ?? "").toLowerCase().includes(orderNo.toLowerCase())) &&
-      (!clinicName || (order.clinicName ?? "").toLowerCase().includes(clinicName.toLowerCase())) &&
-      (!doctor || (order.handleBy ?? "").toLowerCase().includes(doctor.toLowerCase())) &&
+      (!refNo ||
+        (order.refId ?? "").toLowerCase().includes(refNo.toLowerCase())) &&
+      (!orderNo ||
+        (order.orderId ?? "").toLowerCase().includes(orderNo.toLowerCase())) &&
+      (!clinicName ||
+        (order.clinicName ?? "")
+          .toLowerCase()
+          .includes(clinicName.toLowerCase())) &&
+      (!doctor ||
+        (order.handleBy ?? "").toLowerCase().includes(doctor.toLowerCase())) &&
       (!patient || patientName.toLowerCase().includes(patient.toLowerCase())) &&
       (!orderType || (order.orderType ?? "") === orderType) &&
       matchesPrescription &&
@@ -110,8 +122,12 @@ const ProductionScreen: React.FC = () => {
 
   // Statistics
   const totalOrders = orders.length;
-  const processingOrders = orders.filter((c) => c.orderStatus === "Pending").length;
-  const completedOrders = orders.filter((c) => c.orderStatus === "Approved").length;
+  const processingOrders = orders.filter(
+    (c) => c.orderStatus === "Pending"
+  ).length;
+  const completedOrders = orders.filter(
+    (c) => c.orderStatus === "Approved"
+  ).length;
   const runningOrders = orders.length;
 
   const getOrderTypeColor = (orderType: string) => {
@@ -209,7 +225,9 @@ const ProductionScreen: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 {PrescriptionType.map((value) => (
-                  <SelectItem value={value.key} key={value.key}>{value.name}</SelectItem>
+                  <SelectItem value={value.key} key={value.key}>
+                    {value.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -230,136 +248,363 @@ const ProductionScreen: React.FC = () => {
         {/* Main Data Table */}
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="custom-scrollbar overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>REF No.</TableHead>
-                    <TableHead>Order No.</TableHead>
-                    <TableHead>Clinic name</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Patient Name</TableHead>
-                    <TableHead>Order Type</TableHead>
-                    <TableHead>Prescription</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Last Status</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Selected Teeth</TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                    <TableHead className="whitespace-nowrap">REF No.</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Order No.
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Clinic name
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">Doctor</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Patient Name
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Order Type
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Prescription
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">Product</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Department
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Technician
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Last Status
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Selected Teeth
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">Files</TableHead>
+                    <TableHead className="whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedCases.map((orderRaw, index) => {
-                    const order = orderRaw as any; // If you have a type, use: as qaOrderTableType
-                    return (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium">
-                          {(currentPage - 1) * pageSize + index + 1}
-                        </TableCell>
-                        <TableCell className="font-medium text-blue-600">
-                          {order.refId}
-                        </TableCell>
-                        <TableCell>{order.orderId}</TableCell>
-                        <TableCell>{order.clinicName}</TableCell>
-                        <TableCell>{order.handleBy}</TableCell>
-                        <TableCell>{order.patientName}</TableCell>
-                        <TableCell>
-                          <Badge
-                            className={getOrderTypeColor(order.orderType)}
-                            variant="outline"
-                          >
-                            {order.orderType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {Array.isArray(order.prescription)
-                            ? order.prescription.join(", ")
-                            : ""}
-                        </TableCell>
-                        <TableCell>
-                          {Array.isArray(order.product) && order.product.length > 0 ? (
+                  {paginatedCases.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={16} className="text-center text-gray-500">
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedCases.map((orderRaw, index) => {
+                      const order = orderRaw as any; // If you have a type, use: as qaOrderTableType
+                      const department =
+                        typeof (order as any)?.department === "string"
+                          ? (order as any).department
+                          : "N/A";
+                      const lastStatus =
+                        typeof (order as any)?.lastStatus === "string"
+                          ? (order as any).lastStatus
+                          : undefined;
+                      const createdAt = (order as any)?.createdAt
+                        ? new Date((order as any).createdAt).toLocaleDateString()
+                        : undefined;
+                      // Combine, deduplicate, and sort
+                      const allTeethNumbers = Array.isArray(order?.selectedTeeth)
+                        ? [...new Set(order?.selectedTeeth)].sort((a, b) => a - b)
+                        : [];
+
+                      const filesCount =
+                        (Array.isArray((order as any)?.files)
+                          ? (order as any).files.length
+                          : 0) +
+                        (Array.isArray((order as any)?.intraOralScans)
+                          ? (order as any).intraOralScans.length
+                          : 0) +
+                        (Array.isArray((order as any)?.faceScans)
+                          ? (order as any).faceScans.length
+                          : 0) +
+                        (Array.isArray((order as any)?.patientPhotos)
+                          ? (order as any).patientPhotos.length
+                          : 0) +
+                        (Array.isArray((order as any)?.referralFiles)
+                          ? (order as any).referralFiles.length
+                          : 0);
+                      return (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {(currentPage - 1) * pageSize + index + 1}
+                          </TableCell>
+                          <TableCell className="font-medium text-blue-600 whitespace-nowrap">
+                            {order.refId}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {order.orderId}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {order.clinicName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {order.handleBy}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {order.patientName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge
+                              className={getOrderTypeColor(order.orderType)}
+                              variant="outline"
+                            >
+                              {order.orderType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {Array.isArray(order.prescription)
+                              ? order.prescription.join(", ")
+                              : ""}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {Array.isArray(order.product) &&
+                            order.product.length > 0 ? (
+                              <Popover open={productPopoverIndex === index}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="text-xs font-medium"
+                                    type="button"
+                                    onMouseEnter={() =>
+                                      setProductPopoverIndex(index)
+                                    }
+                                    onMouseLeave={() =>
+                                      setTimeout(
+                                        () => setProductPopoverIndex(null),
+                                        100
+                                      )
+                                    }
+                                    aria-haspopup="true"
+                                    aria-expanded={productPopoverIndex === index}
+                                  >
+                                    {order.product[0].product ||
+                                      order.product[0].name}
+                                    {order.product.length > 1 &&
+                                      ` +${order.product.length - 1} more`}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-80"
+                                  onMouseEnter={() =>
+                                    setProductPopoverIndex(index)
+                                  }
+                                  onMouseLeave={() =>
+                                    setProductPopoverIndex(null)
+                                  }
+                                >
+                                  <div className="font-semibold mb-2">
+                                    Product Details
+                                  </div>
+                                  <ul className="space-y-1">
+                                    {order.product.map((prod, idx) => (
+                                      <li
+                                        key={idx}
+                                        className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm"
+                                      >
+                                        <div className="flex justify-between">
+                                          <span>{prod.product || prod.name}</span>
+                                          <span className="text-gray-500">
+                                            x{prod.qty}
+                                          </span>
+                                        </div>
+                                        {prod.material && (
+                                          <div className="text-xs text-gray-500">
+                                            Material: {prod.material}
+                                          </div>
+                                        )}
+                                        {prod.shade && (
+                                          <div className="text-xs text-gray-500">
+                                            Shade: {prod.shade}
+                                          </div>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                No products
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {department}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {order.technician || "N/A"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {(lastStatus &&
+                              moment(lastStatus).format("DD-MMM-YYYY")) ||
+                              (createdAt
+                                ? moment(createdAt).format("DD-MMM-YYYY")
+                                : "N/A")}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <CustomStatusLabel
+                              status={order.orderStatus}
+                              label={order.orderStatus}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {Array.isArray(allTeethNumbers) &&
+                            allTeethNumbers.length > 0 ? (
+                              <Popover open={teethPopoverIndex === index}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="text-xs font-medium"
+                                    type="button"
+                                    onMouseEnter={() =>
+                                      setTeethPopoverIndex(index)
+                                    }
+                                    onMouseLeave={() =>
+                                      setTimeout(
+                                        () => setTeethPopoverIndex(null),
+                                        100
+                                      )
+                                    }
+                                    aria-haspopup="true"
+                                    aria-expanded={teethPopoverIndex === index}
+                                  >
+                                    Selected: {allTeethNumbers.length} teeth
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-56"
+                                  onMouseEnter={() => setTeethPopoverIndex(index)}
+                                  onMouseLeave={() => setTeethPopoverIndex(null)}
+                                >
+                                  <div className="font-semibold mb-2">
+                                    Selected Teeth ({allTeethNumbers.length})
+                                  </div>
+                                  <div className="text-sm">
+                                    {allTeethNumbers.join(", ")}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                No teeth
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Popover>
                               <PopoverTrigger asChild>
-                                <span className="cursor-pointer underline decoration-dotted">
-                                  {typeof order.product[0] === 'string'
-                                    ? order.product[0]
-                                    : order.product[0]?.name || ''}
-                                </span>
+                                <button
+                                  className="text-xs font-medium"
+                                  type="button"
+                                >
+                                  {filesCount} files
+                                </button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-56">
-                                <div className="font-semibold mb-2">Products</div>
-                                <ul className="text-sm">
-                                  {order.product.map((p: any, idx: number) => (
-                                    <li key={idx} className="mb-1">
-                                      {typeof p === 'string'
-                                        ? p
-                                        : `${p?.name || ''}${p?.qty ? ` (Qty: ${p.qty})` : ''}`}
-                                    </li>
-                                  ))}
+                              <PopoverContent className="w-64">
+                                <div className="font-semibold mb-2">
+                                  File Details
+                                </div>
+                                <ul className="space-y-1 text-sm">
+                                  <li>
+                                    <span className="font-medium">
+                                      General Files:
+                                    </span>{" "}
+                                    {Array.isArray((order as any)?.files) &&
+                                    (order as any).files.length > 0
+                                      ? (order as any).files
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `File ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      IntraOral Scans:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (order as any)?.intraOralScans
+                                    ) && (order as any).intraOralScans.length > 0
+                                      ? (order as any).intraOralScans
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Scan ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Face Scans:
+                                    </span>{" "}
+                                    {Array.isArray((order as any)?.faceScans) &&
+                                    (order as any).faceScans.length > 0
+                                      ? (order as any).faceScans
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Face Scan ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Patient Photos:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (order as any)?.patientPhotos
+                                    ) && (order as any).patientPhotos.length > 0
+                                      ? (order as any).patientPhotos
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Photo ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Referral Files:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (order as any)?.referralFiles
+                                    ) && (order as any).referralFiles.length > 0
+                                      ? (order as any).referralFiles
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Referral ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
                                 </ul>
                               </PopoverContent>
                             </Popover>
-                          ) : ''}
-                        </TableCell>
-                        <TableCell>{order.department}</TableCell>
-                        <TableCell>{order.technician}</TableCell>
-                        <TableCell>{order.lastStatus}</TableCell>
-                        <TableCell>
-                          <CustomStatusLabel
-                            status={order.orderStatus}
-                            label={order.orderStatus}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {Array.isArray(order.selectedTeeth)
-                            ? order.selectedTeeth.join(", ")
-                            : typeof order.selectedTeeth === 'string'
-                              ? order.selectedTeeth
-                              : ""}
-                        </TableCell>
-                        <TableCell>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="text-xs font-medium">
-                                {Array.isArray(order.files) ? order.files.length : 0} files
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64">
-                              <div className="font-semibold mb-2">
-                                File Details
-                              </div>
-                              <ul className="space-y-1 text-sm">
-                                <li>
-                                  <span className="font-medium">
-                                    Files:
-                                  </span>{" "}
-                                  {Array.isArray(order.files) && order.files.length > 0
-                                    // @ts-ignore
-                                    ? order.files.map((f, i) => f?.name || `File ${i + 1}`).join(", ")
-                                    : "None"}
-                                </li>
-                              </ul>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                        <TableCell>
-                        <button
-                                className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none"
-                                onClick={(e) => {
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <button
+                              className="w-10 h-10 flex items-center justify-center rounded-xl shadow border border-gray-200 bg-white hover:bg-gray-50 focus:outline-none"
+                              onClick={(e) => {
                                 //   e.stopPropagation();
-                                  handleViewOrder(order, "chat");
-                                }}
-                              >
-                                <MessageCircle size={20} className="text-gray-500" />
-                              </button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                                handleViewOrder(order, "chat");
+                              }}
+                            >
+                              <MessageCircle
+                                size={20}
+                                className="text-gray-500"
+                              />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -409,22 +654,20 @@ const ProductionScreen: React.FC = () => {
         </div>
       </div>
       {selectedOrder && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
-                    <OrderDetailView
-                      isOpen={true}
-                      onClose={() => setSelectedOrder(null)}
-                      orderId={selectedOrder}
-                      isEmbedded={false}
-                      initialTab={orderDetailTab}
-                    />
-                  </div>
-                </div>
-              )}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+            <OrderDetailView
+              isOpen={true}
+              onClose={() => setSelectedOrder(null)}
+              orderId={selectedOrder}
+              isEmbedded={false}
+              initialTab={orderDetailTab}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default ProductionScreen;
-
-

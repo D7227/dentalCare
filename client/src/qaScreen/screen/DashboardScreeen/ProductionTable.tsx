@@ -51,8 +51,12 @@ const ProductionTable: React.FC<{}> = ({}) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [location, setLocation] = useLocation();
   // Add state for popover open/close
-  const [teethPopoverIndex, setTeethPopoverIndex] = useState<number | null>(null);
-  const [productPopoverIndex, setProductPopoverIndex] = useState<number | null>(null);
+  const [teethPopoverIndex, setTeethPopoverIndex] = useState<number | null>(
+    null
+  );
+  const [productPopoverIndex, setProductPopoverIndex] = useState<number | null>(
+    null
+  );
 
   const {
     data: orders,
@@ -441,342 +445,416 @@ const ProductionTable: React.FC<{}> = ({}) => {
         {/* Main Data Table */}
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="custom-scrollbar  overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-12 whitespace-nowrap">#</TableHead>
                     <TableHead className="whitespace-nowrap">REF No.</TableHead>
-                    <TableHead className="whitespace-nowrap">Order No.</TableHead>
-                    <TableHead className="whitespace-nowrap">Clinic name</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Order No.
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Clinic name
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Doctor</TableHead>
-                    <TableHead className="whitespace-nowrap">Patient Name</TableHead>
-                    <TableHead className="whitespace-nowrap">Order Type</TableHead>
-                    <TableHead className="whitespace-nowrap">Prescription</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Patient Name
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Order Type
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Prescription
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Product</TableHead>
-                    <TableHead className="whitespace-nowrap">Department</TableHead>
-                    <TableHead className="whitespace-nowrap">Technician</TableHead>
-                    <TableHead className="whitespace-nowrap">Last Status</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Department
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Technician
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Last Status
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="whitespace-nowrap">Selected Teeth</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      Selected Teeth
+                    </TableHead>
                     <TableHead className="whitespace-nowrap">Files</TableHead>
                     <TableHead className="whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedCases?.map((dentalCase, index) => {
-                    // Extract from selectedTeeth
-                    const teethFromSelected = Array.isArray(
-                      (dentalCase as any).selectedTeeth
-                    )
-                      ? (dentalCase as any).selectedTeeth
-                          .map((t: any) =>
-                            t && typeof t === "object" && "toothNumber" in t
-                              ? Number(t.toothNumber)
-                              : undefined
-                          )
-                          .filter(
-                            (num: any) => typeof num === "number" && !isNaN(num)
-                          )
-                      : [];
+                  {paginatedCases?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={16} className="text-center text-gray-500">
+                        No data available
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedCases?.map((dentalCase, index) => {
+                      // Extract from selectedTeeth
+                      const teethFromSelected = Array.isArray(
+                        (dentalCase as any).selectedTeeth
+                      )
+                        ? (dentalCase as any).selectedTeeth
+                            .map((t: any) =>
+                              t && typeof t === "object" && "toothNumber" in t
+                                ? Number(t.toothNumber)
+                                : undefined
+                            )
+                            .filter(
+                              (num: any) => typeof num === "number" && !isNaN(num)
+                            )
+                        : [];
 
-                    // Extract from toothGroups' teethDetails
-                    const teethFromGroups = Array.isArray(
-                      (dentalCase as any).toothGroups
-                    )
-                      ? (dentalCase as any).toothGroups
-                          .flatMap((group: any) =>
-                            Array.isArray(group.teethDetails)
-                              ? group.teethDetails
-                                  .flat()
-                                  .map((t: any) =>
-                                    t &&
-                                    typeof t === "object" &&
-                                    "teethNumber" in t
-                                      ? Number(t.teethNumber)
-                                      : undefined
-                                  )
-                              : []
-                          )
-                          .filter(
-                            (num: any) => typeof num === "number" && !isNaN(num)
-                          )
-                      : [];
+                      // Extract from toothGroups' teethDetails
+                      const teethFromGroups = Array.isArray(
+                        (dentalCase as any).toothGroups
+                      )
+                        ? (dentalCase as any).toothGroups
+                            .flatMap((group: any) =>
+                              Array.isArray(group.teethDetails)
+                                ? group.teethDetails
+                                    .flat()
+                                    .map((t: any) =>
+                                      t &&
+                                      typeof t === "object" &&
+                                      "teethNumber" in t
+                                        ? Number(t.teethNumber)
+                                        : undefined
+                                    )
+                                : []
+                            )
+                            .filter(
+                              (num: any) => typeof num === "number" && !isNaN(num)
+                            )
+                        : [];
 
-                    // Combine, deduplicate, and sort
-                    const allTeethNumbers = Array.isArray(
-                      dentalCase?.selectedTeeth
-                    )
-                      ? [...new Set(dentalCase.selectedTeeth)].sort(
-                          (a, b) => a - b
-                        )
-                      : [];
+                      // Combine, deduplicate, and sort
+                      const allTeethNumbers = Array.isArray(
+                        dentalCase?.selectedTeeth
+                      )
+                        ? [...new Set(dentalCase.selectedTeeth)].sort(
+                            (a, b) => a - b
+                          )
+                        : [];
 
-                    // Defensive checks for dynamic fields
-                    const clinicName =
-                      typeof (dentalCase as any)?.clinicName === "string"
-                        ? (dentalCase as any).clinicName
-                        : "N/A";
-                    const department =
-                      typeof (dentalCase as any)?.department === "string"
-                        ? (dentalCase as any).department
-                        : "N/A";
-                    const lastStatus =
-                      typeof (dentalCase as any)?.lastStatus === "string"
-                        ? (dentalCase as any).lastStatus
+                      // Defensive checks for dynamic fields
+                      const clinicName =
+                        typeof (dentalCase as any)?.clinicName === "string"
+                          ? (dentalCase as any).clinicName
+                          : "N/A";
+                      const department =
+                        typeof (dentalCase as any)?.department === "string"
+                          ? (dentalCase as any).department
+                          : "N/A";
+                      const lastStatus =
+                        typeof (dentalCase as any)?.lastStatus === "string"
+                          ? (dentalCase as any).lastStatus
+                          : undefined;
+                      const createdAt = (dentalCase as any)?.createdAt
+                        ? new Date(
+                            (dentalCase as any).createdAt
+                          ).toLocaleDateString()
                         : undefined;
-                    const createdAt = (dentalCase as any)?.createdAt
-                      ? new Date(
-                          (dentalCase as any).createdAt
-                        ).toLocaleDateString()
-                      : undefined;
-                    // Count all file types
-                    const filesCount =
-                      (Array.isArray((dentalCase as any)?.files)
-                        ? (dentalCase as any).files.length
-                        : 0) +
-                      (Array.isArray((dentalCase as any)?.intraOralScans)
-                        ? (dentalCase as any).intraOralScans.length
-                        : 0) +
-                      (Array.isArray((dentalCase as any)?.faceScans)
-                        ? (dentalCase as any).faceScans.length
-                        : 0) +
-                      (Array.isArray((dentalCase as any)?.patientPhotos)
-                        ? (dentalCase as any).patientPhotos.length
-                        : 0) +
-                      (Array.isArray((dentalCase as any)?.referralFiles)
-                        ? (dentalCase as any).referralFiles.length
-                        : 0);
+                      // Count all file types
+                      const filesCount =
+                        (Array.isArray((dentalCase as any)?.files)
+                          ? (dentalCase as any).files.length
+                          : 0) +
+                        (Array.isArray((dentalCase as any)?.intraOralScans)
+                          ? (dentalCase as any).intraOralScans.length
+                          : 0) +
+                        (Array.isArray((dentalCase as any)?.faceScans)
+                          ? (dentalCase as any).faceScans.length
+                          : 0) +
+                        (Array.isArray((dentalCase as any)?.patientPhotos)
+                          ? (dentalCase as any).patientPhotos.length
+                          : 0) +
+                        (Array.isArray((dentalCase as any)?.referralFiles)
+                          ? (dentalCase as any).referralFiles.length
+                          : 0);
 
-                    return (
-                      <TableRow key={dentalCase?.id}>
-                        <TableCell className="font-medium whitespace-nowrap">
-                          {(currentPage - 1) * pageSize + index + 1}
-                        </TableCell>
-                        <TableCell className="font-medium text-blue-600 whitespace-nowrap">
-                          {dentalCase?.refId}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{dentalCase?.orderId ?? "N/A"}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {clinicName !== "N/A" ? clinicName : "Smile Dental"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {dentalCase?.caseHandleBy ?? dentalCase.handleBy}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{dentalCase?.patientName}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Badge
-                            className={getOrderTypeColor(dentalCase.orderType)}
-                            variant="outline"
-                          >
-                            {dentalCase.orderType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Badge
-                            className={getPrescriptionColor(
-                              dentalCase.prescription[0]
+                      return (
+                        <TableRow key={dentalCase?.id}>
+                          <TableCell className="font-medium whitespace-nowrap">
+                            {(currentPage - 1) * pageSize + index + 1}
+                          </TableCell>
+                          <TableCell className="font-medium text-blue-600 whitespace-nowrap">
+                            {dentalCase?.refId}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {dentalCase?.orderId ?? "N/A"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {clinicName !== "N/A" ? clinicName : "Smile Dental"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {dentalCase?.caseHandleBy ?? dentalCase.handleBy}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {dentalCase?.patientName}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge
+                              className={getOrderTypeColor(dentalCase.orderType)}
+                              variant="outline"
+                            >
+                              {dentalCase.orderType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Badge
+                              className={getPrescriptionColor(
+                                dentalCase.prescription[0]
+                              )}
+                              variant="outline"
+                            >
+                              {dentalCase.prescription[0]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {Array.isArray(dentalCase.product) &&
+                            dentalCase.product.length > 0 ? (
+                              <Popover open={productPopoverIndex === index}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="text-xs font-medium"
+                                    type="button"
+                                    onMouseEnter={() =>
+                                      setProductPopoverIndex(index)
+                                    }
+                                    onMouseLeave={() =>
+                                      setTimeout(
+                                        () => setProductPopoverIndex(null),
+                                        100
+                                      )
+                                    }
+                                    aria-haspopup="true"
+                                    aria-expanded={productPopoverIndex === index}
+                                  >
+                                    {dentalCase.product[0].product ||
+                                      dentalCase.product[0].name}
+                                    {dentalCase.product.length > 1 &&
+                                      ` +${dentalCase.product.length - 1} more`}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-80"
+                                  onMouseEnter={() =>
+                                    setProductPopoverIndex(index)
+                                  }
+                                  onMouseLeave={() =>
+                                    setProductPopoverIndex(null)
+                                  }
+                                >
+                                  <div className="font-semibold mb-2">
+                                    Product Details
+                                  </div>
+                                  <ul className="space-y-1">
+                                    {dentalCase.product.map((prod, idx) => (
+                                      <li
+                                        key={idx}
+                                        className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm"
+                                      >
+                                        <div className="flex justify-between">
+                                          <span>{prod.product || prod.name}</span>
+                                          <span className="text-gray-500">
+                                            x{prod.qty}
+                                          </span>
+                                        </div>
+                                        {prod.material && (
+                                          <div className="text-xs text-gray-500">
+                                            Material: {prod.material}
+                                          </div>
+                                        )}
+                                        {prod.shade && (
+                                          <div className="text-xs text-gray-500">
+                                            Shade: {prod.shade}
+                                          </div>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                No products
+                              </span>
                             )}
-                            variant="outline"
-                          >
-                            {dentalCase.prescription[0]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {Array.isArray(dentalCase.product) && dentalCase.product.length > 0 ? (
-                            <Popover open={productPopoverIndex === index}>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {department}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {dentalCase.technician || "N/A"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {(lastStatus &&
+                              moment(lastStatus).format("DD-MMM-YYYY")) ||
+                              (createdAt
+                                ? moment(createdAt).format("DD-MMM-YYYY")
+                                : "N/A")}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <CustomStatusLabel
+                              status={dentalCase.orderStatus}
+                              label={dentalCase.orderStatus}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {Array.isArray(allTeethNumbers) &&
+                            allTeethNumbers.length > 0 ? (
+                              <Popover open={teethPopoverIndex === index}>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="text-xs font-medium"
+                                    type="button"
+                                    onMouseEnter={() =>
+                                      setTeethPopoverIndex(index)
+                                    }
+                                    onMouseLeave={() =>
+                                      setTimeout(
+                                        () => setTeethPopoverIndex(null),
+                                        100
+                                      )
+                                    }
+                                    aria-haspopup="true"
+                                    aria-expanded={teethPopoverIndex === index}
+                                  >
+                                    Selected: {allTeethNumbers.length} teeth
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-56"
+                                  onMouseEnter={() => setTeethPopoverIndex(index)}
+                                  onMouseLeave={() => setTeethPopoverIndex(null)}
+                                >
+                                  <div className="font-semibold mb-2">
+                                    Selected Teeth ({allTeethNumbers.length})
+                                  </div>
+                                  <div className="text-sm">
+                                    {allTeethNumbers.join(", ")}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <span className="text-gray-400 text-xs">
+                                No teeth
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Popover>
                               <PopoverTrigger asChild>
                                 <button
                                   className="text-xs font-medium"
                                   type="button"
-                                  onMouseEnter={() => setProductPopoverIndex(index)}
-                                  onMouseLeave={() => setTimeout(() => setProductPopoverIndex(null), 100)}
-                                  aria-haspopup="true"
-                                  aria-expanded={productPopoverIndex === index}
                                 >
-                                  {dentalCase.product[0].product || dentalCase.product[0].name}
-                                  {dentalCase.product.length > 1 && ` +${dentalCase.product.length - 1} more`}
+                                  {filesCount} files
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent
-                                className="w-80"
-                                onMouseEnter={() => setProductPopoverIndex(index)}
-                                onMouseLeave={() => setProductPopoverIndex(null)}
-                              >
-                                <div className="font-semibold mb-2">Product Details</div>
-                                <ul className="space-y-1">
-                                  {dentalCase.product.map((prod, idx) => (
-                                    <li key={idx} className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm">
-                                      <div className="flex justify-between">
-                                        <span>{prod.product || prod.name}</span>
-                                        <span className="text-gray-500">x{prod.qty}</span>
-                                      </div>
-                                      {prod.material && (
-                                        <div className="text-xs text-gray-500">Material: {prod.material}</div>
-                                      )}
-                                      {prod.shade && (
-                                        <div className="text-xs text-gray-500">Shade: {prod.shade}</div>
-                                      )}
-                                    </li>
-                                  ))}
+                              <PopoverContent className="w-64">
+                                <div className="font-semibold mb-2">
+                                  File Details
+                                </div>
+                                <ul className="space-y-1 text-sm">
+                                  <li>
+                                    <span className="font-medium">
+                                      General Files:
+                                    </span>{" "}
+                                    {Array.isArray((dentalCase as any)?.files) &&
+                                    (dentalCase as any).files.length > 0
+                                      ? (dentalCase as any).files
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `File ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      IntraOral Scans:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (dentalCase as any)?.intraOralScans
+                                    ) &&
+                                    (dentalCase as any).intraOralScans.length > 0
+                                      ? (dentalCase as any).intraOralScans
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Scan ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Face Scans:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (dentalCase as any)?.faceScans
+                                    ) && (dentalCase as any).faceScans.length > 0
+                                      ? (dentalCase as any).faceScans
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Face Scan ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Patient Photos:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (dentalCase as any)?.patientPhotos
+                                    ) &&
+                                    (dentalCase as any).patientPhotos.length > 0
+                                      ? (dentalCase as any).patientPhotos
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Photo ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Referral Files:
+                                    </span>{" "}
+                                    {Array.isArray(
+                                      (dentalCase as any)?.referralFiles
+                                    ) &&
+                                    (dentalCase as any).referralFiles.length > 0
+                                      ? (dentalCase as any).referralFiles
+                                          .map(
+                                            (f: any, i: number) =>
+                                              f?.name || `Referral ${i + 1}`
+                                          )
+                                          .join(", ")
+                                      : "None"}
+                                  </li>
                                 </ul>
                               </PopoverContent>
                             </Popover>
-                          ) : (
-                            <span className="text-gray-400 text-xs">No products</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">{department}</TableCell>
-                        <TableCell className="whitespace-nowrap">{dentalCase.technician || "N/A"}</TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {(lastStatus &&
-                            moment(lastStatus).format("DD-MMM-YYYY")) ||
-                            (createdAt
-                              ? moment(createdAt).format("DD-MMM-YYYY")
-                              : "N/A")}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <CustomStatusLabel
-                            status={dentalCase.orderStatus}
-                            label={dentalCase.orderStatus}
-                          />
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {Array.isArray(allTeethNumbers) && allTeethNumbers.length > 0 ? (
-                            <Popover open={teethPopoverIndex === index}>
-                              <PopoverTrigger asChild>
-                                <button
-                                  className="text-xs font-medium"
-                                  type="button"
-                                  onMouseEnter={() => setTeethPopoverIndex(index)}
-                                  onMouseLeave={() => setTimeout(() => setTeethPopoverIndex(null), 100)}
-                                  aria-haspopup="true"
-                                  aria-expanded={teethPopoverIndex === index}
-                                >
-                                  Selected: {allTeethNumbers.length} teeth
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-56"
-                                onMouseEnter={() => setTeethPopoverIndex(index)}
-                                onMouseLeave={() => setTeethPopoverIndex(null)}
-                              >
-                                <div className="font-semibold mb-2">
-                                  Selected Teeth ({allTeethNumbers.length})
-                                </div>
-                                <div className="text-sm">
-                                  {allTeethNumbers.join(", ")}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            <span className="text-gray-400 text-xs">No teeth</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button className="text-xs font-medium" type="button">
-                                {filesCount} files
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64">
-                              <div className="font-semibold mb-2">
-                                File Details
-                              </div>
-                              <ul className="space-y-1 text-sm">
-                                <li>
-                                  <span className="font-medium">
-                                    General Files:
-                                  </span>{" "}
-                                  {Array.isArray((dentalCase as any)?.files) &&
-                                  (dentalCase as any).files.length > 0
-                                    ? (dentalCase as any).files
-                                        .map(
-                                          (f: any, i: number) =>
-                                            f?.name || `File ${i + 1}`
-                                        )
-                                        .join(", ")
-                                    : "None"}
-                                </li>
-                                <li>
-                                  <span className="font-medium">
-                                    IntraOral Scans:
-                                  </span>{" "}
-                                  {Array.isArray(
-                                    (dentalCase as any)?.intraOralScans
-                                  ) &&
-                                  (dentalCase as any).intraOralScans.length > 0
-                                    ? (dentalCase as any).intraOralScans
-                                        .map(
-                                          (f: any, i: number) =>
-                                            f?.name || `Scan ${i + 1}`
-                                        )
-                                        .join(", ")
-                                    : "None"}
-                                </li>
-                                <li>
-                                  <span className="font-medium">
-                                    Face Scans:
-                                  </span>{" "}
-                                  {Array.isArray(
-                                    (dentalCase as any)?.faceScans
-                                  ) && (dentalCase as any).faceScans.length > 0
-                                    ? (dentalCase as any).faceScans
-                                        .map(
-                                          (f: any, i: number) =>
-                                            f?.name || `Face Scan ${i + 1}`
-                                        )
-                                        .join(", ")
-                                    : "None"}
-                                </li>
-                                <li>
-                                  <span className="font-medium">
-                                    Patient Photos:
-                                  </span>{" "}
-                                  {Array.isArray(
-                                    (dentalCase as any)?.patientPhotos
-                                  ) &&
-                                  (dentalCase as any).patientPhotos.length > 0
-                                    ? (dentalCase as any).patientPhotos
-                                        .map(
-                                          (f: any, i: number) =>
-                                            f?.name || `Photo ${i + 1}`
-                                        )
-                                        .join(", ")
-                                    : "None"}
-                                </li>
-                                <li>
-                                  <span className="font-medium">
-                                    Referral Files:
-                                  </span>{" "}
-                                  {Array.isArray(
-                                    (dentalCase as any)?.referralFiles
-                                  ) &&
-                                  (dentalCase as any).referralFiles.length > 0
-                                    ? (dentalCase as any).referralFiles
-                                        .map(
-                                          (f: any, i: number) =>
-                                            f?.name || `Referral ${i + 1}`
-                                        )
-                                        .join(", ")
-                                    : "None"}
-                                </li>
-                              </ul>
-                            </PopoverContent>
-                          </Popover>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Button
-                            size="sm"
-                            onClick={() => openModal(dentalCase?.id)}
-                          >
-                            Review
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <Button
+                              size="sm"
+                              onClick={() => openModal(dentalCase?.id)}
+                            >
+                              Review
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </div>
