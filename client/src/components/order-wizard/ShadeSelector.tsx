@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,6 +23,9 @@ interface ShadeSelectorProps {
   placeholder?: string;
   className?: string;
   part?: number;
+  selectedFamily?: string;
+  onFamilyChange?: (family: string) => void;
+  hideFamilySelector?: boolean;
 }
 
 export const shadeOptions: ShadeOption[] = [
@@ -79,12 +82,50 @@ const ShadeSelector = ({
   placeholder = "Select shade",
   className = "",
   part,
+  selectedFamily,
+  onFamilyChange,
+  hideFamilySelector,
 }: ShadeSelectorProps) => {
+  const [internalFamily, setInternalFamily] = useState<string | undefined>(undefined);
+  const family = selectedFamily !== undefined ? selectedFamily : internalFamily;
+  const handleFamilyChange = (fam: string | undefined) => {
+    if (onFamilyChange) onFamilyChange(fam ?? "");
+    setInternalFamily(fam);
+    // If current value is not in new family, clear selection
+    if (fam && value && value.family !== fam) {
+      onValueChange(null);
+    }
+  };
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* <Label className="text-sm font-semibold text-foreground">
-        {label}{part ? ` Part ${part}` : ''}
-      </Label> */}
+      {!hideFamilySelector && (
+        <div className="flex gap-4 mb-1">
+          <label className="flex items-center cursor-pointer gap-2">
+            <input
+              type="radio"
+              name="shade-family"
+              value=""
+              checked={!family}
+              onChange={() => handleFamilyChange(undefined)}
+              className="accent-primary"
+            />
+            <span className="text-xs text-gray-700">All</span>
+          </label>
+          {families.map((fam) => (
+            <label key={fam} className="flex items-center cursor-pointer gap-2">
+              <input
+                type="radio"
+                name="shade-family"
+                value={fam}
+                checked={family === fam}
+                onChange={() => handleFamilyChange(fam)}
+                className="accent-primary"
+              />
+              <span className="text-xs text-gray-700">{fam}</span>
+            </label>
+          ))}
+        </div>
+      )}
       <Select
         value={value?.value || ""}
         onValueChange={(val) => {
@@ -96,26 +137,49 @@ const ShadeSelector = ({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent className="bg-white max-h-72 overflow-y-auto z-[9999]">
-          {families.map((family) => (
-            <SelectGroup key={family}>
-              <SelectLabel className="text-xs text-gray-500 px-2 py-1">
-                {family}
-              </SelectLabel>
-              {shadeOptions
-                .filter((opt) => opt.family === family)
-                .map((shade) => (
-                  <SelectItem key={shade.value} value={shade.value}>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
-                        style={{ background: getShadeColor(shade.value) }}
-                      ></div>
-                      <span className="text-sm">{shade.label}</span>
-                    </div>
-                  </SelectItem>
+          {!family
+            ? families.map((family) => (
+                <SelectGroup key={family}>
+                  <SelectLabel className="text-xs text-gray-500 px-2 py-1">
+                    {family}
+                  </SelectLabel>
+                  {shadeOptions
+                    .filter((opt) => opt.family === family)
+                    .map((shade) => (
+                      <SelectItem key={shade.value} value={shade.value}>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
+                            style={{ background: getShadeColor(shade.value) }}
+                          ></div>
+                          <span className="text-sm">{shade.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              ))
+            : families
+                .filter((fam) => fam === family)
+                .map((family) => (
+                  <SelectGroup key={family}>
+                    <SelectLabel className="text-xs text-gray-500 px-2 py-1">
+                      {family}
+                    </SelectLabel>
+                    {shadeOptions
+                      .filter((opt) => opt.family === family)
+                      .map((shade) => (
+                        <SelectItem key={shade.value} value={shade.value}>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
+                              style={{ background: getShadeColor(shade.value) }}
+                            ></div>
+                            <span className="text-sm">{shade.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
                 ))}
-            </SelectGroup>
-          ))}
         </SelectContent>
       </Select>
     </div>

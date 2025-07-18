@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import OrderReviewModal from "../../components/OrderReviewModal";
-import { CaseStatus, DentalCase } from "../../data/cases";
 import CustomButton from "@/components/common/customButtom";
 import { useLocation } from "wouter";
 import CustomStatusLabel from "@/components/common/customStatusLabel";
@@ -30,13 +29,8 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import {
-  useGetOrderByIdQuery,
-  useGetOrdersQuery,
-} from "@/store/slices/orderApi";
-import { useSelector, useDispatch } from "react-redux";
-import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
-import { useAppSelector } from "@/store/hooks";
+import { useGetQaOrderQuery } from "@/store/slices/orderApi";
+import moment from "moment";
 
 const ProductionTable: React.FC<{}> = ({}) => {
   const [allOrder, setAllOrder] = useState();
@@ -56,6 +50,16 @@ const ProductionTable: React.FC<{}> = ({}) => {
   // const [selectedCase, setSelectedCase] = useState<DentalCase | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [location, setLocation] = useLocation();
+  // Add state for popover open/close
+  const [teethPopoverIndex, setTeethPopoverIndex] = useState<number | null>(null);
+  const [productPopoverIndex, setProductPopoverIndex] = useState<number | null>(null);
+
+  const {
+    data: orders,
+    isLoading,
+    error: apiError,
+  } = useGetQaOrderQuery("pending");
+  console.log("allOrders", orders);
 
   const PrescriptionType = [
     { name: "Fixed Restoration", key: "fixed-restoration" },
@@ -68,8 +72,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
   // const user = useAppSelector((state) => state.userData.userData);
 
   // Get all order list
-  const { data: orders, isLoading, error: apiError } = useGetOrdersQuery();
-  console.log("orders -- ", orders);
+  // const { data: orders, isLoading, error: apiError } = useGetOrdersQuery();
+  // console.log("orders -- ", orders);
 
   useEffect(() => {
     if (orders) {
@@ -441,22 +445,22 @@ const ProductionTable: React.FC<{}> = ({}) => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>REF No.</TableHead>
-                    <TableHead>Order No.</TableHead>
-                    <TableHead>Clinic name</TableHead>
-                    <TableHead>Doctor</TableHead>
-                    <TableHead>Patient Name</TableHead>
-                    <TableHead>Order Type</TableHead>
-                    <TableHead>Prescription</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Technician</TableHead>
-                    <TableHead>Last Status</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Selected Teeth</TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-12 whitespace-nowrap">#</TableHead>
+                    <TableHead className="whitespace-nowrap">REF No.</TableHead>
+                    <TableHead className="whitespace-nowrap">Order No.</TableHead>
+                    <TableHead className="whitespace-nowrap">Clinic name</TableHead>
+                    <TableHead className="whitespace-nowrap">Doctor</TableHead>
+                    <TableHead className="whitespace-nowrap">Patient Name</TableHead>
+                    <TableHead className="whitespace-nowrap">Order Type</TableHead>
+                    <TableHead className="whitespace-nowrap">Prescription</TableHead>
+                    <TableHead className="whitespace-nowrap">Product</TableHead>
+                    <TableHead className="whitespace-nowrap">Department</TableHead>
+                    <TableHead className="whitespace-nowrap">Technician</TableHead>
+                    <TableHead className="whitespace-nowrap">Last Status</TableHead>
+                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="whitespace-nowrap">Selected Teeth</TableHead>
+                    <TableHead className="whitespace-nowrap">Files</TableHead>
+                    <TableHead className="whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -500,9 +504,13 @@ const ProductionTable: React.FC<{}> = ({}) => {
                       : [];
 
                     // Combine, deduplicate, and sort
-                    const allTeethNumbers = Array.from(
-                      new Set([...teethFromSelected, ...teethFromGroups])
-                    ).sort((a, b) => a - b);
+                    const allTeethNumbers = Array.isArray(
+                      dentalCase?.selectedTeeth
+                    )
+                      ? [...new Set(dentalCase.selectedTeeth)].sort(
+                          (a, b) => a - b
+                        )
+                      : [];
 
                     // Defensive checks for dynamic fields
                     const clinicName =
@@ -542,68 +550,117 @@ const ProductionTable: React.FC<{}> = ({}) => {
 
                     return (
                       <TableRow key={dentalCase?.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium whitespace-nowrap">
                           {(currentPage - 1) * pageSize + index + 1}
                         </TableCell>
-                        <TableCell className="font-medium text-blue-600">
+                        <TableCell className="font-medium text-blue-600 whitespace-nowrap">
                           {dentalCase?.refId}
                         </TableCell>
-                        <TableCell>{dentalCase?.orderId}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{dentalCase?.orderId ?? "N/A"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {clinicName !== "N/A" ? clinicName : "Smile Dental"}
-                          {/* 
-                          // TODO : set the clinic Name not the
-                           */}
                         </TableCell>
-                        <TableCell>{dentalCase.caseHandleBy}</TableCell>
-                        <TableCell>
-                          {dentalCase.firstName} {dentalCase.lastName}
+                        <TableCell className="whitespace-nowrap">
+                          {dentalCase?.caseHandleBy ?? dentalCase.handleBy}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">{dentalCase?.patientName}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Badge
-                            className={getOrderTypeColor(
-                              dentalCase.orderMethod
-                            )}
+                            className={getOrderTypeColor(dentalCase.orderType)}
                             variant="outline"
                           >
-                            {dentalCase.orderMethod}
+                            {dentalCase.orderType}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Badge
                             className={getPrescriptionColor(
-                              dentalCase.prescriptionType
+                              dentalCase.prescription[0]
                             )}
                             variant="outline"
                           >
-                            {dentalCase.prescriptionType}
+                            {dentalCase.prescription[0]}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <ProductDetailsPopOver
-                            products={dentalCase.restorationProducts || []}
-                          />
+                        <TableCell className="whitespace-nowrap">
+                          {Array.isArray(dentalCase.product) && dentalCase.product.length > 0 ? (
+                            <Popover open={productPopoverIndex === index}>
+                              <PopoverTrigger asChild>
+                                <button
+                                  className="text-xs font-medium"
+                                  type="button"
+                                  onMouseEnter={() => setProductPopoverIndex(index)}
+                                  onMouseLeave={() => setTimeout(() => setProductPopoverIndex(null), 100)}
+                                  aria-haspopup="true"
+                                  aria-expanded={productPopoverIndex === index}
+                                >
+                                  {dentalCase.product[0].product || dentalCase.product[0].name}
+                                  {dentalCase.product.length > 1 && ` +${dentalCase.product.length - 1} more`}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-80"
+                                onMouseEnter={() => setProductPopoverIndex(index)}
+                                onMouseLeave={() => setProductPopoverIndex(null)}
+                              >
+                                <div className="font-semibold mb-2">Product Details</div>
+                                <ul className="space-y-1">
+                                  {dentalCase.product.map((prod, idx) => (
+                                    <li key={idx} className="flex flex-col border-b last:border-b-0 pb-1 last:pb-0 text-sm">
+                                      <div className="flex justify-between">
+                                        <span>{prod.product || prod.name}</span>
+                                        <span className="text-gray-500">x{prod.qty}</span>
+                                      </div>
+                                      {prod.material && (
+                                        <div className="text-xs text-gray-500">Material: {prod.material}</div>
+                                      )}
+                                      {prod.shade && (
+                                        <div className="text-xs text-gray-500">Shade: {prod.shade}</div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <span className="text-gray-400 text-xs">No products</span>
+                          )}
                         </TableCell>
-                        <TableCell>{department}</TableCell>
-                        <TableCell>{dentalCase.technician || "N/A"}</TableCell>
-                        <TableCell>
-                          {lastStatus || createdAt || "N/A"}
+                        <TableCell className="whitespace-nowrap">{department}</TableCell>
+                        <TableCell className="whitespace-nowrap">{dentalCase.technician || "N/A"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {(lastStatus &&
+                            moment(lastStatus).format("DD-MMM-YYYY")) ||
+                            (createdAt
+                              ? moment(createdAt).format("DD-MMM-YYYY")
+                              : "N/A")}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <CustomStatusLabel
                             status={dentalCase.orderStatus}
                             label={dentalCase.orderStatus}
                           />
                         </TableCell>
-                        <TableCell>
-                          {allTeethNumbers.length > 0 ? (
-                            <Popover>
+                        <TableCell className="whitespace-nowrap">
+                          {Array.isArray(allTeethNumbers) && allTeethNumbers.length > 0 ? (
+                            <Popover open={teethPopoverIndex === index}>
                               <PopoverTrigger asChild>
-                                <button className="text-xs font-medium">
+                                <button
+                                  className="text-xs font-medium"
+                                  type="button"
+                                  onMouseEnter={() => setTeethPopoverIndex(index)}
+                                  onMouseLeave={() => setTimeout(() => setTeethPopoverIndex(null), 100)}
+                                  aria-haspopup="true"
+                                  aria-expanded={teethPopoverIndex === index}
+                                >
                                   Selected: {allTeethNumbers.length} teeth
                                 </button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-56">
+                              <PopoverContent
+                                className="w-56"
+                                onMouseEnter={() => setTeethPopoverIndex(index)}
+                                onMouseLeave={() => setTeethPopoverIndex(null)}
+                              >
                                 <div className="font-semibold mb-2">
                                   Selected Teeth ({allTeethNumbers.length})
                                 </div>
@@ -613,15 +670,13 @@ const ProductionTable: React.FC<{}> = ({}) => {
                               </PopoverContent>
                             </Popover>
                           ) : (
-                            <span className="text-gray-400 text-xs">
-                              No teeth
-                            </span>
+                            <span className="text-gray-400 text-xs">No teeth</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Popover>
                             <PopoverTrigger asChild>
-                              <button className="text-xs font-medium">
+                              <button className="text-xs font-medium" type="button">
                                 {filesCount} files
                               </button>
                             </PopoverTrigger>
@@ -711,7 +766,7 @@ const ProductionTable: React.FC<{}> = ({}) => {
                             </PopoverContent>
                           </Popover>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Button
                             size="sm"
                             onClick={() => openModal(dentalCase?.id)}
@@ -772,70 +827,6 @@ const ProductionTable: React.FC<{}> = ({}) => {
         </div>
       </div>
 
-      {/* Daily Reports Section */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Daily Reports</h2>
-
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Report ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Cases Reviewed</TableHead>
-                    <TableHead>Approved</TableHead>
-                    <TableHead>Rejected</TableHead>
-                    <TableHead>Rescans</TableHead>
-                    <TableHead>Modified</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">DR-001</TableCell>
-                    <TableCell>2025-06-28</TableCell>
-                    <TableCell>12</TableCell>
-                    <TableCell className="text-blue-600">8</TableCell>
-                    <TableCell className="text-red-600">1</TableCell>
-                    <TableCell className="text-orange-600">1</TableCell>
-                    <TableCell className="text-blue-600">1</TableCell>
-                    <TableCell>
-                      <Badge
-                        className="bg-green-100 text-green-800"
-                        variant="outline"
-                      >
-                        Submitted
-                      </Badge>
-                    </TableCell>
-                    <TableCell>6-28-2024, 6:30:00 PM</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">DR-002</TableCell>
-                    <TableCell>2025-06-27</TableCell>
-                    <TableCell>15</TableCell>
-                    <TableCell className="text-blue-600">10</TableCell>
-                    <TableCell className="text-red-600">3</TableCell>
-                    <TableCell className="text-orange-600">2</TableCell>
-                    <TableCell className="text-blue-600">0</TableCell>
-                    <TableCell>
-                      <Badge
-                        className="bg-gray-100 text-gray-800"
-                        variant="outline"
-                      >
-                        Reviewed
-                      </Badge>
-                    </TableCell>
-                    <TableCell>6-28-2024, 6:30:00 PM</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
       <OrderReviewModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
