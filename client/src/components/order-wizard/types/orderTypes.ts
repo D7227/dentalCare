@@ -175,9 +175,6 @@ export interface FormData {
   resonOfReject: string;
   resonOfRescan: string;
   rejectNote: string;
-
-  qaNote: string;
-
   orderBy: string;
 
   AcpectedDileveryData: Date;
@@ -190,7 +187,6 @@ export interface FormData {
   orderDate: string;
   updateDate: string;
   paymentType: string;
-  doctorNote: string;
   paymentStatus: string;
   totalAmount: string | null;
 
@@ -213,7 +209,7 @@ export interface FormData {
   otherAccessory: string | null;
   returnAccessories: boolean | undefined;
   notes: string | null;
-
+  additionalNote: string;
   scanBooking: {
     areaManagerId: string;
     scanDate: string;

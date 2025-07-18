@@ -153,7 +153,6 @@ export const createOrderObject = (formData: FormData, user: any) => {
 
     // Notes and Instructions
     notes: formData.notes || "",
-    additionalNotes: formData.additionalNotes || "",
 
     // Technical Specifications
     teethEditedByUser: formData.teethEditedByUser || false,

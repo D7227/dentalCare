@@ -3,7 +3,14 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronLeft, ChevronRight, ArrowLeft, X } from "lucide-react";
+import {
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeft,
+  X,
+  FileText,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -38,19 +45,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 import { useLocation as useRouterLocation } from "react-router-dom";
-
-interface ToothGroup {
-  groupId: string;
-  teeth: number[];
-  type: "individual" | "connected";
-  notes: string;
-  material: string;
-  shade: string;
-  warning?: string;
-}
+import { Textarea } from "@/components/ui/textarea";
 
 const PlaceOrder = () => {
-  const [location, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
   const [orderCategory, setOrderCategory] = useState<OrderCategoryType>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,9 +56,9 @@ const PlaceOrder = () => {
   >({});
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  const [additionalNote, setAdditionalNote] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
   const [initialized, setInitialized] = useState(false);
   const routerLocation = useRouterLocation();
@@ -341,6 +338,8 @@ const PlaceOrder = () => {
       const orderData = {
         ...orderDataRaw,
         age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
+        additionalNote: additionalNote,
+        orderBy: "doctor",
       };
       console.log("formData", formData);
       console.log("orderData", orderData);
@@ -516,6 +515,22 @@ const PlaceOrder = () => {
             setFormData={setFormData}
             readMode={true}
           />
+          <Card className="mt-2">
+            <CardHeader className="flex flex-row items-center space-y-0 pb-3">
+              <FileText className="w-4 h-4 mr-2 text-blue-600" />
+              <CardTitle className="text-lg">
+                Additional Note For This Order
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder="Write any notes here..."
+                value={additionalNote}
+                onChange={(e) => setAdditionalNote(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </CardContent>
+          </Card>
         </>
       );
     }
@@ -741,7 +756,9 @@ const PlaceOrder = () => {
                 )}
 
                 {/* Step Content */}
-                <form onSubmit={handleSubmit}>{renderStepContent()}</form>
+                <form onSubmit={handleSubmit} className="pb-0">
+                  {renderStepContent()}
+                </form>
               </CardContent>
 
               {/* Navigation Footer */}

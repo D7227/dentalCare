@@ -66,14 +66,13 @@ export default function OrderReviewModal({
 }: Props) {
   console.log("selectedOrderId", selectedOrderId);
   const [sOrderId, setSOrderId] = useState<string>(selectedOrderId);
-  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [additionalNote, setAdditionalNote] = useState("");
   // const [reason, setReason] = useState("");
   const [orderId, setOrderId] = useState("");
   const [crateNumber, setCrateNumber] = useState("");
   const [rescanReason, setRescanReason] = useState("");
-  const [rescanNotes, setRescanNotes] = useState("");
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [updateOrder, { isLoading: isUpdating }] = useUpdateQaOrderStatusMutation();
+  const [updateOrder, { isLoading: isUpdating }] =
+    useUpdateQaOrderStatusMutation();
 
   const {
     data: orderData,
@@ -115,21 +114,15 @@ export default function OrderReviewModal({
   const handleAction = async (action: CaseStatus) => {
     if (!formData) return;
     try {
-      const updatedOrder = {
-        status: 'active',
+      await updateOrder({
+        ...formData,
+        orderStatus: "active",
         orderId: orderId,
-        qaNote: additionalNotes,
         crateNo: crateNumber,
-        userName: "qa dental",
-        resonOfReject: "",
-        resonOfRescan: "",
-        rejectNote: ""
-      };
-      console.log("updatedOrder", updatedOrder);
-
-
-      await updateOrder({ orderId: formData.id, orderStatus: updatedOrder }).unwrap();
-      setAdditionalNotes("");
+        userName: "qa",
+        additionalNote: additionalNote,
+      }).unwrap();
+      setAdditionalNote("");
       onClose();
     } catch (error) {
       console.error("Failed to approve order:", error);
@@ -139,22 +132,15 @@ export default function OrderReviewModal({
   const handleReject = async () => {
     if (!formData) return;
     try {
-      const updatedOrder = {
-        status: 'rejected',
+      await updateOrder({
+        ...formData,
+        orderStatus: "rejected",
         orderId: orderId,
-        qaNote: additionalNotes,
         crateNo: crateNumber,
-        userName: "qa dental",
-        resonOfReject: rejectionReason,
-        resonOfRescan: "",
-        rejectNote: ""
-      };
-      console.log("updatedOrder", updatedOrder);
-
-
-      await updateOrder({ orderId: formData.id, orderStatus: updatedOrder }).unwrap();
-      setRejectionReason("");
-      setAdditionalNotes("");
+        userName: "qa",
+        additionalNote: additionalNote, // Store additional note
+      }).unwrap();
+      setAdditionalNote("");
       onClose();
     } catch (error) {
       console.error("Failed to reject order:", error);
@@ -164,10 +150,19 @@ export default function OrderReviewModal({
   const handleRescanRequest = async () => {
     if (!formData) return;
     try {
-      const combinedNotes = `Rescan Reason: ${rescanReason}\nNotes: ${rescanNotes}`;
-      await updateOrder({ orderId: formData.id, orderStatus: formData });
+      const combinedNotes = `Rescan Reason: ${rescanReason}\nNotes: ${additionalNote}`;
+      await updateOrder({
+        ...formData,
+        orderId: formData.id,
+        orderStatus: {
+          ...formData,
+          userName: "qa",
+          additionalNote: additionalNote,
+          extraAdditionalNote: rescanReason,
+        },
+      });
       setRescanReason("");
-      setRescanNotes("");
+      setAdditionalNote("");
       onClose();
     } catch (error) {
       console.error("Failed to request rescan:", error);
@@ -345,25 +340,55 @@ export default function OrderReviewModal({
             download={true}
           />
 
-          {/* Doctor's Notes */}
-          <Card>
+          {/* Order Notes Card */}
+          {Array.isArray(formData.notes) && formData.notes.length > 0 && (
+            <Card className="mt-2">
+              <CardHeader className="flex flex-row items-center space-y-0 pb-3">
+                <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                <CardTitle className="text-lg">Order Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {formData.notes.map((note: any, idx: number) => (
+                  <div key={idx} className="border-b pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
+                    {note.additionalNote && (
+                      <div className="mb-1">
+                        <span className="font-semibold">Note:</span> {note.additionalNote}
+                      </div>
+                    )}
+                    {note.extraAdditionalNote && (
+                      <div className="mb-1">
+                        <span className="font-semibold">Extra Note:</span> {note.extraAdditionalNote}
+                      </div>
+                    )}
+                    {/* If you want to show the original doctor note as well */}
+                    {note.note && (
+                      <div className="mb-1">
+                        <span className="font-semibold">Doctor Note:</span> {note.note}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <span>By: {note.addedBy || "Unknown"}</span>
+                      <span>•</span>
+                      <span>{note.createdAt ? new Date(note.createdAt).toLocaleString() : ""}</span>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+           <Card className="mt-2">
             <CardHeader className="flex flex-row items-center space-y-0 pb-3">
               <FileText className="w-4 h-4 mr-2 text-blue-600" />
-              <CardTitle className="text-lg">Doctor's Notes</CardTitle>
-              <Button variant="ghost" size="sm" className="ml-auto">
-                <Edit className="w-4 h-4" />
-              </Button>
+              <CardTitle className="text-lg">
+                doctor Note
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Additional Note</p>
-                <Textarea
-                  placeholder="Write any notes here..."
-                  value={additionalNotes}
-                  onChange={(e) => setAdditionalNotes(e.target.value)}
-                  className="min-h-[80px]"
-                />
-              </div>
+              <Textarea
+                placeholder="Write any notes here..."
+                value={formData.notes}
+                className="min-h-[80px]"
+              />
             </CardContent>
           </Card>
 
@@ -396,6 +421,22 @@ export default function OrderReviewModal({
                     </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {/* Additional Note input for Approve */}
+                <div className="py-4">
+                  <Label
+                    htmlFor="approveAdditionalNote"
+                    className="text-sm font-medium"
+                  >
+                    Additional Note
+                  </Label>
+                  <Textarea
+                    id="approveAdditionalNote"
+                    value={additionalNote}
+                    onChange={(e) => setAdditionalNote(e.target.value)}
+                    placeholder="Enter any additional notes..."
+                    className="mt-1 min-h-[80px]"
+                  />
+                </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
@@ -445,20 +486,24 @@ export default function OrderReviewModal({
                   </Label>
                   <Textarea
                     id="rejectionReason"
-                    value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
+                    value={additionalNote}
+                    onChange={(e) => setAdditionalNote(e.target.value)}
                     placeholder="Please specify the reason for rejection..."
                     className="mt-1 min-h-[80px]"
                   />
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setRejectionReason("")}>
+                  <AlertDialogCancel
+                    onClick={() => {
+                      setAdditionalNote("");
+                    }}
+                  >
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleReject}
                     className="bg-red-600 hover:bg-red-700"
-                    disabled={!rejectionReason.trim() || isUpdating}
+                    disabled={!additionalNote.trim() || isUpdating}
                   >
                     {isUpdating ? "Updating..." : "Yes, Reject Order"}
                   </AlertDialogAction>
@@ -504,15 +549,15 @@ export default function OrderReviewModal({
                   </div>
                   <div>
                     <Label
-                      htmlFor="rescanNotes"
+                      htmlFor="rescanAdditionalNote"
                       className="text-sm font-medium"
                     >
                       Additional Notes
                     </Label>
                     <Textarea
-                      id="rescanNotes"
-                      value={rescanNotes}
-                      onChange={(e) => setRescanNotes(e.target.value)}
+                      id="rescanAdditionalNote"
+                      value={additionalNote}
+                      onChange={(e) => setAdditionalNote(e.target.value)}
                       placeholder="Enter any additional notes..."
                       className="mt-1 min-h-[80px]"
                     />
@@ -522,7 +567,7 @@ export default function OrderReviewModal({
                   <AlertDialogCancel
                     onClick={() => {
                       setRescanReason("");
-                      setRescanNotes("");
+                      setAdditionalNote("");
                     }}
                   >
                     Cancel
