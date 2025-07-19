@@ -62,20 +62,24 @@ export class OrderStorage implements orderStore {
       .from(orderSchema)
       .where(eq(orderSchema.id, id));
 
-      const orderFulldData = await this.getFullOrderData(order);
-      if (!orderFulldData) {
-        throw new Error("order not found");
-      }
+    const orderFulldData = await this.getFullOrderData(order);
+    if (!orderFulldData) {
+      throw new Error("order not found");
+    }
+    if (!order) throw new Error("order not found");
 
-      const logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
-      if (!logsData) {
-        throw new Error("Order Logs Not Found");
-      }
-    const orderData = {
+    // Always get logs from logs table, never from order.notes
+    let logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
+    // If no logs exist, return an empty array instead of throwing an error
+    if (!logsData) {
+      logsData = { logs: [] };
+    }
+
+    // Return logs as notes for API compatibility
+    return {
       ...orderFulldData,
-      notes: logsData?.logs,
-    } ;
-    return orderData;
+      notes: logsData?.logs, // This is the logs array
+    };
   }
 
   async createOrder(insertOrder: any): Promise<any> {
@@ -169,9 +173,6 @@ export class OrderStorage implements orderStore {
         },
       };
 
-      
-
-
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
         if (!val) return null;
@@ -193,22 +194,20 @@ export class OrderStorage implements orderStore {
         .insert(orderSchema)
         .values(orderToInsert)
         .returning();
-        if(order?.additionalNote && order?.additionalNote){
-          const subLogsData = {
-            addedBy: order?.orderBy,
-            additionalNote: order?.additionalNote,
-            extraAdditionalNote:order?.extraAdditionalNote,
-            createdAt: new Date(),
-          }
-  
-          const logsData = {
-            logs: [subLogsData],
-            orderId: order.id,
-          }
-
-          const updateLogs = await orderLogsStorage.createLogs(logsData);
-          if(!updateLogs)return "Somethings want Wrong In Logs"; 
-        }
+      // Only add to logs, never to order.notes
+      if (order?.additionalNote) {
+        const subLog = {
+          addedBy: order?.orderBy,
+          additionalNote: order?.additionalNote,
+          extraAdditionalNote: order?.extraAdditionalNote,
+          createdAt: new Date(),
+        };
+        const logsData = {
+          logs: [subLog],
+          orderId: order.id,
+        };
+        await orderLogsStorage.createLogs(logsData);
+      }
 
       return order;
     } catch (error) {
@@ -233,8 +232,34 @@ export class OrderStorage implements orderStore {
     body: QaStatusApiBody
   ): Promise<any | undefined> {
     const orderData = await orderStorage.getOrder(orderId);
-    console.log(orderData, "orderData");
-    if ((body?.status || "") === "active") {
+    // Duplicate check for orderId and crateNo before updating
+    if (body?.orderId) {
+      const [existing] = await db
+        .select()
+        .from(orderSchema)
+        .where(
+          and(eq(orderSchema.orderId, body.orderId), sql`id != ${orderId}`)
+        );
+      if (existing) {
+        const error: any = new Error("Order ID already exists");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+    if (body?.crateNo) {
+      const [existingCrate] = await db
+        .select()
+        .from(orderSchema)
+        .where(
+          and(eq(orderSchema.crateNo, body.crateNo), sql`id != ${orderId}`)
+        );
+      if (existingCrate) {
+        const error: any = new Error("Crate Number already exists");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+    if ((body?.orderStatus || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
@@ -243,7 +268,9 @@ export class OrderStorage implements orderStore {
 
         if (!clinicData) return "Clinic Data Not Found";
 
-        const clinicFullname = `${clinicData?.firstname || ""} ${clinicData?.lastname || ""}`;
+        const clinicFullname = `${clinicData?.firstname || ""} ${
+          clinicData?.lastname || ""
+        }`;
         const chatPayload = {
           clinicId: orderData?.clinicId || "",
           createdBy: clinicFullname,
@@ -259,85 +286,88 @@ export class OrderStorage implements orderStore {
         if (!createNewChat) return "Something Went Wrong On Create Chat";
 
         const updateOrder = {
-          orderStatus: body?.status || "",
-          orderId: body?.orderId || "",
-          crateNo: body?.crateNo || "",
-          qaNote: body?.qaNote || "",
-        };
-        const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
-        if (!UpdateOrderData) return "Order Not Update";
-
-        return UpdateOrderData;
-      }
-      const chatParticipentList = chatData?.participants || [];
-      if (!chatParticipentList.includes(body?.userName || "")) {
-        const newParticipantsList = [...chatParticipentList, body?.userName || ""];
-
-        const updateChatData = {
-          ...chatData,
-          participants: newParticipantsList,
+          orderStatus: body?.orderStatus || orderData.orderStatus,
+          orderId: body?.orderId ? body.orderId : orderData.orderId,
+          crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+          qaNote: body?.qaNote || orderData.qaNote,
         };
 
-        const updateParticipant = await chatStorage.updateChat(
-          chatData?.id || "",
-          updateChatData
+        const UpdateOrderData = await orderStorage.updateOrder(
+          orderId,
+          updateOrder
         );
-        if (!updateParticipant) return "Chat Is Not Update";
-      } else {
-        const updateOrder = {
-          orderStatus: body?.status || "",
-          orderId: body?.orderId || "",
-          crateNo: body?.crateNo || "",
-          qaNote: body?.qaNote || "",
-        };
-        const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
         if (!UpdateOrderData) return "Order Not Update";
+        return UpdateOrderData;
+      } else {
+        const chatParticipentList = chatData?.participants || [];
+        if (!chatParticipentList.includes(body?.userName || "")) {
+          const newParticipantsList = [
+            ...chatParticipentList,
+            body?.userName || "",
+          ];
 
+          const updateChatData = {
+            ...chatData,
+            participants: newParticipantsList,
+          };
+
+          const updateParticipant = await chatStorage.updateChat(
+            chatData?.id || "",
+            updateChatData
+          );
+          if (!updateParticipant) return "Chat Is Not Update";
+        }
+        const updateOrder = {
+          orderStatus: body?.orderStatus || orderData.orderStatus,
+          orderId: body?.orderId ? body.orderId : orderData.orderId,
+          crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+        };
+        const UpdateOrderData = await orderStorage.updateOrder(
+          orderId,
+          updateOrder
+        );
+        if (!UpdateOrderData) return "Order Not Update";
         return UpdateOrderData;
       }
-    } else if ((body?.status || "") === "rejected") {
+    } else if ((body?.orderStatus || "") === "rejected") {
       const updateOrder = {
-        orderStatus: body?.status || "",
-        resonOfReject: body?.resonOfReject || "",
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfReject: body?.resonOfReject || orderData.resonOfReject,
       };
-      const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
       if (!UpdateOrderData) return "Order Not Update";
-
+      return UpdateOrderData;
+    } else if ((body?.orderStatus || "") === "rescan") {
+      const updateOrder = {
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
+        rejectNote: body?.resonOfRescan || orderData.rejectNote,
+      };
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
+      if (!UpdateOrderData) return "Order Not Update";
+      return UpdateOrderData;
+    } else {
+      // Default: just update status and related fields if provided
+      const updateOrder = {
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
+        rejectNote: body?.resonOfRescan || orderData.rejectNote,
+        orderId: body?.orderId ? body.orderId : orderData.orderId,
+        crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+      };
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
+      if (!UpdateOrderData) return "Order Not Update";
       return UpdateOrderData;
     }
-    const updateOrder = {
-      orderStatus: body?.status || "",
-      resonOfRescan: body?.resonOfRescan || "",
-      rejectNote: body?.resonOfRescan || "",
-    };
-
-    if(body?.additionalNote && body?.additionalNote){
-      const subLogsData = {
-        addedBy: body?.userName,
-        additionalNote: body?.additionalNote,
-        extraAdditionalNote:body?.extraAdditionalNote,
-        createdAt: new Date(),
-      }
-
-      const getLogsData = await orderLogsStorage.getLogsByOrderId(orderData?.id);
-
-      console.log(getLogsData,"getLogsData")
-      
-      const logsData = {
-        logs: [...getLogsData?.logs , subLogsData],
-        orderId: orderData.id,
-      }
-
-
-      const updateLogs = await orderLogsStorage.updateLogs(orderData?.id , logsData);
-      console.log("updated this is amopte",updateLogs);
-      if(!updateLogs)return "Somethings want Wrong In Logs"; 
-    }
-
-    const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
-    if (!UpdateOrderData) return "Order Not Update";
-
-    return UpdateOrderData;
   }
 
   async getOrders(): Promise<any[]> {

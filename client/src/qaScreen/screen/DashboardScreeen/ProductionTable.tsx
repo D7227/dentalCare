@@ -32,7 +32,7 @@ import {
 import { useGetQaOrderQuery } from "@/store/slices/orderApi";
 import moment from "moment";
 
-const ProductionTable: React.FC<{}> = ({}) => {
+const ProductionTable: React.FC<{}> = ({ }) => {
   const [allOrder, setAllOrder] = useState();
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   // const [cases, setCases] = useState<DentalCase[]>([]);
@@ -502,15 +502,15 @@ const ProductionTable: React.FC<{}> = ({}) => {
                         (dentalCase as any).selectedTeeth
                       )
                         ? (dentalCase as any).selectedTeeth
-                            .map((t: any) =>
-                              t && typeof t === "object" && "toothNumber" in t
-                                ? Number(t.toothNumber)
-                                : undefined
-                            )
-                            .filter(
-                              (num: any) =>
-                                typeof num === "number" && !isNaN(num)
-                            )
+                          .map((t: any) =>
+                            t && typeof t === "object" && "toothNumber" in t
+                              ? Number(t.toothNumber)
+                              : undefined
+                          )
+                          .filter(
+                            (num: any) =>
+                              typeof num === "number" && !isNaN(num)
+                          )
                         : [];
 
                       // Extract from toothGroups' teethDetails
@@ -518,23 +518,23 @@ const ProductionTable: React.FC<{}> = ({}) => {
                         (dentalCase as any).toothGroups
                       )
                         ? (dentalCase as any).toothGroups
-                            .flatMap((group: any) =>
-                              Array.isArray(group.teethDetails)
-                                ? group.teethDetails
-                                    .flat()
-                                    .map((t: any) =>
-                                      t &&
-                                      typeof t === "object" &&
-                                      "teethNumber" in t
-                                        ? Number(t.teethNumber)
-                                        : undefined
-                                    )
-                                : []
-                            )
-                            .filter(
-                              (num: any) =>
-                                typeof num === "number" && !isNaN(num)
-                            )
+                          .flatMap((group: any) =>
+                            Array.isArray(group.teethDetails)
+                              ? group.teethDetails
+                                .flat()
+                                .map((t: any) =>
+                                  t &&
+                                    typeof t === "object" &&
+                                    "teethNumber" in t
+                                    ? Number(t.teethNumber)
+                                    : undefined
+                                )
+                              : []
+                          )
+                          .filter(
+                            (num: any) =>
+                              typeof num === "number" && !isNaN(num)
+                          )
                         : [];
 
                       // Combine, deduplicate, and sort
@@ -542,8 +542,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                         dentalCase?.selectedTeeth
                       )
                         ? [...new Set(dentalCase.selectedTeeth)].sort(
-                            (a, b) => a - b
-                          )
+                          (a, b) => a - b
+                        )
                         : [];
 
                       // Defensive checks for dynamic fields
@@ -561,8 +561,8 @@ const ProductionTable: React.FC<{}> = ({}) => {
                           : undefined;
                       const createdAt = (dentalCase as any)?.createdAt
                         ? new Date(
-                            (dentalCase as any).createdAt
-                          ).toLocaleDateString()
+                          (dentalCase as any).createdAt
+                        ).toLocaleDateString()
                         : undefined;
                       // Count all file types
                       const filesCount =
@@ -624,7 +624,7 @@ const ProductionTable: React.FC<{}> = ({}) => {
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             {Array.isArray(dentalCase.product) &&
-                            dentalCase.product.length > 0 ? (
+                              dentalCase.product.length > 0 ? (
                               <Popover open={productPopoverIndex === index}>
                                 <PopoverTrigger asChild>
                                   <button
@@ -718,7 +718,7 @@ const ProductionTable: React.FC<{}> = ({}) => {
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             {Array.isArray(allTeethNumbers) &&
-                            allTeethNumbers.length > 0 ? (
+                              allTeethNumbers.length > 0 ? (
                               <Popover open={teethPopoverIndex === index}>
                                 <PopoverTrigger asChild>
                                   <button
@@ -785,11 +785,11 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                       (dentalCase as any)?.files
                                     ) && (dentalCase as any).files.length > 0
                                       ? (dentalCase as any).files
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `File ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `File ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -799,14 +799,14 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     {Array.isArray(
                                       (dentalCase as any)?.intraOralScans
                                     ) &&
-                                    (dentalCase as any).intraOralScans.length >
+                                      (dentalCase as any).intraOralScans.length >
                                       0
                                       ? (dentalCase as any).intraOralScans
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Scan ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Scan ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -816,13 +816,13 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     {Array.isArray(
                                       (dentalCase as any)?.faceScans
                                     ) &&
-                                    (dentalCase as any).faceScans.length > 0
+                                      (dentalCase as any).faceScans.length > 0
                                       ? (dentalCase as any).faceScans
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Face Scan ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Face Scan ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -832,13 +832,13 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     {Array.isArray(
                                       (dentalCase as any)?.patientPhotos
                                     ) &&
-                                    (dentalCase as any).patientPhotos.length > 0
+                                      (dentalCase as any).patientPhotos.length > 0
                                       ? (dentalCase as any).patientPhotos
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Photo ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Photo ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -848,13 +848,13 @@ const ProductionTable: React.FC<{}> = ({}) => {
                                     {Array.isArray(
                                       (dentalCase as any)?.referralFiles
                                     ) &&
-                                    (dentalCase as any).referralFiles.length > 0
+                                      (dentalCase as any).referralFiles.length > 0
                                       ? (dentalCase as any).referralFiles
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Referral ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Referral ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                 </ul>
@@ -885,9 +885,9 @@ const ProductionTable: React.FC<{}> = ({}) => {
             {filteredCases?.length === 0
               ? "No cases"
               : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(
-                  currentPage * pageSize,
-                  filteredCases?.length
-                )} of ${filteredCases?.length} cases`}
+                currentPage * pageSize,
+                filteredCases?.length
+              )} of ${filteredCases?.length} cases`}
           </div>
           <div className="flex items-center gap-2">
             <Button

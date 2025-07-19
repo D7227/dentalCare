@@ -365,7 +365,7 @@ const ProductionScreen: React.FC = () => {
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             {Array.isArray(order.product) &&
-                            order.product.length > 0 ? (
+                              order.product.length > 0 ? (
                               <Popover open={productPopoverIndex === index}>
                                 <PopoverTrigger asChild>
                                   <button
@@ -455,7 +455,7 @@ const ProductionScreen: React.FC = () => {
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
                             {Array.isArray(allTeethNumbers) &&
-                            allTeethNumbers.length > 0 ? (
+                              allTeethNumbers.length > 0 ? (
                               <Popover open={teethPopoverIndex === index}>
                                 <PopoverTrigger asChild>
                                   <button
@@ -515,13 +515,13 @@ const ProductionScreen: React.FC = () => {
                                       General Files:
                                     </span>{" "}
                                     {Array.isArray((order as any)?.files) &&
-                                    (order as any).files.length > 0
+                                      (order as any).files.length > 0
                                       ? (order as any).files
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `File ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `File ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -532,11 +532,11 @@ const ProductionScreen: React.FC = () => {
                                       (order as any)?.intraOralScans
                                     ) && (order as any).intraOralScans.length > 0
                                       ? (order as any).intraOralScans
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Scan ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Scan ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -544,13 +544,13 @@ const ProductionScreen: React.FC = () => {
                                       Face Scans:
                                     </span>{" "}
                                     {Array.isArray((order as any)?.faceScans) &&
-                                    (order as any).faceScans.length > 0
+                                      (order as any).faceScans.length > 0
                                       ? (order as any).faceScans
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Face Scan ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Face Scan ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -561,11 +561,11 @@ const ProductionScreen: React.FC = () => {
                                       (order as any)?.patientPhotos
                                     ) && (order as any).patientPhotos.length > 0
                                       ? (order as any).patientPhotos
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Photo ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Photo ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                   <li>
@@ -576,11 +576,11 @@ const ProductionScreen: React.FC = () => {
                                       (order as any)?.referralFiles
                                     ) && (order as any).referralFiles.length > 0
                                       ? (order as any).referralFiles
-                                          .map(
-                                            (f: any, i: number) =>
-                                              f?.name || `Referral ${i + 1}`
-                                          )
-                                          .join(", ")
+                                        .map(
+                                          (f: any, i: number) =>
+                                            f?.name || `Referral ${i + 1}`
+                                        )
+                                        .join(", ")
                                       : "None"}
                                   </li>
                                 </ul>
@@ -616,9 +616,9 @@ const ProductionScreen: React.FC = () => {
             {filteredCases.length === 0
               ? "No cases"
               : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(
-                  currentPage * pageSize,
-                  filteredCases.length
-                )} of ${filteredCases.length} cases`}
+                currentPage * pageSize,
+                filteredCases.length
+              )} of ${filteredCases.length} cases`}
           </div>
           <div className="flex items-center gap-2">
             <Button

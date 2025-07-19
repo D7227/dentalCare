@@ -41,7 +41,7 @@ export const setupOrderRoutes = (app: Express) => {
     } catch (error) {
       res.status(500).json({ error: error });
     }
-  })
+  });
 
   // GET ALL ORDER
   app.get("/api/orders", async (req, res) => {
@@ -83,20 +83,20 @@ export const setupOrderRoutes = (app: Express) => {
     }
   });
 
-
   // this api for Qa
   app.patch("/api/qa/status/:orderId", async (req, res) => {
     try {
       const orderId = req.params.orderId;
       const body: QaStatusApiBody = req.body;
-      console.log(body?.status,"body");
-      const updateData = await orderStorage.updateStatus(orderId , body);
-      console.log(updateData,"updateData");
+
+      const updateData = await orderStorage.updateStatus(orderId, body);
 
       res.status(201).json("updateData");
-    } catch (error) {
-      console.log(error)
-      res.status(400).json({ error: error });
+    } catch (error: any) {
+      const statusCode = error.statusCode || 400;
+      const message = error.message || "Something went wrong";
+
+      return res.status(statusCode).json({ error: message });
     }
   });
 

@@ -36,7 +36,7 @@ export interface qaOrderTableType {
 }
 
 export interface QaStatusApiBody {
-  status: string;
+  orderStatus: string;
   orderId: string;
   qaNote: string;
   crateNo: string;

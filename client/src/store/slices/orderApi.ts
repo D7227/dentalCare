@@ -128,12 +128,12 @@ export const orderApi = createApi({
     // Update QA order status
     updateQaOrderStatus: builder.mutation<
       OrderType,
-      { orderId: string; orderStatus: any }
+      { orderId: string; orderData: any }
     >({
-      query: ({ orderId, orderStatus }) => ({
+      query: ({ orderId, orderData }) => ({
         url: `/qa/status/${orderId}`,
         method: "PATCH",
-        body:orderStatus,
+        body: orderData,
       }),
       invalidatesTags: (result, error, { orderId }) => [
         { type: "Order", id: orderId },

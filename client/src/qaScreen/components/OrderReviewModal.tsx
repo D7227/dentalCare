@@ -29,6 +29,7 @@ import {
   useUpdateQaOrderStatusMutation,
 } from "@/store/slices/orderApi";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
+import { useToast } from "../components/ui/use-toast";
 
 type Props = {
   open: boolean;
@@ -71,21 +72,26 @@ export default function OrderReviewModal({
   const [orderId, setOrderId] = useState("");
   const [crateNumber, setCrateNumber] = useState("");
   const [rescanReason, setRescanReason] = useState("");
+  const { toast } = useToast();
   const [updateOrder, { isLoading: isUpdating }] =
     useUpdateQaOrderStatusMutation();
 
+  // Only call the API if sOrderId is present
+  const shouldFetchOrder = Boolean(sOrderId);
   const {
     data: orderData,
     error: orderGetError,
     isLoading: orderIsLoding,
     refetch,
-  } = useGetOrderByOrderIdQuery(sOrderId ?? selectedOrderId);
+  } = useGetOrderByOrderIdQuery(sOrderId, { skip: !shouldFetchOrder });
 
   const [formData, setFormData] = useState<any>(orderData);
 
   useEffect(() => {
     setSOrderId(selectedOrderId);
-    refetch();
+    if (shouldFetchOrder) {
+      refetch();
+    }
   }, [selectedOrderId]);
 
   useEffect(() => {
@@ -111,61 +117,144 @@ export default function OrderReviewModal({
   //   console.log(`Downloading file: ${fileName}`);
   // };
 
+  // Approve handler
   const handleAction = async (action: CaseStatus) => {
     if (!formData) return;
+    if (!orderId || !orderId.trim()) {
+      toast({
+        title: "Order ID Required",
+        description: "Please enter a valid Order ID before approving.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!crateNumber || !crateNumber.trim()) {
+      toast({
+        title: "crateNumber ID Required",
+        description: "Please enter a valid Crate Number before approving.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      await updateOrder({
+      const result = await updateOrder({
+        orderId: formData?.id,
+        orderData: {
+          ...formData,
+          orderId: orderId,
+          orderStatus: "active",
+          crateNo: crateNumber,
+          userName: "qa",
+          additionalNote: additionalNote,
+        },
+      }).unwrap();
+      console.log('result-approveeee', result)
+      console.log('payload', {
         ...formData,
-        orderStatus: "active",
         orderId: orderId,
+        orderStatus: "active",
         crateNo: crateNumber,
         userName: "qa",
         additionalNote: additionalNote,
-      }).unwrap();
+      },)
+      toast({
+        title: "Order Approved",
+        description: `Order #${orderId} has been approved successfully!`,
+      });
       setAdditionalNote("");
       onClose();
-    } catch (error) {
-      console.error("Failed to approve order:", error);
+    } catch (error: any) {
+      let errorMsg = "Failed to approve order.";
+      if (error?.status === 409 && error?.data?.error) {
+        errorMsg = error.data.error;
+      }
+      toast({
+        title: "Approval Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   };
 
+  // Reject handler
   const handleReject = async () => {
     if (!formData) return;
+    if (!additionalNote.trim()) {
+      toast({
+        title: "Rejection Reason Required",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      await updateOrder({
-        ...formData,
-        orderStatus: "rejected",
-        orderId: orderId,
-        crateNo: crateNumber,
-        userName: "qa",
-        additionalNote: additionalNote, // Store additional note
+      const result = await updateOrder({
+        orderId: formData?.id,
+        orderData: {
+          ...formData,
+          orderStatus: "rejected",
+          userName: "qa",
+          additionalNote: additionalNote,
+        },
       }).unwrap();
+      toast({
+        title: "Order Rejected",
+        description: `Order has been rejected.`,
+      });
       setAdditionalNote("");
       onClose();
-    } catch (error) {
-      console.error("Failed to reject order:", error);
+    } catch (error: any) {
+      let errorMsg = "Failed to reject order.";
+      if (error?.status === 409 && error?.data?.error) {
+        errorMsg = error.data.error;
+      }
+      toast({
+        title: "Rejection Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   };
 
+  // Rescan handler
   const handleRescanRequest = async () => {
     if (!formData) return;
+    if (!rescanReason.trim()) {
+      toast({
+        title: "Rescan Reason Required",
+        description: "Please provide a reason for rescan.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      const combinedNotes = `Rescan Reason: ${rescanReason}\nNotes: ${additionalNote}`;
-      await updateOrder({
-        ...formData,
-        orderId: formData.id,
-        orderStatus: {
+      const result = await updateOrder({
+        orderId: formData?.id,
+        orderData: {
           ...formData,
+          orderStatus: "rescan",
           userName: "qa",
           additionalNote: additionalNote,
           extraAdditionalNote: rescanReason,
         },
+      }).unwrap();
+      toast({
+        title: "Rescan Requested",
+        description: `Rescan requested for this order.`,
       });
       setRescanReason("");
       setAdditionalNote("");
       onClose();
-    } catch (error) {
-      console.error("Failed to request rescan:", error);
+    } catch (error: any) {
+      let errorMsg = "Failed to request rescan.";
+      if (error?.status === 409 && error?.data?.error) {
+        errorMsg = error.data.error;
+      }
+      toast({
+        title: "Rescan Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
     }
   };
 
@@ -376,7 +465,7 @@ export default function OrderReviewModal({
               </CardContent>
             </Card>
           )}
-           <Card className="mt-2">
+          {/* <Card className="mt-2">
             <CardHeader className="flex flex-row items-center space-y-0 pb-3">
               <FileText className="w-4 h-4 mr-2 text-blue-600" />
               <CardTitle className="text-lg">
@@ -390,7 +479,7 @@ export default function OrderReviewModal({
                 className="min-h-[80px]"
               />
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Action Buttons */}
           <div className="flex justify-center space-x-4 pt-4">
