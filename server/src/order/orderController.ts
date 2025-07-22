@@ -290,6 +290,7 @@ export class OrderStorage implements orderStore {
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
           qaNote: body?.qaNote || orderData.qaNote,
+          qaId : body?.qaId,
         };
 
         const UpdateOrderData = await orderStorage.updateOrder(
@@ -321,6 +322,7 @@ export class OrderStorage implements orderStore {
           orderStatus: body?.orderStatus || orderData.orderStatus,
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+          qaId : body?.qaId,
         };
         const UpdateOrderData = await orderStorage.updateOrder(
           orderId,
@@ -333,6 +335,7 @@ export class OrderStorage implements orderStore {
       const updateOrder = {
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfReject: body?.resonOfReject || orderData.resonOfReject,
+        qaId : body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,
@@ -345,6 +348,7 @@ export class OrderStorage implements orderStore {
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
         rejectNote: body?.resonOfRescan || orderData.rejectNote,
+        qaId : body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,
@@ -360,6 +364,7 @@ export class OrderStorage implements orderStore {
         rejectNote: body?.resonOfRescan || orderData.rejectNote,
         orderId: body?.orderId ? body.orderId : orderData.orderId,
         crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+        qaId : body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,

@@ -6,7 +6,7 @@ import { db } from "./database/db";
 import { eq } from "drizzle-orm";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import { chats } from "./src/chat/chatSchema";
 import { messageStorage } from "./src/message/messageController";
 import { teamMemberStorage } from "./src/teamMember/teamMemberController";
@@ -93,9 +93,8 @@ app.use((req, res, next) => {
   // });
 
   const port = 5000; // <- change from 5432 to something else
-  httpServer.listen({ port, host: '0.0.0.0' }, () => {
+  httpServer.listen({ port, host: "0.0.0.0" }, () => {
     log(`Server is running on http://localhost:${port}`);
     log(`Socket.IO server is ready for real-time chat`);
   });
-
 })();

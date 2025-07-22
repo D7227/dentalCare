@@ -18,13 +18,14 @@ import { useSocket } from '@/contexts/SocketContext';
 import { useGetUserDataQuery, setUser } from './store/slices/userDataSlice';
 import { jwtDecode } from 'jwt-decode';
 import { headRoutes } from "./router/headRoutes";
+import QALogin from "./qaScreen/screen/authentication/qaLogin";
 
 const router = createBrowserRouter([
   ...doctorRoutes,
   ...qaRoutes,
   ...headRoutes,
   { path: "/login", element: <Login /> },
-  { path: "/qa/login", element: <p>qa login page</p> },
+  { path: "/qa/login", element: <QALogin /> },
   { path: "/register", element: <Register /> },
   { path: "*", element: <NotFound /> },
 ]);

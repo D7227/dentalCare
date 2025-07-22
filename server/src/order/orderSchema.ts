@@ -17,6 +17,7 @@ export const orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: text("patient_id"),
   clinicId: text("clinic_id"),
+  qaId: text("qa_id"),
   clinicInformationId: text("clinic_information_id"),
   orderMethod: text("order_method"),
   prescriptionTypesId: text("prescription_types_id").array(),

@@ -9,22 +9,58 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { DailyReport } from "@/data/dailyReports";
+import { useGetAllDailyReportsQuery } from "@/store/slices/qaslice/qaApi";
+import { useAppSelector } from "@/store/hooks";
+import { skipToken } from "@reduxjs/toolkit/query";
 
-type Props = {
-  reports: any[];
-};
+export default function DailyReportsTable() {
+  // Get qaId from user context/store
+  const userData = useAppSelector((state) => state.userData?.userData);
+  const qaId = userData?.id;
 
-export default function DailyReportsTable({ reports }: Props) {
-  const getStatusBadge = (status: DailyReport["status"]) => {
+  // Fetch daily reports for this QA
+  const { data, isLoading, error } = useGetAllDailyReportsQuery(
+    qaId ? { qaId } : skipToken
+  );
+
+  // The API returns { data: reports, total: ... }
+  const reports = data?.data || [];
+
+  const getStatusBadge = (status: string) => {
     const variants = {
       Draft: "secondary",
       Submitted: "default",
       Reviewed: "outline",
     } as const;
-
-    return <Badge variant={variants[status]}>{status}</Badge>;
+    const variant = variants[status as keyof typeof variants] || "secondary";
+    return <Badge variant={variant}>{status}</Badge>;
   };
+
+  // Helper to calculate derived fields from API data
+  const mapReport = (report: any) => {
+    // Fallbacks for missing fields
+    const approved = Array.isArray(report.approvedOrderIds) ? report.approvedOrderIds.length : report.casesApproved || 0;
+    const rejected = Array.isArray(report.rejectedOrderIds) ? report.rejectedOrderIds.length : report.casesRejected || 0;
+    const rescans = Array.isArray(report.rescanOrderIds) ? report.rescanOrderIds.length : report.rescansRequested || 0;
+    const modified = Array.isArray(report.modifiedOrderIds) ? report.modifiedOrderIds.length : report.casesModified || 0;
+    // If you want to calculate reviewed/modified, you can add logic here
+    // For now, fallback to 0 or use report.casesModified if present
+    const reviewed = typeof report.casesReviewed === 'number' ? report.casesReviewed : approved + rejected + rescans + modified;
+    return {
+      id: report.id,
+      date: report.reportDate || report.date,
+      casesReviewed: reviewed,
+      casesApproved: approved,
+      casesRejected: rejected,
+      rescansRequested: rescans,
+      casesModified: modified,
+      status: report.status || "Submitted",
+      submittedAt: report.submittedAt || report.createdAt,
+    };
+  };
+
+  if (isLoading) return <div>Loading daily reports...</div>;
+  if (error) return <div>Error loading daily reports.</div>;
 
   return (
     <>
@@ -48,102 +84,40 @@ export default function DailyReportsTable({ reports }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell className="font-medium">{report.id}</TableCell>
-                  <TableCell>
-                    {new Date(report.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{report.casesReviewed}</TableCell>
-                  <TableCell className="text-green-600">
-                    {report.casesApproved}
-                  </TableCell>
-                  <TableCell className="text-red-600">
-                    {report.casesRejected}
-                  </TableCell>
-                  <TableCell className="text-orange-600">
-                    {report.rescansRequested}
-                  </TableCell>
-                  <TableCell className="text-blue-600">
-                    {report.casesModified}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(report.status)}</TableCell>
-                  <TableCell>
-                    {report.submittedAt
-                      ? new Date(report.submittedAt).toLocaleString()
-                      : "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {reports.map((report: any) => {
+                const mapped = mapReport(report);
+                return (
+                  <TableRow key={mapped.id}>
+                    <TableCell className="font-medium">{mapped.id}</TableCell>
+                    <TableCell>
+                      {mapped.date ? new Date(mapped.date).toLocaleDateString() : "-"}
+                    </TableCell>
+                    <TableCell>{mapped.casesReviewed}</TableCell>
+                    <TableCell className="text-green-600">
+                      {mapped.casesApproved}
+                    </TableCell>
+                    <TableCell className="text-red-600">
+                      {mapped.casesRejected}
+                    </TableCell>
+                    <TableCell className="text-orange-600">
+                      {mapped.rescansRequested}
+                    </TableCell>
+                    <TableCell className="text-blue-600">
+                      {mapped.casesModified}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(mapped.status)}</TableCell>
+                    <TableCell>
+                      {mapped.submittedAt
+                        ? new Date(mapped.submittedAt).toLocaleString()
+                        : "-"}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
-
-      {/* Daily Reports Section */}
-      {/* <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Daily Reports</h2>
-
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Report ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Cases Reviewed</TableHead>
-                    <TableHead>Approved</TableHead>
-                    <TableHead>Rejected</TableHead>
-                    <TableHead>Rescans</TableHead>
-                    <TableHead>Modified</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">DR-001</TableCell>
-                    <TableCell>2025-06-28</TableCell>
-                    <TableCell>12</TableCell>
-                    <TableCell className="text-blue-600">8</TableCell>
-                    <TableCell className="text-red-600">1</TableCell>
-                    <TableCell className="text-orange-600">1</TableCell>
-                    <TableCell className="text-blue-600">1</TableCell>
-                    <TableCell>
-                      <Badge
-                        className="bg-green-100 text-green-800"
-                        variant="outline"
-                      >
-                        Submitted
-                      </Badge>
-                    </TableCell>
-                    <TableCell>6-28-2024, 6:30:00 PM</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">DR-002</TableCell>
-                    <TableCell>2025-06-27</TableCell>
-                    <TableCell>15</TableCell>
-                    <TableCell className="text-blue-600">10</TableCell>
-                    <TableCell className="text-red-600">3</TableCell>
-                    <TableCell className="text-orange-600">2</TableCell>
-                    <TableCell className="text-blue-600">0</TableCell>
-                    <TableCell>
-                      <Badge
-                        className="bg-gray-100 text-gray-800"
-                        variant="outline"
-                      >
-                        Reviewed
-                      </Badge>
-                    </TableCell>
-                    <TableCell>6-28-2024, 6:30:00 PM</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div> */}
     </>
   );
 }

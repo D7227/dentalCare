@@ -10,6 +10,8 @@ import { teamMemberApi } from './slices/teamMemberApi';
 import { draftOrderApi } from './slices/draftOrderApi';
 import { chatApi } from './slices/chatApi';
 import chatslice from './slices/chatslice';
+import { qaApi } from './slices/qaslice/qaApi';
+import { orderHistoryApi } from './slices/orderHistorySlice/orderHistoryApi';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
@@ -20,6 +22,8 @@ const rootReducer = combineReducers({
   [draftOrderApi.reducerPath]: draftOrderApi.reducer,
   [chatApi.reducerPath]: chatApi.reducer,
   [userDataApi.reducerPath]: userDataApi.reducer,
+  [qaApi.reducerPath]: qaApi.reducer,
+  [orderHistoryApi.reducerPath]: orderHistoryApi.reducer,
   userData: userDataReducer,
   // Add more slices here
   chat: chatslice,
@@ -54,7 +58,9 @@ export const store = configureStore({
       .concat(teamMemberApi.middleware)
       .concat(chatApi.middleware)
       .concat(draftOrderApi.middleware)
-      .concat(userDataApi.middleware),
+      .concat(userDataApi.middleware)
+      .concat(qaApi.middleware)
+      .concat(orderHistoryApi.middleware),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

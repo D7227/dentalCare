@@ -14,20 +14,18 @@ export interface UserData {
   [key: string]: any;
 }
 
-const baseQueryWithAuth = fetchBaseQuery({
-  baseUrl: "/api",
-  prepareHeaders: (headers) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    return headers;
-  },
-});
-
 export const doctorAuthApi = createApi({
   reducerPath: "doctorAuthApi",
-  baseQuery: baseQueryWithAuth,
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api",
+    prepareHeaders: (headers) => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
   endpoints: (builder) => ({
     login: builder.mutation<AuthToken, LoginRequest>({
       query: (body) => ({

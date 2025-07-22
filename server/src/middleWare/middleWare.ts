@@ -8,7 +8,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   console.log(req.path)
   if (
     req.path === "/login" ||
-    req.path === "/register"
+    req.path === "/register"||
+    req.path === "/qa/login"
   ) {
     return next();
   }

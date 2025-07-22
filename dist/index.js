@@ -51,6 +51,7 @@ var orderSchema = pgTable("orders", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: text("patient_id"),
   clinicId: text("clinic_id"),
+  qaId: text("qa_id"),
   clinicInformationId: text("clinic_information_id"),
   orderMethod: text("order_method"),
   prescriptionTypesId: text("prescription_types_id").array(),
@@ -581,7 +582,7 @@ var teamMemberStorage = new TeamMemberStorage();
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 var setupAuthenticationRoutes = (app2) => {
-  const JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
+  const JWT_SECRET3 = process.env.JWT_SECRET || "your_jwt_secret_key";
   app2.post("/api/register", async (req, res) => {
     try {
       const clinicData = insertClinicSchema2.parse(req.body);
@@ -616,7 +617,7 @@ var setupAuthenticationRoutes = (app2) => {
         permissions: defaultPermissions
       });
       return res.status(201).json({
-        token: jwt.sign({ id: newClinic.id }, JWT_SECRET2, { expiresIn: "7d" })
+        token: jwt.sign({ id: newClinic.id }, JWT_SECRET3, { expiresIn: "7d" })
       });
     } catch (error) {
       console.error("Clinic registration error:", error);
@@ -639,7 +640,7 @@ var setupAuthenticationRoutes = (app2) => {
         const isPasswordValid = await bcrypt.compare(password, teamMember.password || "");
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: teamMember.id }, JWT_SECRET2, { expiresIn: "7d" })
+            token: jwt.sign({ id: teamMember.id }, JWT_SECRET3, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -652,7 +653,7 @@ var setupAuthenticationRoutes = (app2) => {
         console.log(isPasswordValid);
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: clinic2.id }, JWT_SECRET2, { expiresIn: "7d" })
+            token: jwt.sign({ id: clinic2.id }, JWT_SECRET3, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -943,7 +944,7 @@ var ChatStorage = class {
 var chatStorage = new ChatStorage();
 
 // server/src/order/orderController.ts
-import { eq as eq10 } from "drizzle-orm";
+import { eq as eq10, and as and3, sql as sql3 } from "drizzle-orm";
 
 // server/src/clinicInformation/clinicInformationSchema.ts
 import { pgTable as pgTable10, text as text10, uuid as uuid10 } from "drizzle-orm/pg-core";
@@ -1051,15 +1052,16 @@ var OrderStorage = class {
     if (!orderFulldData) {
       throw new Error("order not found");
     }
-    const logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
+    if (!order) throw new Error("order not found");
+    let logsData = await orderLogsStorage.getLogsByOrderId(orderFulldData?.id);
     if (!logsData) {
-      throw new Error("Order Logs Not Found");
+      logsData = { logs: [] };
     }
-    const orderData = {
+    return {
       ...orderFulldData,
       notes: logsData?.logs
+      // This is the logs array
     };
-    return orderData;
   }
   async createOrder(insertOrder) {
     let insertPatient = null;
@@ -1138,19 +1140,18 @@ var OrderStorage = class {
       orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
       orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
       const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
-      if (order?.additionalNote && order?.additionalNote) {
-        const subLogsData = {
+      if (order?.additionalNote) {
+        const subLog = {
           addedBy: order?.orderBy,
           additionalNote: order?.additionalNote,
           extraAdditionalNote: order?.extraAdditionalNote,
           createdAt: /* @__PURE__ */ new Date()
         };
         const logsData = {
-          logs: [subLogsData],
+          logs: [subLog],
           orderId: order.id
         };
-        const updateLogs = await orderLogsStorage.createLogs(logsData);
-        if (!updateLogs) return "Somethings want Wrong In Logs";
+        await orderLogsStorage.createLogs(logsData);
       }
       return order;
     } catch (error) {
@@ -1170,8 +1171,27 @@ var OrderStorage = class {
   }
   async updateStatus(orderId, body) {
     const orderData = await orderStorage.getOrder(orderId);
-    console.log(orderData, "orderData");
-    if ((body?.status || "") === "active") {
+    if (body?.orderId) {
+      const [existing] = await db.select().from(orderSchema).where(
+        and3(eq10(orderSchema.orderId, body.orderId), sql3`id != ${orderId}`)
+      );
+      if (existing) {
+        const error = new Error("Order ID already exists");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+    if (body?.crateNo) {
+      const [existingCrate] = await db.select().from(orderSchema).where(
+        and3(eq10(orderSchema.crateNo, body.crateNo), sql3`id != ${orderId}`)
+      );
+      if (existingCrate) {
+        const error = new Error("Crate Number already exists");
+        error.statusCode = 409;
+        throw error;
+      }
+    }
+    if ((body?.orderStatus || "") === "active") {
       const chatData = await chatStorage.getChatByOrderId(orderId);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
@@ -1191,73 +1211,90 @@ var OrderStorage = class {
         };
         const createNewChat = await chatStorage.createChat(chatPayload);
         if (!createNewChat) return "Something Went Wrong On Create Chat";
-        const updateOrder2 = {
-          orderStatus: body?.status || "",
-          orderId: body?.orderId || "",
-          crateNo: body?.crateNo || "",
-          qaNote: body?.qaNote || ""
+        const updateOrder = {
+          orderStatus: body?.orderStatus || orderData.orderStatus,
+          orderId: body?.orderId ? body.orderId : orderData.orderId,
+          crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+          qaNote: body?.qaNote || orderData.qaNote,
+          qaId: body?.qaId
         };
-        const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
-        if (!UpdateOrderData2) return "Order Not Update";
-        return UpdateOrderData2;
-      }
-      const chatParticipentList = chatData?.participants || [];
-      if (!chatParticipentList.includes(body?.userName || "")) {
-        const newParticipantsList = [...chatParticipentList, body?.userName || ""];
-        const updateChatData = {
-          ...chatData,
-          participants: newParticipantsList
-        };
-        const updateParticipant = await chatStorage.updateChat(
-          chatData?.id || "",
-          updateChatData
+        const UpdateOrderData = await orderStorage.updateOrder(
+          orderId,
+          updateOrder
         );
-        if (!updateParticipant) return "Chat Is Not Update";
+        if (!UpdateOrderData) return "Order Not Update";
+        return UpdateOrderData;
       } else {
-        const updateOrder2 = {
-          orderStatus: body?.status || "",
-          orderId: body?.orderId || "",
-          crateNo: body?.crateNo || "",
-          qaNote: body?.qaNote || ""
+        const chatParticipentList = chatData?.participants || [];
+        if (!chatParticipentList.includes(body?.userName || "")) {
+          const newParticipantsList = [
+            ...chatParticipentList,
+            body?.userName || ""
+          ];
+          const updateChatData = {
+            ...chatData,
+            participants: newParticipantsList
+          };
+          const updateParticipant = await chatStorage.updateChat(
+            chatData?.id || "",
+            updateChatData
+          );
+          if (!updateParticipant) return "Chat Is Not Update";
+        }
+        const updateOrder = {
+          orderStatus: body?.orderStatus || orderData.orderStatus,
+          orderId: body?.orderId ? body.orderId : orderData.orderId,
+          crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+          qaId: body?.qaId
         };
-        const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
-        if (!UpdateOrderData2) return "Order Not Update";
-        return UpdateOrderData2;
+        const UpdateOrderData = await orderStorage.updateOrder(
+          orderId,
+          updateOrder
+        );
+        if (!UpdateOrderData) return "Order Not Update";
+        return UpdateOrderData;
       }
-    } else if ((body?.status || "") === "rejected") {
-      const updateOrder2 = {
-        orderStatus: body?.status || "",
-        resonOfReject: body?.resonOfReject || ""
+    } else if ((body?.orderStatus || "") === "rejected") {
+      const updateOrder = {
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfReject: body?.resonOfReject || orderData.resonOfReject,
+        qaId: body?.qaId
       };
-      const UpdateOrderData2 = orderStorage.updateOrder(orderId, updateOrder2);
-      if (!UpdateOrderData2) return "Order Not Update";
-      return UpdateOrderData2;
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
+      if (!UpdateOrderData) return "Order Not Update";
+      return UpdateOrderData;
+    } else if ((body?.orderStatus || "") === "rescan") {
+      const updateOrder = {
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
+        rejectNote: body?.resonOfRescan || orderData.rejectNote,
+        qaId: body?.qaId
+      };
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
+      if (!UpdateOrderData) return "Order Not Update";
+      return UpdateOrderData;
+    } else {
+      const updateOrder = {
+        orderStatus: body?.orderStatus || orderData.orderStatus,
+        resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
+        rejectNote: body?.resonOfRescan || orderData.rejectNote,
+        orderId: body?.orderId ? body.orderId : orderData.orderId,
+        crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
+        qaId: body?.qaId
+      };
+      const UpdateOrderData = await orderStorage.updateOrder(
+        orderId,
+        updateOrder
+      );
+      if (!UpdateOrderData) return "Order Not Update";
+      return UpdateOrderData;
     }
-    const updateOrder = {
-      orderStatus: body?.status || "",
-      resonOfRescan: body?.resonOfRescan || "",
-      rejectNote: body?.resonOfRescan || ""
-    };
-    if (body?.additionalNote && body?.additionalNote) {
-      const subLogsData = {
-        addedBy: body?.userName,
-        additionalNote: body?.additionalNote,
-        extraAdditionalNote: body?.extraAdditionalNote,
-        createdAt: /* @__PURE__ */ new Date()
-      };
-      const getLogsData = await orderLogsStorage.getLogsByOrderId(orderData?.id);
-      console.log(getLogsData, "getLogsData");
-      const logsData = {
-        logs: [...getLogsData?.logs, subLogsData],
-        orderId: orderData.id
-      };
-      const updateLogs = await orderLogsStorage.updateLogs(orderData?.id, logsData);
-      console.log("updated this is amopte", updateLogs);
-      if (!updateLogs) return "Somethings want Wrong In Logs";
-    }
-    const UpdateOrderData = orderStorage.updateOrder(orderId, updateOrder);
-    if (!UpdateOrderData) return "Order Not Update";
-    return UpdateOrderData;
   }
   async getOrders() {
     return await db.select().from(orderSchema);
@@ -2009,13 +2046,12 @@ var setupOrderRoutes = (app2) => {
     try {
       const orderId = req.params.orderId;
       const body = req.body;
-      console.log(body?.status, "body");
       const updateData = await orderStorage.updateStatus(orderId, body);
-      console.log(updateData, "updateData");
       res.status(201).json("updateData");
     } catch (error) {
-      console.log(error);
-      res.status(400).json({ error });
+      const statusCode = error.statusCode || 400;
+      const message = error.message || "Something went wrong";
+      return res.status(statusCode).json({ error: message });
     }
   });
   app2.get("/api/orders/:orderId/chat", async (req, res) => {
@@ -2296,6 +2332,389 @@ var setupDraftOrderRoutes = (app2) => {
   });
 };
 
+// server/src/qa/qaController.ts
+import { eq as eq13, sql as sql5, and as and5, inArray as inArray5 } from "drizzle-orm";
+
+// server/src/qa/qaSchema.ts
+import { pgTable as pgTable15, uuid as uuid15, text as text13, date as date10, timestamp as timestamp10, jsonb as jsonb12, boolean as boolean9 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema8 } from "drizzle-zod";
+var qaDailyReportSchema = pgTable15("qa_daily_reports", {
+  id: uuid15("id").primaryKey().defaultRandom(),
+  qaId: text13("qa_id"),
+  // QA user id or reference
+  reportDate: date10("report_date"),
+  summary: text13("summary"),
+  approvedOrderIds: jsonb12("approved_order_ids").default([]),
+  // string[]
+  rejectedOrderIds: jsonb12("rejected_order_ids").default([]),
+  // string[]
+  rescanOrderIds: jsonb12("rescan_order_ids").default([]),
+  // string[]
+  placeOrderIds: jsonb12("place_order_ids").default([]),
+  // string[]
+  modifiedOrderIds: jsonb12("modified_order_ids").default([]),
+  // string[]
+  accessoriesPendingOrderIds: jsonb12("accessories_pending_order_ids").default([]),
+  // string[]
+  createdAt: timestamp10("created_at").defaultNow(),
+  updatedAt: timestamp10("updated_at").defaultNow()
+});
+var insertQaDailyReportSchema = createInsertSchema8(qaDailyReportSchema).partial({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+var qaUserSchema = pgTable15("qa_users", {
+  id: uuid15("id").primaryKey().defaultRandom(),
+  email: text13("email").notNull().unique(),
+  passwordHash: text13("password_hash").notNull(),
+  name: text13("name").notNull(),
+  roleId: uuid15("role_id").notNull(),
+  isActive: boolean9("is_active").default(true).notNull(),
+  createdAt: timestamp10("created_at").defaultNow(),
+  updatedAt: timestamp10("updated_at").defaultNow()
+});
+var insertQaUserSchema = createInsertSchema8(qaUserSchema).partial({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true
+});
+
+// server/src/qa/qaController.ts
+import jwt2 from "jsonwebtoken";
+
+// server/src/helpers/authHelpers.ts
+import bcrypt3 from "bcrypt";
+async function hashPassword(password) {
+  return bcrypt3.hash(password, 10);
+}
+async function comparePassword(password, hash) {
+  return bcrypt3.compare(password, hash);
+}
+function isStrongPassword(password) {
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/.test(
+    password
+  );
+}
+function isValidEmail(email) {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+}
+
+// server/src/qa/qaController.ts
+var JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+var qaController = {
+  // --- QA Auth & Management ---
+  // Register a new QA
+  async registerQa(req, res) {
+    try {
+      const { email, password, name } = req.body;
+      const qaRoleName = "entry_qa";
+      console.log("email", email);
+      if (!email || !password || !name) {
+        return res.status(400).json({ error: "Missing required fields (email, password, name)" });
+      }
+      if (!isValidEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+      if (!isStrongPassword(password)) {
+        return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character" });
+      }
+      const existing = await db.select().from(qaUserSchema).where(eq13(qaUserSchema.email, email));
+      if (existing.length > 0)
+        return res.status(409).json({ error: "Email already registered" });
+      const roleData = await RolesStorage.getRoleByName(qaRoleName);
+      const roleId = roleData?.id;
+      const passwordHash = await hashPassword(password);
+      const qaData = {
+        email,
+        passwordHash,
+        name,
+        roleId
+      };
+      const [user] = await db.insert(qaUserSchema).values(qaData).returning();
+      res.status(201).json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roleId: user.roleId
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to register QA" });
+    }
+  },
+  // Login QA
+  async loginQa(req, res) {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password)
+        return res.status(400).json({ error: "Missing email or password" });
+      const [user] = await db.select().from(qaUserSchema).where(eq13(qaUserSchema.email, email));
+      if (!user) return res.status(401).json({ error: "Invalid credentials" });
+      const valid = await comparePassword(password, user.passwordHash);
+      if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+      const token = jwt2.sign(
+        { id: user.id, email: user.email, name: user.name },
+        JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+      res.status(200).json({
+        token,
+        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: "entry_qa" }
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to login QA" });
+    }
+  },
+  // Dummy logout (for stateless JWT, just clear token on client)
+  async logoutQa(_req, res) {
+    res.status(200).json({ message: "Logged out (client should clear token)" });
+  },
+  // Delete QA
+  async deleteQa(req, res) {
+    try {
+      const { id } = req.params;
+      if (!id) return res.status(400).json({ error: "Missing QA id" });
+      const [deleted] = await db.delete(qaUserSchema).where(eq13(qaUserSchema.id, id)).returning();
+      if (!deleted) return res.status(404).json({ error: "QA not found" });
+      res.status(200).json({ message: "QA deleted", id });
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to delete QA" });
+    }
+  },
+  // Submit a new daily report
+  async submitDailyReport(req, res) {
+    try {
+      const { qaId, reportDate, approvedOrderIds, rejectedOrderIds, rescanOrderIds, modifiedOrderIds, ...rest } = req.body;
+      if (!qaId || !reportDate) {
+        return res.status(400).json({ error: "qaId and reportDate are required" });
+      }
+      const dateStr = typeof reportDate === "string" ? reportDate.slice(0, 10) : new Date(reportDate).toISOString().slice(0, 10);
+      const [existing] = await db.select().from(qaDailyReportSchema).where(
+        and5(
+          eq13(qaDailyReportSchema.qaId, qaId),
+          eq13(qaDailyReportSchema.reportDate, dateStr)
+        )
+      );
+      const mergeIds = (oldArr, newArr) => {
+        if (!Array.isArray(oldArr)) oldArr = [];
+        if (!Array.isArray(newArr)) newArr = [];
+        return Array.from(/* @__PURE__ */ new Set([...oldArr || [], ...newArr || []]));
+      };
+      if (existing) {
+        const updatedFields = {};
+        if (approvedOrderIds) {
+          updatedFields.approvedOrderIds = mergeIds(existing.approvedOrderIds, approvedOrderIds);
+        }
+        if (rejectedOrderIds) {
+          updatedFields.rejectedOrderIds = mergeIds(existing.rejectedOrderIds, rejectedOrderIds);
+        }
+        if (rescanOrderIds) {
+          updatedFields.rescanOrderIds = mergeIds(existing.rescanOrderIds, rescanOrderIds);
+        }
+        if (modifiedOrderIds) {
+          updatedFields.modifiedOrderIds = mergeIds(existing.modifiedOrderIds, modifiedOrderIds);
+        }
+        Object.assign(updatedFields, rest);
+        const [updated] = await db.update(qaDailyReportSchema).set({
+          ...updatedFields,
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq13(qaDailyReportSchema.id, existing.id)).returning();
+        return res.status(200).json(updated);
+      } else {
+        const [created] = await db.insert(qaDailyReportSchema).values({
+          qaId,
+          reportDate: dateStr,
+          approvedOrderIds: approvedOrderIds || [],
+          rejectedOrderIds: rejectedOrderIds || [],
+          rescanOrderIds: rescanOrderIds || [],
+          modifiedOrderIds: modifiedOrderIds || [],
+          ...rest
+        }).returning();
+        return res.status(201).json(created);
+      }
+    } catch (error) {
+      res.status(400).json({ error: error.message || "Failed to submit daily report" });
+    }
+  },
+  // Get all daily reports for a particular QA (with pagination)
+  async getAllDailyReports(req, res) {
+    try {
+      const { qaId, page = 1, pageSize = 20, withOrderDetails } = req.query;
+      const offset = (Number(page) - 1) * Number(pageSize);
+      const where = qaId ? eq13(qaDailyReportSchema.qaId, qaId) : void 0;
+      const query = db.select().from(qaDailyReportSchema).where(where).offset(offset).limit(Number(pageSize));
+      const reports = await query;
+      const total = await db.select({ count: sql5`count(*)` }).from(qaDailyReportSchema).where(where);
+      if (withOrderDetails === "true") {
+        for (const report of reports) {
+          const fetchOrders = async (ids) => {
+            const arr = Array.isArray(ids) ? ids : [];
+            return db.select().from(orderSchema).where(inArray5(orderSchema.id, arr));
+          };
+          report.approvedOrderDetails = await fetchOrders(
+            report.approvedOrderIds
+          );
+          report.rejectedOrderDetails = await fetchOrders(
+            report.rejectedOrderIds
+          );
+          report.rescanOrderDetails = await fetchOrders(
+            report.rescanOrderIds
+          );
+          report.placeOrderDetails = await fetchOrders(
+            report.placeOrderIds
+          );
+          report.accessoriesPendingOrderDetails = await fetchOrders(
+            report.accessoriesPendingOrderIds
+          );
+        }
+      }
+      res.status(200).json({ data: reports, total: total[0]?.count || 0 });
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to fetch daily reports" });
+    }
+  },
+  // Get today's daily report(s) for a particular QA
+  async getTodaysDailyReport(req, res) {
+    try {
+      const { qaId } = req.query;
+      if (!qaId) return res.status(400).json({ error: "qaId is required" });
+      const today = /* @__PURE__ */ new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const reports = await db.select().from(qaDailyReportSchema).where(
+        and5(
+          eq13(qaDailyReportSchema.qaId, qaId),
+          sql5`${qaDailyReportSchema.createdAt} >= ${today.toISOString()} AND ${qaDailyReportSchema.createdAt} < ${tomorrow.toISOString()}`
+        )
+      );
+      res.status(200).json(reports);
+    } catch (error) {
+      res.status(500).json({
+        error: error.message || "Failed to fetch today's daily report"
+      });
+    }
+  },
+  // Get daily reports by filter (monthly, yearly, or custom date range, with pagination)
+  async getFilteredDailyReports(req, res) {
+    try {
+      const {
+        qaId,
+        month,
+        year,
+        startDate,
+        endDate,
+        page = 1,
+        pageSize = 20
+      } = req.body;
+      const offset = (Number(page) - 1) * Number(pageSize);
+      const conditions = [];
+      if (qaId) {
+        conditions.push(eq13(qaDailyReportSchema.qaId, qaId));
+      }
+      if (month && year) {
+        conditions.push(
+          sql5`EXTRACT(MONTH FROM ${qaDailyReportSchema.reportDate}) = ${Number(
+            month
+          )}`
+        );
+        conditions.push(
+          sql5`EXTRACT(YEAR FROM ${qaDailyReportSchema.reportDate}) = ${Number(
+            year
+          )}`
+        );
+      } else if (startDate && endDate) {
+        conditions.push(
+          sql5`${qaDailyReportSchema.reportDate} BETWEEN ${startDate} AND ${endDate}`
+        );
+      } else if (year) {
+        conditions.push(
+          sql5`EXTRACT(YEAR FROM ${qaDailyReportSchema.reportDate}) = ${Number(
+            year
+          )}`
+        );
+      }
+      const whereClause = conditions.length > 1 ? sql5`${sql5.join(conditions, sql5` AND `)}` : conditions[0];
+      const reports = await db.select().from(qaDailyReportSchema).where(whereClause).offset(offset).limit(Number(pageSize));
+      const total = await db.select({ count: sql5`count(*)` }).from(qaDailyReportSchema).where(whereClause);
+      res.status(200).json({ data: reports, total: total[0]?.count || 0 });
+    } catch (error) {
+      res.status(500).json({
+        error: error.message || "Failed to fetch filtered daily reports"
+      });
+    }
+  }
+};
+
+// server/src/qa/qaRoute.ts
+var setupQaRoutes = (app2) => {
+  app2.post("/api/qa/register", qaController.registerQa);
+  app2.post("/api/qa/login", qaController.loginQa);
+  app2.post("/api/qa/logout", qaController.logoutQa);
+  app2.delete("/api/qa/:id", qaController.deleteQa);
+  app2.post("/api/qa/daily-report", qaController.submitDailyReport);
+  app2.get("/api/qa/daily-report/today", qaController.getTodaysDailyReport);
+  app2.get("/api/qa/daily-report", qaController.getAllDailyReports);
+  app2.get("/api/qa/daily-report/filter", qaController.getFilteredDailyReports);
+};
+
+// server/src/orderHistory/orderHistorySchema.ts
+import { pgTable as pgTable16, uuid as uuid16, text as text14, jsonb as jsonb13, timestamp as timestamp11 } from "drizzle-orm/pg-core";
+var orderHistorySchema = pgTable16("order_history", {
+  id: uuid16("id").primaryKey().defaultRandom(),
+  orderId: text14("order_id"),
+  history: jsonb13("history").default([]),
+  // stores list as JSON array
+  updatedBy: text14("updated_by"),
+  updatedAt: timestamp11("updated_at").defaultNow()
+});
+
+// server/src/orderHistory/orderHistoryController.ts
+import { eq as eq14 } from "drizzle-orm";
+var orderHistoryController = {
+  // Create or append to order history
+  async createOrderHistory(req, res) {
+    try {
+      const { orderId, historyEntry, updatedBy } = req.body;
+      if (!orderId || !historyEntry) {
+        return res.status(400).json({ error: "orderId and historyEntry are required" });
+      }
+      const [created] = await db.insert(orderHistorySchema).values({
+        orderId,
+        history: [historyEntry],
+        updatedBy: updatedBy || null,
+        updatedAt: /* @__PURE__ */ new Date()
+      }).returning();
+      return res.status(201).json(created);
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to create order history" });
+    }
+  },
+  // Get order history by orderId
+  async getOrderHistory(req, res) {
+    try {
+      const { orderId } = req.params;
+      if (!orderId) {
+        return res.status(400).json({ error: "orderId is required" });
+      }
+      const [history] = await db.select().from(orderHistorySchema).where(eq14(orderHistorySchema.orderId, orderId));
+      if (!history) {
+        return res.status(404).json({ error: "Order history not found" });
+      }
+      res.status(200).json(history);
+    } catch (error) {
+      res.status(500).json({ error: error.message || "Failed to fetch order history" });
+    }
+  }
+};
+
+// server/src/orderHistory/orderHistoryRoute.ts
+var setupOrderHistoryRoutes = (app2) => {
+  app2.post("/api/order-history", orderHistoryController.createOrderHistory);
+  app2.get("/api/order-history/:orderId", orderHistoryController.getOrderHistory);
+};
+
 // server/routes.ts
 async function registerRoutes(app2) {
   passport.use(
@@ -2385,8 +2804,10 @@ async function registerRoutes(app2) {
   setupAuthenticationRoutes(app2);
   setupChatRoutes(app2);
   setupClinicRoutes(app2);
+  setupQaRoutes(app2);
   setupLifeCycleRoutes(app2);
   setupMessageRoutes(app2);
+  setupOrderHistoryRoutes(app2);
   setupOrderRoutes(app2);
   setupTeamMemberRoutes(app2);
   setuRoleRoutes(app2);
@@ -2508,11 +2929,11 @@ import { createServer as createServer2 } from "http";
 import dotenv2 from "dotenv";
 
 // server/src/middleWare/middleWare.ts
-import jwt2 from "jsonwebtoken";
-var JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+import jwt3 from "jsonwebtoken";
+var JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
 function authMiddleware(req, res, next) {
   console.log(req.path);
-  if (req.path === "/login" || req.path === "/register") {
+  if (req.path === "/login" || req.path === "/register" || req.path === "/qa/login") {
     return next();
   }
   const authHeader = req.headers["authorization"];
@@ -2521,7 +2942,7 @@ function authMiddleware(req, res, next) {
   }
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt2.verify(token, JWT_SECRET);
+    const decoded = jwt3.verify(token, JWT_SECRET2);
     req.user = decoded;
     next();
   } catch (err) {
@@ -2531,7 +2952,7 @@ function authMiddleware(req, res, next) {
 
 // server/socket/socket.ts
 import { Server } from "socket.io";
-import { eq as eq13 } from "drizzle-orm";
+import { eq as eq15 } from "drizzle-orm";
 function setupSocket(httpServer2, app2) {
   const io = new Server(httpServer2, {
     cors: {
@@ -2577,7 +2998,7 @@ function setupSocket(httpServer2, app2) {
           chatId: data.chatId
         });
         console.log("savedMessage", savedMessage);
-        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq13(chats.id, data.chatId));
+        await db.update(chats).set({ updatedAt: /* @__PURE__ */ new Date() }).where(eq15(chats.id, data.chatId));
         console.log("updatedChat");
         io.to(`chat-${data.chatId}`).emit("new-message", {
           chatId: data.chatId,

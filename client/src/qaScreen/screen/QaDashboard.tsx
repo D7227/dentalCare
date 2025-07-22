@@ -14,12 +14,18 @@ import type { DailyReport } from "../data/dailyReports";
 import { SidebarProvider, SidebarTrigger } from "../components/ui/sidebar";
 import QaChatContent from "./ChatScreen/qaChatContent";
 import ProductionScreen from "./ProductionScreen/productionScreen";
+import { useAppSelector } from "@/store/hooks";
 
 const QaDashboard = () => {
   const [cases, setCases] = useState(initialCases);
   const [dailyReports, setDailyReports] = useState(initialReports);
   const [isDailyReportModalOpen, setIsDailyReportModalOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState("Dashboard");
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+
+  console.log('user' ,user);
+  console.log('user' ,UserData);
 
   const updateCase = (id: string, status: any, notes?: string) => {
     setCases((cases) =>

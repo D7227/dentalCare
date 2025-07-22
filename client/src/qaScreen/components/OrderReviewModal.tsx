@@ -30,6 +30,9 @@ import {
 } from "@/store/slices/orderApi";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 import { useToast } from "../components/ui/use-toast";
+import { useAppSelector } from "@/store/hooks";
+import { useSubmitDailyReportMutation } from "@/store/slices/qaslice/qaApi";
+import { useCreateOrderHistoryMutation } from "@/store/slices/orderHistorySlice/orderHistoryApi";
 
 type Props = {
   open: boolean;
@@ -37,35 +40,12 @@ type Props = {
   selectedOrderId: string;
 };
 
-// API function to update order status
-// const updateOrderAPI = async (orderId: string, formData: any) => {
-//   try {
-//     const response = await fetch(`/api/orders/${orderId}`, {
-//       method: "PUT",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify(formData),
-//     });
-
-//     if (!response.ok) {
-//       throw new Error(`Failed to update order: ${response.statusText}`);
-//     }
-
-//     const updatedOrder = await response.json();
-//     return updatedOrder;
-//   } catch (error) {
-//     console.error("Error updating order:", error);
-//     throw error;
-//   }
-// };
 
 export default function OrderReviewModal({
   open,
   onClose,
   selectedOrderId,
 }: Props) {
-  console.log("selectedOrderId", selectedOrderId);
   const [sOrderId, setSOrderId] = useState<string>(selectedOrderId);
   const [additionalNote, setAdditionalNote] = useState("");
   // const [reason, setReason] = useState("");
@@ -75,6 +55,10 @@ export default function OrderReviewModal({
   const { toast } = useToast();
   const [updateOrder, { isLoading: isUpdating }] =
     useUpdateQaOrderStatusMutation();
+    const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+  const [submitDailyReport] = useSubmitDailyReportMutation();
+  const [createOrderHistory] = useCreateOrderHistoryMutation();
 
   // Only call the API if sOrderId is present
   const shouldFetchOrder = Boolean(sOrderId);
@@ -86,6 +70,10 @@ export default function OrderReviewModal({
   } = useGetOrderByOrderIdQuery(sOrderId, { skip: !shouldFetchOrder });
 
   const [formData, setFormData] = useState<any>(orderData);
+  const [originalData, setOriginalData] = useState<any>(orderData); // Track original data
+  const [changedFields, setChangedFields] = useState<any[]>([]); // Store changes
+
+  console.log(changedFields,"changedFields")
 
   useEffect(() => {
     setSOrderId(selectedOrderId);
@@ -96,9 +84,25 @@ export default function OrderReviewModal({
 
   useEffect(() => {
     setFormData(orderData);
+    setOriginalData(orderData); // Reset original data when order changes
   }, [orderData]);
 
-  console.log("formData ----- orderreview", formData);
+  // Utility to compare two objects and return changed fields
+  function getChangedFields(oldObj: any, newObj: any) {
+    if (!oldObj || !newObj) return [];
+    const changes = [];
+    for (const key of Object.keys(newObj)) {
+      if (typeof newObj[key] === 'object' && newObj[key] !== null && oldObj[key] !== null) {
+        if (JSON.stringify(newObj[key]) !== JSON.stringify(oldObj[key])) {
+          changes.push({ field: key, oldValue: oldObj[key], newValue: newObj[key] });
+        }
+      } else if (newObj[key] !== oldObj[key]) {
+        changes.push({ field: key, oldValue: oldObj[key], newValue: newObj[key] });
+      }
+    }
+    return changes;
+  }
+
   React.useEffect(() => {
     if (formData && !sOrderId) {
       setOrderId(`ORD-25-21022`);
@@ -107,7 +111,6 @@ export default function OrderReviewModal({
 
   if (!formData) return null;
 
-  console.log(formData, " dental case");
 
   // const handleFileDownload = (fileName: string) => {
   //   const link = document.createElement("a");
@@ -136,6 +139,17 @@ export default function OrderReviewModal({
       });
       return;
     }
+    // Compare and save changes if any
+    const changes = getChangedFields(originalData, formData);
+    const hasModifications = changes.length > 0;
+    if (hasModifications) {
+      setChangedFields(changes);
+      await createOrderHistory({
+        orderId: formData?.id,
+        historyEntry: changes,
+        updatedBy: user?.fullName,
+      });
+    }
     try {
       const result = await updateOrder({
         orderId: formData?.id,
@@ -144,19 +158,19 @@ export default function OrderReviewModal({
           orderId: orderId,
           orderStatus: "active",
           crateNo: crateNumber,
-          userName: "qa",
+          userName: user?.fullName,
           additionalNote: additionalNote,
+          qaId:user?.id,
         },
       }).unwrap();
-      console.log('result-approveeee', result)
-      console.log('payload', {
-        ...formData,
-        orderId: orderId,
-        orderStatus: "active",
-        crateNo: crateNumber,
-        userName: "qa",
-        additionalNote: additionalNote,
-      },)
+      // Submit daily report for approval
+      await submitDailyReport({
+        reportDate: new Date().toISOString(),
+        qaId: user?.id,
+        approvedOrderIds: [formData?.id],
+        crateNumber,
+        ...(hasModifications ? { modifiedOrderIds: [formData?.id] } : {}),
+      });
       toast({
         title: "Order Approved",
         description: `Order #${orderId} has been approved successfully!`,
@@ -187,16 +201,35 @@ export default function OrderReviewModal({
       });
       return;
     }
+    // Compare and save changes if any
+    const changes = getChangedFields(originalData, formData);
+    const hasModifications = changes.length > 0;
+    if (hasModifications) {
+      setChangedFields(changes);
+      await createOrderHistory({
+        orderId: formData?.id,
+        historyEntry: changes,
+        updatedBy: user?.fullName,
+      });
+    }
     try {
       const result = await updateOrder({
         orderId: formData?.id,
         orderData: {
           ...formData,
           orderStatus: "rejected",
-          userName: "qa",
+          userName: user?.fullName,
           additionalNote: additionalNote,
+          qaId:user?.id,
         },
       }).unwrap();
+      // Submit daily report for rejection
+      await submitDailyReport({
+        reportDate: new Date().toISOString(),
+        qaId: user?.id,
+        rejectedOrderIds: [formData?.id],
+        ...(hasModifications ? { modifiedOrderIds: [formData?.id] } : {}),
+      });
       toast({
         title: "Order Rejected",
         description: `Order has been rejected.`,
@@ -227,17 +260,36 @@ export default function OrderReviewModal({
       });
       return;
     }
+    // Compare and save changes if any
+    const changes = getChangedFields(originalData, formData);
+    const hasModifications = changes.length > 0;
+    if (hasModifications) {
+      setChangedFields(changes);
+      await createOrderHistory({
+        orderId: formData?.id,
+        historyEntry: changes,
+        updatedBy: user?.fullName,
+      });
+    }
     try {
       const result = await updateOrder({
         orderId: formData?.id,
         orderData: {
           ...formData,
           orderStatus: "rescan",
-          userName: "qa",
+          userName: user?.fullName,
           additionalNote: additionalNote,
           extraAdditionalNote: rescanReason,
+          qaId:user?.id,
         },
       }).unwrap();
+      // Submit daily report for rescan
+      await submitDailyReport({
+        reportDate: new Date().toISOString(),
+        qaId: user?.id,
+        rescanOrderIds: [formData?.id],
+        ...(hasModifications ? { modifiedOrderIds: [formData?.id] } : {}),
+      });
       toast({
         title: "Rescan Requested",
         description: `Rescan requested for this order.`,

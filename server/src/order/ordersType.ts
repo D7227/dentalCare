@@ -46,6 +46,7 @@ export interface QaStatusApiBody {
   userName: string;
   additionalNote: string;
   extraAdditionalNote: string;
+  qaId:string;
 }
 
 export interface FilterBody {
