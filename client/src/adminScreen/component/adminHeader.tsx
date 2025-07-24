@@ -10,7 +10,7 @@ interface HeaderProps {
     title?: string;
 }
 
-const HeadHeader = ({ title }: HeaderProps) => {
+const AdminHeader = ({ title }: HeaderProps) => {
 
     return (
         <header className="bg-background border-b border-border px-8 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm "
@@ -72,4 +72,4 @@ const HeadHeader = ({ title }: HeaderProps) => {
     );
 };
 
-export default HeadHeader;
+export default AdminHeader;

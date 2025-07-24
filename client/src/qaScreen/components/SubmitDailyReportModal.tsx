@@ -6,32 +6,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import type { DentalCase } from "@/data/cases";
+import { useAppSelector } from "@/store/hooks";
+import { selectQaDailyReports } from "@/store/slices/qaslice/qaSlice";
+import type { RootState } from "@/store/store";
 
-type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  cases: DentalCase[];
-  onSubmitReport: (additionalNotes: string) => void;
-};
+// Remove 'cases' prop and related logic
+// type Props = {
+//   isOpen: boolean;
+//   onClose: () => void;
+//   cases: DentalCase[];
+//   onSubmitReport: (additionalNotes: string) => void;
+// };
 
-export default function SubmitDailyReportModal({ isOpen, onClose, cases, onSubmitReport }: Props) {
+// Change props to only isOpen, onClose, onSubmitReport
+export default function SubmitDailyReportModal({ isOpen, onClose, onSubmitReport }: { isOpen: boolean; onClose: () => void; onSubmitReport: (additionalNotes: string) => void; }) {
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const { toast } = useToast();
 
-  // Calculate today's statistics
-  const today = new Date().toISOString().split('T')[0];
-  const todaysCases = cases.filter(c => c.receivedAt === today);
-  
+  // Get daily reports from Redux
+  // Use selector with correct RootState type
+  const dailyReportsRaw = useAppSelector((state: RootState) => selectQaDailyReports(state));
+  console.log(dailyReportsRaw, "dailyReportsRaw");
+  const todaysReport = dailyReportsRaw[0] || {};
   const stats = {
-    total: todaysCases.length,
-    approved: todaysCases.filter(c => c.status === "Approved").length,
-    rejected: todaysCases.filter(c => c.status === "Rejected").length,
-    rescans: todaysCases.filter(c => c.status === "Rescan Requested").length,
-    modified: todaysCases.filter(c => c.status === "Modified").length,
-    pending: todaysCases.filter(c => c.status === "Pending").length
+    total: (todaysReport.approvedOrderIds?.length || 0) + (todaysReport.rejectedOrderIds?.length || 0) + (todaysReport.rescanOrderIds?.length || 0) + (todaysReport.modifiedOrderIds?.length || 0) + (todaysReport.pendingOrderIds?.length || 0),
+    approved: todaysReport.approvedOrderIds?.length || 0,
+    rejected: todaysReport.rejectedOrderIds?.length || 0,
+    rescans: todaysReport.rescanOrderIds?.length || 0,
+    modified: todaysReport.modifiedOrderIds?.length || 0,
   };
+
+  console.log(todaysReport, "todaysReport");
 
   const handleReviewReport = () => {
     setIsReviewing(true);
@@ -88,8 +94,6 @@ export default function SubmitDailyReportModal({ isOpen, onClose, cases, onSubmi
                     <div className="text-sm text-muted-foreground">Modified</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-                    <div className="text-sm text-muted-foreground">Pending</div>
                   </div>
                 </div>
               </CardContent>

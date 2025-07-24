@@ -1,17 +1,17 @@
-import HeadDashboard from "@/adminScreen/adminDashboard";
+import AdminDashboard from "@/adminScreen/adminDashboard";
 import React from "react";
 import { Outlet } from "react-router-dom";
 
-export const headRoutes = [
+export const adminRoutes = [
   {
-    path: "/head",
+    path: "/admin",
     element: (
       <div>
         <Outlet />
       </div>
     ),
     children: [
-      { index: true, element: <HeadDashboard /> },
+      { index: true, element: <AdminDashboard /> },
     ],
   },
 ];

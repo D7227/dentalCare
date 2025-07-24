@@ -30,8 +30,15 @@ const qaSlice = createSlice({
     setQaToken(state, action: PayloadAction<string | null>) {
       state.token = action.payload;
     },
-    setQaDailyReports(state, action: PayloadAction<DailyReport[]>) {
-      state.dailyReports = action.payload;
+    setQaDailyReports(state, action: PayloadAction<any>) {
+      // Accepts either an array or an object with a 'data' array
+      if (Array.isArray(action.payload)) {
+        state.dailyReports = action.payload;
+      } else if (action.payload && Array.isArray(action.payload.data)) {
+        state.dailyReports = action.payload.data;
+      } else {
+        state.dailyReports = [];
+      }
     },
     addQaDailyReport(state, action: PayloadAction<DailyReport>) {
       state.dailyReports.unshift(action.payload);

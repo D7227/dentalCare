@@ -54,7 +54,8 @@ const Sidebar = ({
     {
       id: 'orders',
       label: 'Orders',
-      icon: FileText
+      icon: FileText,
+      badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined
     },
     {
       id: 'appointments',
@@ -77,7 +78,6 @@ const Sidebar = ({
       id: 'messages',
       label: 'Messages',
       icon: MessageSquare,
-      badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined
     },
     {
       id: 'my-team',
@@ -225,6 +225,7 @@ const Sidebar = ({
               >
                 <FileText className="h-4 w-4" />
                 All orders
+                {unreadMessagesCount > 0 && <span className="ml-auto bg-secondary text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center font-medium">{unreadMessagesCount}</span>}
               </button>
               <button
                 className={cn(

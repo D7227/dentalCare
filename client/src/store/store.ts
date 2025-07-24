@@ -12,6 +12,7 @@ import { chatApi } from './slices/chatApi';
 import chatslice from './slices/chatslice';
 import { qaApi } from './slices/qaslice/qaApi';
 import { orderHistoryApi } from './slices/orderHistorySlice/orderHistoryApi';
+import qaReducer from './slices/qaslice/qaSlice';
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
@@ -27,6 +28,7 @@ const rootReducer = combineReducers({
   userData: userDataReducer,
   // Add more slices here
   chat: chatslice,
+  qa: qaReducer,
 });
 
 const persistConfig = {

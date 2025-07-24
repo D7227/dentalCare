@@ -21,7 +21,7 @@ export interface SidebarProps {
     onToggleCollapse: () => void;
 }
 
-const HeadSideBar = ({
+const AdminSideBar = ({
     isCollapsed,
     activeSection,
     onSectionChange,
@@ -226,4 +226,4 @@ const HeadSideBar = ({
     );
 };
 
-export default HeadSideBar;
+export default AdminSideBar;

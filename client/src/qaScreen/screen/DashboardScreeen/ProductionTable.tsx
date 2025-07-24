@@ -257,7 +257,7 @@ const ProductionTable: React.FC<{}> = ({ }) => {
       </div>
 
       {/* New Order Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">

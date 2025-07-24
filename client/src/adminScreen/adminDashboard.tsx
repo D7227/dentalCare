@@ -1,7 +1,6 @@
 import React, { useEffect, useState, } from 'react';
 import { useAppSelector } from '@/store/hooks';
-import AdminDashboard from './screen/adminDashboard/AdminDashboard';
-import HeadHeader from './component/adminHeader';
+import AdminHeader from './component/adminHeader';
 import AreaManagerDashboard from './screen/areaManager/AreaManagerDashboard';
 import DepartmentViewPage from './screen/departmentView/DepartmentViewPage';
 import DailyReportsPage from './screen/dailyReport/DailyReportsPage';
@@ -21,9 +20,10 @@ import PaymentsPage from './screen/payment/PaymentsPage';
 import MastersPage from './screen/master/MastersPage';
 import PermissionsPage from './screen/permission/PermissionsPage';
 import SettingsPage from './screen/setting/SettingsPage';
-import HeadSideBar from './adminSideBar';
+import AdminSideBar from './adminSideBar';
+import AdminMainDashboard from './screen/adminDashboard/AdminDashboard';
 
-const HeadDashboard = () => {
+const AdminDashboard = () => {
     // const navigate = useNavigate();
     // const { toast } = useToast();
     const user = useAppSelector((state) => state.userData.userData);
@@ -43,7 +43,7 @@ const HeadDashboard = () => {
     const renderMainContent = () => {
         switch (activeSection) {
             case 'dashboard':
-                return <AdminDashboard />;
+                return <AdminMainDashboard />;
             case 'area_manager':
                 return <AreaManagerDashboard />;
             case 'department':
@@ -123,7 +123,7 @@ const HeadDashboard = () => {
             )}
             {/* Sidebar */}
             <div className={`${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out`}>
-                <HeadSideBar
+                <AdminSideBar
                     isCollapsed={isCollapsed}
                     activeSection={activeSection}
                     onSectionChange={handleSectionChange}
@@ -132,7 +132,7 @@ const HeadDashboard = () => {
             </div>
             {/* Main Content */}
             <div className={`flex-1 flex flex-col min-w-0 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'} transition-all duration-300`}>
-                <HeadHeader
+                <AdminHeader
                     title={sectionTitleMap[activeSection] || 'dashboard'}
                 />
                 <main className="flex-1 p-6 bg-white">
@@ -143,4 +143,4 @@ const HeadDashboard = () => {
     );
 }
 
-export default HeadDashboard;
+export default AdminDashboard;

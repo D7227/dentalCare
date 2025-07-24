@@ -61,9 +61,10 @@ const ChatContent = () => {
 
   // Fetch orders for creating order-specific chats
   // const { data: orders = [] } = useGetOrdersQuery();
-  const { data: orders = [] } = useGetOrderByIdQuery(
+  const { data: ordersRaw } = useGetOrderByIdQuery(
     user?.clinicId ?? ""
   );
+  const orders = Array.isArray(ordersRaw) ? ordersRaw : [];
 
   console.log(orders ,"orders data")
 
@@ -107,55 +108,13 @@ const ChatContent = () => {
     }
   }, [isCreateSuccess]);
 
-  // Filter chats based on active tab and search
+  // Only show master chats
   const filteredChats = React.useMemo(() => {
     if (!Array.isArray(chats) || chats.length === 0) return [];
-    let filtered = chats;
-    
-    // Check if user has chat permission
-    const hasChatPermission = hasPermission(user, 'chat');
-    
-    // If user doesn't have chat permission, only show chats where they are participants
-    if (!hasChatPermission) {
-      const userId = user?.fullName?.toLowerCase() || '';
-      filtered = chats.filter((chat: ChatItem) =>
-        chat.participants.some(
-          (participant) => participant.trim().toLowerCase() === userId.trim().toLowerCase()
-        )
-      );
-    } else {
-      // For users with chat permission, show all chats but apply role-based filtering for specific roles
-      if (userRole === 'admin_doctor' || userRole === 'assistant_doctor' || userRole === 'receptionist') {
-        const userId = user?.fullName?.toLowerCase() || '';
-        filtered = chats.filter((chat: ChatItem) =>
-          chat.participants.some(
-            (participant) => participant.trim().toLowerCase() === userId.trim().toLowerCase()
-          )
-        );
-      }
-      // For main_doctor and other roles with chat permission, show all chats
-    }
-    
-    filtered = filtered.filter((chat: ChatItem) => {
-      const matchesSearch = chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()));
-      switch (activeTab) {
-        case 'master':
-          return chat.type === 'master' && chat.isActive && matchesSearch;
-        case 'order':
-          return chat.type === 'order' && chat.isActive && matchesSearch;
-        case 'archived':
-          return !chat.isActive && matchesSearch;
-        default:
-          return chat.isActive && matchesSearch;
-      }
-    });
-    return filtered.sort((a: ChatItem, b: ChatItem) => {
-      if (a.type === 'master' && b.type !== 'master') return -1;
-      if (b.type === 'master' && a.type !== 'master') return 1;
-      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    });
-  }, [chats, activeTab, searchQuery, user]);
+    return chats
+      .filter((chat: ChatItem) => chat.type === 'master')
+      .sort((a: ChatItem, b: ChatItem) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [chats]);
 
   // Calculate unread group count
   const unreadGroupCount = filteredChats.filter((chat: ChatItem) => chat.unreadCount && chat.unreadCount > 0).length;
@@ -280,12 +239,12 @@ const ChatContent = () => {
       </div>
 
       {/* Chat Tabs */}
-      <div className='flex gap-4'>
+      <div className='flex gap-3'>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all">All Chats</TabsTrigger>
           <TabsTrigger value="master">Master</TabsTrigger>
-          <TabsTrigger value="order">Orders</TabsTrigger>
+          {/* <TabsTrigger value="order">Orders</TabsTrigger> */}
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -334,7 +293,7 @@ const ChatContent = () => {
                     <SelectValue placeholder="Choose an order" />
                   </SelectTrigger>
                   <SelectContent>
-                    {orders.map((order: any) => {
+                    {(Array.isArray(orders) ? orders : []).map((order: any) => {
                       const disabled = orderHasChat(order.id);
                       return (
                         <SelectItem key={order.id} value={order.id.toString()} disabled={disabled}>

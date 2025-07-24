@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import StatCard from '../../component/StatCard';
 
-const AdminDashboard = () => {
+const AdminMainDashboard = () => {
   const navigate = useNavigate();
 
   const stats = [
@@ -261,4 +261,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default AdminMainDashboard;
