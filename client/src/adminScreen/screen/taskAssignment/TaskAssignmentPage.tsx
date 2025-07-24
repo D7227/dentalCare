@@ -26,7 +26,7 @@ import {
   Eye,
   Plus
 } from 'lucide-react';
-import UserWorkHistoryModal from '@/headScreen/component/UserWorkHistoryModal';
+import UserWorkHistoryModal from '@/adminScreen/component/UserWorkHistoryModal';
 
 interface Task {
   id: string;

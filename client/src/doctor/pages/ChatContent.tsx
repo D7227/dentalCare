@@ -13,7 +13,7 @@ import { useAppSelector, useAppDispatch, hasPermission } from '@/store/hooks';
 import { useGetChatsQuery, useCreateChatMutation, useDeleteChatMutation } from '@/store/slices/chatApi';
 import { setSelectedChatId } from '@/store/slices/chatslice';
 import ChatModule from '../../components/chat/ChatModule';
-import { useGetOrdersQuery } from '@/store/slices/orderApi';
+import { useGetOrderByIdQuery, useGetOrdersQuery } from '@/store/slices/orderApi';
 import { useSocket } from '@/contexts/SocketContext';
 
 interface ChatItem {
@@ -60,7 +60,10 @@ const ChatContent = () => {
 
 
   // Fetch orders for creating order-specific chats
-  const { data: orders = [] } = useGetOrdersQuery();
+  // const { data: orders = [] } = useGetOrdersQuery();
+  const { data: orders = [] } = useGetOrderByIdQuery(
+    user?.clinicId ?? ""
+  );
 
   console.log(orders ,"orders data")
 

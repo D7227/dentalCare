@@ -1,6 +1,4 @@
-import HeadDashboard from "@/headScreen/headDashboard";
-import PlaceOrder from "@/pages/PlaceOrder";
-import QaDashboard from "@/qaScreen/screen/QaDashboard";
+import HeadDashboard from "@/adminScreen/adminDashboard";
 import React from "react";
 import { Outlet } from "react-router-dom";
 

@@ -2801,6 +2801,15 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch tooth groups" });
     }
   });
+  app2.get("/api/wifi", async (req, res) => {
+    const expectedWifiName = "DentalCareWiFi";
+    const userWifiName = req.query.name;
+    if (typeof userWifiName !== "string") {
+      return res.status(400).json({ error: "Missing or invalid 'name' query parameter" });
+    }
+    const isMatch = userWifiName === expectedWifiName;
+    res.json({ result: isMatch });
+  });
   setupAuthenticationRoutes(app2);
   setupChatRoutes(app2);
   setupClinicRoutes(app2);
@@ -2933,7 +2942,7 @@ import jwt3 from "jsonwebtoken";
 var JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
 function authMiddleware(req, res, next) {
   console.log(req.path);
-  if (req.path === "/login" || req.path === "/register" || req.path === "/qa/login") {
+  if (req.path === "/login" || req.path === "/register" || req.path === "/wifi") {
     return next();
   }
   const authHeader = req.headers["authorization"];

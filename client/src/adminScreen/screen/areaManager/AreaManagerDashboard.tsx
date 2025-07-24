@@ -24,13 +24,13 @@ import {
   Camera,
   Banknote
 } from 'lucide-react';
-import AssignTaskModal from '@/headScreen/component/area-manager/AssignTaskModal';
-import OnboardingTaskModal from '@/headScreen/component/area-manager/OnboardingTaskModal';
-import SetAvailabilityModal from '@/headScreen/component/area-manager/SetAvailabilityModal';
-import ScheduleScanModal from '@/headScreen/component/area-manager/ScheduleScanModal';
-import CollectionTaskModal from '@/headScreen/component/area-manager/CollectionTaskModal';
-import ClinicDetailsModal from '@/headScreen/component/area-manager/ClinicDetailsModal';
-import AgentReportModal from '@/headScreen/component/area-manager/AgentReportModal';
+import AssignTaskModal from '@/adminScreen/component/area-manager/AssignTaskModal';
+import OnboardingTaskModal from '@/adminScreen/component/area-manager/OnboardingTaskModal';
+import SetAvailabilityModal from '@/adminScreen/component/area-manager/SetAvailabilityModal';
+import ScheduleScanModal from '@/adminScreen/component/area-manager/ScheduleScanModal';
+import CollectionTaskModal from '@/adminScreen/component/area-manager/CollectionTaskModal';
+import ClinicDetailsModal from '@/adminScreen/component/area-manager/ClinicDetailsModal';
+import AgentReportModal from '@/adminScreen/component/area-manager/AgentReportModal';
 const AreaManagerDashboard = () => {
   const [activeTab, setActiveTab] = useState('tasks');
   const [searchTerm, setSearchTerm] = useState('');

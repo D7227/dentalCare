@@ -122,11 +122,11 @@ const ProductionTable: React.FC<{}> = ({ }) => {
     }
   }, [orders]);
 
-  useEffect(() => {
-    if (apiError) {
-      setError(apiError?.message || "Unknown error");
-    }
-  }, [apiError]);
+  // useEffect(() => {
+  //   if (apiError) {
+  //     setError(apiError?.message || "Unknown error");
+  //   }
+  // }, [apiError]);
 
   const openModal = (id: string) => {
     setSelectedOrderId(id);

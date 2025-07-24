@@ -30,6 +30,7 @@ import { useAppSelector } from "@/store/hooks";
 import {
   useGetOrderByIdQuery,
 } from "@/store/slices/orderApi";
+import { useGetChatsQuery } from "@/store/slices/chatApi"; // <-- Add this import
 import ProductDetailsPopOver from "@/components/common/ProductDetailsPopOver";
 import { useNavigate } from "react-router-dom";
 
@@ -63,6 +64,17 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     error: errorMessage,
     refetch,
   } = useGetOrderByIdQuery(clinicId ?? "", { skip: !clinicId });
+
+  // Fetch all chats for this clinic and user
+  const { data: chats = [] } = useGetChatsQuery({ clinicId, userId: user?.fullName });
+
+  // Map orderId to chat unreadCount
+  const orderIdToUnreadCount: Record<string, number> = {};
+  chats.forEach((chat: any) => {
+    if (chat.orderId) {
+      orderIdToUnreadCount[chat.orderId] = chat.unreadCount || 0;
+    }
+  });
 
   // Replace getOrderTeeth and getOrderToothGroups to use order data directly
   const getOrderTeeth = (orderId: number) => {
@@ -165,10 +177,10 @@ const OrderTable = ({ onViewOrder, onPayNow }: OrderTableProps) => {
     setOrderTypeFilter("all");
   };
 
-  const getUnreadCountForOrder = (orderId: string) => {
-    // If you have a chat system, replace this with the correct logic
-    // For now, always return 0 to avoid linter error
-    return 0;
+  // Replace getUnreadCountForOrder to use chat unread count
+  const getUnreadCountForOrder = (id: string) => {
+    if (!id) return 0;
+    return orderIdToUnreadCount[id] || 0;
   };
 
   const filteredOrders = dbOrders.filter((order: any) => {

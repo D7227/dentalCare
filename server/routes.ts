@@ -148,6 +148,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WiFi Name Comparison API
+  app.get("/api/wifi", async (req, res) => {
+    // You can set the expected WiFi name here
+    const expectedWifiName = "DentalCareWiFi"; // Change as needed
+    const userWifiName = req.query.name;
+    if (typeof userWifiName !== "string") {
+      return res.status(400).json({ error: "Missing or invalid 'name' query parameter" });
+    }
+    const isMatch = userWifiName === expectedWifiName;
+    res.json({ result: isMatch });
+  });
+
   // Companies, products, patients, and tooth-groups APIs are kept here.
   // All other APIs (authentication, chat, clinic, lifecycle, message, order, role, teammember) are set up in their own folders below.
 

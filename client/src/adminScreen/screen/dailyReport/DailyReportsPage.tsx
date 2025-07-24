@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Calendar, Users, TrendingUp, Download, Eye } from 'lucide-react';
-import UserWorkHistoryModal from '@/headScreen/component/UserWorkHistoryModal';
+import UserWorkHistoryModal from '@/adminScreen/component/UserWorkHistoryModal';
 
 interface UserReport {
   id: string;

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Search, Filter, Eye, UserCheck, AlertTriangle, RefreshCw, Building2, User, Hash } from 'lucide-react';
-import MaterialUsageModal from '@/headScreen/component/order-management/MaterialUsageModal';
+import MaterialUsageModal from '@/adminScreen/component/order-management/MaterialUsageModal';
 
 interface Order {
   id: string;

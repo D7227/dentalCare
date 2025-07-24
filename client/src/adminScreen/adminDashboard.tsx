@@ -1,8 +1,7 @@
 import React, { useEffect, useState, } from 'react';
 import { useAppSelector } from '@/store/hooks';
-import HeadSideBar from './headSideBar';
 import AdminDashboard from './screen/adminDashboard/AdminDashboard';
-import HeadHeader from './component/headHeader';
+import HeadHeader from './component/adminHeader';
 import AreaManagerDashboard from './screen/areaManager/AreaManagerDashboard';
 import DepartmentViewPage from './screen/departmentView/DepartmentViewPage';
 import DailyReportsPage from './screen/dailyReport/DailyReportsPage';
@@ -22,6 +21,7 @@ import PaymentsPage from './screen/payment/PaymentsPage';
 import MastersPage from './screen/master/MastersPage';
 import PermissionsPage from './screen/permission/PermissionsPage';
 import SettingsPage from './screen/setting/SettingsPage';
+import HeadSideBar from './adminSideBar';
 
 const HeadDashboard = () => {
     // const navigate = useNavigate();
