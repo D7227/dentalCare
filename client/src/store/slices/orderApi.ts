@@ -1,5 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { OrderType } from "@/types/orderType";
+// import type { OrderType } from "@/types/orderType"; // Removed due to linter error
+
+// Minimal OrderType definition for RTK Query typing
+interface OrderType {
+  orderId: string;
+  orderStatus: string;
+  // Add more fields as needed
+}
 
 export interface CreateOrderRequest extends Partial<OrderType> {}
 export interface UpdateOrderRequest extends Partial<OrderType> {}
@@ -57,7 +64,7 @@ export const orderApi = createApi({
         method: "GET",
         params: { status },
       }),
-      providesTags: (result, error, status) => [{ type: "Order", status }],
+      providesTags: [{ type: "OrderList", id: "LIST" }],
     }),
 
     // Get order by ID (OrderId)

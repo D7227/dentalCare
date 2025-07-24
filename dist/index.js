@@ -2656,7 +2656,7 @@ var setupQaRoutes = (app2) => {
   app2.post("/api/qa/daily-report", qaController.submitDailyReport);
   app2.get("/api/qa/daily-report/today", qaController.getTodaysDailyReport);
   app2.get("/api/qa/daily-report", qaController.getAllDailyReports);
-  app2.get("/api/qa/daily-report/filter", qaController.getFilteredDailyReports);
+  app2.post("/api/qa/daily-report/filter", qaController.getFilteredDailyReports);
 };
 
 // server/src/orderHistory/orderHistorySchema.ts

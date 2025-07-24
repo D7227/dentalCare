@@ -33,6 +33,6 @@ app.get("/api/qa/daily-report", qaController.getAllDailyReports);
 // 4. Get daily reports by filter (monthly, yearly, or custom date range, with pagination)
 //    GET /api/qa/daily-report/filter?qaId=...&month=5&year=2024
 //    GET /api/qa/daily-report/filter?qaId=...&startDate=2024-05-01&endDate=2024-05-31&page=1&pageSize=20
-app.get("/api/qa/daily-report/filter", qaController.getFilteredDailyReports);
+app.post("/api/qa/daily-report/filter", qaController.getFilteredDailyReports);
 
 }

@@ -135,13 +135,11 @@ export const qaApi = createApi({
       },
     }),
     getFilteredDailyReports: builder.query<any, { qaId: string; month?: number; year?: number; startDate?: string; endDate?: string; page?: number; pageSize?: number }>({
-      query: (params) => {
-        const query = new URLSearchParams(params as any).toString();
-        return {
-          url: `/qa/daily-report/filter?${query}`,
-          method: "GET",
-        };
-      },
+      query: (body) => ({
+        url: "/qa/daily-report/filter",
+        method: "POST",
+        body,
+      }),
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           const res = await queryFulfilled;

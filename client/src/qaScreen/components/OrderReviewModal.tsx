@@ -38,6 +38,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   selectedOrderId: string;
+  onStatusChange?: () => void;
 };
 
 
@@ -45,6 +46,7 @@ export default function OrderReviewModal({
   open,
   onClose,
   selectedOrderId,
+  onStatusChange,
 }: Props) {
   const [sOrderId, setSOrderId] = useState<string>(selectedOrderId);
   const [additionalNote, setAdditionalNote] = useState("");
@@ -177,6 +179,7 @@ export default function OrderReviewModal({
       });
       setAdditionalNote("");
       onClose();
+      if (onStatusChange) onStatusChange();
     } catch (error: any) {
       let errorMsg = "Failed to approve order.";
       if (error?.status === 409 && error?.data?.error) {
@@ -236,6 +239,7 @@ export default function OrderReviewModal({
       });
       setAdditionalNote("");
       onClose();
+      if (onStatusChange) onStatusChange();
     } catch (error: any) {
       let errorMsg = "Failed to reject order.";
       if (error?.status === 409 && error?.data?.error) {
@@ -297,6 +301,7 @@ export default function OrderReviewModal({
       setRescanReason("");
       setAdditionalNote("");
       onClose();
+      if (onStatusChange) onStatusChange();
     } catch (error: any) {
       let errorMsg = "Failed to request rescan.";
       if (error?.status === 409 && error?.data?.error) {

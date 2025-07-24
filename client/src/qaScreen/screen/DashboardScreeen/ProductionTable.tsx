@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/popover";
 import { useGetQaOrderQuery } from "@/store/slices/orderApi";
 import moment from "moment";
+import { useGetFilteredDailyReportsQuery } from "@/store/slices/qaslice/qaApi";
+import { useAppSelector } from "@/store/hooks";
 
 const ProductionTable: React.FC<{}> = ({ }) => {
   const [allOrder, setAllOrder] = useState();
@@ -57,6 +59,41 @@ const ProductionTable: React.FC<{}> = ({ }) => {
   const [productPopoverIndex, setProductPopoverIndex] = useState<number | null>(
     null
   );
+
+  // Get QA user from Redux
+  const qaUser = useAppSelector((state) => state.userData?.userData);
+  const qaId = qaUser?.id;
+
+  // Get today's date in YYYY-MM-DD
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Fetch today's daily report data for this QA
+  const {
+    data: dailyReportData,
+    isLoading: isDailyReportLoading,
+    error: dailyReportError,
+    refetch: refetchDailyReport,
+  } = useGetFilteredDailyReportsQuery(
+    qaId
+      ? {
+          qaId,
+          startDate: today,
+          endDate: today,
+          page: 1,
+          pageSize: 20,
+        }
+      : { qaId: "" }
+  );
+
+  // Extract today's report (if any)
+  const todayReport = dailyReportData?.data?.[0] || {};
+
+  // Statistics calculations from today's report
+  const totalOrders = todayReport?.approvedOrderIds?.length || 0;
+  const processingOrders = todayReport?.approvedOrderIds?.length || 0;
+  const completedOrders = todayReport?.rejectedOrderIds?.length || 0;
+  const runningOrders = todayReport?.rescanOrderIds?.length || 0;
+  const modifiedOrders = todayReport?.modifiedOrderIds?.length || 0;
 
   const {
     data: orders,
@@ -174,15 +211,14 @@ const ProductionTable: React.FC<{}> = ({ }) => {
     }
   };
 
-  // Statistics calculations
-  const totalOrders = allOrder?.length;
-  const processingOrders = allOrder?.filter(
-    (c: any) => c.orderStatus === "Pending"
-  ).length;
-  const completedOrders = allOrder?.filter(
-    (c: any) => c.orderStatus === "Approved"
-  ).length;
-  const runningOrders = allOrder?.length;
+  if (isDailyReportLoading) return <div>Loading...</div>;
+  let errorMessage = "Unknown error";
+  if (dailyReportError) {
+    if (typeof dailyReportError === "object" && dailyReportError !== null && "message" in dailyReportError) {
+      errorMessage = (dailyReportError as any).message;
+    }
+  }
+  if (dailyReportError) return <div className="text-red-500">Error: {errorMessage}</div>;
 
   const handleNewCase = () => {
     setLocation("/qa/place-order");
@@ -199,9 +235,6 @@ const ProductionTable: React.FC<{}> = ({ }) => {
     setProduct("");
     setScanStatus("");
   };
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
@@ -229,18 +262,18 @@ const ProductionTable: React.FC<{}> = ({ }) => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Total Orders
+              New Pending Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{totalOrders}</div>
+            <div className="text-3xl font-bold">{orders?.length}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Processing
+              Today Approved Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -251,7 +284,7 @@ const ProductionTable: React.FC<{}> = ({ }) => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              Completed
+              Today Rejected Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -262,11 +295,22 @@ const ProductionTable: React.FC<{}> = ({ }) => {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              Running
+              Today Rescanned Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{runningOrders}</div>
+          </CardContent>
+        </Card> 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Today Modified Orders
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{modifiedOrders}</div>
           </CardContent>
         </Card>
       </div>
@@ -927,6 +971,7 @@ const ProductionTable: React.FC<{}> = ({ }) => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         selectedOrderId={selectedOrderId}
+        onStatusChange={refetchDailyReport}
       />
     </div>
   );
