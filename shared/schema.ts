@@ -138,6 +138,7 @@ export const insertBillSchema = createInsertSchema(bills).omit({
   createdAt: true,
 });
 
+
 export const insertClinicSchema = z.object({
   firstname: z.string(),
   lastname: z.string(),

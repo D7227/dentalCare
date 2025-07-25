@@ -587,7 +587,7 @@ var teamMemberStorage = new TeamMemberStorage();
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 var setupAuthenticationRoutes = (app2) => {
-  const JWT_SECRET3 = process.env.JWT_SECRET || "your_jwt_secret_key";
+  const JWT_SECRET4 = process.env.JWT_SECRET || "your_jwt_secret_key";
   app2.post("/api/register", async (req, res) => {
     try {
       const clinicData = insertClinicSchema2.parse(req.body);
@@ -622,7 +622,7 @@ var setupAuthenticationRoutes = (app2) => {
         permissions: defaultPermissions
       });
       return res.status(201).json({
-        token: jwt.sign({ id: newClinic.id }, JWT_SECRET3, { expiresIn: "7d" })
+        token: jwt.sign({ id: newClinic.id }, JWT_SECRET4, { expiresIn: "7d" })
       });
     } catch (error) {
       console.error("Clinic registration error:", error);
@@ -645,7 +645,7 @@ var setupAuthenticationRoutes = (app2) => {
         const isPasswordValid = await bcrypt.compare(password, teamMember.password || "");
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: teamMember.id }, JWT_SECRET3, { expiresIn: "7d" })
+            token: jwt.sign({ id: teamMember.id }, JWT_SECRET4, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -658,7 +658,7 @@ var setupAuthenticationRoutes = (app2) => {
         console.log(isPasswordValid);
         if (isPasswordValid) {
           return res.json({
-            token: jwt.sign({ id: clinic2.id }, JWT_SECRET3, { expiresIn: "7d" })
+            token: jwt.sign({ id: clinic2.id }, JWT_SECRET4, { expiresIn: "7d" })
           });
         } else {
           return res.status(401).json({ error: "Invalid password" });
@@ -3108,7 +3108,7 @@ var subPrescription = pgTable17("sub_prescription", {
   style: jsonb14("style")
 });
 
-// server/prescription/prescriptionSchema.tsx
+// server/src/prescription/prescriptionSchema.ts
 import { z as z5 } from "zod";
 import { pgTable as pgTable18, text as text16, jsonb as jsonb15, uuid as uuid18, customType as customType3 } from "drizzle-orm/pg-core";
 var bytea3 = customType3({
@@ -3267,10 +3267,10 @@ function setupSubPrescriptionRoutes(app2) {
   app2.use("/api/sub-prescriptions", router);
 }
 
-// server/prescription/prescriptionRoute.tsx
+// server/src/prescription/prescriptionRoute.ts
 import { Router as Router2 } from "express";
 
-// server/prescription/prescriptionController.tsx
+// server/src/prescription/prescriptionController.ts
 import { eq as eq18 } from "drizzle-orm";
 var prescriptions = [];
 var getAllPrescriptions = async (req, res) => {
@@ -3371,7 +3371,7 @@ var deletePrescription = async (req, res) => {
   }
 };
 
-// server/prescription/prescriptionRoute.tsx
+// server/src/prescription/prescriptionRoute.ts
 import multer2 from "multer";
 import { eq as eq19 } from "drizzle-orm";
 var router2 = Router2();
@@ -3404,6 +3404,384 @@ function setupPrescriptionRoutes(app2) {
   app2.use("/api/prescriptions", router2);
 }
 
+// server/src/technician/technicianRoute.ts
+import { Router as Router3 } from "express";
+import multer3 from "multer";
+
+// server/src/technician/technicianSchema.ts
+import { pgTable as pgTable19, text as text17, uuid as uuid19 } from "drizzle-orm/pg-core";
+import { z as z6 } from "zod";
+var technicianUser = pgTable19("technician_user", {
+  id: uuid19("id").primaryKey().defaultRandom(),
+  firstName: text17("first_name").notNull(),
+  lastName: text17("last_name").notNull(),
+  email: text17("email").notNull().unique(),
+  mobileNumber: text17("mobile_number").notNull(),
+  departmentId: text17("department_id"),
+  employeeId: text17("employee_id").notNull().unique(),
+  password: text17("password").notNull(),
+  profilePic: text17("profile_pic"),
+  profilePicMimeType: text17("profile_pic_mime_type")
+});
+var insertTechnicianSchema = z6.object({
+  firstName: z6.string(),
+  lastName: z6.string(),
+  email: z6.string().email(),
+  mobileNumber: z6.string(),
+  departmentId: z6.string().optional(),
+  employeeId: z6.string(),
+  password: z6.string(),
+  profilePic: z6.string().optional(),
+  profilePicMimeType: z6.string().optional()
+});
+
+// server/src/technician/technicianController.ts
+import { eq as eq20 } from "drizzle-orm";
+import bcrypt4 from "bcrypt";
+import jwt4 from "jsonwebtoken";
+var JWT_SECRET3 = process.env.JWT_SECRET || "your_jwt_secret_key";
+var TechnicianStorage = class {
+  async getTechnicianByEmail(email) {
+    const [technician] = await db.select().from(technicianUser).where(eq20(technicianUser.email, email));
+    return technician;
+  }
+  async getTechnicianByMobileNumber(mobileNumber) {
+    const [technician] = await db.select().from(technicianUser).where(eq20(technicianUser.mobileNumber, mobileNumber));
+    return technician;
+  }
+  async getTechnicianByEmployeeId(employeeId) {
+    const [technician] = await db.select().from(technicianUser).where(eq20(technicianUser.employeeId, employeeId));
+    return technician;
+  }
+  async getTechnicianById(id) {
+    const [technician] = await db.select().from(technicianUser).where(eq20(technicianUser.id, id));
+    return technician;
+  }
+  async createTechnician(data) {
+    const [newTechnician] = await db.insert(technicianUser).values(data).returning();
+    return newTechnician;
+  }
+  async updateTechnician(id, updates) {
+    const [updatedTechnician] = await db.update(technicianUser).set(updates).where(eq20(technicianUser.id, id)).returning();
+    return updatedTechnician;
+  }
+  async deleteTechnician(id) {
+    const [deletedTechnician] = await db.delete(technicianUser).where(eq20(technicianUser.id, id)).returning();
+    return deletedTechnician;
+  }
+};
+var technicianStorage = new TechnicianStorage();
+async function registerTechnician(req, res) {
+  try {
+    const { firstName, lastName, email, mobileNumber, departmentId, employeeId, password } = req.body;
+    const existingEmail = await technicianStorage.getTechnicianByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+    const existingMobile = await technicianStorage.getTechnicianByMobileNumber(mobileNumber);
+    if (existingMobile) {
+      return res.status(400).json({ error: "Mobile number already exists" });
+    }
+    const existingEmployeeId = await technicianStorage.getTechnicianByEmployeeId(employeeId);
+    if (existingEmployeeId) {
+      return res.status(400).json({ error: "Employee ID already exists" });
+    }
+    let profilePic = void 0;
+    let profilePicMimeType = void 0;
+    if (req.file) {
+      profilePic = req.file.buffer.toString("base64");
+      profilePicMimeType = req.file.mimetype;
+    }
+    const hashedPassword = await bcrypt4.hash(password, 10);
+    const newTechnician = await technicianStorage.createTechnician({
+      firstName,
+      lastName,
+      email,
+      mobileNumber,
+      departmentId,
+      employeeId,
+      password: hashedPassword,
+      profilePic,
+      profilePicMimeType
+    });
+    return res.status(201).json({ id: newTechnician.id, email: newTechnician.email });
+  } catch (error) {
+    console.error("Technician registration error:", error);
+    return res.status(500).json({ error: "Registration failed" });
+  }
+}
+async function loginTechnician(req, res) {
+  try {
+    const { mobileNumber, password } = req.body;
+    if (!mobileNumber || !password) {
+      return res.status(400).json({ error: "Mobile number and password are required" });
+    }
+    const technician = await technicianStorage.getTechnicianByMobileNumber(mobileNumber);
+    if (!technician) {
+      return res.status(401).json({ error: "Technician not found" });
+    }
+    const isPasswordValid = await bcrypt4.compare(password, technician.password || "");
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+    const token = jwt4.sign({ id: technician.id }, JWT_SECRET3, { expiresIn: "7d" });
+    return res.json({ token });
+  } catch (error) {
+    console.error("Technician login error:", error);
+    return res.status(500).json({ error: "Login failed" });
+  }
+}
+async function updateTechnician(req, res) {
+  try {
+    const { id } = req.params;
+    let updates = { ...req.body };
+    if (updates.password) {
+      updates.password = await bcrypt4.hash(updates.password, 10);
+    }
+    if (req.file) {
+      updates.profilePic = req.file.buffer.toString("base64");
+      updates.profilePicMimeType = req.file.mimetype;
+    }
+    const updatedTechnician = await technicianStorage.updateTechnician(id, updates);
+    if (!updatedTechnician) {
+      return res.status(404).json({ error: "Technician not found" });
+    }
+    return res.json({ message: "Technician updated successfully", updatedTechnician });
+  } catch (error) {
+    console.error("Technician update error:", error);
+    return res.status(500).json({ error: "Update failed" });
+  }
+}
+async function deleteTechnician(req, res) {
+  try {
+    const { id } = req.params;
+    const deletedTechnician = await technicianStorage.deleteTechnician(id);
+    if (!deletedTechnician) {
+      return res.status(404).json({ error: "Technician not found" });
+    }
+    return res.json({ message: "Technician deleted successfully", deletedTechnician });
+  } catch (error) {
+    console.error("Technician delete error:", error);
+    return res.status(500).json({ error: "Delete failed" });
+  }
+}
+async function getTechnicianById(req, res) {
+  try {
+    const { id } = req.params;
+    const technician = await technicianStorage.getTechnicianById(id);
+    if (!technician) {
+      return res.status(404).json({ error: "Technician not found" });
+    }
+    let profilePicUrl = null;
+    if (technician.profilePic) {
+      const baseUrl = req.protocol + "://" + req.get("host");
+      profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
+    }
+    return res.json({ ...technician, profilePic: profilePicUrl });
+  } catch (error) {
+    console.error("Get technician by id error:", error);
+    return res.status(500).json({ error: "Fetch failed" });
+  }
+}
+async function getTechnicianProfilePic(req, res) {
+  try {
+    const { id } = req.params;
+    const technician = await technicianStorage.getTechnicianById(id);
+    if (!technician || !technician.profilePic) {
+      return res.status(404).send("Not found");
+    }
+    const buffer = Buffer.from(technician.profilePic, "base64");
+    const mimeType = technician.profilePicMimeType || "image/png";
+    res.setHeader("Content-Type", mimeType);
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).send("Error serving profile pic");
+  }
+}
+
+// server/src/technician/technicianRoute.ts
+var technicianRouter = Router3();
+var upload3 = multer3({ storage: multer3.memoryStorage() });
+technicianRouter.post("/register", upload3.single("profilePic"), registerTechnician);
+technicianRouter.post("/login", loginTechnician);
+technicianRouter.patch("/:id", upload3.single("profilePic"), updateTechnician);
+technicianRouter.delete("/:id", deleteTechnician);
+technicianRouter.get("/:id", getTechnicianById);
+technicianRouter.get("/:id/profile-pic", getTechnicianProfilePic);
+function setupTechnicianRoutes(app2) {
+  app2.use("/api/technician", technicianRouter);
+}
+
+// server/src/attendence/attendenceRoute.ts
+import { Router as Router4 } from "express";
+
+// server/src/attendence/attendenceSchema.ts
+import { pgTable as pgTable20, text as text18, uuid as uuid20 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema9 } from "drizzle-zod";
+var attendance = pgTable20("attendance", {
+  id: uuid20("id").primaryKey().defaultRandom(),
+  techId: text18("tech_id").notNull(),
+  inTime: text18("in").notNull(),
+  outTime: text18("out"),
+  totalHours: text18("total_hours")
+});
+var insertAttendanceSchema = createInsertSchema9(attendance).omit({
+  id: true
+});
+
+// server/src/attendence/attendenceController.ts
+import { eq as eq21, and as and6, isNull } from "drizzle-orm";
+import dayjs from "dayjs";
+async function checkIn(req, res) {
+  try {
+    const { tech_id } = req.body;
+    if (!tech_id) return res.status(400).json({ error: "tech_id is required" });
+    const now = /* @__PURE__ */ new Date();
+    const formattedInTime = dayjs(now).format("hh:mm A");
+    const [row] = await db.insert(attendance).values({ techId: tech_id, inTime: formattedInTime }).returning();
+    return res.status(201).json(row);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+async function checkOut(req, res) {
+  try {
+    const { tech_id } = req.body;
+    if (!tech_id) return res.status(400).json({ error: "tech_id is required" });
+    const [row] = await db.select().from(attendance).where(and6(
+      eq21(attendance.techId, tech_id),
+      isNull(attendance.outTime)
+    ));
+    if (!row) return res.status(404).json({ error: "No check-in found for today" });
+    const outTime = /* @__PURE__ */ new Date();
+    const formattedOutTime = dayjs(outTime).format("hh:mm A");
+    const today = dayjs().format("YYYY-MM-DD");
+    const inTimeObj = dayjs(`${today} ${row.inTime}`, "YYYY-MM-DD hh:mm A");
+    const outTimeObj = dayjs(`${today} ${formattedOutTime}`, "YYYY-MM-DD hh:mm A");
+    let diffMin = outTimeObj.diff(inTimeObj, "minute");
+    let totalHours = "";
+    if (isNaN(diffMin) || diffMin < 0) {
+      totalHours = "0 min";
+    } else if (diffMin < 60) {
+      totalHours = `${diffMin} min`;
+    } else {
+      const hours = Math.floor(diffMin / 60);
+      const mins = diffMin % 60;
+      totalHours = mins === 0 ? `${hours} hour` : `${hours} hour ${mins} min`;
+    }
+    const [updated] = await db.update(attendance).set({ outTime: formattedOutTime, totalHours }).where(eq21(attendance.id, row.id)).returning();
+    return res.status(200).json(updated);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+
+// server/src/attendence/attendenceRoute.ts
+var attendanceRouter = Router4();
+attendanceRouter.post("/checkin", checkIn);
+attendanceRouter.post("/checkout", checkOut);
+function setupAttendanceRoutes(app2) {
+  app2.use("/api/attendance", attendanceRouter);
+}
+
+// server/src/leaveRequest/leaveRequestRoute.ts
+import { Router as Router5 } from "express";
+
+// server/src/leaveRequest/leaveRequestSchema.ts
+import { pgTable as pgTable21, text as text19, uuid as uuid21 } from "drizzle-orm/pg-core";
+import { createInsertSchema as createInsertSchema10 } from "drizzle-zod";
+var leaveRequest = pgTable21("leave_request", {
+  id: uuid21("id").primaryKey().defaultRandom(),
+  techId: text19("tech_id"),
+  leaveType: text19("leave_type"),
+  leaveDate: text19("leave_date"),
+  leaveTime: text19("leave_time"),
+  reason: text19("reason"),
+  leaveStatus: text19("leave_status")
+});
+var insertLeaveRequestSchema = createInsertSchema10(leaveRequest).omit({
+  id: true
+});
+
+// server/src/leaveRequest/leaveRequestController.ts
+import { eq as eq22 } from "drizzle-orm";
+async function createLeaveRequest(req, res) {
+  try {
+    const { tech_id, leave_type, leave_date, leave_time, reason } = req.body;
+    if (!tech_id || !leave_type || !leave_date || !leave_time) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    const [row] = await db.insert(leaveRequest).values({
+      techId: tech_id,
+      leaveType: leave_type,
+      leaveDate: leave_date,
+      leaveTime: leave_time,
+      reason
+    }).returning();
+    return res.status(201).json(row);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+async function updateLeaveStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { leave_status } = req.body;
+    if (!leave_status) return res.status(400).json({ error: "leave_status is required" });
+    const [row] = await db.update(leaveRequest).set({ leaveStatus: leave_status }).where(eq22(leaveRequest.id, id)).returning();
+    if (!row) return res.status(404).json({ error: "Leave request not found" });
+    return res.status(200).json(row);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+async function getAllLeaveRequests(req, res) {
+  try {
+    const rows = await db.select().from(leaveRequest);
+    return res.status(200).json(rows);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+async function getLeaveRequestById(req, res) {
+  try {
+    const { id } = req.params;
+    const [row] = await db.select().from(leaveRequest).where(eq22(leaveRequest.id, id));
+    if (!row) return res.status(404).json({ error: "Leave request not found" });
+    return res.status(200).json(row);
+  } catch (err) {
+    if (err instanceof Error) {
+      return res.status(500).json({ error: err.message });
+    }
+    return res.status(500).json({ error: "Unknown error" });
+  }
+}
+
+// server/src/leaveRequest/leaveRequestRoute.ts
+var leaveRequestRouter = Router5();
+leaveRequestRouter.post("/", createLeaveRequest);
+leaveRequestRouter.patch("/:id/status", updateLeaveStatus);
+leaveRequestRouter.get("/", getAllLeaveRequests);
+leaveRequestRouter.get("/:id", getLeaveRequestById);
+function setupLeaveRequestRoutes(app2) {
+  app2.use("/api/leave-request", leaveRequestRouter);
+}
+
 // server/index.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path3.dirname(__filename);
@@ -3417,6 +3795,9 @@ app.use("/uploads", express2.static(path3.join(__dirname, "../uploads")));
 app.userSocketMap = userSocketMap;
 setupPrescriptionRoutes(app);
 setupSubPrescriptionRoutes(app);
+setupTechnicianRoutes(app);
+setupAttendanceRoutes(app);
+setupLeaveRequestRoutes(app);
 app.use("/api", authMiddleware);
 app.use((req, res, next) => {
   const start = Date.now();

@@ -11,6 +11,8 @@ import { fileURLToPath } from "url";
 import { setupSubPrescriptionRoutes } from "./sub/subPrescriptionRoute";
 import { setupPrescriptionRoutes } from "./src/prescription/prescriptionRoute";
 import { setupTechnicianRoutes } from "./src/technician/technicianRoute";
+import { setupAttendanceRoutes } from "./src/attendence/attendenceRoute";
+import { setupLeaveRequestRoutes } from "./src/leaveRequest/leaveRequestRoute";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +33,8 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 setupPrescriptionRoutes(app);
 setupSubPrescriptionRoutes(app);
 setupTechnicianRoutes(app);
+setupAttendanceRoutes(app);
+setupLeaveRequestRoutes(app);
 
 // Apply JWT auth middleware to all /api routes except login/register
 app.use("/api", authMiddleware);
