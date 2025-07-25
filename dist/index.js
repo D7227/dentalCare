@@ -2418,7 +2418,9 @@ var qaController = {
         return res.status(400).json({ error: "Invalid email format" });
       }
       if (!isStrongPassword(password)) {
-        return res.status(400).json({ error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character" });
+        return res.status(400).json({
+          error: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
+        });
       }
       const existing = await db.select().from(qaUserSchema).where(eq13(qaUserSchema.email, email));
       if (existing.length > 0)
@@ -2450,8 +2452,10 @@ var qaController = {
       if (!email || !password)
         return res.status(400).json({ error: "Missing email or password" });
       const [user] = await db.select().from(qaUserSchema).where(eq13(qaUserSchema.email, email));
+      console.log("user", user, password);
       if (!user) return res.status(401).json({ error: "Invalid credentials" });
       const valid = await comparePassword(password, user.passwordHash);
+      console.log("user", user);
       if (!valid) return res.status(401).json({ error: "Invalid credentials" });
       const token = jwt2.sign(
         { id: user.id, email: user.email, name: user.name },
@@ -2460,7 +2464,13 @@ var qaController = {
       );
       res.status(200).json({
         token,
-        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: "entry_qa" }
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.name,
+          roleId: user.roleId,
+          roleName: "entry_qa"
+        }
       });
     } catch (error) {
       res.status(500).json({ error: error.message || "Failed to login QA" });
@@ -2485,7 +2495,15 @@ var qaController = {
   // Submit a new daily report
   async submitDailyReport(req, res) {
     try {
-      const { qaId, reportDate, approvedOrderIds, rejectedOrderIds, rescanOrderIds, modifiedOrderIds, ...rest } = req.body;
+      const {
+        qaId,
+        reportDate,
+        approvedOrderIds,
+        rejectedOrderIds,
+        rescanOrderIds,
+        modifiedOrderIds,
+        ...rest
+      } = req.body;
       if (!qaId || !reportDate) {
         return res.status(400).json({ error: "qaId and reportDate are required" });
       }
@@ -2504,16 +2522,28 @@ var qaController = {
       if (existing) {
         const updatedFields = {};
         if (approvedOrderIds) {
-          updatedFields.approvedOrderIds = mergeIds(existing.approvedOrderIds, approvedOrderIds);
+          updatedFields.approvedOrderIds = mergeIds(
+            existing.approvedOrderIds,
+            approvedOrderIds
+          );
         }
         if (rejectedOrderIds) {
-          updatedFields.rejectedOrderIds = mergeIds(existing.rejectedOrderIds, rejectedOrderIds);
+          updatedFields.rejectedOrderIds = mergeIds(
+            existing.rejectedOrderIds,
+            rejectedOrderIds
+          );
         }
         if (rescanOrderIds) {
-          updatedFields.rescanOrderIds = mergeIds(existing.rescanOrderIds, rescanOrderIds);
+          updatedFields.rescanOrderIds = mergeIds(
+            existing.rescanOrderIds,
+            rescanOrderIds
+          );
         }
         if (modifiedOrderIds) {
-          updatedFields.modifiedOrderIds = mergeIds(existing.modifiedOrderIds, modifiedOrderIds);
+          updatedFields.modifiedOrderIds = mergeIds(
+            existing.modifiedOrderIds,
+            modifiedOrderIds
+          );
         }
         Object.assign(updatedFields, rest);
         const [updated] = await db.update(qaDailyReportSchema).set({
@@ -2942,7 +2972,7 @@ import jwt3 from "jsonwebtoken";
 var JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
 function authMiddleware(req, res, next) {
   console.log(req.path);
-  if (req.path === "/login" || req.path === "/register" || req.path === "/wifi") {
+  if (req.path === "/login" || req.path === "/register" || req.path === "/wifi" || req.path === "/qa/login") {
     return next();
   }
   const authHeader = req.headers["authorization"];

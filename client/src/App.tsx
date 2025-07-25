@@ -11,19 +11,21 @@ import Register from "./pages/authentication/register";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { doctorRoutes } from "./router/doctorRoutes";
 import { qaRoutes } from "./router/qaRoutes";
-import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { chatApi } from '@/store/slices/chatApi';
-import { useSocket } from '@/contexts/SocketContext';
-import { useGetUserDataQuery, setUser } from './store/slices/userDataSlice';
-import { jwtDecode } from 'jwt-decode'; 
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { chatApi } from "@/store/slices/chatApi";
+import { useSocket } from "@/contexts/SocketContext";
+import { useGetUserDataQuery, setUser } from "./store/slices/userDataSlice";
+import { jwtDecode } from "jwt-decode";
 import { adminRoutes } from "./router/adminRoutes";
 import QALogin from "./qaScreen/screen/authentication/qaLogin";
+import { departmentHeadRoutes } from "./router/departmentHeadRoutes";
 
 const router = createBrowserRouter([
   ...doctorRoutes,
   ...qaRoutes,
   ...adminRoutes,
+  ...departmentHeadRoutes,
   { path: "/login", element: <Login /> },
   { path: "/qa/login", element: <QALogin /> },
   { path: "/register", element: <Register /> },
@@ -40,19 +42,21 @@ const SocketEventsListener = () => {
     if (!socket) return;
 
     const handleNewMessage = (data: any) => {
-      dispatch(chatApi.util.invalidateTags(['Chat']));
+      dispatch(chatApi.util.invalidateTags(["Chat"]));
       if (data?.chatId) {
-        dispatch(chatApi.util.invalidateTags([{ type: 'Message', id: data.chatId }]));
+        dispatch(
+          chatApi.util.invalidateTags([{ type: "Message", id: data.chatId }])
+        );
       }
     };
     const handleUnreadCountUpdate = (data: any) => {
-      dispatch(chatApi.util.invalidateTags(['Chat']));
+      dispatch(chatApi.util.invalidateTags(["Chat"]));
     };
-    socket.on('new-message', handleNewMessage);
-    socket.on('unread-count-update', handleUnreadCountUpdate);
+    socket.on("new-message", handleNewMessage);
+    socket.on("unread-count-update", handleUnreadCountUpdate);
     return () => {
-      socket.off('new-message', handleNewMessage);
-      socket.off('unread-count-update', handleUnreadCountUpdate);
+      socket.off("new-message", handleNewMessage);
+      socket.off("unread-count-update", handleUnreadCountUpdate);
     };
   }, [getSocket, dispatch]);
   return null;
@@ -60,7 +64,7 @@ const SocketEventsListener = () => {
 
 const App = () => {
   const dispatch = useDispatch();
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   let userId: string | null = null;
   if (token) {
     try {
@@ -70,7 +74,9 @@ const App = () => {
       userId = null;
     }
   }
-  const queryResult = userId ? useGetUserDataQuery(userId) : { data: undefined, isSuccess: false };
+  const queryResult = userId
+    ? useGetUserDataQuery(userId)
+    : { data: undefined, isSuccess: false };
   const { data: userData, isSuccess } = queryResult;
 
   useEffect(() => {
