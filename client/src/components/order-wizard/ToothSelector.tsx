@@ -19,7 +19,7 @@ interface ToothSelectorProps {
   onGroupsChange?: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onSelectionChange: (groups: ToothGroup[], teeth: SelectedTooth[]) => void;
   onProductComplete?: () => void;
-  subcategoryType?: string;
+  subPrescriptionTypes?: string;
   formData?: any;
   editMode?: boolean;
   readMode?: boolean;
@@ -136,7 +136,7 @@ const ToothSelector = ({
   onGroupsChange,
   onSelectionChange,
   onProductComplete,
-  subcategoryType,
+  subPrescriptionTypes,
   formData,
   readMode,
   editMode,
@@ -182,7 +182,7 @@ const ToothSelector = ({
     }
   };
 
-  const allowedTeeth = getAllowedTeeth(subcategoryType);
+  const allowedTeeth = getAllowedTeeth(subPrescriptionTypes);
   const hasTeethRestriction = allowedTeeth.length > 0;
 
   // Check if this is splints-guards prescription type or other types that need arch selection
@@ -199,7 +199,7 @@ const ToothSelector = ({
       "full-dentures",
       "sleep-apnea",
       "implant-full-arch",
-    ].includes(subcategoryType || formData?.subcategoryType || "");
+    ].includes(subPrescriptionTypes || formData?.subPrescriptionTypes || "");
 
   // State for implant full arch workflow
   const [selectedArchTeeth, setSelectedArchTeeth] = useState<number[]>([]);
@@ -225,8 +225,8 @@ const ToothSelector = ({
 
   // Check if this is implant full arch
   const isImplantFullArch =
-    subcategoryType === "implant-full-arch" ||
-    formData?.subcategoryType === "implant-full-arch";
+    subPrescriptionTypes === "implant-full-arch" ||
+    formData?.subPrescriptionTypes === "implant-full-arch";
 
   // Arch selection handlers
   const handleArchSelection = (archType: "upper" | "lower" | "both") => {
@@ -492,7 +492,7 @@ const ToothSelector = ({
     // Check if tooth is allowed for selection
     if (!isToothAllowed(toothNumber)) {
       console.log(
-        `Tooth ${toothNumber} is not allowed for subcategory ${subcategoryType}`
+        `Tooth ${toothNumber} is not allowed for subcategory ${subPrescriptionTypes}`
       );
       return;
     }
@@ -863,7 +863,7 @@ const ToothSelector = ({
       const newGroup: ToothGroup = {
         groupType: "bridge",
         prescriptionType: prescriptionType,
-        subcategoryType: subcategoryType || "",
+        subPrescriptionTypes: subPrescriptionTypes || "",
         productName: [],
         shade: "",
         occlusalStaining: "",
@@ -948,7 +948,7 @@ const ToothSelector = ({
         toothNumber: toothNumber,
         type: type,
         prescriptionType,
-        subcategoryType,
+        subPrescriptionTypes,
         selectedProducts: [],
         productDetails: {},
         implantDetails: prescriptionType === "implant" ? details : undefined,
@@ -1791,7 +1791,7 @@ const ToothSelector = ({
                   </p>
                   <p className="text-xs text-yellow-700">
                     Only teeth {allowedTeeth.join(", ")} are selectable for{" "}
-                    {subcategoryType}
+                    {subPrescriptionTypes}
                   </p>
                 </div>
               )}

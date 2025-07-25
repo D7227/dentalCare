@@ -332,7 +332,7 @@ const NewOrderFlow = ({
                   selectedTeeth: teeth,
                 })
               }
-              subcategoryType={safeFormData?.subcategoryType}
+              subPrescriptionTypes={safeFormData?.subPrescriptionTypes}
               formData={safeFormData}
             />
           </CardContent>
