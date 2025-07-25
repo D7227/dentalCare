@@ -28,7 +28,7 @@ const DoctorDashboard = () => {
     const [activeSection, setActiveSection] = useState('dashboard');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const { onUnreadCountUpdate, offUnreadCountUpdate, getSocket } = useSocket();
+    const { getSocket } = useSocket();
     const dispatch = useDispatch();
     const userId = user?.id;
     const { refetch } = useGetUserDataQuery(userId, { skip: !userId });
@@ -64,18 +64,6 @@ const DoctorDashboard = () => {
 
     const unreadMessagesCount = permissionFilteredChats.filter((chat: any) => chat.unreadCount && chat.unreadCount > 0).length;
     const prevPermissionsRef = useRef<string[]>(permissions);
-
-    useEffect(() => {
-        const handleUnreadCountUpdate = () => {
-            // Re-fetch chats via RTK Query
-            // The useGetChatsQuery hook will automatically refetch if the query key changes
-            // or if the user data changes.
-        };
-        onUnreadCountUpdate(handleUnreadCountUpdate);
-        return () => {
-            offUnreadCountUpdate(handleUnreadCountUpdate);
-        };
-    }, [onUnreadCountUpdate, offUnreadCountUpdate]);
 
     const handlePermissionsUpdated = useCallback(async () => {
         try {

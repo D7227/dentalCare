@@ -33,7 +33,7 @@ __export(schema_exports, {
   toothGroupsRelations: () => toothGroupsRelations,
   users: () => users
 });
-import { pgTable as pgTable2, text as text2, timestamp as timestamp2, jsonb as jsonb2, uuid as uuid2 } from "drizzle-orm/pg-core";
+import { pgTable as pgTable2, text as text2, timestamp as timestamp2, jsonb as jsonb2, uuid as uuid2, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema as createInsertSchema2 } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -92,6 +92,11 @@ var insertOrderSchema = createInsertSchema(orderSchema).omit({
 }).partial();
 
 // shared/schema.ts
+var bytea = customType({
+  dataType() {
+    return "bytea";
+  }
+});
 var users = pgTable2("users", {
   id: uuid2("id").primaryKey().defaultRandom(),
   mobileNumber: text2("mobile_number").notNull().unique(),
@@ -2942,7 +2947,7 @@ import jwt3 from "jsonwebtoken";
 var JWT_SECRET2 = process.env.JWT_SECRET || "your_jwt_secret_key";
 function authMiddleware(req, res, next) {
   console.log(req.path);
-  if (req.path === "/login" || req.path === "/register" || req.path === "/wifi") {
+  if (req.path === "/login" || req.path === "/register" || req.path === "/wifi" || req.path === "/qa/login" || req.path === "/prescriptions/16ca5d24-1dd5-41f7-b3d8-5c3d04cafff6/icon") {
     return next();
   }
   const authHeader = req.headers["authorization"];
@@ -3067,17 +3072,355 @@ function setupSocket(httpServer2, app2) {
 }
 
 // server/index.ts
+import path3 from "path";
+import { fileURLToPath } from "url";
+
+// server/sub/subPrescriptionRoute.tsx
+import { Router } from "express";
+
+// server/sub/subPrescriptionSchema.tsx
+import { z as z4 } from "zod";
+import { pgTable as pgTable17, text as text15, jsonb as jsonb14, uuid as uuid17, customType as customType2 } from "drizzle-orm/pg-core";
+var bytea2 = customType2({
+  dataType() {
+    return "bytea";
+  }
+});
+var subPrescriptionSchema = z4.object({
+  id: z4.string().uuid().optional(),
+  name: z4.string().max(255),
+  icon: z4.any().nullable(),
+  // Accept Buffer or null
+  iconMimeType: z4.string().nullable(),
+  // Accept MIME type as string
+  prescriptionId: z4.string().uuid(),
+  description: z4.string().nullable(),
+  style: z4.any().optional()
+  // JSONB can be any valid JSON
+});
+var subPrescription = pgTable17("sub_prescription", {
+  id: uuid17("id").primaryKey().defaultRandom(),
+  name: text15("name"),
+  icon: bytea2("icon"),
+  iconMimeType: text15("icon_mime_type"),
+  prescriptionId: text15("prescription_id"),
+  description: text15("description"),
+  style: jsonb14("style")
+});
+
+// server/prescription/prescriptionSchema.tsx
+import { z as z5 } from "zod";
+import { pgTable as pgTable18, text as text16, jsonb as jsonb15, uuid as uuid18, customType as customType3 } from "drizzle-orm/pg-core";
+var bytea3 = customType3({
+  dataType() {
+    return "bytea";
+  }
+});
+var prescriptionSchema = z5.object({
+  id: z5.string().uuid().optional(),
+  name: z5.string().max(255),
+  icon: z5.any().nullable(),
+  // Accept Buffer or null
+  iconMimeType: z5.string().nullable(),
+  // Accept MIME type as string
+  description: z5.string().nullable(),
+  style: z5.any().optional()
+  // JSONB can be any valid JSON
+});
+var prescription = pgTable18("prescription", {
+  id: uuid18("id").primaryKey().defaultRandom(),
+  name: text16("name").notNull(),
+  icon: bytea3("icon"),
+  iconMimeType: text16("icon_mime_type"),
+  description: text16("description"),
+  style: jsonb15("style")
+});
+
+// server/sub/subPrescriptionController.tsx
+import { eq as eq16 } from "drizzle-orm";
+var getAllSubPrescriptions = async (req, res) => {
+  try {
+    const subPrescriptions = await db.select().from(subPrescription);
+    const baseUrl = req.protocol + "://" + req.get("host");
+    const subPrescriptionsWithIconUrl = subPrescriptions.map((p) => {
+      let hasIcon = false;
+      if (p.icon) {
+        if (typeof p.icon === "string") {
+          hasIcon = p.icon.length > 0;
+        } else if (p.icon instanceof Buffer) {
+          hasIcon = p.icon.length > 0;
+        }
+      }
+      return {
+        ...p,
+        iconUrl: hasIcon ? `${baseUrl}/api/sub-prescriptions/${p.id}/icon` : null
+      };
+    });
+    res.json(subPrescriptionsWithIconUrl);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching sub-prescriptions", details: error.message });
+  }
+};
+var createSubPrescription = async (req, res) => {
+  try {
+    let icon = null;
+    let iconMimeType = null;
+    if (req.file) {
+      icon = req.file.buffer.toString("base64");
+      iconMimeType = req.file.mimetype;
+    } else if (typeof req.body.icon === "string") {
+      icon = Buffer.from(req.body.icon, "utf-8").toString("base64");
+      iconMimeType = "image/svg+xml";
+    }
+    const data = { ...req.body, icon, iconMimeType };
+    const prescriptionId = data.prescriptionId;
+    const prescriptionExists = await db.select().from(prescription).where(eq16(prescription.id, prescriptionId));
+    if (!prescriptionExists.length) {
+      return res.status(400).json({ error: "Invalid prescriptionId: not found" });
+    }
+    const parseResult = subPrescriptionSchema.safeParse(data);
+    if (!parseResult.success) {
+      return res.status(400).json({ errors: parseResult.error.errors });
+    }
+    const insertData = parseResult.data;
+    const [newSubPrescription] = await db.insert(subPrescription).values(insertData).returning();
+    res.status(201).json(newSubPrescription);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create sub-prescription", details: error.message });
+  }
+};
+var updateSubPrescription = async (req, res) => {
+  const { id } = req.params;
+  try {
+    let updateData = { ...req.body };
+    if (req.file) {
+      updateData.icon = req.file.buffer;
+      updateData.iconMimeType = req.file.mimetype;
+    } else if (req.body.icon) {
+      if (typeof req.body.icon === "string" && req.body.icon.startsWith("data:")) {
+        const matches = req.body.icon.match(/^data:(.+);base64,(.+)$/);
+        if (matches) {
+          updateData.icon = Buffer.from(matches[2], "base64");
+          updateData.iconMimeType = matches[1];
+        }
+      } else if (typeof req.body.icon === "string") {
+        updateData.icon = Buffer.from(req.body.icon, "base64");
+        updateData.iconMimeType = req.body.iconMimeType || "image/png";
+      }
+    }
+    const parseResult = subPrescriptionSchema.partial().safeParse(updateData);
+    if (!parseResult.success) {
+      return res.status(400).json({ errors: parseResult.error.errors });
+    }
+    Object.keys(updateData).forEach((key) => updateData[key] === void 0 && delete updateData[key]);
+    const result = await db.update(subPrescription).set(updateData).where(eq16(subPrescription.id, id)).returning();
+    if (!result[0]) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    res.json(result[0]);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating sub-prescription", details: error.message });
+  }
+};
+var deleteSubPrescription = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.delete(subPrescription).where(eq16(subPrescription.id, id));
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    res.status(204).send({ message: "Sub-prescription deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting sub-prescription", details: error.message });
+  }
+};
+
+// server/sub/subPrescriptionRoute.tsx
+import multer from "multer";
+import { eq as eq17 } from "drizzle-orm";
+var router = Router();
+var upload = multer({ storage: multer.memoryStorage() });
+router.get("/", getAllSubPrescriptions);
+router.get("/:id/icon", async (req, res) => {
+  const { id } = req.params;
+  const result = await db.select().from(subPrescription).where(eq17(subPrescription.id, id));
+  const subPres = result[0];
+  if (!subPres || !subPres.icon) {
+    return res.status(404).send("Not found");
+  }
+  let iconBuffer;
+  if (typeof subPres.icon === "string") {
+    iconBuffer = Buffer.from(subPres.icon, "base64");
+  } else if (subPres.icon instanceof Buffer) {
+    iconBuffer = subPres.icon;
+  } else {
+    return res.status(400).send("Invalid icon data");
+  }
+  const mimeType = subPres.iconMimeType || "image/png";
+  res.setHeader("Content-Type", mimeType);
+  res.send(iconBuffer);
+});
+router.post("/", upload.single("icon"), createSubPrescription);
+router.patch("/:id", upload.single("icon"), updateSubPrescription);
+router.delete("/:id", deleteSubPrescription);
+function setupSubPrescriptionRoutes(app2) {
+  app2.use("/api/sub-prescriptions", router);
+}
+
+// server/prescription/prescriptionRoute.tsx
+import { Router as Router2 } from "express";
+
+// server/prescription/prescriptionController.tsx
+import { eq as eq18 } from "drizzle-orm";
+var prescriptions = [];
+var getAllPrescriptions = async (req, res) => {
+  try {
+    const prescriptions2 = await db.select().from(prescription);
+    const baseUrl = req.protocol + "://" + req.get("host");
+    const prescriptionsWithIconUrl = prescriptions2.map((p) => {
+      let hasIcon = false;
+      if (p.icon) {
+        if (typeof p.icon === "string") {
+          hasIcon = p.icon.length > 0;
+        } else if (p.icon instanceof Buffer) {
+          hasIcon = p.icon.length > 0;
+        }
+      }
+      return {
+        ...p,
+        iconUrl: hasIcon ? `${baseUrl}/api/prescriptions/${p.id}/icon` : null
+      };
+    });
+    res.json(prescriptionsWithIconUrl);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching prescriptions", details: error.message });
+  }
+};
+var getPrescriptionById = (req, res) => {
+  const { id } = req.params;
+  const prescription2 = prescriptions.find((p) => p.id === id);
+  if (!prescription2) return res.status(404).json({ message: "Not found" });
+  res.json(prescription2);
+};
+var createPrescription = async (req, res) => {
+  try {
+    let icon = null;
+    let iconMimeType = null;
+    if (req.file) {
+      icon = req.file.buffer.toString("base64");
+      iconMimeType = req.file.mimetype;
+    } else if (typeof req.body.icon === "string") {
+      icon = Buffer.from(req.body.icon, "utf-8").toString("base64");
+      iconMimeType = "image/svg+xml";
+    }
+    const data = { ...req.body, icon, iconMimeType };
+    const parseResult = prescriptionSchema.safeParse(data);
+    if (!parseResult.success) {
+      return res.status(400).json({ errors: parseResult.error.errors });
+    }
+    const insertData = parseResult.data;
+    const [newPrescription] = await db.insert(prescription).values(insertData).returning();
+    res.status(201).json(newPrescription);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create prescription", details: error.message });
+  }
+};
+var updatePrescription = async (req, res) => {
+  const { id } = req.params;
+  try {
+    let updateData = { ...req.body };
+    if (req.file) {
+      updateData.icon = req.file.buffer;
+      updateData.iconMimeType = req.file.mimetype;
+    } else if (req.body.icon) {
+      if (typeof req.body.icon === "string" && req.body.icon.startsWith("data:")) {
+        const matches = req.body.icon.match(/^data:(.+);base64,(.+)$/);
+        if (matches) {
+          updateData.icon = Buffer.from(matches[2], "base64");
+          updateData.iconMimeType = matches[1];
+        }
+      } else if (typeof req.body.icon === "string") {
+        updateData.icon = Buffer.from(req.body.icon, "base64");
+        updateData.iconMimeType = req.body.iconMimeType || "image/png";
+      }
+    }
+    const parseResult = prescriptionSchema.partial().safeParse(updateData);
+    if (!parseResult.success) {
+      return res.status(400).json({ errors: parseResult.error.errors });
+    }
+    Object.keys(updateData).forEach((key) => updateData[key] === void 0 && delete updateData[key]);
+    const result = await db.update(prescription).set(updateData).where(eq18(prescription.id, id)).returning();
+    if (!result[0]) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    res.json(result[0]);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating prescription", details: error.message });
+  }
+};
+var deletePrescription = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await db.delete(prescription).where(eq18(prescription.id, id));
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Not found" });
+    }
+    res.status(204).send({ message: "Prescription deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting prescription", details: error.message });
+  }
+};
+
+// server/prescription/prescriptionRoute.tsx
+import multer2 from "multer";
+import { eq as eq19 } from "drizzle-orm";
+var router2 = Router2();
+var upload2 = multer2({ storage: multer2.memoryStorage() });
+router2.get("/", getAllPrescriptions);
+router2.get("/:id", getPrescriptionById);
+router2.get("/:id/icon", async (req, res) => {
+  const { id } = req.params;
+  const result = await db.select().from(prescription).where(eq19(prescription.id, id));
+  const pres = result[0];
+  if (!pres || !pres.icon) {
+    return res.status(404).send("Not found");
+  }
+  let iconBuffer;
+  if (typeof pres.icon === "string") {
+    iconBuffer = Buffer.from(pres.icon, "base64");
+  } else if (pres.icon instanceof Buffer) {
+    iconBuffer = pres.icon;
+  } else {
+    return res.status(400).send("Invalid icon data");
+  }
+  const mimeType = pres.iconMimeType || "image/png";
+  res.setHeader("Content-Type", mimeType);
+  res.send(iconBuffer);
+});
+router2.post("/", upload2.single("icon"), createPrescription);
+router2.patch("/:id", upload2.single("icon"), updatePrescription);
+router2.delete("/:id", deletePrescription);
+function setupPrescriptionRoutes(app2) {
+  app2.use("/api/prescriptions", router2);
+}
+
+// server/index.ts
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path3.dirname(__filename);
 dotenv2.config();
 var app = express2();
 var httpServer = createServer2(app);
 var userSocketMap = /* @__PURE__ */ new Map();
 app.use(express2.json());
 app.use(express2.urlencoded({ extended: false }));
+app.use("/uploads", express2.static(path3.join(__dirname, "../uploads")));
 app.userSocketMap = userSocketMap;
+setupPrescriptionRoutes(app);
+setupSubPrescriptionRoutes(app);
 app.use("/api", authMiddleware);
 app.use((req, res, next) => {
   const start = Date.now();
-  const path3 = req.path;
+  const path4 = req.path;
   let capturedJsonResponse = void 0;
   const originalResJson = res.json;
   res.json = function(bodyObj, ...args) {
@@ -3086,8 +3429,8 @@ app.use((req, res, next) => {
   };
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path3.startsWith("/api")) {
-      let logLine = `${req.method} ${path3} ${res.statusCode} in ${duration}ms`;
+    if (path4.startsWith("/api")) {
+      let logLine = `${req.method} ${path4} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse).slice(0, 80)}`;
       }

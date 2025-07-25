@@ -1,18 +1,19 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { db } from "./database/db";
-import { eq } from "drizzle-orm";
 import { createServer } from "http";
-import { Server } from "socket.io";
 import dotenv from "dotenv";
-import { chats } from "./src/chat/chatSchema";
-import { messageStorage } from "./src/message/messageController";
-import { teamMemberStorage } from "./src/teamMember/teamMemberController";
-import { clinicStorage } from "./src/clinic/clinicController";
 import { authMiddleware } from "./src/middleWare/middleWare";
 import { setupSocket } from "./socket/socket";
+import path from "path";
+import { fileURLToPath } from "url";
+import { setupSubPrescriptionRoutes } from "./sub/subPrescriptionRoute";
+import { setupPrescriptionRoutes } from "./src/prescription/prescriptionRoute";
+import { setupTechnicianRoutes } from "./src/technician/technicianRoute";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
@@ -23,9 +24,13 @@ const activeChatUsers = new Map<string, Set<string>>(); // <chatId, Set<userId>>
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Attach userSocketMap to app for access in routes
 (app as any).userSocketMap = userSocketMap;
+setupPrescriptionRoutes(app);
+setupSubPrescriptionRoutes(app);
+setupTechnicianRoutes(app);
 
 // Apply JWT auth middleware to all /api routes except login/register
 app.use("/api", authMiddleware);

@@ -12,7 +12,7 @@ const ClinicChats = () => {
   // const { data: chats = [] , isLoading } = useGetChatsQuery({ clinicId: user?.clinicId, userId: user?.roleName === "main_doctor"? undefined: user?.fullName });
   const { data: chats = [] , isLoading } = useGetChatsQuery({ clinicId: user?.clinicId, userId: user?.fullName });
   const selectedChatId = useAppSelector((state) => state.chat.selectedChatId);
-  const { onUnreadCountUpdate, offUnreadCountUpdate } = useSocket();
+
 
   // Local state to allow instant unread count updates
   const [localChats, setLocalChats] = useState<any[]>(chats);
@@ -22,19 +22,6 @@ const ClinicChats = () => {
     setLocalChats(chats);
   }, [chats]);
 
-  useEffect(() => {
-    const handleUnreadUpdate = (data: { chatId: string; unreadCount: number }) => {
-      setLocalChats((prevChats: any[]) =>
-        prevChats.map((chat: any) =>
-          chat.id === data.chatId ? { ...chat, unreadCount: data.unreadCount } : chat
-        )
-      );
-    };
-    onUnreadCountUpdate(handleUnreadUpdate);
-    return () => {
-      offUnreadCountUpdate(handleUnreadUpdate);
-    };
-  }, [onUnreadCountUpdate, offUnreadCountUpdate]);
 
   if (isLoading) return <div>Loading chats...</div>;
 

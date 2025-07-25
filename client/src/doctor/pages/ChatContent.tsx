@@ -151,16 +151,6 @@ const ChatContent = () => {
     }
   };
 
-  useEffect(() => {
-    const handleUnreadCountUpdate = (data: { chatId: string; unreadCount: number }) => {
-      // No need to invalidate queries here, as useGetChatsQuery will refetch on chat update
-    };
-    // onUnreadCountUpdate(handleUnreadCountUpdate); // Removed as per edit hint
-    return () => {
-      // offUnreadCountUpdate(handleUnreadCountUpdate); // Removed as per edit hint
-    };
-  }, [user]); // Removed onUnreadCountUpdate, offUnreadCountUpdate, queryClient
-
   // Listen for real-time participant updates
   useEffect(() => {
 

@@ -10,7 +10,8 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     req.path === "/login" ||
     req.path === "/register" ||
     req.path === "/wifi"||
-    req.path === "/qa/login"
+    req.path === "/qa/login"||
+    req.path === "/prescriptions/16ca5d24-1dd5-41f7-b3d8-5c3d04cafff6/icon"
   ) {
     return next();
   }

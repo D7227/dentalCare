@@ -51,6 +51,8 @@ function mapClinicFields(obj: Record<string, any>): Record<string, any> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up Prescription routes BEFORE applying global auth middleware so they are public
+
   // Passport configuration
   passport.use(
     new LocalStrategy((username, password, done) => {
@@ -154,7 +156,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const expectedWifiName = "DentalCareWiFi"; // Change as needed
     const userWifiName = req.query.name;
     if (typeof userWifiName !== "string") {
-      return res.status(400).json({ error: "Missing or invalid 'name' query parameter" });
+      return res
+        .status(400)
+        .json({ error: "Missing or invalid 'name' query parameter" });
     }
     const isMatch = userWifiName === expectedWifiName;
     res.json({ result: isMatch });
@@ -173,7 +177,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupOrderRoutes(app);
   setupTeamMemberRoutes(app);
   setuRoleRoutes(app);
-  // setupPatientRoute(app);
   setupDraftOrderRoutes(app);
 
   const httpServer = createServer(app);
