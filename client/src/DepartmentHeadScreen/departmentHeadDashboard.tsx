@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,52 +9,45 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Users,
   Clock,
   AlertCircle,
-  CheckCircle,
-  User,
-  MessageSquare,
   AlertTriangle,
   ChevronUp,
   ChevronDown,
   Minus,
   ArrowRight,
   ArrowLeft,
-  UserPlus,
-  Package,
   Search,
-  Eye,
-  Download,
-  Plus,
-  FileText,
-  Package2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import WaitingInwardTable from './components/WaitingInwardTable';
-import InwardPendingTable from './components/InwardPendingTable';
-import AssignedPendingTable from './components/AssignedPendingTable';
-import InProgressTable from './components/InProgressTable';
-import OutwardPendingTable from './components/OutwardPendingTable';
-import TechnicianTable from './components/TechnicianTable';
-import { departmentsData } from './staticData';
-import CaseDetailsDialog from './components/CaseDetailsDialog';
+import WaitingInwardTable from "./components/WaitingInwardTable";
+import InwardPendingTable from "./components/InwardPendingTable";
+import AssignedPendingTable from "./components/AssignedPendingTable";
+import InProgressTable from "./components/InProgressTable";
+import OutwardPendingTable from "./components/OutwardPendingTable";
+import TechnicianTable from "./components/TechnicianTable";
+import { departmentsData } from "./staticData";
+import CaseDetailsDialog from "./components/CaseDetailsDialog";
+import CommonTabs from "@/components/common/CommonTabs";
+import FigmaStatCard from "@/components/ui/FigmaStatCard";
+import {
+  bigCard1,
+  bigCard2,
+  bigCard3,
+  card1,
+  card2,
+  card3,
+  icon_1,
+  icon_2,
+  icon_3,
+  icon_4,
+  icon_5,
+  icon_6,
+} from "@/assets/svg";
+import NotificationIconExample from "@/styles/NotificationIconExample";
+import CommonSearchBar from "@/components/common/CommonSearchBar";
 
 const DepartmentHeadDashboard = () => {
   const { toast } = useToast();
@@ -617,23 +609,78 @@ const DepartmentHeadDashboard = () => {
     setSelectedCaseForChat(null);
   };
 
+  const stats: any = [
+    {
+      title: "Waiting Inward",
+      value: currentDepartment?.waitingInward?.length || 0,
+      data: 0,
+      key: "waiting-inward",
+      iconSrc: icon_1,
+      backgroundSrc: card1,
+      bigBackgroundSrc: bigCard1,
+    },
+    {
+      title: "Inward Pending",
+      value: currentDepartment?.inwardPending?.length || 0,
+      data: 0,
+      key: "arriving",
+      iconSrc: icon_2,
+      backgroundSrc: card2,
+      bigBackgroundSrc: bigCard2,
+    },
+    {
+      title: "Assigned (Pending)",
+      value: allAssignments?.filter((a) => a.status === "pending").length,
+      data: 0,
+      key: "assigned-pending",
+      iconSrc: icon_3,
+      backgroundSrc: card3,
+      bigBackgroundSrc: bigCard3,
+    },
+    {
+      title: "In Progress",
+      value: allAssignments?.filter((a) => a.status === "in_progress").length,
+      data: 0,
+      key: "in-progress",
+      iconSrc: icon_4,
+      backgroundSrc: card1,
+      bigBackgroundSrc: bigCard1,
+    },
+    {
+      title: "Outward Pending",
+      value: currentDepartment?.outwardPending?.length || 0,
+      data: 0,
+      key: "outward-pending",
+      iconSrc: icon_5,
+      backgroundSrc: card2,
+      bigBackgroundSrc: bigCard2,
+    },
+    {
+      title: "Total Technicians",
+      value: currentDepartment?.technicians?.length || 0,
+      data: 0,
+      key: "technicians",
+      iconSrc: icon_6,
+      backgroundSrc: card3,
+      bigBackgroundSrc: bigCard3,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-6 py-4 bg-white h-[73px]">
         <div className="flex items-center space-x-2">
           <Users className="h-6 w-6" />
           <h2 className="text-2xl font-bold">Department View</h2>
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Case Search */}
           <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search case (e.g., ADE-2025-034)..."
+            <CommonSearchBar
               value={caseSearch}
               onChange={(e) => setCaseSearch(e.target.value)}
+              placeholder="Search case (e.g., ADE-2025-034)..."
               className="w-64"
               onKeyPress={(e) => e.key === "Enter" && handleCaseSearch()}
             />
@@ -641,241 +688,207 @@ const DepartmentHeadDashboard = () => {
               Search Case
             </Button>
           </div>
-
-          <Select
-            value={selectedDepartment}
-            onValueChange={setSelectedDepartment}
-          >
-            <SelectTrigger className="w-[250px]">
-              <SelectValue placeholder="Select Department" />
-            </SelectTrigger>
-            <SelectContent>
-              {departments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.id}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
       {/* Department Overview */}
       {currentDepartment && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{currentDepartment.name}</CardTitle>
-              <p className="text-sm text-gray-600">
-                {currentDepartment.description}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-600">
-                    {currentDepartment.waitingInward?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Waiting Inward</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {currentDepartment.inwardPending?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Inward Pending</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {
-                      allAssignments.filter((a) => a.status === "pending")
-                        .length
-                    }
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Assigned (Pending)
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {
-                      allAssignments.filter((a) => a.status === "in_progress")
-                        .length
-                    }
-                  </div>
-                  <div className="text-sm text-gray-600">In Progress</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {currentDepartment.outwardPending?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Outward Pending</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-indigo-600">
-                    {currentDepartment.technicians?.length || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Total Technicians</div>
-                </div>
+        <div className="px-6 py-4 bg-custonLightGray-100 !m-0 h-[calc(100vh-73px)]">
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-2xl font-bold">
+                  {currentDepartment.name}
+                </span>
+                <p className="text-sm text-gray-600">
+                  {currentDepartment.description}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <Select
+                  value={selectedDepartment}
+                  onValueChange={setSelectedDepartment}
+                >
+                  <SelectTrigger className="w-[250px]">
+                    <SelectValue placeholder="Select Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap mt-6">
+              {stats.map((stat: any, index: any) => (
+                <FigmaStatCard
+                  key={index}
+                  title={stat?.title}
+                  value={stat?.value}
+                  iconSrc={stat?.iconSrc}
+                  backgroundSrc={stat?.backgroundSrc}
+                  bigBackgroundSrc={stat?.bigBackgroundSrc}
+                  subtext={stat?.subtext}
+                  onClick={() => console.log("clicked")}
+                  showIcon={false}
+                />
+              ))}
+            </div>
+          </div>
 
           {/* Tabbed Interface for Better Organization */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="waiting-inward">Waiting Inward</TabsTrigger>
-              <TabsTrigger value="inward-pending">Inward Pending</TabsTrigger>
-              <TabsTrigger value="assigned-pending">
-                Assigned (Pending)
-              </TabsTrigger>
-              <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-              <TabsTrigger value="outward-pending">Outward Pending</TabsTrigger>
-              <TabsTrigger value="technicians">Technicians</TabsTrigger>
-            </TabsList>
-
-            {/* Waiting to be Inward Cases */}
-            <TabsContent value="waiting-inward">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+          <CommonTabs
+            tabs={[
+              { label: "Waiting Inward", value: "waiting-inward" },
+              { label: "Inward Pending", value: "inward-pending" },
+              { label: "Assigned (Pending)", value: "assigned-pending" },
+              { label: "In Progress", value: "in-progress" },
+              { label: "Outward Pending", value: "outward-pending" },
+              { label: "Technicians", value: "technicians" },
+            ]}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            children={{
+              "waiting-inward": (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
                     <Clock className="h-5 w-5 text-gray-600" />
-                    Waiting to be Inward (
-                    {currentDepartment.waitingInward?.length || 0})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <span className="font-semibold text-lg">
+                      Waiting to be Inward (
+                      {currentDepartment.waitingInward?.length || 0})
+                    </span>
+                  </div>
                   <WaitingInwardTable
                     data={currentDepartment.waitingInward || []}
                     onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, 'waiting-inward')
+                      handlePriorityChange(
+                        caseNumber,
+                        newPriority,
+                        "waiting-inward"
+                      )
                     }
                     onMakeInward={handleMakeInward}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Inward Pending Cases */}
-            <TabsContent value="inward-pending">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                </>
+              ),
+              "inward-pending": (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
                     <ArrowRight className="h-5 w-5 text-blue-600" />
-                    Inward Pending Cases (
-                    {currentDepartment.inwardPending.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <span className="font-semibold text-lg">
+                      Inward Pending Cases (
+                      {currentDepartment.inwardPending.length})
+                    </span>
+                  </div>
                   <InwardPendingTable
                     data={currentDepartment.inwardPending}
                     technicians={currentDepartment.technicians}
                     onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, 'inward-pending')
+                      handlePriorityChange(
+                        caseNumber,
+                        newPriority,
+                        "inward-pending"
+                      )
                     }
                     onAssign={handleAdminAssign}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Assigned Pending Cases */}
-            <TabsContent value="assigned-pending">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                </>
+              ),
+              "assigned-pending": (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
                     <Clock className="h-5 w-5 text-yellow-600" />
-                    Assigned (Pending) Cases (
-                    {
-                      allAssignments.filter((a) => a.status === "pending")
-                        .length
-                    }
-                    )
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <span className="font-semibold text-lg">
+                      Assigned (Pending) Cases (
+                      {
+                        allAssignments.filter((a) => a.status === "pending")
+                          .length
+                      }
+                      )
+                    </span>
+                  </div>
                   <AssignedPendingTable
-                    data={allAssignments.filter((a) => a.status === 'pending')}
+                    data={allAssignments.filter((a) => a.status === "pending")}
                     onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, 'assigned')
+                      handlePriorityChange(caseNumber, newPriority, "assigned")
                     }
                     onStartWork={handleStartWork}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* In Progress Cases */}
-            <TabsContent value="in-progress">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                </>
+              ),
+              "in-progress": (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
                     <AlertCircle className="h-5 w-5 text-purple-600" />
-                    In Progress Cases (
-                    {
-                      allAssignments.filter((a) => a.status === "in_progress")
-                        .length
-                    }
-                    )
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <span className="font-semibold text-lg">
+                      In Progress Cases (
+                      {
+                        allAssignments.filter((a) => a.status === "in_progress")
+                          .length
+                      }
+                      )
+                    </span>
+                  </div>
                   <InProgressTable
-                    data={allAssignments.filter((a) => a.status === 'in_progress')}
+                    data={allAssignments.filter(
+                      (a) => a.status === "in_progress"
+                    )}
                     onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, 'assigned')
+                      handlePriorityChange(caseNumber, newPriority, "assigned")
                     }
                     onCompleteTask={handleCompleteTask}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Outward Pending Cases */}
-            <TabsContent value="outward-pending">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                </>
+              ),
+              "outward-pending": (
+                <>
+                  <div className="flex items-center gap-2 mb-2 mt-2">
                     <ArrowLeft className="h-5 w-5 text-green-600" />
-                    Outward Pending Cases (
-                    {currentDepartment.outwardPending.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <span className="font-semibold text-lg">
+                      Outward Pending Cases (
+                      {currentDepartment.outwardPending.length})
+                    </span>
+                  </div>
                   <OutwardPendingTable
                     data={currentDepartment.outwardPending}
                     onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, 'outward-pending')
+                      handlePriorityChange(
+                        caseNumber,
+                        newPriority,
+                        "outward-pending"
+                      )
                     }
                     onMakeOutward={handleMakeOutward}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Technicians Tab */}
-            <TabsContent value="technicians">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
+                </>
+              ),
+              technicians: (
+                <>
+                  <div className="flex items-center justify-between mb-2 mt-2">
+                    <div className="flex items-center gap-2">
                       <Users className="h-5 w-5" />
-                      Technicians ({currentDepartment.technicians.length})
-                    </CardTitle>
+                      <span className="font-semibold text-lg">
+                        Technicians ({currentDepartment.technicians.length})
+                      </span>
+                    </div>
                     <div className="flex items-center space-x-2">
                       <Search className="h-4 w-4 text-gray-400" />
                       <Input
@@ -886,19 +899,17 @@ const DepartmentHeadDashboard = () => {
                       />
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <TechnicianTable
                     data={filteredTechnicians}
                     inwardPendingCases={currentDepartment.inwardPending}
                     onAssign={handleSelfAssign}
                     getStatusBadge={getStatusBadge}
                   />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </>
+                </>
+              ),
+            }}
+          />
+        </div>
       )}
 
       {/* Case Details Modal */}

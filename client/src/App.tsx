@@ -20,6 +20,7 @@ import { jwtDecode } from "jwt-decode";
 import { adminRoutes } from "./router/adminRoutes";
 import QALogin from "./qaScreen/screen/authentication/qaLogin";
 import { departmentHeadRoutes } from "./router/departmentHeadRoutes";
+import StylesComponets from "./styles";
 
 const router = createBrowserRouter([
   ...doctorRoutes,
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
   { path: "/qa/login", element: <QALogin /> },
   { path: "/register", element: <Register /> },
+  { path: "/styles", element: <StylesComponets /> },
   { path: "*", element: <NotFound /> },
 ]);
 
