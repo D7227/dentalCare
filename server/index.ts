@@ -67,13 +67,13 @@ app.use((req, res, next) => {
 
 (async () => {
   // Initialize database with sample data
-  try {
-    console.log("Checking database initialization...");
-    await storage.initializeData();
-    console.log("Database initialization completed");
-  } catch (error) {
-    console.error("Database initialization error:", error);
-  }
+  // try {
+  //   console.log("Checking database initialization...");
+  //   await storage.initializeData();
+  //   console.log("Database initialization completed");
+  // } catch (error) {
+  //   console.error("Database initialization error:", error);
+  // }
 
   const server = await registerRoutes(app);
 

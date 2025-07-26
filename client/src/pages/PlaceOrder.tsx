@@ -46,6 +46,7 @@ import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 import { useLocation as useRouterLocation } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
+import { useDeleteDraftOrderMutation } from "@/store/slices/draftOrderApi";
 
 const PlaceOrder = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -63,7 +64,9 @@ const PlaceOrder = () => {
   const [initialized, setInitialized] = useState(false);
   const routerLocation = useRouterLocation();
   const navState = routerLocation.state || {};
+  const [deleteDraftOrder] = useDeleteDraftOrderMutation();
   let draftOrderData = navState.draftOrder;
+  // const [draftOrderId, setDraftOrderId] = useState<string>("");
   let draftStep = navState.step;
   let shouldRemoveDraftOrderEdit = false;
 
@@ -74,6 +77,7 @@ const PlaceOrder = () => {
         const parsed = JSON.parse(local);
         draftOrderData = parsed.draftOrder;
         draftStep = parsed.step;
+        // setDraftOrderId(parsed.draftOrder.id);
         shouldRemoveDraftOrderEdit = true;
       } catch {}
     }
@@ -87,30 +91,11 @@ const PlaceOrder = () => {
   const isAuthenticated = !!user;
   const clinicId = user?.clinicId;
   console.log("user - place order", user);
-  // Check authentication and restore user data from localStorage on component mount
-  // useEffect(() => {
-  //   if (!isAuthenticated) {
-  //     const storedUser = localStorage.getItem("user");
-  //     if (storedUser) {
-  //       try {
-  //         const userData = JSON.parse(storedUser);
-  //         dispatch(setUser(userData));
-  //       } catch (error) {
-  //         console.error("Error parsing stored user data:", error);
-  //         // If stored data is invalid, redirect to login
-  //         setLocation("/login");
-  //       }
-  //     } else {
-  //       // No stored user data, redirect to login
-  //       setLocation("/login");
-  //     }
-  //   }
-  // }, [isAuthenticated, dispatch, setLocation]);
-
   useEffect(() => {
     if (!initialized && draftOrderData && draftStep) {
       setOrderCategory("new");
       setCurrentStep(draftStep);
+      console.log("draftOrderData - place order", draftOrderData);
       setFormData(draftOrderData);
       setInitialized(true);
       if (shouldRemoveDraftOrderEdit) {
@@ -193,16 +178,6 @@ const PlaceOrder = () => {
     paymentStatus: "pending",
     totalAmount: "6565",
   });
-
-  // Update clinicId when Redux data becomes available
-  // useEffect(() => {
-  //   if (clinicId || clinicId === '') {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       clinicId: clinicId,
-  //     }));
-  //   }
-  // }, [clinicId]);
 
   const getHasSelectedTeeth = () => {
     if (orderCategory !== "repeat") return false;
@@ -330,10 +305,19 @@ const PlaceOrder = () => {
         setIsSubmitting(false);
         return;
       }
-      formData.accessorios = [];
+      console.log("draftOrderData", draftOrderData);
+      if (formData?.id) {
+        const draftOrderRes = await deleteDraftOrder(formData?.id);
+        console.log("draftOrderRes", draftOrderRes);
+        if (draftOrderRes && !("error" in draftOrderRes)) {
+          toast({
+            title: "Draft order deleted successfully!",
+            description: `Draft #${formData?.id} has been deleted.`,
+          });
+        }
+      }
       formData.orderStatus = "pending";
       // formData.percentage = 10;
-      formData.orderType = formData.orderType || "new";
       const orderDataRaw = createOrderObject(formData, user);
       const orderData = {
         ...orderDataRaw,
@@ -358,44 +342,6 @@ const PlaceOrder = () => {
           variant: "destructive",
         });
       }
-
-      // // Create tooth groups for the order
-      // if (formData.teethGroup && formData.teethGroup.length > 0) {
-      //   for (const toothGroup of formData.teethGroup) {
-      //     const toothGroupData = {
-      //       orderId: orderLocal.id, // Use orderLocal.id for the new order
-      //       groupId: `group_${Date.now()}_${Math.random()
-      //         .toString(36)
-      //         .substr(2, 9)}`,
-      //       teeth:
-      //         toothGroup.teethDetails
-      //           ?.flat()
-      //           .map((detail) => detail.teethNumber) || [],
-      //       type: toothGroup.groupType || "separate",
-      //       notes: toothGroup.shadeNotes || "",
-      //       material: toothGroup.selectedProducts?.[0]?.material || "",
-      //       shade: toothGroup.shadeDetails || "",
-      //     };
-
-      //     try {
-      //       const response = await fetch("/api/tooth-groups", {
-      //         method: "POST",
-      //         headers: {
-      //           "Content-Type": "application/json",
-      //         },
-      //         body: JSON.stringify(toothGroupData),
-      //       });
-
-      //       if (!response.ok) {
-      //         const errorData = await response.json();
-      //         console.error("Failed to create tooth group:", errorData);
-      //       }
-      //     } catch (error) {
-      //       console.error("Error creating tooth group:", error);
-      //     }
-      //   }
-      // }
-
       // Invalidate the orders cache to refresh the list
       // queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
     } catch (error) {

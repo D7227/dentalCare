@@ -246,9 +246,9 @@ const OrderSummary = ({ formData, orderCategory, onEditSection, userType, showHe
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-2 print:space-y-1 p-0">
-              {formData.selectedAccessories && Array.isArray(formData.selectedAccessories) && formData.selectedAccessories.length > 0 ? (
+              {formData.accessorios && Array.isArray(formData.accessorios) && formData.accessorios.length > 0 ? (
                 <div className="space-y-1">
-                  {formData.selectedAccessories.map((accessory: any, index: number) => (
+                  {formData.accessorios.map((accessory: any, index: number) => (
                     <div key={accessory.id || index} className="flex items-center justify-between text-sm">
                       <span className="text-gray-900 capitalize text-base">{accessory.name}</span>
                       <span className="text-gray-600 text-base">Qty: {accessory.quantity}</span>

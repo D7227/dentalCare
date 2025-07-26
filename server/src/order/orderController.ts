@@ -1,14 +1,12 @@
 // Order methods
 
 import { db } from "server/database/db";
-import { toothGroups } from "../../../shared/schema";
-import { eq, and, or, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { orderSchema } from "./orderSchema";
-import { v4 as uuidv4 } from "uuid";
 import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
-import { OrderType } from "@/types/orderType";
+  import { OrderType } from "@/types/orderType";
 import {
   doctorOrderTableType,
   FilterBody,
@@ -45,7 +43,6 @@ export interface orderStore {
   updateStatus(orderId: string, body: QaStatusApiBody): Promise<any[]>;
   getOrdersByPatient(patientId: string): Promise<any[]>;
   getOrderByStatus(body: FilterBody): Promise<any[]>;
-  getToothGroupsByOrder(orderId: string): Promise<any[]>;
   updateOrderStatus(id: string, status: string): Promise<any | undefined>;
   updateOrder(id: string, updates: Partial<any>): Promise<any | undefined>;
   getFullOrderData(order: any): Promise<any>;
@@ -442,15 +439,6 @@ export class OrderStorage implements orderStore {
     }
     return updateOrder;
   }
-
-  async getToothGroupsByOrder(orderId: string): Promise<any[]> {
-    console.log("orderId", orderId);
-    return await db
-      .select()
-      .from(toothGroups)
-      .where(eq(toothGroups.orderId, orderId));
-  }
-
   //   async getChatByOrderId(orderId: string): Promise<Chat | undefined> {
   //     const [chat] = await db.select().from(chats).where(eq(chats.orderId, orderId));
   //     return chat;

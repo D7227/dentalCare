@@ -137,7 +137,7 @@ export interface FormData {
   crateNo: string;
   clinicId: string;
 
-  orderType: OrderCategoryType;
+  orderType: OrderCategoryType | string;
   firstName: string;
   lastName: string;
   age: string | number;
