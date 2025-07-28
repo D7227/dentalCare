@@ -13,6 +13,7 @@ import { setupPrescriptionRoutes } from "./src/prescription/prescriptionRoute";
 import { setupTechnicianRoutes } from "./src/technician/technicianRoute";
 import { setupAttendanceRoutes } from "./src/attendence/attendenceRoute";
 import { setupLeaveRequestRoutes } from "./src/leaveRequest/leaveRequestRoute";
+import { setupDepartmentHeadRoutes } from "./src/departmentHead/departmentHeadRoute";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +36,7 @@ setupSubPrescriptionRoutes(app);
 setupTechnicianRoutes(app);
 setupAttendanceRoutes(app);
 setupLeaveRequestRoutes(app);
+setupDepartmentHeadRoutes(app);
 
 // Apply JWT auth middleware to all /api routes except login/register
 app.use("/api", authMiddleware);
