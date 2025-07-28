@@ -5,6 +5,7 @@ import {
   createDraftOrder,
   deleteDraftOrder,
 } from "./draftOrderController";
+import { authMiddleware } from "../middleWare/middleWare";
 
 const draftOrderRouter = Router();
 

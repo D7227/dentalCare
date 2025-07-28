@@ -141,15 +141,8 @@ export const createOrderObject = (formData: FormData, user: any) => {
     // Order References
     previousOrderId: formData.previousOrderId || "",
     repairOrderId: formData.repairOrderId || "",
-    courierData: {
-      courierName: formData?.courierData?.courierName,
-      trackingId: formData?.courierData?.trackingId,
-    },
-    pickupData: {
-      pickupDate: formData?.pickupData?.pickupDate,
-      pickupTime: formData?.pickupData?.pickupTime,
-      pickupRemarks: formData?.pickupData?.pickupRemarks,
-    },
+    courierData: formData?.courierData || {},
+    pickupData: formData?.pickupData || {},
 
     // Notes and Instructions
     notes: formData.notes || "",
@@ -173,7 +166,12 @@ export const createOrderObject = (formData: FormData, user: any) => {
 export const createDraftOrderObject = (formData: any, clinicId: string) => {
   return {
     // Primary key and backend-handled fields are omitted (id, createdAt)
-    refId: formData.refId || `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+    refId:
+      formData.refId ||
+      `REF-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 4)
+        .toUpperCase()}`,
     orderType: formData.orderType || "",
     orderStatus: formData.orderStatus || "",
     paymentType: formData.paymentType || "",

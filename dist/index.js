@@ -907,31 +907,7 @@ var OrderStorage = class {
       };
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
       console.log(insertOrder.courierData, "courierData");
-      const orderToInsert = {
-        ...insertOrder,
-        patientId: insertPatient.id,
-        clinicInformationId: clinicInformation2.id,
-        selectedTeethId: teethGroup.id,
-        // Defensive: ensure all array fields are arrays
-        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
-        subPrescriptionTypesId: Array.isArray(
-          insertOrder.subPrescriptionTypesId
-        ) ? insertOrder.subPrescriptionTypesId : [],
-        accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
-        selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
-        teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
-        teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
-        products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
-        pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
-        courierData: insertOrder.courierData,
-        lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
-        files: {
-          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
-          faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
-          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan) ? insertOrder.files.intraOralScan : [],
-          referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : []
-        }
-      };
+      const orderToInsert = await this.orderInsert(insertOrder, insertPatient.id, clinicInformation2.id, teethGroup.id);
       const fixDate = (val) => {
         if (!val) return null;
         if (val instanceof Date) return val;
@@ -944,10 +920,8 @@ var OrderStorage = class {
       orderToInsert.acpectedDileveryData = fixDate(
         orderToInsert.acpectedDileveryData
       );
-      orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
-      orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
-      orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
-      orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
+      orderToInsert.createdAt = /* @__PURE__ */ new Date();
+      orderToInsert.updatedAt = /* @__PURE__ */ new Date();
       const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
       if (order?.additionalNote) {
         const subLog = {
@@ -979,6 +953,7 @@ var OrderStorage = class {
     }
   }
   async updateStatus(orderId, body) {
+    const bodyData = body?.orderDate;
     const orderData = await orderStorage.getOrder(orderId);
     if (body?.orderId) {
       const [existing] = await db.select().from(orderSchema).where(
@@ -1021,6 +996,7 @@ var OrderStorage = class {
         const createNewChat = await chatStorage.createChat(chatPayload);
         if (!createNewChat) return "Something Went Wrong On Create Chat";
         const updateOrder = {
+          ...bodyData,
           orderStatus: body?.orderStatus || orderData.orderStatus,
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
@@ -1051,6 +1027,7 @@ var OrderStorage = class {
           if (!updateParticipant) return "Chat Is Not Update";
         }
         const updateOrder = {
+          ...bodyData,
           orderStatus: body?.orderStatus || orderData.orderStatus,
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
@@ -1065,6 +1042,7 @@ var OrderStorage = class {
       }
     } else if ((body?.orderStatus || "") === "rejected") {
       const updateOrder = {
+        ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfReject: body?.resonOfReject || orderData.resonOfReject,
         qaId: body?.qaId
@@ -1077,6 +1055,7 @@ var OrderStorage = class {
       return UpdateOrderData;
     } else if ((body?.orderStatus || "") === "rescan") {
       const updateOrder = {
+        ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
         rejectNote: body?.resonOfRescan || orderData.rejectNote,
@@ -1121,6 +1100,7 @@ var OrderStorage = class {
         prescriptionTypes: updateOrder?.prescriptionTypesId,
         subPrescriptionTypes: updateOrder?.subPrescriptionTypesId,
         orderDate: order?.createdAt,
+        selectedTeeth: updateOrder?.selectedTeeth,
         orderType: updateOrder?.orderType,
         orderStatus: updateOrder?.orderStatus,
         products: updateOrder?.products,
@@ -1174,7 +1154,7 @@ var OrderStorage = class {
     const clinicInformation2 = order.clinicInformationId ? await clinicInformationStorage.getClinicInformationById(
       order.clinicInformationId
     ) : void 0;
-    console.log(clinicInformation2, "clinicInformation");
+    const clinicData = await clinicStorage.getClinicById(order.clinicId);
     const teethGroup = order.selectedTeethId ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId) : void 0;
     const groupTeethNumbers = teethGroup?.teethGroup.flatMap(
       (group) => (group.teethDetails || []).flat().map((tooth) => tooth.teethNumber)
@@ -1222,6 +1202,7 @@ var OrderStorage = class {
       lastName: patient?.lastName || "",
       age: patient?.age || 0,
       sex: patient?.sex || "",
+      clinicName: clinicData?.clinicName || "",
       clinicId: clinicInformation2?.clinicId || "",
       caseHandleBy: clinicInformation2?.caseHandleBy || "",
       doctorMobileNumber: clinicInformation2?.doctorMobileNumber || "",
@@ -1233,7 +1214,15 @@ var OrderStorage = class {
       teethGroup: Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : [],
       teethNumber: Array.isArray(teethnumber) ? teethnumber : [],
       products: Array.isArray(productSummary) ? productSummary : [],
-      acpectedDileveryData: order.acpectedDileveryData ? new Date(order.acpectedDileveryData) : /* @__PURE__ */ new Date(),
+      acpectedDileveryData: (() => {
+        if (!order.acpectedDileveryData) return /* @__PURE__ */ new Date();
+        try {
+          const date11 = new Date(order.acpectedDileveryData);
+          return isNaN(date11.getTime()) ? /* @__PURE__ */ new Date() : date11;
+        } catch {
+          return /* @__PURE__ */ new Date();
+        }
+      })(),
       prescriptionTypesId: Array.isArray(order.prescriptionTypesId) ? order.prescriptionTypesId : [],
       subPrescriptionTypesId: Array.isArray(order.subPrescriptionTypesId) ? order.subPrescriptionTypesId : [],
       files: {
@@ -1255,8 +1244,26 @@ var OrderStorage = class {
       lifeCycle: Array.isArray(order.lifeCycle) ? order.lifeCycle : [],
       orderStatus: order.orderStatus || "",
       refId: order.refId || "",
-      orderDate: typeof order.orderDate === "string" ? order.orderDate : order.orderDate ? new Date(order.orderDate).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-      updateDate: typeof order.updatedAt === "string" ? order.updatedAt : order.updatedAt ? new Date(order.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      orderDate: (() => {
+        if (!order.orderDate) return (/* @__PURE__ */ new Date()).toISOString();
+        if (typeof order.orderDate === "string") return order.orderDate;
+        try {
+          const date11 = new Date(order.orderDate);
+          return isNaN(date11.getTime()) ? (/* @__PURE__ */ new Date()).toISOString() : date11.toISOString();
+        } catch {
+          return (/* @__PURE__ */ new Date()).toISOString();
+        }
+      })(),
+      updateDate: (() => {
+        if (!order.updatedAt) return (/* @__PURE__ */ new Date()).toISOString();
+        if (typeof order.updatedAt === "string") return order.updatedAt;
+        try {
+          const date11 = new Date(order.updatedAt);
+          return isNaN(date11.getTime()) ? (/* @__PURE__ */ new Date()).toISOString() : date11.toISOString();
+        } catch {
+          return (/* @__PURE__ */ new Date()).toISOString();
+        }
+      })(),
       totalAmount: order.totalAmount || "",
       paymentType: order.paymentType || "",
       doctorNote: order.doctorNote || "",
@@ -1272,55 +1279,76 @@ var OrderStorage = class {
     return order;
   }
   async updateOrder(id, updates) {
-    const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
-    if (!order) return void 0;
-    let patientId = order.patientId;
-    if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
-      await patientStorage.updatePatient(patientId, {
-        ...updates.firstName && { firstName: updates.firstName },
-        ...updates.lastName && { lastName: updates.lastName },
-        ...updates.age && { age: updates.age },
-        ...updates.sex && { sex: updates.sex }
-      });
-    }
-    let clinicInformationId = order.clinicInformationId;
-    if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
-      await clinicInformationStorage.updateClinicInformation(
-        clinicInformationId,
-        {
-          ...updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy },
-          ...updates.doctorMobileNumber && {
-            doctorMobileNumber: updates.doctorMobileNumber
-          },
-          ...updates.consultingDoctorName && {
-            consultingDoctorName: updates.consultingDoctorName
-          },
-          ...updates.consultingDoctorMobileNumber && {
-            consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber
+    try {
+      const [order] = await db.select().from(orderSchema).where(eq9(orderSchema.id, id));
+      if (!order) {
+        return void 0;
+      }
+      let patientId = order.patientId;
+      if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
+        try {
+          const patientUpdates = {};
+          if (updates.firstName !== void 0) patientUpdates.firstName = updates.firstName;
+          if (updates.lastName !== void 0) patientUpdates.lastName = updates.lastName;
+          if (updates.age !== void 0) patientUpdates.age = updates.age;
+          if (updates.sex !== void 0) patientUpdates.sex = updates.sex;
+          if (Object.keys(patientUpdates).length > 0) {
+            await patientStorage.updatePatient(patientId, patientUpdates);
           }
+        } catch (error) {
+          console.error("Error updating patient:", error);
         }
-      );
+      }
+      let clinicInformationId = order.clinicInformationId;
+      if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
+        try {
+          const clinicUpdates = {};
+          if (updates.caseHandleBy !== void 0) clinicUpdates.caseHandleBy = updates.caseHandleBy;
+          if (updates.doctorMobileNumber !== void 0) clinicUpdates.doctorMobileNumber = updates.doctorMobileNumber;
+          if (updates.consultingDoctorName !== void 0) clinicUpdates.consultingDoctorName = updates.consultingDoctorName;
+          if (updates.consultingDoctorMobileNumber !== void 0) clinicUpdates.consultingDoctorMobileNumber = updates.consultingDoctorMobileNumber;
+          if (Object.keys(clinicUpdates).length > 0) {
+            await clinicInformationStorage.updateClinicInformation(
+              clinicInformationId,
+              clinicUpdates
+            );
+          }
+        } catch (error) {
+          console.error("Error updating clinic information:", error);
+        }
+      }
+      let selectedTeethId = order.selectedTeethId;
+      if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
+        try {
+          const teethUpdates = {};
+          if (updates.selectedTeeth !== void 0) teethUpdates.selectedTeeth = updates.selectedTeeth;
+          if (updates.teethGroup !== void 0) teethUpdates.teethGroup = updates.teethGroup;
+          if (Object.keys(teethUpdates).length > 0) {
+            await teethGroupStorage.updateTeethGroup(selectedTeethId, teethUpdates);
+          }
+        } catch (error) {
+          console.error("Error updating teeth group:", error);
+        }
+      }
+      const accessorios = Array.isArray(updates.accessorios) ? updates.accessorios : [];
+      const orderUpdate = { ...updates, accessorios };
+      delete orderUpdate.firstName;
+      delete orderUpdate.lastName;
+      delete orderUpdate.age;
+      delete orderUpdate.sex;
+      delete orderUpdate.caseHandleBy;
+      delete orderUpdate.doctorMobileNumber;
+      delete orderUpdate.consultingDoctorName;
+      delete orderUpdate.consultingDoctorMobileNumber;
+      delete orderUpdate.selectedTeeth;
+      delete orderUpdate.teethGroup;
+      const orderToInsert = await this.orderInsert(orderUpdate, order.patientId || "", order.clinicInformationId || "", order.selectedTeethId || "");
+      const [updatedOrder] = await db.update(orderSchema).set(orderToInsert).where(eq9(orderSchema.id, id)).returning();
+      return updatedOrder;
+    } catch (error) {
+      console.error("Error updating order:", error);
+      throw error;
     }
-    let selectedTeethId = order.selectedTeethId;
-    if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
-      await teethGroupStorage.updateTeethGroup(selectedTeethId, {
-        ...updates.selectedTeeth && { selectedTeeth: updates.selectedTeeth },
-        ...updates.teethGroup && { teethGroup: updates.teethGroup }
-      });
-    }
-    const orderUpdate = { ...updates };
-    delete orderUpdate.firstName;
-    delete orderUpdate.lastName;
-    delete orderUpdate.age;
-    delete orderUpdate.sex;
-    delete orderUpdate.caseHandleBy;
-    delete orderUpdate.doctorMobileNumber;
-    delete orderUpdate.consultingDoctorName;
-    delete orderUpdate.consultingDoctorMobileNumber;
-    delete orderUpdate.selectedTeeth;
-    delete orderUpdate.teethGroup;
-    const [updatedOrder] = await db.update(orderSchema).set(orderUpdate).where(eq9(orderSchema.id, id)).returning();
-    return updatedOrder;
   }
   async initializeData() {
     console.log("Starting order database initialization...");
@@ -1335,6 +1363,49 @@ var OrderStorage = class {
     } catch (error) {
       console.error("Error creating order sample data:", error);
     }
+  }
+  async orderInsert(insertOrder, insertPatient, clinicInformation2, teethGroup) {
+    const fixDate = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      return null;
+    };
+    const orderToInsert = {
+      ...insertOrder,
+      patientId: insertPatient,
+      clinicInformationId: clinicInformation2,
+      selectedTeethId: teethGroup,
+      // Defensive: ensure all array fields are arrays
+      prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
+      subPrescriptionTypesId: Array.isArray(
+        insertOrder.subPrescriptionTypesId
+      ) ? insertOrder.subPrescriptionTypesId : [],
+      accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
+      teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
+      teethNumber: Array.isArray(insertOrder.teethNumber) ? insertOrder.teethNumber : [],
+      products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
+      pickupData: Array.isArray(insertOrder.pickupData) ? insertOrder.pickupData : [],
+      courierData: insertOrder.courierData,
+      lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
+      // Safely handle date fields
+      acpectedDileveryData: fixDate(insertOrder.acpectedDileveryData),
+      orderDate: fixDate(insertOrder.orderDate),
+      updateDate: fixDate(insertOrder.updateDate),
+      createdAt: fixDate(insertOrder.createdAt),
+      updatedAt: fixDate(insertOrder.updatedAt),
+      files: {
+        addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
+        faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
+        intraOralScan: Array.isArray(insertOrder.files?.intraOralScan) ? insertOrder.files.intraOralScan : [],
+        referralImages: Array.isArray(insertOrder.files?.referralImages) ? insertOrder.files.referralImages : []
+      }
+    };
+    return orderToInsert;
   }
 };
 var orderStorage = new OrderStorage();
@@ -1857,7 +1928,11 @@ var setupOrderRoutes = (app2) => {
       }
       res.json(order);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update order status" });
+      console.error("Error updating order:", error);
+      res.status(500).json({
+        error: "Failed to update order",
+        details: error.message || "Unknown error occurred"
+      });
     }
   });
   app2.patch("/api/qa/status/:orderId", async (req, res) => {
@@ -1865,7 +1940,7 @@ var setupOrderRoutes = (app2) => {
       const orderId = req.params.orderId;
       const body = req.body;
       const updateData = await orderStorage.updateStatus(orderId, body);
-      res.status(201).json("updateData");
+      res.status(201).json(updateData);
     } catch (error) {
       const statusCode = error.statusCode || 400;
       const message = error.message || "Something went wrong";
@@ -2174,7 +2249,7 @@ async function createDraftOrder(req, res) {
     const orderMethod = body.orderMethod || "";
     const handllingType = body.handllingType || "";
     const pickupRemarks = body.pickupRemarks || "";
-    const prescriptionType2 = body.prescriptionType || "";
+    const prescriptionType = body.prescriptionType || "";
     const subPrescriptionTypes = body.subPrescriptionTypes || "";
     const pickupDate = body.pickupDate || null;
     const pickupTime = body.pickupTime ? body.pickupTime : null;
@@ -2205,7 +2280,7 @@ async function createDraftOrder(req, res) {
       pickupRemarks,
       courierData,
       pickupData,
-      prescriptionType: prescriptionType2,
+      prescriptionType,
       subPrescriptionTypes
     };
     const parseResult = insertDraftOrderSchema.safeParse(draftOrder);

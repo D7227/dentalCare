@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Package, Search, Plus, Minus, X, Pencil, Wrench } from "lucide-react";
 import BaseModal from "@/components/shared/BaseModal";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ interface AccessorySelectionProps {
 interface SelectedAccessory {
   name: string;
   quantity: number;
+  labAccess?: boolean;
 }
 
 const AccessorySelection = ({
@@ -64,6 +66,7 @@ const AccessorySelection = ({
     const newAccessory: SelectedAccessory = {
       name: accessory.name,
       quantity: 1,
+      labAccess: false,
     };
 
     setFormData({
@@ -89,6 +92,16 @@ const AccessorySelection = ({
       ...formData,
       accessorios: accessorios.map((acc) =>
         acc.name === accessoryName ? { ...acc, quantity: newQuantity } : acc
+      ),
+    });
+  };
+
+  const updateLabAccess = (accessoryName: string, labAccess: boolean) => {
+    console.log(accessoryName, labAccess);
+    setFormData({
+      ...formData,
+      accessorios: accessorios.map((acc) =>
+        acc.name === accessoryName ? { ...acc, labAccess } : acc
       ),
     });
   };
@@ -156,10 +169,24 @@ const AccessorySelection = ({
               key={accessory.name}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
             >
-              <div className="flex-1">
+              <div className="flex-1 flex items-center gap-3">
+                {readMode && window.window.location.pathname === "/qa" && formData.orderStatus !== "active" && (
+                  <Checkbox
+                    id={`lab-access-${accessory.name}`}
+                    checked={accessory.labAccess || false}
+                    onCheckedChange={(checked) =>
+                      updateLabAccess(accessory.name, checked as boolean)
+                    }
+                    className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  />
+                )}
                 <span className="font-medium text-sm">{accessory.name}</span>
+                {accessory.labAccess && (
+                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                    Is Collected
+                  </Badge>
+                )}
               </div>
-
               {!readMode && !editMode ? (
                 <div className="flex items-center gap-3">
                   {/* Quantity Controls */}
@@ -206,9 +233,11 @@ const AccessorySelection = ({
                   </Button>
                 </div>
               ) : (
-                <span className="min-w-[2rem] text-center text-sm font-medium">
-                  {accessory.quantity} item
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="min-w-[2rem] text-center text-sm font-medium">
+                    {accessory.quantity} item
+                  </span>
+                </div>
               )}
             </div>
           ))}
@@ -242,7 +271,7 @@ const AccessorySelection = ({
   const handleSaveAccessories = () => {
     setFormData({
       ...formData,
-      selectedAccessories: modalAccessories,
+      accessorios: modalAccessories,
     });
     setEditModel(false);
   };
@@ -300,43 +329,43 @@ const AccessorySelection = ({
               <div className="space-y-4">
                 {
                   readMode && (
-                        <Label className="text-base font-medium">
-                        {formData.orderType === "pickup-from-lab" ? "Pickup from Clinic" : "Send by Courier"}
-                        </Label>
+                    <Label className="text-base font-medium">
+                      {formData.orderType === "pickup-from-lab" ? "Pickup from Clinic" : "Send by Courier"}
+                    </Label>
                   )
                 }
                 {!readMode && (
                   <>
-                  <Label className="text-base font-medium">Handling Type</Label>
-                  <RadioGroup
-                    value={formData.orderType}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        orderType: value,
-                      })
-                    }
-                    className="space-y-3"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem
-                        value="pickup-from-lab"
-                        id="pickup-from-lab"
-                      />
-                      <Label htmlFor="pickup-from-lab" className="cursor-pointer">
-                        Pickup from Clinic
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem
-                        value="send-by-courier"
-                        id="send-by-courier"
-                      />
-                      <Label htmlFor="send-by-courier" className="cursor-pointer">
-                        Send by Courier
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                    <Label className="text-base font-medium">Handling Type</Label>
+                    <RadioGroup
+                      value={formData.orderType}
+                      onValueChange={(value) =>
+                        setFormData({
+                          ...formData,
+                          orderType: value,
+                        })
+                      }
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <RadioGroupItem
+                          value="pickup-from-lab"
+                          id="pickup-from-lab"
+                        />
+                        <Label htmlFor="pickup-from-lab" className="cursor-pointer">
+                          Pickup from Clinic
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <RadioGroupItem
+                          value="send-by-courier"
+                          id="send-by-courier"
+                        />
+                        <Label htmlFor="send-by-courier" className="cursor-pointer">
+                          Send by Courier
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </>
                 )}
 
@@ -353,14 +382,14 @@ const AccessorySelection = ({
                       <Input
                         id="pickupDate"
                         type="date"
-                        value={formData?.pickupData?.pickupDate}
+                        value={formData?.pickupData?.pickUpDate}
                         min={new Date().toISOString().split("T")[0]}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
                             pickupData: {
                               ...formData?.pickupData,
-                              pickupDate: e.target.value,
+                              pickUpDate: e.target.value,
                             },
                           })
                         }
@@ -377,13 +406,13 @@ const AccessorySelection = ({
                       <Input
                         id="pickupTime"
                         type="time"
-                        value={formData?.pickupData?.pickupTime}
+                        value={formData?.pickupData?.pickUpTime}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
                             pickupData: {
                               ...formData?.pickupData,
-                              pickupTime: e.target.value,
+                              pickUpTime: e.target.value,
                             },
                           })
                         }
@@ -399,13 +428,13 @@ const AccessorySelection = ({
                       </Label>
                       <Textarea
                         id="pickupRemarks"
-                        value={formData?.pickupData?.pickupRemarks}
+                        value={formData?.pickupData?.pickUpMessage}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
                             pickupData: {
                               ...formData?.pickupData,
-                              pickupRemarks: e.target.value,
+                              pickUpMessage: e.target.value,
                             },
                           })
                         }
@@ -425,7 +454,7 @@ const AccessorySelection = ({
                         Pickup Date
                       </Label>
                       <div className="mt-1 p-2 bg-white border rounded text-sm">
-                        {formData?.pickupData?.pickupDate || "Not specified"}
+                        {formData?.pickupData?.pickUpDate || "Not specified"}
                       </div>
                     </div>
                     <div>
@@ -433,7 +462,7 @@ const AccessorySelection = ({
                         Pickup Time
                       </Label>
                       <div className="mt-1 p-2 bg-white border rounded text-sm">
-                        {formData?.pickupData?.pickupTime || "Not specified"}
+                        {formData?.pickupData?.pickUpTime || "Not specified"}
                       </div>
                     </div>
                     <div className="md:col-span-2">
@@ -441,7 +470,7 @@ const AccessorySelection = ({
                         Pickup Remarks
                       </Label>
                       <div className="mt-1 p-2 bg-white border rounded text-sm min-h-[60px]">
-                        {formData?.pickupData?.pickupRemarks || "No remarks"}
+                        {formData?.pickupData?.pickUpMessage || "No remarks"}
                       </div>
                     </div>
                   </div>
@@ -563,7 +592,7 @@ const AccessorySelection = ({
                         ) {
                           setModalAccessories([
                             ...modalAccessories,
-                            { name: accessory.name, quantity: 1 },
+                            { name: accessory.name, quantity: 1, },
                           ]);
                         }
                       }}
@@ -605,9 +634,9 @@ const AccessorySelection = ({
                               modalAccessories.map((acc) =>
                                 acc.name === a.name
                                   ? {
-                                      ...acc,
-                                      quantity: Math.max(1, a.quantity - 1),
-                                    }
+                                    ...acc,
+                                    quantity: Math.max(1, a.quantity - 1),
+                                  }
                                   : acc
                               )
                             )
@@ -626,12 +655,12 @@ const AccessorySelection = ({
                               modalAccessories.map((acc) =>
                                 acc.name === a.name
                                   ? {
-                                      ...acc,
-                                      quantity: Math.max(
-                                        1,
-                                        Number(e.target.value)
-                                      ),
-                                    }
+                                    ...acc,
+                                    quantity: Math.max(
+                                      1,
+                                      Number(e.target.value)
+                                    ),
+                                  }
                                   : acc
                               )
                             )

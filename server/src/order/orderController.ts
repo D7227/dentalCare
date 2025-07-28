@@ -6,7 +6,7 @@ import { orderSchema } from "./orderSchema";
 import { patientStorage } from "../patient/patientController";
 import { clinicInformationStorage } from "../clinicInformation/clinicInformationController";
 import { teethGroupStorage } from "../teethGroup/teethGroupcontroller";
-  import { OrderType } from "@/types/orderType";
+import { OrderType } from "@/types/orderType";
 import {
   doctorOrderTableType,
   FilterBody,
@@ -16,10 +16,17 @@ import {
 import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
 import { orderLogsStorage } from "../order_logs/orderLogsController";
+import { Request, Response } from "express";
 
 export interface orderStore {
   getOrder(id: string): Promise<any | undefined>;
   createOrder(order: any): Promise<any>;
+  orderInsert(
+    order: any,
+    insertPatient: string,
+    clinicInformation: string,
+    teethGroup: string
+  ): Promise<any>;
   getOrders(): Promise<any[]>;
   getOrdersByClinicId(clinicId: string): Promise<any[]>;
   // getOrdersWithFilters(filters: {
@@ -118,57 +125,12 @@ export class OrderStorage implements orderStore {
 
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
       console.log(insertOrder.courierData, "courierData");
-      const orderToInsert = {
-        ...insertOrder,
-        patientId: insertPatient.id,
-        clinicInformationId: clinicInformation.id,
-        selectedTeethId: teethGroup.id,
-        // Defensive: ensure all array fields are arrays
-        prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId)
-          ? insertOrder.prescriptionTypesId
-          : [],
-        subPrescriptionTypesId: Array.isArray(
-          insertOrder.subPrescriptionTypesId
-        )
-          ? insertOrder.subPrescriptionTypesId
-          : [],
-        accessorios: Array.isArray(insertOrder.accessorios)
-          ? insertOrder.accessorios
-          : [],
-        selectedTeeth: Array.isArray(insertOrder.selectedTeeth)
-          ? insertOrder.selectedTeeth
-          : [],
-        teethGroup: Array.isArray(insertOrder.teethGroup)
-          ? insertOrder.teethGroup
-          : [],
-        teethNumber: Array.isArray(insertOrder.teethNumber)
-          ? insertOrder.teethNumber
-          : [],
-        products: Array.isArray(insertOrder.products)
-          ? insertOrder.products
-          : [],
-        pickupData: Array.isArray(insertOrder.pickupData)
-          ? insertOrder.pickupData
-          : [],
-        courierData: insertOrder.courierData,
-        lifeCycle: Array.isArray(insertOrder.lifeCycle)
-          ? insertOrder.lifeCycle
-          : [],
-        files: {
-          addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos)
-            ? insertOrder.files.addPatientPhotos
-            : [],
-          faceScan: Array.isArray(insertOrder.files?.faceScan)
-            ? insertOrder.files.faceScan
-            : [],
-          intraOralScan: Array.isArray(insertOrder.files?.intraOralScan)
-            ? insertOrder.files.intraOralScan
-            : [],
-          referralImages: Array.isArray(insertOrder.files?.referralImages)
-            ? insertOrder.files.referralImages
-            : [],
-        },
-      };
+      const orderToInsert = await this.orderInsert(
+        insertOrder,
+        insertPatient.id,
+        clinicInformation.id,
+        teethGroup.id
+      );
 
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
@@ -183,10 +145,8 @@ export class OrderStorage implements orderStore {
       orderToInsert.acpectedDileveryData = fixDate(
         orderToInsert.acpectedDileveryData
       );
-      orderToInsert.orderDate = fixDate(orderToInsert.orderDate);
-      orderToInsert.updateDate = fixDate(orderToInsert.updateDate);
-      orderToInsert.createdAt = fixDate(orderToInsert.createdAt);
-      orderToInsert.updatedAt = fixDate(orderToInsert.updatedAt);
+      orderToInsert.createdAt = new Date();
+      orderToInsert.updatedAt = new Date();
       const [order] = await db
         .insert(orderSchema)
         .values(orderToInsert)
@@ -228,6 +188,7 @@ export class OrderStorage implements orderStore {
     orderId: string,
     body: QaStatusApiBody
   ): Promise<any | undefined> {
+    const bodyData = body?.orderDate;
     const orderData = await orderStorage.getOrder(orderId);
     // Duplicate check for orderId and crateNo before updating
     if (body?.orderId) {
@@ -283,11 +244,12 @@ export class OrderStorage implements orderStore {
         if (!createNewChat) return "Something Went Wrong On Create Chat";
 
         const updateOrder = {
+          ...bodyData,
           orderStatus: body?.orderStatus || orderData.orderStatus,
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
           qaNote: body?.qaNote || orderData.qaNote,
-          qaId : body?.qaId,
+          qaId: body?.qaId,
         };
 
         const UpdateOrderData = await orderStorage.updateOrder(
@@ -316,10 +278,11 @@ export class OrderStorage implements orderStore {
           if (!updateParticipant) return "Chat Is Not Update";
         }
         const updateOrder = {
+          ...bodyData,
           orderStatus: body?.orderStatus || orderData.orderStatus,
           orderId: body?.orderId ? body.orderId : orderData.orderId,
           crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
-          qaId : body?.qaId,
+          qaId: body?.qaId,
         };
         const UpdateOrderData = await orderStorage.updateOrder(
           orderId,
@@ -330,9 +293,10 @@ export class OrderStorage implements orderStore {
       }
     } else if ((body?.orderStatus || "") === "rejected") {
       const updateOrder = {
+        ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfReject: body?.resonOfReject || orderData.resonOfReject,
-        qaId : body?.qaId,
+        qaId: body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,
@@ -342,10 +306,11 @@ export class OrderStorage implements orderStore {
       return UpdateOrderData;
     } else if ((body?.orderStatus || "") === "rescan") {
       const updateOrder = {
+        ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
         resonOfRescan: body?.resonOfRescan || orderData.resonOfRescan,
         rejectNote: body?.resonOfRescan || orderData.rejectNote,
-        qaId : body?.qaId,
+        qaId: body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,
@@ -361,7 +326,7 @@ export class OrderStorage implements orderStore {
         rejectNote: body?.resonOfRescan || orderData.rejectNote,
         orderId: body?.orderId ? body.orderId : orderData.orderId,
         crateNo: body?.crateNo ? body.crateNo : orderData.crateNo,
-        qaId : body?.qaId,
+        qaId: body?.qaId,
       };
       const UpdateOrderData = await orderStorage.updateOrder(
         orderId,
@@ -393,6 +358,7 @@ export class OrderStorage implements orderStore {
         prescriptionTypes: updateOrder?.prescriptionTypesId,
         subPrescriptionTypes: updateOrder?.subPrescriptionTypesId,
         orderDate: order?.createdAt,
+        selectedTeeth: updateOrder?.selectedTeeth,
         orderType: updateOrder?.orderType,
         orderStatus: updateOrder?.orderStatus,
         products: updateOrder?.products,
@@ -456,7 +422,7 @@ export class OrderStorage implements orderStore {
           order.clinicInformationId
         )
       : undefined;
-    console.log(clinicInformation, "clinicInformation");
+    const clinicData = await clinicStorage.getClinicById(order.clinicId);
     const teethGroup = order.selectedTeethId
       ? await teethGroupStorage.getTeethGroupById(order.selectedTeethId)
       : undefined;
@@ -520,6 +486,7 @@ export class OrderStorage implements orderStore {
       lastName: patient?.lastName || "",
       age: patient?.age || 0,
       sex: patient?.sex || "",
+      clinicName: clinicData?.clinicName || "",
       clinicId: clinicInformation?.clinicId || "",
       caseHandleBy: clinicInformation?.caseHandleBy || "",
       doctorMobileNumber: clinicInformation?.doctorMobileNumber || "",
@@ -538,9 +505,15 @@ export class OrderStorage implements orderStore {
         : []) as any,
       teethNumber: (Array.isArray(teethnumber) ? teethnumber : []) as any,
       products: (Array.isArray(productSummary) ? productSummary : []) as any,
-      acpectedDileveryData: order.acpectedDileveryData
-        ? new Date(order.acpectedDileveryData)
-        : new Date(),
+      acpectedDileveryData: (() => {
+        if (!order.acpectedDileveryData) return new Date();
+        try {
+          const date = new Date(order.acpectedDileveryData);
+          return isNaN(date.getTime()) ? new Date() : date;
+        } catch {
+          return new Date();
+        }
+      })(),
       prescriptionTypesId: (Array.isArray(order.prescriptionTypesId)
         ? order.prescriptionTypesId
         : []) as any,
@@ -576,18 +549,30 @@ export class OrderStorage implements orderStore {
       lifeCycle: (Array.isArray(order.lifeCycle) ? order.lifeCycle : []) as any,
       orderStatus: order.orderStatus || "",
       refId: order.refId || "",
-      orderDate:
-        typeof order.orderDate === "string"
-          ? order.orderDate
-          : order.orderDate
-          ? new Date(order.orderDate).toISOString()
-          : new Date().toISOString(),
-      updateDate:
-        typeof order.updatedAt === "string"
-          ? order.updatedAt
-          : order.updatedAt
-          ? new Date(order.updatedAt).toISOString()
-          : new Date().toISOString(),
+      orderDate: (() => {
+        if (!order.orderDate) return new Date().toISOString();
+        if (typeof order.orderDate === "string") return order.orderDate;
+        try {
+          const date = new Date(order.orderDate);
+          return isNaN(date.getTime())
+            ? new Date().toISOString()
+            : date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      })(),
+      updateDate: (() => {
+        if (!order.updatedAt) return new Date().toISOString();
+        if (typeof order.updatedAt === "string") return order.updatedAt;
+        try {
+          const date = new Date(order.updatedAt);
+          return isNaN(date.getTime())
+            ? new Date().toISOString()
+            : date.toISOString();
+        } catch {
+          return new Date().toISOString();
+        }
+      })(),
       totalAmount: order.totalAmount || "",
       paymentType: order.paymentType || "",
       doctorNote: order.doctorNote || "",
@@ -615,82 +600,129 @@ export class OrderStorage implements orderStore {
     id: string,
     updates: Partial<any>
   ): Promise<any | undefined> {
-    // 1. Fetch the order
-    const [order] = await db
-      .select()
-      .from(orderSchema)
-      .where(eq(orderSchema.id, id));
-    if (!order) return undefined;
+    try {
+      // 1. Fetch the order
+      const [order] = await db
+        .select()
+        .from(orderSchema)
+        .where(eq(orderSchema.id, id));
+      if (!order) {
+        return undefined;
+      }
 
-    // 2. Update patient if patient fields are present
-    let patientId = order.patientId;
-    if (
-      patientId &&
-      (updates.firstName || updates.lastName || updates.age || updates.sex)
-    ) {
-      await patientStorage.updatePatient(patientId, {
-        ...(updates.firstName && { firstName: updates.firstName }),
-        ...(updates.lastName && { lastName: updates.lastName }),
-        ...(updates.age && { age: updates.age }),
-        ...(updates.sex && { sex: updates.sex }),
-      });
-    }
+      // 2. Update patient if patient fields are present
+      let patientId = order.patientId;
+      if (
+        patientId &&
+        (updates.firstName || updates.lastName || updates.age || updates.sex)
+      ) {
+        try {
+          const patientUpdates: any = {};
+          if (updates.firstName !== undefined)
+            patientUpdates.firstName = updates.firstName;
+          if (updates.lastName !== undefined)
+            patientUpdates.lastName = updates.lastName;
+          if (updates.age !== undefined) patientUpdates.age = updates.age;
+          if (updates.sex !== undefined) patientUpdates.sex = updates.sex;
 
-    // 3. Update clinicInformation if fields are present
-    let clinicInformationId = order.clinicInformationId;
-    if (
-      clinicInformationId &&
-      (updates.caseHandleBy ||
-        updates.doctorMobileNumber ||
-        updates.consultingDoctorName ||
-        updates.consultingDoctorMobileNumber)
-    ) {
-      await clinicInformationStorage.updateClinicInformation(
-        clinicInformationId,
-        {
-          ...(updates.caseHandleBy && { caseHandleBy: updates.caseHandleBy }),
-          ...(updates.doctorMobileNumber && {
-            doctorMobileNumber: updates.doctorMobileNumber,
-          }),
-          ...(updates.consultingDoctorName && {
-            consultingDoctorName: updates.consultingDoctorName,
-          }),
-          ...(updates.consultingDoctorMobileNumber && {
-            consultingDoctorMobileNumber: updates.consultingDoctorMobileNumber,
-          }),
+          if (Object.keys(patientUpdates).length > 0) {
+            await patientStorage.updatePatient(patientId, patientUpdates);
+          }
+        } catch (error) {
+          console.error("Error updating patient:", error);
+          // Continue with order update even if patient update fails
         }
+      }
+
+      // 3. Update clinicInformation if fields are present
+      let clinicInformationId = order.clinicInformationId;
+      if (
+        clinicInformationId &&
+        (updates.caseHandleBy ||
+          updates.doctorMobileNumber ||
+          updates.consultingDoctorName ||
+          updates.consultingDoctorMobileNumber)
+      ) {
+        try {
+          const clinicUpdates: any = {};
+          if (updates.caseHandleBy !== undefined)
+            clinicUpdates.caseHandleBy = updates.caseHandleBy;
+          if (updates.doctorMobileNumber !== undefined)
+            clinicUpdates.doctorMobileNumber = updates.doctorMobileNumber;
+          if (updates.consultingDoctorName !== undefined)
+            clinicUpdates.consultingDoctorName = updates.consultingDoctorName;
+          if (updates.consultingDoctorMobileNumber !== undefined)
+            clinicUpdates.consultingDoctorMobileNumber =
+              updates.consultingDoctorMobileNumber;
+
+          if (Object.keys(clinicUpdates).length > 0) {
+            await clinicInformationStorage.updateClinicInformation(
+              clinicInformationId,
+              clinicUpdates
+            );
+          }
+        } catch (error) {
+          console.error("Error updating clinic information:", error);
+          // Continue with order update even if clinic update fails
+        }
+      }
+
+      // 4. Update teethGroup if fields are present
+      let selectedTeethId = order.selectedTeethId;
+      if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
+        try {
+          const teethUpdates: any = {};
+          if (updates.selectedTeeth !== undefined)
+            teethUpdates.selectedTeeth = updates.selectedTeeth;
+          if (updates.teethGroup !== undefined)
+            teethUpdates.teethGroup = updates.teethGroup;
+
+          if (Object.keys(teethUpdates).length > 0) {
+            await teethGroupStorage.updateTeethGroup(
+              selectedTeethId,
+              teethUpdates
+            );
+          }
+        } catch (error) {
+          console.error("Error updating teeth group:", error);
+          // Continue with order update even if teeth group update fails
+        }
+      }
+
+      // 5. Prepare order update object (excluding patient/clinic/teeth fields)
+      const accessorios = (
+        Array.isArray(updates.accessorios) ? updates.accessorios : []
+      ) as any;
+
+      const orderUpdate: any = { ...updates, accessorios: accessorios };
+      delete orderUpdate.firstName;
+      delete orderUpdate.lastName;
+      delete orderUpdate.age;
+      delete orderUpdate.sex;
+      delete orderUpdate.caseHandleBy;
+      delete orderUpdate.doctorMobileNumber;
+      delete orderUpdate.consultingDoctorName;
+      delete orderUpdate.consultingDoctorMobileNumber;
+      delete orderUpdate.selectedTeeth;
+      delete orderUpdate.teethGroup;
+
+      const orderToInsert = await this.orderInsert(
+        orderUpdate,
+        order.patientId || "",
+        order.clinicInformationId || "",
+        order.selectedTeethId || ""
       );
+      // 6. Update the order
+      const [updatedOrder] = await db
+        .update(orderSchema)
+        .set(orderToInsert)
+        .where(eq(orderSchema.id, id))
+        .returning();
+      return updatedOrder;
+    } catch (error: any) {
+      console.error("Error updating order:", error);
+      throw error;
     }
-
-    // 4. Update teethGroup if fields are present
-    let selectedTeethId = order.selectedTeethId;
-    if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
-      await teethGroupStorage.updateTeethGroup(selectedTeethId, {
-        ...(updates.selectedTeeth && { selectedTeeth: updates.selectedTeeth }),
-        ...(updates.teethGroup && { teethGroup: updates.teethGroup }),
-      });
-    }
-
-    // 5. Prepare order update object (excluding patient/clinic/teeth fields)
-    const orderUpdate: any = { ...updates };
-    delete orderUpdate.firstName;
-    delete orderUpdate.lastName;
-    delete orderUpdate.age;
-    delete orderUpdate.sex;
-    delete orderUpdate.caseHandleBy;
-    delete orderUpdate.doctorMobileNumber;
-    delete orderUpdate.consultingDoctorName;
-    delete orderUpdate.consultingDoctorMobileNumber;
-    delete orderUpdate.selectedTeeth;
-    delete orderUpdate.teethGroup;
-
-    // 6. Update the order
-    const [updatedOrder] = await db
-      .update(orderSchema)
-      .set(orderUpdate)
-      .where(eq(orderSchema.id, id))
-      .returning();
-    return updatedOrder;
   }
 
   async initializeData(): Promise<void> {
@@ -722,59 +754,136 @@ export class OrderStorage implements orderStore {
       console.error("Error creating order sample data:", error);
     }
   }
+
+  async orderInsert(
+    insertOrder: any,
+    insertPatient: string,
+    clinicInformation: string,
+    teethGroup: string
+  ): Promise<any> {
+    // Helper function to safely handle date fields
+    const fixDate = (val: any) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      if (typeof val === "string") {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      return null;
+    };
+
+    const orderToInsert = {
+      ...insertOrder,
+      patientId: insertPatient,
+      clinicInformationId: clinicInformation,
+      selectedTeethId: teethGroup,
+      // Defensive: ensure all array fields are arrays
+      prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId)
+        ? insertOrder.prescriptionTypesId
+        : [],
+      subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId)
+        ? insertOrder.subPrescriptionTypesId
+        : [],
+      accessorios: Array.isArray(insertOrder.accessorios)
+        ? insertOrder.accessorios
+        : [],
+      selectedTeeth: Array.isArray(insertOrder.selectedTeeth)
+        ? insertOrder.selectedTeeth
+        : [],
+      teethGroup: Array.isArray(insertOrder.teethGroup)
+        ? insertOrder.teethGroup
+        : [],
+      teethNumber: Array.isArray(insertOrder.teethNumber)
+        ? insertOrder.teethNumber
+        : [],
+      products: Array.isArray(insertOrder.products) ? insertOrder.products : [],
+      pickupData: Array.isArray(insertOrder.pickupData)
+        ? insertOrder.pickupData
+        : [],
+      courierData: insertOrder.courierData,
+      lifeCycle: Array.isArray(insertOrder.lifeCycle)
+        ? insertOrder.lifeCycle
+        : [],
+      // Safely handle date fields
+      acpectedDileveryData: fixDate(insertOrder.acpectedDileveryData),
+      orderDate: fixDate(insertOrder.orderDate),
+      updateDate: fixDate(insertOrder.updateDate),
+      createdAt: fixDate(insertOrder.createdAt),
+      updatedAt: fixDate(insertOrder.updatedAt),
+      files: {
+        addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos)
+          ? insertOrder.files.addPatientPhotos
+          : [],
+        faceScan: Array.isArray(insertOrder.files?.faceScan)
+          ? insertOrder.files.faceScan
+          : [],
+        intraOralScan: Array.isArray(insertOrder.files?.intraOralScan)
+          ? insertOrder.files.intraOralScan
+          : [],
+        referralImages: Array.isArray(insertOrder.files?.referralImages)
+          ? insertOrder.files.referralImages
+          : [],
+      },
+    };
+    return orderToInsert;
+  }
 }
 
 export const orderStorage = new OrderStorage();
 
-export const getProducts = async (req: Request, res: Response) => {
-  try {
-    const { prescriptionType, subcategoryType } = req.query;
+// export const getProducts = async (req: Request, res: Response) => {
+//   try {
+//     const { prescriptionType, subcategoryType } = req.query;
 
-    // Import product storage to get products from database
-    const { productStorage } = await import("../product/productController");
+//     // Import product storage to get products from database
+//     const { productStorage } = await import("../product/productController");
 
-    const products = await productStorage.getProducts({
-      prescriptionType: prescriptionType as string,
-      subcategoryType: subcategoryType as string,
-    });
+//     const products = await productStorage.getProducts({
+//       prescriptionType: prescriptionType as string,
+//       subcategoryType: subcategoryType as string,
+//     });
 
-    res.json(products);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    // Fallback to original hardcoded products if database fails
-    const allProducts = [
-      // Fixed Restoration - Crown products
-      {
-        id: "1",
-        name: "Porcelain Crown",
-        category: "Crown",
-        material: "Porcelain",
-        description: "High-quality porcelain crown for anterior teeth",
-        prescriptionTypes: ["fixed-restoration"],
-        subcategoryTypes: ["crown"],
-      },
-    ];
+//     res.json(products);
+//   } catch (error) {
+//     console.error("Error fetching products:", error);
+//     // Fallback to original hardcoded products if database fails
+//     const allProducts = [
+//       // Fixed Restoration - Crown products
+//       {
+//         id: "1",
+//         name: "Porcelain Crown",
+//         category: "Crown",
+//         material: "Porcelain",
+//         description: "High-quality porcelain crown for anterior teeth",
+//         prescriptionTypes: ["fixed-restoration"],
+//         subcategoryTypes: ["crown"],
+//       },
+//     ];
 
-    // Filter fallback products based on prescription type and subcategory
-    let filteredProducts = allProducts;
+//     // Capture query parameters for use in catch block
+//     const queryPrescriptionType = req.query.prescriptionType as string;
+//     const querySubcategoryType = req.query.subcategoryType as string;
 
-    if (prescriptionType) {
-      filteredProducts = filteredProducts.filter((product) =>
-        product.prescriptionTypes.includes(prescriptionType as string)
-      );
-    }
+//     // Filter fallback products based on prescription type and subcategory
+//     let filteredProducts = allProducts;
 
-    if (subcategoryType) {
-      filteredProducts = filteredProducts.filter((product) =>
-        product.subcategoryTypes.includes(subcategoryType as string)
-      );
-    }
+//     if (queryPrescriptionType) {
+//       filteredProducts = filteredProducts.filter((product) =>
+//         product.prescriptionTypes.includes(queryPrescriptionType)
+//       );
+//     }
 
-    // Remove the internal filtering arrays from the response
-    const products = filteredProducts.map(
-      ({ prescriptionTypes, subcategoryTypes, ...product }) => product
-    );
+//     if (querySubcategoryType) {
+//       filteredProducts = filteredProducts.filter((product) =>
+//         product.subcategoryTypes.includes(querySubcategoryType)
+//       );
+//     }
 
-    res.json(products);
-  }
-};
+//     // Remove the internal filtering arrays from the response
+//     const products = filteredProducts.map(
+//       ({ prescriptionTypes, subcategoryTypes, ...product }) => product
+//     );
+
+//     res.json(products);
+//   }
+// };

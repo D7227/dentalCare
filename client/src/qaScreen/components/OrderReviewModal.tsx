@@ -26,6 +26,7 @@ import { FileText, Edit, X } from "lucide-react";
 import type { CaseStatus } from "../data/cases";
 import {
   useGetOrderByOrderIdQuery,
+  useUpdateOrderMutation,
   useUpdateQaOrderStatusMutation,
 } from "@/store/slices/orderApi";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
@@ -55,9 +56,11 @@ export default function OrderReviewModal({
   const [crateNumber, setCrateNumber] = useState("");
   const [rescanReason, setRescanReason] = useState("");
   const { toast } = useToast();
-  const [updateOrder, { isLoading: isUpdating }] =
+  const [updateOrderStatus, { isLoading: isUpdating }] =
     useUpdateQaOrderStatusMutation();
-    const UserData = useAppSelector((state) => state.userData);
+  const [updateOrder, { isLoading: isUpdatingStatus }] =
+    useUpdateOrderMutation();
+  const UserData = useAppSelector((state) => state.userData);
   const user = UserData.userData;
   const [submitDailyReport] = useSubmitDailyReportMutation();
   const [createOrderHistory] = useCreateOrderHistoryMutation();
@@ -75,7 +78,7 @@ export default function OrderReviewModal({
   const [originalData, setOriginalData] = useState<any>(orderData); // Track original data
   const [changedFields, setChangedFields] = useState<any[]>([]); // Store changes
 
-  console.log(changedFields,"changedFields")
+  console.log(changedFields, "changedFields")
 
   useEffect(() => {
     setSOrderId(selectedOrderId);
@@ -124,6 +127,7 @@ export default function OrderReviewModal({
 
   // Approve handler
   const handleAction = async (action: CaseStatus) => {
+    const changes = getChangedFields(originalData, formData);
     if (!formData) return;
     if (!orderId || !orderId.trim()) {
       toast({
@@ -142,7 +146,6 @@ export default function OrderReviewModal({
       return;
     }
     // Compare and save changes if any
-    const changes = getChangedFields(originalData, formData);
     const hasModifications = changes.length > 0;
     if (hasModifications) {
       setChangedFields(changes);
@@ -151,18 +154,29 @@ export default function OrderReviewModal({
         historyEntry: changes,
         updatedBy: user?.fullName,
       });
+      await updateOrder({
+        id: formData?.id,
+        body: {
+          ...formData,
+          orderId: orderId,
+        },
+      }).unwrap();
+      toast({
+        title: "Order Updated",
+        description: `Order has been updated.`,
+      });
     }
     try {
-      const result = await updateOrder({
+      const result = await updateOrderStatus({
         orderId: formData?.id,
         orderData: {
-          ...formData,
+          orderDate: formData,
           orderId: orderId,
           orderStatus: "active",
           crateNo: crateNumber,
           userName: user?.fullName,
           additionalNote: additionalNote,
-          qaId:user?.id,
+          qaId: user?.id,
         },
       }).unwrap();
       // Submit daily report for approval
@@ -216,14 +230,14 @@ export default function OrderReviewModal({
       });
     }
     try {
-      const result = await updateOrder({
+      const result = await updateOrderStatus({
         orderId: formData?.id,
         orderData: {
-          ...formData,
+          orderDate: formData,
           orderStatus: "rejected",
           userName: user?.fullName,
           additionalNote: additionalNote,
-          qaId:user?.id,
+          qaId: user?.id,
         },
       }).unwrap();
       // Submit daily report for rejection
@@ -276,15 +290,15 @@ export default function OrderReviewModal({
       });
     }
     try {
-      const result = await updateOrder({
+      const result = await updateOrderStatus({
         orderId: formData?.id,
         orderData: {
-          ...formData,
+          orderDate: formData,
           orderStatus: "rescan",
           userName: user?.fullName,
           additionalNote: additionalNote,
           extraAdditionalNote: rescanReason,
-          qaId:user?.id,
+          qaId: user?.id,
         },
       }).unwrap();
       // Submit daily report for rescan
@@ -471,12 +485,6 @@ export default function OrderReviewModal({
               />
             </div>
           </div>
-
-          {/* <OrderSummary
-            formData={formData}
-            orderCategory={"new"}
-            userType="Qa"
-          /> */}
 
           <SummaryOrder
             formData={formData}
