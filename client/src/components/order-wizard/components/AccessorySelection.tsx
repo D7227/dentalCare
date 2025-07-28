@@ -18,7 +18,6 @@ interface AccessorySelectionProps {
 }
 
 interface SelectedAccessory {
-  id: string;
   name: string;
   quantity: number;
 }
@@ -51,53 +50,51 @@ const AccessorySelection = ({
     { id: "analog", name: "Analog" },
   ];
 
-  const selectedAccessories: SelectedAccessory[] =
-    formData.selectedAccessories || [];
+  const accessorios: SelectedAccessory[] = formData.accessorios || [];
 
   const filteredAccessories = useMemo(() => {
     return availableAccessories.filter(
       (accessory) =>
         accessory.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !selectedAccessories.some((selected) => selected.id === accessory.id)
+        !accessorios.some((selected) => selected.name === accessory.name)
     );
-  }, [searchQuery, selectedAccessories]);
+  }, [searchQuery, accessorios]);
 
   const addAccessory = (accessory: { id: string; name: string }) => {
     const newAccessory: SelectedAccessory = {
-      id: accessory.id,
       name: accessory.name,
       quantity: 1,
     };
 
     setFormData({
       ...formData,
-      selectedAccessories: [...selectedAccessories, newAccessory],
+      accessorios: [...accessorios, newAccessory],
     });
     setSearchQuery("");
   };
 
-  const removeAccessory = (accessoryId: string) => {
+  const removeAccessory = (accessoryName: string) => {
     setFormData({
       ...formData,
-      selectedAccessories: selectedAccessories.filter(
-        (acc) => acc.id !== accessoryId
+      accessorios: accessorios.filter(
+        (acc) => acc.name !== accessoryName
       ),
     });
   };
 
-  const updateQuantity = (accessoryId: string, newQuantity: number) => {
+  const updateQuantity = (accessoryName: string, newQuantity: number) => {
     if (newQuantity < 1) return;
 
     setFormData({
       ...formData,
-      selectedAccessories: selectedAccessories.map((acc) =>
-        acc.id === accessoryId ? { ...acc, quantity: newQuantity } : acc
+      accessorios: accessorios.map((acc) =>
+        acc.name === accessoryName ? { ...acc, quantity: newQuantity } : acc
       ),
     });
   };
 
   const getTotalAccessories = () => {
-    return selectedAccessories.reduce((total, acc) => total + acc.quantity, 0);
+    return accessorios.reduce((total, acc) => total + acc.quantity, 0);
   };
 
   const renderSearchBar = () => {
@@ -154,9 +151,9 @@ const AccessorySelection = ({
         </div>
 
         <div className="space-y-3">
-          {selectedAccessories.map((accessory) => (
+          {accessorios.map((accessory) => (
             <div
-              key={accessory.id}
+              key={accessory.name}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
             >
               <div className="flex-1">
@@ -172,7 +169,7 @@ const AccessorySelection = ({
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        updateQuantity(accessory.id, accessory.quantity - 1)
+                        updateQuantity(accessory.name, accessory.quantity - 1)
                       }
                       disabled={accessory.quantity <= 1}
                       className="h-8 w-8 p-0"
@@ -189,7 +186,7 @@ const AccessorySelection = ({
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        updateQuantity(accessory.id, accessory.quantity + 1)
+                        updateQuantity(accessory.name, accessory.quantity + 1)
                       }
                       className="h-8 w-8 p-0"
                     >
@@ -202,7 +199,7 @@ const AccessorySelection = ({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeAccessory(accessory.id)}
+                    onClick={() => removeAccessory(accessory.name)}
                     className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <X size={14} />
@@ -234,10 +231,10 @@ const AccessorySelection = ({
     );
   };
 
-  // When opening the modal, sync modalAccessories with current selectedAccessories
+  // When opening the modal, sync modalAccessories with current accessorios
   useEffect(() => {
     if (editModel) {
-      setModalAccessories([...selectedAccessories]);
+      setModalAccessories([...accessorios]);
     }
   }, [editModel]);
 
@@ -293,47 +290,58 @@ const AccessorySelection = ({
           {/* Search Bar */}
           {!readMode && !editModel && <div>{renderSearchBar()}</div>}
           {/* Selected Accessories */}
-          {selectedAccessories.length > 0
+          {accessorios.length > 0
             ? selectedAccessoriesList()
             : noSelectedAccessories()}
 
           {/* Impression Handling - Show only when accessories are selected */}
-          {selectedAccessories.length > 0 && (
+          {accessorios.length > 0 && (
             <div className="border-t pt-6">
               <div className="space-y-4">
-                <Label className="text-base font-medium">Handling Type</Label>
-                <RadioGroup
-                  value={formData.orderType}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      accessoriesPersalType: value,
-                    })
-                  }
-                  className="space-y-3"
-                >
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem
-                      value="pickup-from-lab"
-                      id="pickup-from-lab"
-                    />
-                    <Label htmlFor="pickup-from-lab" className="cursor-pointer">
-                      Pickup from Clinic
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem
-                      value="send-by-courier"
-                      id="send-by-courier"
-                    />
-                    <Label htmlFor="send-by-courier" className="cursor-pointer">
-                      Send by Courier
-                    </Label>
-                  </div>
-                </RadioGroup>
+                {
+                  readMode && (
+                        <Label className="text-base font-medium">
+                        {formData.orderType === "pickup-from-lab" ? "Pickup from Clinic" : "Send by Courier"}
+                        </Label>
+                  )
+                }
+                {!readMode && (
+                  <>
+                  <Label className="text-base font-medium">Handling Type</Label>
+                  <RadioGroup
+                    value={formData.orderType}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        orderType: value,
+                      })
+                    }
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem
+                        value="pickup-from-lab"
+                        id="pickup-from-lab"
+                      />
+                      <Label htmlFor="pickup-from-lab" className="cursor-pointer">
+                        Pickup from Clinic
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem
+                        value="send-by-courier"
+                        id="send-by-courier"
+                      />
+                      <Label htmlFor="send-by-courier" className="cursor-pointer">
+                        Send by Courier
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  </>
+                )}
 
                 {/* Pickup Details */}
-                {formData.orderType === "pickup-from-lab" && (
+                {formData.orderType === "pickup-from-lab" && !readMode && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
                     <div>
                       <Label
@@ -409,8 +417,38 @@ const AccessorySelection = ({
                   </div>
                 )}
 
+                {/* Pickup Details - Read Only */}
+                {formData.orderType === "pickup-from-lab" && readMode && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">
+                        Pickup Date
+                      </Label>
+                      <div className="mt-1 p-2 bg-white border rounded text-sm">
+                        {formData?.pickupData?.pickupDate || "Not specified"}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">
+                        Pickup Time
+                      </Label>
+                      <div className="mt-1 p-2 bg-white border rounded text-sm">
+                        {formData?.pickupData?.pickupTime || "Not specified"}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="text-sm font-medium text-gray-600">
+                        Pickup Remarks
+                      </Label>
+                      <div className="mt-1 p-2 bg-white border rounded text-sm min-h-[60px]">
+                        {formData?.pickupData?.pickupRemarks || "No remarks"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Courier Details */}
-                {formData.orderType === "send-by-courier" && (
+                {formData.orderType === "send-by-courier" && !readMode && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
                     <div>
                       <Label
@@ -462,6 +500,28 @@ const AccessorySelection = ({
                     </div>
                   </div>
                 )}
+
+                {/* Courier Details - Read Only */}
+                {formData.orderType === "send-by-courier" && readMode && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">
+                        Courier Name
+                      </Label>
+                      <div className="mt-1 p-2 bg-white border rounded text-sm">
+                        {formData.courierData?.courierName || "Not specified"}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">
+                        Tracking ID
+                      </Label>
+                      <div className="mt-1 p-2 bg-white border rounded text-sm">
+                        {formData.courierData?.trackingId || "Not specified"}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -499,11 +559,11 @@ const AccessorySelection = ({
                       key={accessory.id}
                       onClick={() => {
                         if (
-                          !modalAccessories.some((a) => a.id === accessory.id)
+                          !modalAccessories.some((a) => a.name === accessory.name)
                         ) {
                           setModalAccessories([
                             ...modalAccessories,
-                            { ...accessory, quantity: 1 },
+                            { name: accessory.name, quantity: 1 },
                           ]);
                         }
                       }}
@@ -531,7 +591,7 @@ const AccessorySelection = ({
                 <div className="space-y-3 mt-2">
                   {modalAccessories.map((a) => (
                     <div
-                      key={a.id}
+                      key={a.name}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                     >
                       <span className="font-medium text-sm">{a.name}</span>
@@ -543,7 +603,7 @@ const AccessorySelection = ({
                           onClick={() =>
                             setModalAccessories(
                               modalAccessories.map((acc) =>
-                                acc.id === a.id
+                                acc.name === a.name
                                   ? {
                                       ...acc,
                                       quantity: Math.max(1, a.quantity - 1),
@@ -564,7 +624,7 @@ const AccessorySelection = ({
                           onChange={(e) =>
                             setModalAccessories(
                               modalAccessories.map((acc) =>
-                                acc.id === a.id
+                                acc.name === a.name
                                   ? {
                                       ...acc,
                                       quantity: Math.max(
@@ -585,7 +645,7 @@ const AccessorySelection = ({
                           onClick={() =>
                             setModalAccessories(
                               modalAccessories.map((acc) =>
-                                acc.id === a.id
+                                acc.name === a.name
                                   ? { ...acc, quantity: a.quantity + 1 }
                                   : acc
                               )
@@ -601,7 +661,7 @@ const AccessorySelection = ({
                           size="sm"
                           onClick={() =>
                             setModalAccessories(
-                              modalAccessories.filter((acc) => acc.id !== a.id)
+                              modalAccessories.filter((acc) => acc.name !== a.name)
                             )
                           }
                           className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"

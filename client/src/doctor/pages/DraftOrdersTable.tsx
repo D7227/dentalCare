@@ -48,6 +48,7 @@ const DraftOrdersTable = () => {
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                         <button
                           onClick={() => {
+                            console.log("order", order);
                             localStorage.setItem('draftOrderEdit', JSON.stringify({ draftOrder: order, step: 6 }));
                             navigate('/place-order');
                           }}

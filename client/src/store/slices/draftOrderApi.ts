@@ -45,15 +45,9 @@ export const draftOrderApi = createApi({
     }),
 
     // Delete draft order
-    deleteDraftOrder: builder.mutation<
-      { success: boolean },
-      string
-    >({
+    deleteDraftOrder: builder.mutation<DraftOrderType, string>({
       query: (id) => ({ url: `/${id}`, method: "DELETE" }),
-      invalidatesTags: (result, error, id) => [
-        { type: "DraftOrder", id },
-        { type: "DraftOrderList", id: "LIST" },
-      ],
+      invalidatesTags: [{ type: "DraftOrderList", id: "LIST" }],
     }),
   }),
 });

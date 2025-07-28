@@ -79,6 +79,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   }, [socket, isConnected, user?.id]);
 
   const joinChat = (chatId: string, userId: string) => {
+    console.log("joinChat", chatId, userId);
     if (socket && isConnected) {
       socket.emit('join-chat', chatId, userId);
       console.log(`Joined chat room: ${chatId} as user: ${userId}`);
@@ -86,6 +87,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const leaveChat = (chatId: string, userId: string) => {
+    console.log("leaveChat", chatId, userId);
     if (socket && isConnected) {
       socket.emit('leave-chat', chatId, userId);
       console.log(`Left chat room: ${chatId} as user: ${userId}`);
@@ -93,6 +95,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const sendMessage = (chatId: string, message: any) => {
+    console.log("sendMessage", chatId, message);
     if (socket && isConnected) {
       socket.emit('send-message', { chatId, message });
       console.log(`Sending message to chat ${chatId}:`, message);
@@ -100,6 +103,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const sendTyping = (chatId: number, user: string, isTyping: boolean) => {
+    console.log("sendTyping", chatId, user, isTyping);
     if (socket && isConnected) {
       socket.emit('typing', { chatId, user, isTyping });
     }
@@ -110,12 +114,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const onUnreadCountUpdate = (callback: (data: { chatId: string; unreadCount: number }) => void) => {
+    console.log("onUnreadCountUpdate", callback);
     if (socket) {
       socket.on('unread-count-update', callback);
     }
   };
 
   const offUnreadCountUpdate = (callback: (data: { chatId: string; unreadCount: number }) => void) => {
+    console.log("offUnreadCountUpdate", callback);
     if (socket) {
       socket.off('unread-count-update', callback);
     }

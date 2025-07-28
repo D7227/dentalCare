@@ -76,7 +76,7 @@ export const createOrderObject = (formData: FormData, user: any) => {
         .toUpperCase()}`,
     orderId: formData.orderId || "",
     type: getOrderTypeBasedOnSubcategory(),
-    orderType: formData.orderType || "new",
+    orderType: formData.orderType || "",
     orderStatus: formData.orderStatus || "pending",
     paymentType: formData.paymentType || "pending",
     clinicId: formData.clinicId || "",
@@ -94,8 +94,8 @@ export const createOrderObject = (formData: FormData, user: any) => {
     consultingDoctorMobileNumber: formData.consultingDoctorMobileNumber || "",
 
     // Order Details
-    prescriptionTypesId: [formData.prescriptionType] || "",
-    subPrescriptionTypesId: [formData.subPrescriptionTypes] || "",
+    prescriptionTypesId: [formData.prescriptionType] || [],
+    subPrescriptionTypesId: [formData.subPrescriptionTypes] || [],
     orderMethod: formData.orderMethod || "",
 
     // Teeth Configuration - Store as separate fields for database
@@ -112,7 +112,7 @@ export const createOrderObject = (formData: FormData, user: any) => {
     },
 
     // Accessories and Additional Items
-    accessorios: formData.selectedAccessories || formData?.accessories || [],
+    accessorios: formData?.accessorios || [],
     handllingType: formData.handllingType || "",
 
     // Pickup/Delivery Information
@@ -172,77 +172,63 @@ export const createOrderObject = (formData: FormData, user: any) => {
 
 export const createDraftOrderObject = (formData: any, clinicId: string) => {
   return {
-    orderId: formData.orderId || "",
-    refId:
-      formData.refId ||
-      `REF-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 4)
-        .toUpperCase()}`,
-    category: formData.category || "",
-    type: formData.type || "",
+    // Primary key and backend-handled fields are omitted (id, createdAt)
+    refId: formData.refId || `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+    orderType: formData.orderType || "",
+    orderStatus: formData.orderStatus || "",
+    paymentType: formData.paymentType || "",
+
+    clinicId: clinicId || formData.clinicId || "",
+
     firstName: formData.firstName || "",
     lastName: formData.lastName || "",
     age: formData.age || "",
     sex: formData.sex || "",
-    caseHandledBy: formData.caseHandledBy || "",
-    doctorMobile: formData.doctorMobile || "",
-    consultingDoctor: formData.consultingDoctor || "",
-    consultingDoctorMobile: formData.consultingDoctorMobile || "",
-    orderMethod: formData.orderMethod || "",
+
+    caseHandleBy: formData.caseHandleBy || "",
+    doctorMobileNumber: formData.doctorMobileNumber || "",
+    consultingDoctorName: formData.consultingDoctorName || "",
+    consultingDoctorMobileNumber: formData.consultingDoctorMobileNumber || "",
+
+    prescriptionTypesId: [formData.prescriptionType] || [],
+    subPrescriptionTypesId: [formData.subPrescriptionTypes] || [],
+    subPrescriptionTypes: formData.subPrescriptionTypes || "",
     prescriptionType: formData.prescriptionType || "",
-    subcategoryType: formData.subcategoryType || "",
-    restorationType: formData.restorationType || "",
-    productSelection: formData.productSelection || "",
-    orderType: formData.orderType || "",
-    selectedFileType: formData.selectedFileType || "",
+    orderMethod: formData.orderMethod || "",
+
+    teethGroup: Array.isArray(formData.teethGroup)
+      ? formData.teethGroup
+      : formData.teethGroup
+      ? [formData.teethGroup]
+      : [],
     selectedTeeth: Array.isArray(formData.selectedTeeth)
       ? formData.selectedTeeth
+      : formData.selectedTeeth
+      ? [formData.selectedTeeth]
       : [],
-    toothGroups: Array.isArray(formData.toothGroups)
-      ? formData.toothGroups
-      : [],
-    toothNumbers: Array.isArray(formData.toothNumbers)
-      ? formData.toothNumbers
-      : [],
-    abutmentDetails: formData.abutmentDetails || null,
-    abutmentType: formData.abutmentType || "",
-    restorationProducts: Array.isArray(formData.restorationProducts)
-      ? formData.restorationProducts
-      : [],
-    clinicId: clinicId || formData.clinicId || "",
-    ponticDesign: formData.ponticDesign || "",
-    occlusalStaining: formData.occlusalStaining || "",
-    shadeInstruction: formData.shadeInstruction || "",
-    clearance: formData.clearance || "",
-    accessories: Array.isArray(formData.accessories)
-      ? formData.accessories
-      : [],
-    otherAccessory: formData.otherAccessory || "",
-    returnAccessories: !!formData.returnAccessories,
-    notes: formData.notes || "",
+
     files: Array.isArray(formData.files) ? formData.files : [],
-    expectedDeliveryDate: formData.expectedDeliveryDate || null,
+
+    accessorios: Array.isArray(formData.accessorios)
+      ? formData.accessorios
+      : formData.accessorios
+      ? [formData.accessorios]
+      : [],
+    handllingType: formData.handllingType || "",
+
     pickupDate: formData.pickupDate || null,
-    pickupTime: formData.pickupTime || "",
-    step:
-      typeof formData.step === "string"
-        ? formData.step
-        : formData.step !== undefined && formData.step !== null
-        ? String(formData.step)
-        : "",
+    pickupTime: formData.pickupTime ? formData.pickupTime : null,
     pickupRemarks: formData.pickupRemarks || "",
+    courierData: {
+      courierName: formData?.courierData?.courierName,
+      trackingId: formData?.courierData?.trackingId,
+    },
+    pickupData: {
+      pickupDate: formData?.pickupData?.pickupDate,
+      pickupTime: formData?.pickupData?.pickupTime,
+      pickupRemarks: formData?.pickupData?.pickupRemarks,
+    },
+
     scanBooking: formData.scanBooking || null,
-    intraOralScans: Array.isArray(formData.intraOralScans)
-      ? formData.intraOralScans
-      : [],
-    faceScans: Array.isArray(formData.faceScans) ? formData.faceScans : [],
-    patientPhotos: Array.isArray(formData.patientPhotos)
-      ? formData.patientPhotos
-      : [],
-    referralFiles: Array.isArray(formData.referralFiles)
-      ? formData.referralFiles
-      : [],
-    // createdAt and id are handled by backend
   };
 };
