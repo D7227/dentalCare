@@ -24,7 +24,7 @@ export const qaController = {
   async registerQa(req: Request, res: Response) {
     try {
       const { email, password, name } = req.body;
-      const qaRoleName = 'entry_qa';
+      const qaRoleName = 'qa';
       console.log("email",email)
       if (!email || !password || !name) {
         return res.status(400).json({ error: "Missing required fields (email, password, name)" });
@@ -51,6 +51,7 @@ export const qaController = {
         passwordHash,
         name,
         roleId,
+        roleName: roleData?.name,
       }
       const [user] = await db
         .insert(qaUserSchema)
@@ -61,6 +62,7 @@ export const qaController = {
         email: user.email,
         name: user.name,
         roleId: user.roleId,
+        roleName: roleData?.name,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to register QA" });
@@ -85,9 +87,10 @@ export const qaController = {
         JWT_SECRET,
         { expiresIn: "1d" }
       );
+      const role = await RolesStorage.getRoleById(user.roleId);
       res.status(200).json({
         token,
-        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: 'entry_qa'},
+        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: role?.name || '' },
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to login QA" });

@@ -6,6 +6,7 @@ export const technicianUser = pgTable("technician_user", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
+  roleId: text("role_id").notNull(),
   mobileNumber: text("mobile_number").notNull(),
   departmentId: text("department_id"),
   employeeId: text("employee_id").notNull().unique(),

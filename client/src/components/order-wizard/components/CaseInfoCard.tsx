@@ -87,9 +87,18 @@ const CaseInfoCard = ({
     data: teamMembers = [],
     error,
     isLoading,
-  } = useGetTeamMembersByClinicQuery(user?.clinicId ?? "", {
-    skip: !user?.clinicId,
-  });
+    refetch: refetchTeamMembers,
+  } = useGetTeamMembersByClinicQuery(
+    // For QA users, use the selected clinic from formData, otherwise use user's clinicId
+    user?.roleName === "qa" 
+      ? (formData.clinicId || "") 
+      : (user?.clinicId ?? ""), 
+    {
+      skip: user?.roleName === "qa" 
+        ? !formData.clinicId  // Skip if QA user hasn't selected a clinic yet
+        : !user?.clinicId,    // Skip if non-QA user doesn't have clinicId
+    }
+  );
   const {
     data: clinics = [],
     isLoading: clinicsLoading,
@@ -123,6 +132,13 @@ const CaseInfoCard = ({
     } else {
       setFormData((prev: any) => ({ ...prev, clinicId: clinic.id }));
       setClinicSearchTerm(clinic.clinicName);
+      // For QA users, refetch team members when clinic is selected
+      if (user?.roleName === "qa") {
+        // Small delay to ensure formData is updated before refetch
+        setTimeout(() => {
+          refetchTeamMembers();
+        }, 100);
+      }
     }
     setIsClinicDropdownOpen(false);
   };
@@ -135,7 +151,7 @@ const CaseInfoCard = ({
     isEdit = false
   ) => (
     <div className="space-y-4">
-      {endPort === "/qa/place-order" && (
+      {user?.roleName === "qa" && (
         <div className="relative">
           <Label className="text-sm font-medium mb-2 block">
             Clinic Name *
@@ -209,12 +225,14 @@ const CaseInfoCard = ({
               selectedMember?.contactNumber || data.doctorMobileNumber
             );
           }}
-          disabled={isLoading || !!error}
+          disabled={isLoading || !!error || (user?.roleName === "qa" && !formData.clinicId)}
         >
           <SelectTrigger className="mt-1" style={{ borderRadius: "0.5rem" }}>
             <SelectValue
               placeholder={
-                isLoading
+                user?.roleName === "qa" && !formData.clinicId
+                  ? "Please select a clinic first"
+                  : isLoading
                   ? "Loading..."
                   : error
                   ? "Failed to load team members"
@@ -223,7 +241,11 @@ const CaseInfoCard = ({
             />
           </SelectTrigger>
           <SelectContent>
-            {isLoading ? (
+            {user?.roleName === "qa" && !formData.clinicId ? (
+              <div className="p-2 text-sm text-gray-500">
+                Please select a clinic first to view team members
+              </div>
+            ) : isLoading ? (
               <div className="p-2 text-sm text-gray-500">
                 Loading team members...
               </div>

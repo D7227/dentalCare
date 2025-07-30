@@ -15,6 +15,7 @@ export interface doctorOrderTableType {
   orderMethod: string;
   logs: any;
   message: any;
+  selectedTeeth: [];
 }
 
 export interface qaOrderTableType {
@@ -46,7 +47,8 @@ export interface QaStatusApiBody {
   userName: string;
   additionalNote: string;
   extraAdditionalNote: string;
-  qaId:string;
+  qaId: string;
+  orderDate: any;
 }
 
 export interface FilterBody {

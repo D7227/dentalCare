@@ -126,7 +126,7 @@ export interface PickUpData {
 
 export interface CourierData {
   courierName: string;
-  courierTrakingId: string;
+  trackingId: string;
 }
 
 export interface FormData {
@@ -169,8 +169,8 @@ export interface FormData {
   accessorios: Accessorios[];
 
   handllingType: string;
-  pickupData: PickUpData[];
-  courierData: CourierData[];
+  pickupData: PickUpData;
+  courierData: CourierData;
 
   resonOfReject: string;
   resonOfRescan: string;
@@ -210,14 +210,6 @@ export interface FormData {
   returnAccessories: boolean | undefined;
   notes: string | null;
   additionalNote: string;
-  scanBooking: {
-    areaManagerId: string;
-    scanDate: string;
-    scanTime: string;
-    notes: string;
-    trackingId: string;
-    courierName: string;
-  };
   teethEditedByUser?: boolean;
   previousOrderId: string | null;
   repairOrderId: string | null;

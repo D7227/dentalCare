@@ -78,8 +78,12 @@ export const setupOrderRoutes = (app: Express) => {
         return res.status(404).json({ error: "Order not found" });
       }
       res.json(order);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update order status" });
+    } catch (error: any) {
+      console.error("Error updating order:", error);
+      res.status(500).json({
+        error: "Failed to update order",
+        details: error.message || "Unknown error occurred",
+      });
     }
   });
 
@@ -91,7 +95,7 @@ export const setupOrderRoutes = (app: Express) => {
 
       const updateData = await orderStorage.updateStatus(orderId, body);
 
-      res.status(201).json("updateData");
+      res.status(201).json(updateData);
     } catch (error: any) {
       const statusCode = error.statusCode || 400;
       const message = error.message || "Something went wrong";

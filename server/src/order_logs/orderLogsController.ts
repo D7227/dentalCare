@@ -6,6 +6,7 @@ export interface OrderLogsStore {
   // Role methods
   getLogsByOrderId(orderId: string): Promise<any>;
   createLogs(log: any): Promise<any>;
+  updateLogs(id: string, updates: Partial<any>): Promise<any>;
 }
 
 export class OrderLogsStorage implements OrderLogsStore {

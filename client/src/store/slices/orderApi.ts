@@ -86,7 +86,7 @@ export const orderApi = createApi({
     >({
       query: ({ id, body }) => ({
         url: `/updateOrders/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body,
       }),
       invalidatesTags: (result, error, { id }) => [

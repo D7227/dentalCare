@@ -141,23 +141,62 @@ export const useOrderValidation = () => {
           //   if (!formData.scanBooking?.scanTime?.trim())
           //     errors.push("Scan time is required for scan booking");
           // }
-          break;
-        case 7:
-          // Step 7: Final Details & Accessories
           const accessories = formData.accessorios || [];
           if (
-            accessories.includes("other") &&
+            accessories.some((acc: any) => acc.name === "other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")
           ) {
             errors.push("Please specify the other accessory");
           }
+          // Validate pickup/courier details when accessories are selected
+          if (accessories.length > 0) {
+            if (formData.orderType === "pickup-from-lab") {
+              // Validate pickup details
+              if (!formData.pickupData?.pickUpDate?.trim()) {
+                errors.push(
+                  "Pickup date is required when accessories are selected"
+                );
+              }
+              if (!formData.pickupData?.pickUpTime?.trim()) {
+                errors.push(
+                  "Pickup time is required when accessories are selected"
+                );
+              }
+              if (!formData.pickupData?.pickUpMessage?.trim()) {
+                errors.push(
+                  "Pickup message is required when accessories are selected"
+                );
+              }
+            } else if (formData.orderType === "send-by-courier") {
+              // Validate courier details
+              if (!formData.courierData?.courierName?.trim()) {
+                errors.push(
+                  "Courier name is required when accessories are selected"
+                );
+              }
+              if (!formData.courierData?.trackingId?.trim()) {
+                errors.push(
+                  "Tracking ID is required when accessories are selected"
+                );
+              }
+            } else {
+              // If accessories are selected but no order type is chosen
+              errors.push(
+                "Please select handling type (pickup or courier) when accessories are selected"
+              );
+            }
+          }
+          break;
+        case 7:
+          // Step 7: Final Details & Accessories
+
           break;
       }
     }
     if (orderCategory === "repeat") {
       switch (currentStep) {
         case 1:
-          if (!formData?.previousOrderId.trim())
+          if (!formData?.previousOrderId?.trim())
             errors.push("Please select a previous order");
           break;
         case 3:
@@ -171,10 +210,44 @@ export const useOrderValidation = () => {
           // }
           const accessories = formData.accessorios || [];
           if (
-            accessories.includes("other") &&
+            accessories.some((acc: any) => acc.name === "other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")
           ) {
             errors.push("Please specify the other accessory");
+          }
+
+          // Validate pickup/courier details when accessories are selected
+          if (accessories.length > 0) {
+            if (formData.orderType === "pickup-from-lab") {
+              // Validate pickup details
+              if (!formData.pickupDats?.pickUpDate?.trim()) {
+                errors.push(
+                  "Pickup date is required when accessories are selected"
+                );
+              }
+              if (!formData.pickupDats?.pickUpTime?.trim()) {
+                errors.push(
+                  "Pickup time is required when accessories are selected"
+                );
+              }
+            } else if (formData.orderType === "send-by-courier") {
+              // Validate courier details
+              if (!formData.scanBooking?.courierName?.trim()) {
+                errors.push(
+                  "Courier name is required when accessories are selected"
+                );
+              }
+              if (!formData.scanBooking?.trackingId?.trim()) {
+                errors.push(
+                  "Tracking ID is required when accessories are selected"
+                );
+              }
+            } else {
+              // If accessories are selected but no order type is chosen
+              errors.push(
+                "Please select handling type (pickup or courier) when accessories are selected"
+              );
+            }
           }
           break;
       }
@@ -182,15 +255,15 @@ export const useOrderValidation = () => {
     if (orderCategory === "repair") {
       switch (currentStep) {
         case 1:
-          if (!formData?.repairOrderId.trim())
+          if (!formData?.repairOrderId?.trim())
             errors.push("Please select an order to repair");
           break;
         case 2:
-          if (!formData?.issueDescription.trim())
+          if (!formData?.issueDescription?.trim())
             errors.push("Please describe the issue");
           break;
         case 3:
-          if (!formData?.repairType.trim())
+          if (!formData?.repairType?.trim())
             errors.push("Please select a repair type");
           break;
         case 4:
@@ -204,10 +277,44 @@ export const useOrderValidation = () => {
           }
           const repairAccessories = formData.accessorios || [];
           if (
-            repairAccessories.includes("other") &&
+            repairAccessories.some((acc: any) => acc.name === "other") &&
             (!formData.otherAccessory || formData.otherAccessory.trim() === "")
           ) {
             errors.push("Please specify the other accessory");
+          }
+
+          // Validate pickup/courier details when accessories are selected
+          if (repairAccessories.length > 0) {
+            if (formData.orderType === "pickup-from-lab") {
+              // Validate pickup details
+              if (!formData.pickupDats?.pickUpDate?.trim()) {
+                errors.push(
+                  "Pickup date is required when accessories are selected"
+                );
+              }
+              if (!formData.pickupDats?.pickUpTime?.trim()) {
+                errors.push(
+                  "Pickup time is required when accessories are selected"
+                );
+              }
+            } else if (formData.orderType === "send-by-courier") {
+              // Validate courier details
+              if (!formData.scanBooking?.courierName?.trim()) {
+                errors.push(
+                  "Courier name is required when accessories are selected"
+                );
+              }
+              if (!formData.scanBooking?.trackingId?.trim()) {
+                errors.push(
+                  "Tracking ID is required when accessories are selected"
+                );
+              }
+            } else {
+              // If accessories are selected but no order type is chosen
+              errors.push(
+                "Please select handling type (pickup or courier) when accessories are selected"
+              );
+            }
           }
           break;
       }

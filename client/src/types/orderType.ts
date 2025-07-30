@@ -105,6 +105,7 @@ export interface OrderType {
   lastName: string;
   age: number;
   sex: string;
+  clinicName: string;
   clinicId: string;
   caseHandleBy: string;
   doctorMobileNumber: string;

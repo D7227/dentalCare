@@ -140,7 +140,6 @@ const SummaryOrder = ({
                 selectedTeeth: teeth,
               })
             }
-            subcategoryType={formData?.subcategoryType}
             formData={formData}
             readMode={readMode}
           />

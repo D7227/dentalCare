@@ -42,7 +42,7 @@ import {
   useUpdateOrderMutation,
 } from "@/store/slices/orderApi";
 import { useSelector, useDispatch } from "react-redux";
-import { setOrder, setStep } from "@/store/slices/orderLocalSlice";
+import { setOrder, setStep, resetOrder } from "@/store/slices/orderLocalSlice";
 import SummaryOrder from "@/components/order-wizard/SummaryOrder";
 import { useLocation as useRouterLocation } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,12 +85,58 @@ const PlaceOrder = () => {
 
   const { validateStep } = useOrderValidation();
   const { getStepsForCategory } = useOrderSteps();
+  const dispatch = useDispatch();
 
   // Get user data from Redux store
   const user = useAppSelector((state) => state.userData.userData);
   const isAuthenticated = !!user;
   const clinicId = user?.clinicId;
   console.log("user - place order", user);
+
+  // Function to save form data and step to localStorage
+  const saveToLocalStorage = (formData: FormData, step: number, category: OrderCategoryType) => {
+    try {
+      const dataToSave = {
+        formData,
+        step,
+        category,
+        timestamp: Date.now()
+      };
+      localStorage.setItem("placeOrderProgress", JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
+  };
+
+  // Function to load form data and step from localStorage
+  const loadFromLocalStorage = () => {
+    try {
+      const saved = localStorage.getItem("placeOrderProgress");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Check if data is not older than 24 hours
+        const isExpired = Date.now() - parsed.timestamp > 24 * 60 * 60 * 1000;
+        if (!isExpired) {
+          return parsed;
+        } else {
+          // Clear expired data
+          localStorage.removeItem("placeOrderProgress");
+        }
+      }
+    } catch (error) {
+      console.error("Error loading from localStorage:", error);
+      localStorage.removeItem("placeOrderProgress");
+    }
+    return null;
+  };
+
+  // Function to clear localStorage
+  const clearLocalStorage = () => {
+    localStorage.removeItem("placeOrderProgress");
+  };
+
+
+
   useEffect(() => {
     if (!initialized && draftOrderData && draftStep) {
       setOrderCategory("new");
@@ -101,20 +147,33 @@ const PlaceOrder = () => {
       if (shouldRemoveDraftOrderEdit) {
         localStorage.removeItem("draftOrderEdit");
       }
+    } else if (!initialized && !draftOrderData) {
+      // Try to load from localStorage if no draft order data
+      const savedData = loadFromLocalStorage();
+      if (savedData) {
+        setOrderCategory(savedData.category);
+        setCurrentStep(savedData.step);
+        setFormData(savedData.formData);
+        setInitialized(true);
+      } else {
+        setInitialized(true);
+      }
     }
   }, [initialized, draftOrderData, draftStep, shouldRemoveDraftOrderEdit]);
 
   const [formData, setFormData] = useState<FormData>({
+    id: "",
     clinicId: "",
     orderId: "",
     refId: "",
+    crateNo: "",
     firstName: "",
     lastName: "",
     age: 0,
     sex: "",
+    caseHandleBy: "",
     doctorMobileNumber: "",
-    doctorMobile: "",
-    consultingDoctor: "",
+    consultingDoctorName: "",
     consultingDoctorMobileNumber: "",
     orderMethod: "" as any,
     prescriptionType: "",
@@ -126,58 +185,62 @@ const PlaceOrder = () => {
     restorationType: null,
     productSelection: null,
     orderType: "",
-    selectedFileType: null,
-    toothNumbers: [],
-    abutmentDetails: {
-      abutmentType: "",
-      quantity: 0,
-      product: [{ name: "", provider: "" }],
+    teethNumbers: [],
+    files: {
+      addPatientPhotos: new File([], ""),
+      faceScan: new File([], ""),
+      intraOralScan: new File([], ""),
+      referralImages: new File([], ""),
     },
+    accessorios: [],
+    handllingType: "",
+    pickupData: {
+      pickUpDate: "",
+      pickUpTime: "",
+      pickUpMessage: "",
+    },
+    courierData: {
+      courierName: "",
+      trackingId: "",
+    },
+    resonOfReject: "",
+    resonOfRescan: "",
+    rejectNote: "",
+    orderBy: "",
+    acpectedDileveryData: null as unknown as Date,
+    lifeCycle: [],
+    orderStatus: "pending",
+    orderDate: "",
+    updateDate: "",
+    paymentType: "",
+    paymentStatus: "pending",
+    totalAmount: null,
     abutmentType: "",
     restorationProducts: [],
     ponticDesign: null,
     occlusalStaining: "medium",
     shadeInstruction: null,
     clearance: null,
-    accessorios: [],
     otherAccessory: null,
     returnAccessories: false,
     notes: null,
-    files: {
-      addPatientPhotos: [] as File[],
-      faceScan: [] as File[],
-      intraOralScan: [] as File[],
-      referralImages: [] as File[],
-    },
-    AcpectedDileveryData: null as unknown as Date, // Fix type error: null is not assignable to type 'Date'
-    // expectedDeliveryDate: null,
-    pickupDats: {
-      pickUpDate: "",
-      pickUpTime: "",
-      pickUpMessage: "",
-    },
-    scanBooking: {
-      areaManagerId: "",
-      scanDate: "",
-      scanTime: "",
-      notes: "",
-      trackingId: "",
-      courierName: "",
-    },
+    additionalNote: "",
+    teethEditedByUser: false,
     previousOrderId: null,
     repairOrderId: null,
     issueDescription: null,
     repairType: null,
     returnWithTrial: false,
-    teethEditedByUser: false,
-
-    // --- Order display fields (for OrderCard) ---
-    orderStatus: "pending",
     percentage: 10,
     isUrgent: false,
-    paymentStatus: "pending",
-    totalAmount: "6565",
   });
+
+  // Save to localStorage whenever form data, step, or category changes
+  useEffect(() => {
+    if (initialized && orderCategory && orderCategory !== null) {
+      saveToLocalStorage(formData, currentStep, orderCategory);
+    }
+  }, [formData, currentStep, orderCategory, initialized]);
 
   const getHasSelectedTeeth = () => {
     if (orderCategory !== "repeat") return false;
@@ -195,10 +258,89 @@ const PlaceOrder = () => {
   };
 
   const handleCategorySelect = (orderType: OrderCategoryType) => {
+    // Clear Redux store and localStorage when selecting a new order category
+    dispatch(resetOrder());
+    clearLocalStorage();
+    
+    // Reset local state with fresh form data
     setOrderCategory(orderType);
-    setFormData({ ...formData, orderType });
+    setFormData({
+      id: "",
+      clinicId: "",
+      orderId: "",
+      refId: "",
+      crateNo: "",
+      firstName: "",
+      lastName: "",
+      age: 0,
+      sex: "",
+      caseHandleBy: "",
+      doctorMobileNumber: "",
+      consultingDoctorName: "",
+      consultingDoctorMobileNumber: "",
+      orderMethod: "" as any,
+      prescriptionType: "",
+      prescriptionTypesId: [],
+      subPrescriptionTypes: "",
+      subPrescriptionTypesId: [],
+      selectedTeeth: [],
+      teethGroup: [],
+      restorationType: null,
+      productSelection: null,
+      orderType,
+      teethNumbers: [],
+      files: {
+        addPatientPhotos: new File([], ""),
+        faceScan: new File([], ""),
+        intraOralScan: new File([], ""),
+        referralImages: new File([], ""),
+      },
+      accessorios: [],
+      handllingType: "",
+      pickupData: {
+        pickUpDate: "",
+        pickUpTime: "",
+        pickUpMessage: "",
+      },
+      courierData: {
+        courierName: "",
+        trackingId: "",
+      },
+      resonOfReject: "",
+      resonOfRescan: "",
+      rejectNote: "",
+      orderBy: "",
+      acpectedDileveryData: null as unknown as Date,
+      lifeCycle: [],
+      orderStatus: "pending",
+      orderDate: "",
+      updateDate: "",
+      paymentType: "",
+      paymentStatus: "pending",
+      totalAmount: null,
+      abutmentType: "",
+      restorationProducts: [],
+      ponticDesign: null,
+      occlusalStaining: "medium",
+      shadeInstruction: null,
+      clearance: null,
+      otherAccessory: null,
+      returnAccessories: false,
+      notes: null,
+      additionalNote: "",
+      teethEditedByUser: false,
+      previousOrderId: null,
+      repairOrderId: null,
+      issueDescription: null,
+      repairType: null,
+      returnWithTrial: false,
+      percentage: 10,
+      isUrgent: false,
+    });
     setCurrentStep(1);
     setStepValidationErrors({});
+    setSelectedOrderId("");
+    setAdditionalNote("");
   };
 
   const handleAddMoreProducts = () => {
@@ -254,6 +396,7 @@ const PlaceOrder = () => {
             title: "Order updated successfully!",
             description: `Order #${selectedOrderId} has been updated.`,
           });
+          clearLocalStorage(); // Clear localStorage on successful submission
           window.history.back();
         } else {
           toast({
@@ -293,6 +436,7 @@ const PlaceOrder = () => {
             title: "Order updated successfully!",
             description: `Order #${selectedOrderId} has been updated.`,
           });
+          clearLocalStorage(); // Clear localStorage on successful submission
           window.history.back();
         } else {
           toast({
@@ -323,7 +467,8 @@ const PlaceOrder = () => {
         ...orderDataRaw,
         age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
         additionalNote: additionalNote,
-        orderBy: "doctor",
+        orderByRole: user?.roleName,
+        orderByName: user?.fullName || user?.firstname + " " + user?.lastname,
       };
       console.log("formData", formData);
       console.log("orderData", orderData);
@@ -333,6 +478,7 @@ const PlaceOrder = () => {
           title: "Order submitted successfully!",
           description: `Order #${orderLocal.id} has been sent to the lab for processing.`,
         });
+        clearLocalStorage(); // Clear localStorage on successful submission
         window.history.back();
       } else {
         toast({
@@ -393,6 +539,7 @@ const PlaceOrder = () => {
         title: "Draft saved successfully!",
         description: `Draft #${draftOrder.id} has been saved.`,
       });
+      clearLocalStorage(); // Clear localStorage when draft is saved
       window.history.back();
     } catch (error) {
       console.error("Draft save error:", error);
@@ -427,6 +574,7 @@ const PlaceOrder = () => {
 
   const confirmCancelOrder = () => {
     setShowCancelModal(false);
+    clearLocalStorage(); // Clear localStorage when order is cancelled
     window.history.back();
     toast({
       title: "Order Cancelled",
@@ -580,13 +728,17 @@ const PlaceOrder = () => {
                   <>
                     <CustomButton
                       variant="blackAndWhite"
-                      onClick={() => window.history.back()}
+                      onClick={() => {
+                        window.history.back();
+                        clearLocalStorage();
+                        dispatch(resetOrder());
+                      }}
                     >
                       <ArrowLeft size={18} />
                       Back
                     </CustomButton>
                     <div className="h-5 w-px bg-gray-300"></div>
-                  </>
+                </>
                 )}
                 <div className="flex items-center gap-3 justify-between ">
                   <div>

@@ -249,8 +249,8 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                   {order?.teethNo ||
                     (Array.isArray(order?.selectedTeeth)
                       ? order.selectedTeeth
-                          .map((t: any) => t.toothNumber || t)
-                          .join(", ")
+                        .map((t: any) => t.toothNumber || t)
+                        .join(", ")
                       : "")}
                 </span>
               </div>
@@ -262,8 +262,8 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                     <span>Order Date</span>
                   </div>
                   <span className="text-customGray-100 font-medium text-12/16">
-                    {order?.createdAt
-                      ? dayjs(order.createdAt).format("DD-MM-YYYY | hh:mm A")
+                    {order?.orderDate
+                      ? dayjs(order.orderDate).format("DD-MM-YYYY")
                       : order?.orderDate || "-"}
                   </span>
                 </div>
