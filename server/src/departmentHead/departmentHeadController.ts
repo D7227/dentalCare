@@ -1,6 +1,11 @@
 import { db } from "server/database/db";
-import { departmentHeadSchema, departmentSchema } from "./departmentHeadSchema";
-import { eq } from "drizzle-orm";
+import {
+  departmentHeadSchema,
+  departmentSchema,
+  labOrderSchema,
+  orderFlowSchema,
+} from "./departmentHeadSchema";
+import { and, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -464,4 +469,329 @@ export const departmentHeadController = {
       res.status(500).json({ error: "Failed to get available departments" });
     }
   },
+
+  // ✅ GET orders assigned to a department and waiting for inward
+  async getWaitingInward(req: Request, res: Response) {
+    try {
+      const { departmentId } = req.params;
+      if (!departmentId)
+        return res.status(400).json({ error: "Department ID is required" });
+
+      const waitingOrders = await db
+        .select({
+          flowId: orderFlowSchema.id,
+          orderId: orderFlowSchema.orderId,
+          departmentId: orderFlowSchema.departmentId,
+          status: orderFlowSchema.status,
+          orderNumber: labOrderSchema.orderNumber,
+          priority: labOrderSchema.priority,
+          dueDate: labOrderSchema.dueDate,
+          createdAt: labOrderSchema.createdAt,
+        })
+        .from(orderFlowSchema)
+        .innerJoin(
+          labOrderSchema,
+          eq(orderFlowSchema.orderId, labOrderSchema.id)
+        )
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "waiting_inward")
+          )
+        )
+        .orderBy(orderFlowSchema.createdAt);
+
+      return res.status(200).json({
+        message: "Waiting inward orders retrieved successfully",
+        data: waitingOrders,
+      });
+    } catch (error: any) {
+      console.error("Error in getWaitingInward:", error);
+      res.status(500).json({ error: "Failed to fetch waiting inward orders" });
+    }
+  },
+
+  // ✅ Mark order as inwarded by head
+  async inward(req: Request, res: Response) {
+    try {
+      const { flowId } = req.params;
+      const [flow] = await db
+        .select()
+        .from(orderFlowSchema)
+        .where(eq(orderFlowSchema.id, flowId));
+
+      if (!flow) return res.status(404).json({ error: "Order flow not found" });
+
+      if (flow.status !== "waiting_inward")
+        return res.status(400).json({ error: "Order is not in inward stage" });
+
+      await db
+        .update(orderFlowSchema)
+        .set({ status: "inward_pending" })
+        .where(eq(orderFlowSchema.id, flowId));
+
+      return res.status(200).json({ message: "Order inwarded successfully" });
+    } catch (error) {
+      console.error("Error in inward:", error);
+      res.status(500).json({ error: "Failed to inward order" });
+    }
+  },
+
+  // ✅ Get orders that are inwarded but not assigned to technician
+  async getAssignedPending(req: Request, res: Response) {
+    try {
+      const { departmentId } = req.params;
+
+      const orders = await db
+        .select()
+        .from(orderFlowSchema)
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "inward_pending")
+          )
+        );
+
+      return res
+        .status(200)
+        .json({ message: "Assigned pending orders fetched", data: orders });
+    } catch (error) {
+      console.error("Error in getAssignedPending:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch assigned pending orders" });
+    }
+  },
+
+  // ✅ Assign technician to order
+  async assignTechnician(req: Request, res: Response) {
+    try {
+      const { flowId } = req.params;
+      const { technicianId } = req.body;
+
+      const [flow] = await db
+        .select()
+        .from(orderFlowSchema)
+        .where(eq(orderFlowSchema.orderId, flowId));
+      if (!flow) return res.status(404).json({ error: "Order flow not found" });
+
+      if (flow.status !== "inward_pending")
+        return res
+          .status(400)
+          .json({ error: "Order not ready for technician assignment" });
+
+      await db
+        .update(orderFlowSchema)
+        .set({
+          status: "assigned_pending",
+          technicianId,
+        })
+        .where(eq(orderFlowSchema.id, flowId));
+
+      return res
+        .status(200)
+        .json({ message: "Technician assigned successfully" });
+    } catch (error) {
+      console.error("Error in assignTechnician:", error);
+      res.status(500).json({ error: "Failed to assign technician" });
+    }
+  },
+
+  // ✅ Get orders where technician is assigned but not started
+  async getOutwardPending(req: Request, res: Response) {
+    try {
+      const { departmentId } = req.params;
+
+      const orders = await db
+        .select()
+        .from(orderFlowSchema)
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "outward_pending")
+          )
+        );
+
+      return res
+        .status(200)
+        .json({ message: "Outward pending orders fetched", data: orders });
+    } catch (error) {
+      console.error("Error in getOutwardPending:", error);
+      res.status(500).json({ error: "Failed to fetch outward pending orders" });
+    }
+  },
+
+  // ✅ Mark the order as outward and create next step for next department
+  async outward(req: Request, res: Response) {
+    try {
+      const { flowId } = req.params;
+
+      // Find the current flow
+      const [currentFlow] = await db
+        .select()
+        .from(orderFlowSchema)
+        .where(eq(orderFlowSchema.id, flowId));
+      if (!currentFlow)
+        return res.status(404).json({ error: "Order flow not found" });
+
+      if (currentFlow.status !== "outward_pending")
+        return res
+          .status(400)
+          .json({ error: "Order is not ready for outward" });
+
+      // Mark current step as completed
+      await db
+        .update(orderFlowSchema)
+        .set({ isCurrent: false })
+        .where(eq(orderFlowSchema.id, flowId));
+
+      // Determine next department from sequence
+      const [labOrder] = await db
+        .select()
+        .from(labOrderSchema)
+        .where(eq(labOrderSchema.id, currentFlow.orderId));
+      if (!labOrder)
+        return res.status(404).json({ error: "Lab order not found" });
+
+      const sequence = labOrder.sequence as string[];
+      const currentIndex = sequence.findIndex(
+        (id) => id === currentFlow.departmentId
+      );
+      const nextDepartmentId = sequence[currentIndex + 1];
+
+      // If next department exists, insert next flow step
+      if (nextDepartmentId) {
+        await db.insert(orderFlowSchema).values({
+          orderId: currentFlow.orderId,
+          departmentId: nextDepartmentId,
+          flowStep: currentFlow.flowStep + 1,
+          isCurrent: true,
+          status: "waiting_inward",
+        });
+      }
+
+      return res.status(200).json({ message: "Order outwarded successfully" });
+    } catch (error) {
+      console.error("Error in outward:", error);
+      res.status(500).json({ error: "Failed to outward order" });
+    }
+  },
+
+  // // mnage the order cycle
+  // async getWaitingInward(req: Request, res: Response) {
+  //   try {
+  //     const { departmentId } = req.params;
+  //     console.log("departmentId", departmentId);
+
+  //     if (!departmentId) {
+  //       return res.status(400).json({ error: "Department ID is required" });
+  //     }
+
+  //     // Fetch orders in 'waiting_inward' for the specified department
+  //     const waitingOrders = await db
+  //       .select({
+  //         flowId: orderFlowSchema.id,
+  //         orderId: orderFlowSchema.orderId,
+  //         departmentId: orderFlowSchema.departmentId,
+  //         status: orderFlowSchema.status,
+  //         orderNumber: labOrderSchema.orderNumber,
+  //         priority: labOrderSchema.priority,
+  //         dueDate: labOrderSchema.dueDate,
+  //         createdAt: labOrderSchema.createdAt,
+  //       })
+  //       .from(orderFlowSchema)
+  //       .innerJoin(
+  //         labOrderSchema,
+  //         eq(orderFlowSchema.orderId, labOrderSchema.id)
+  //       )
+  //       .where(
+  //         and(
+  //           eq(orderFlowSchema.departmentId, departmentId),
+  //           eq(orderFlowSchema.isCurrent, true),
+  //           eq(orderFlowSchema.status, "waiting_inward")
+  //         )
+  //       )
+  //       .orderBy(orderFlowSchema.createdAt);
+
+  //     console.log("waitingOrders", waitingOrders);
+
+  //     return res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: waitingOrders,
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     return res
+  //       .status(500)
+  //       .json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
+
+  // async inward(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: [id],
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     res.status(500).json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
+
+  // async getAssignedPending(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: [id],
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     res.status(500).json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
+
+  // async assignTechnician(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: [id],
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     res.status(500).json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
+
+  // async getOutwardPending(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: [id],
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     res.status(500).json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
+
+  // async outward(req: Request, res: Response) {
+  //   try {
+  //     const { id } = req.params;
+  //     res.status(200).json({
+  //       message: "Waiting inward orders retrieved successfully",
+  //       data: [id],
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error getting waiting inward orders:", error);
+  //     res.status(500).json({ error: "Failed to get waiting inward orders" });
+  //   }
+  // },
 };

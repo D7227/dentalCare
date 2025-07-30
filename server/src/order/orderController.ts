@@ -16,7 +16,20 @@ import {
 import { chatStorage } from "../chat/chatController";
 import { clinicStorage } from "../clinic/clinicController";
 import { orderLogsStorage } from "../order_logs/orderLogsController";
+import {
+  labOrderSchema,
+  orderFlowSchema,
+} from "../departmentHead/departmentHeadSchema";
 import { Request, Response } from "express";
+
+// Mock static values
+const STATIC_DUE_DATE = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // now + 5 days
+const STATIC_PRIORITY = "medium";
+const STATIC_SEQUENCE = [
+  "1c307134-cf0b-420e-b7c3-7347acd81067", // dept-1
+  "43140bd3-08c5-45e3-ba36-602cbbd56153", // dept-2
+  "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129", // dept-5
+];
 
 export interface orderStore {
   getOrder(id: string): Promise<any | undefined>;
@@ -257,6 +270,10 @@ export class OrderStorage implements orderStore {
     const bodyData = body?.orderDate;
     const orderData = await orderStorage.getOrder(orderId);
     // Duplicate check for orderId and crateNo before updating
+    console.log("orderId", orderId);
+    console.log("callllllleeeeeddddd");
+    console.log("body", body);
+    console.log("orderData", orderData);
     if (body?.orderId) {
       const [existing] = await db
         .select()
@@ -270,6 +287,7 @@ export class OrderStorage implements orderStore {
         throw error;
       }
     }
+
     if (body?.crateNo) {
       const [existingCrate] = await db
         .select()
@@ -283,6 +301,7 @@ export class OrderStorage implements orderStore {
         throw error;
       }
     }
+
     if ((body?.orderStatus || "") === "active") {
       const orderLogsData = await orderLogsStorage.getLogsByOrderId(orderId);
       if (orderLogsData?.logs?.length > 0) {
@@ -366,6 +385,90 @@ export class OrderStorage implements orderStore {
           orderId,
           updateOrder
         );
+
+        // Check if lab order already exists for this order
+        const [existingLabOrder] = await db
+          .select()
+          .from(labOrderSchema)
+          .where(eq(labOrderSchema.orderId, orderId));
+
+        let labOrderId: string | null = null;
+
+        if (!existingLabOrder) {
+          try {
+            const [newLabOrder] = await db
+              .insert(labOrderSchema)
+              .values({
+                orderId: orderId,
+                orderNumber: updateOrder?.orderId,
+                orderByRole: updateOrder?.orderByRole,
+                orderById: updateOrder?.orderById, // Use orderById from the order
+                dueDate: STATIC_DUE_DATE.toISOString().split("T")[0], // Convert Date to date string (YYYY-MM-DD)
+                priority: STATIC_PRIORITY,
+                sequence: STATIC_SEQUENCE,
+                status: "pending",
+              })
+              .returning();
+
+            labOrderId = newLabOrder.id;
+            console.log(
+              `Lab order created successfully for order: ${orderId} with order number: ${updateOrder?.orderId}`
+            );
+            console.log("updateOrder", updateOrder);
+            console.log("Lab order orderById:", updateOrder?.orderById);
+            console.log("Lab order orderByRole:", updateOrder?.orderByRole);
+          } catch (error) {
+            console.error(
+              `Error creating lab order for order ${orderId}:`,
+              error
+            );
+          }
+        } else {
+          labOrderId = existingLabOrder.id;
+          console.log(`Lab order already exists for order: ${orderId}`);
+        }
+
+        // Insert first step into order_flow if lab order was created successfully
+        if (labOrderId) {
+          try {
+            // Check if order flow already exists for this lab order
+            const [existingOrderFlow] = await db
+              .select()
+              .from(orderFlowSchema)
+              .where(eq(orderFlowSchema.orderId, labOrderId));
+
+            if (!existingOrderFlow) {
+              // Validate that the department ID exists before creating the order flow
+              if (STATIC_SEQUENCE[0]) {
+                await db.insert(orderFlowSchema).values({
+                  orderId: labOrderId, // Use the lab order ID, not the original order ID
+                  departmentId: STATIC_SEQUENCE[0],
+                  flowStep: 1,
+                  isCurrent: true,
+                  status: "waiting_inward",
+                });
+                console.log(
+                  `Order flow created successfully for lab order: ${labOrderId} with department: ${STATIC_SEQUENCE[0]}`
+                );
+              } else {
+                console.warn(
+                  `No department ID available for order flow creation for lab order: ${labOrderId}`
+                );
+              }
+            } else {
+              console.log(
+                `Order flow already exists for lab order: ${labOrderId}`
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Error creating order flow for lab order ${labOrderId}:`,
+              error
+            );
+            // Don't throw error here as the main order update should still succeed
+          }
+        }
+
         if (!UpdateOrderData) return "Order Not Update";
         return UpdateOrderData;
       }

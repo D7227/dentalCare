@@ -39,8 +39,41 @@ departmentHeadRouter.get(
 // Admin gets specific department head
 departmentHeadRouter.get("/:id", departmentHeadController.getById);
 
+// * INFO : Mange the order cycle
+
+// GET /head/waiting-inward/:departmentId
+departmentHeadRouter.get(
+  "/waiting-inward/:departmentId",
+  departmentHeadController.getWaitingInward
+);
+
+// POST /head/inward/:flowId
+departmentHeadRouter.post("/inward/:flowId", departmentHeadController.inward);
+
+// GET /head/assigned-pending
+departmentHeadRouter.get(
+  "/assigned-pending/:departmentId",
+  departmentHeadController.getAssignedPending
+);
+
+// POST /head/assign-technician/:flowId
+departmentHeadRouter.post(
+  "/assign-technician/:flowId",
+  departmentHeadController.assignTechnician
+);
+
+// GET /head/outward-pending
+departmentHeadRouter.get(
+  "/outward-pending/:departmentId",
+  departmentHeadController.getOutwardPending
+);
+
+// POST /head/outward/:flowId
+departmentHeadRouter.post(
+  "/outward/:flowId",
+  departmentHeadController.outward
+);
+
 export function setupDepartmentHeadRoutes(app: Express) {
   app.use("/api/head", departmentHeadRouter);
 }
-
-export { departmentHeadRouter };
