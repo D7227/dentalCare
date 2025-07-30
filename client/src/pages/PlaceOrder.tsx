@@ -94,13 +94,17 @@ const PlaceOrder = () => {
   console.log("user - place order", user);
 
   // Function to save form data and step to localStorage
-  const saveToLocalStorage = (formData: FormData, step: number, category: OrderCategoryType) => {
+  const saveToLocalStorage = (
+    formData: FormData,
+    step: number,
+    category: OrderCategoryType
+  ) => {
     try {
       const dataToSave = {
         formData,
         step,
         category,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       localStorage.setItem("placeOrderProgress", JSON.stringify(dataToSave));
     } catch (error) {
@@ -134,8 +138,6 @@ const PlaceOrder = () => {
   const clearLocalStorage = () => {
     localStorage.removeItem("placeOrderProgress");
   };
-
-
 
   useEffect(() => {
     if (!initialized && draftOrderData && draftStep) {
@@ -261,7 +263,7 @@ const PlaceOrder = () => {
     // Clear Redux store and localStorage when selecting a new order category
     dispatch(resetOrder());
     clearLocalStorage();
-    
+
     // Reset local state with fresh form data
     setOrderCategory(orderType);
     setFormData({
@@ -463,12 +465,27 @@ const PlaceOrder = () => {
       formData.orderStatus = "pending";
       // formData.percentage = 10;
       const orderDataRaw = createOrderObject(formData, user);
+      // Set orderByRole and orderById based on user role
+      let orderByRole = user?.roleName;
+      let orderById = user?.id;
+
+      // If user is a doctor (main_doctor), use clinicId as orderById
+      if (user?.roleName === "main_doctor") {
+        orderByRole = "main_doctor";
+        orderById = user?.clinicId;
+      }
+      // If user is QA, use QA ID as orderById
+      else if (user?.roleName === "qa") {
+        orderByRole = "qa";
+        orderById = user?.id;
+      }
+
       const orderData = {
         ...orderDataRaw,
         age: orderDataRaw.age === null ? undefined : orderDataRaw.age,
         additionalNote: additionalNote,
-        orderByRole: user?.roleName,
-        orderByName: user?.fullName || user?.firstname + " " + user?.lastname,
+        orderByRole: orderByRole,
+        orderById: orderById,
       };
       console.log("formData", formData);
       console.log("orderData", orderData);
@@ -738,7 +755,7 @@ const PlaceOrder = () => {
                       Back
                     </CustomButton>
                     <div className="h-5 w-px bg-gray-300"></div>
-                </>
+                  </>
                 )}
                 <div className="flex items-center gap-3 justify-between ">
                   <div>

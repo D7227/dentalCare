@@ -37,7 +37,7 @@ export const orderSchema = pgTable("orders", {
   additionalNote: text("additional_note"),
   extraAdditionalNote: text("extra_additional_note"),
   orderByRole: text("order_by_role"),
-  orderByName: text("order_by_name"),
+  orderById: text("order_by_id"),
   acpectedDileveryData: timestamp("acpected_dilevery_data"),
   lifeCycle: jsonb("life_cycle"),
   orderStatus: text("order_status"),
@@ -51,9 +51,8 @@ export const orderSchema = pgTable("orders", {
   doctorNote: text("doctor_note"),
   orderType: text("order_type"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow()
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
-
 
 export const insertOrderSchema = createInsertSchema(orderSchema)
   .omit({

@@ -87,7 +87,7 @@ export class OrderStorage implements orderStore {
     };
   }
 
-  async createOrder(insertOrder: any): Promise<any> {
+  async createOrder(insertOrder: any, user?: any): Promise<any> {
     let insertPatient = null;
     let clinicInformation = null;
     let teethGroup = null;
@@ -126,14 +126,42 @@ export class OrderStorage implements orderStore {
 
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
       console.log(insertOrder.courierData, "courierData");
+
+      // Set orderByRole and orderById based on user role if not provided
+      let orderByRole = insertOrder.orderByRole;
+      let orderById = insertOrder.orderById;
+
+      if (user) {
+        // If user is a doctor (main_doctor), use clinicId as orderById
+        if (user.roleName === "main_doctor") {
+          orderByRole = orderByRole || "main_doctor";
+          orderById = orderById || user.clinicId;
+        }
+        // If user is QA, use QA ID as orderById
+        else if (user.roleName === "qa") {
+          orderByRole = orderByRole || "qa";
+          orderById = orderById || user.id;
+        }
+        // For other roles, use the provided values or defaults
+        else {
+          orderByRole = orderByRole || user.roleName;
+          orderById = orderById || user.id;
+        }
+      }
+
+      // Update the insertOrder with the determined values
+      const orderDataWithRole = {
+        ...insertOrder,
+        orderByRole,
+        orderById,
+      };
+
       const orderToInsert = await this.orderInsert(
-        insertOrder,
+        orderDataWithRole,
         insertPatient.id,
         clinicInformation.id,
         teethGroup.id
       );
-
-      
 
       // Defensive: ensure all date fields are valid Date objects or null
       const fixDate = (val: any) => {
@@ -155,42 +183,44 @@ export class OrderStorage implements orderStore {
         .values(orderToInsert)
         .returning();
 
-        const chatData = await chatStorage.getChatByOrderId(order?.id);
+      const chatData = await chatStorage.getChatByOrderId(order?.id);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
           order?.clinicId || ""
         );
         if (!clinicData) return "Clinic Data Not Found";
 
-          const clinicFullname = `${clinicData?.firstname || ""} ${
-            clinicData?.lastname || ""
-          }`;
-          const chatPayload = {
-            clinicId: order?.clinicId || "",
-            createdBy: clinicFullname,
-            orderId: order?.id || "",
-            participants: [clinicFullname, order?.orderByName || ""],
-            roleName: "main_doctor",
-            title: order?.orderId || order?.refId || "",
-            type: "order",
-            userRole: "main_doctor",
-          };
-          const createNewChat = await chatStorage.createChat(chatPayload);
-          if (!createNewChat) return "Something Went Wrong On Create Chat";
+        const clinicFullname = `${clinicData?.firstname || ""} ${
+          clinicData?.lastname || ""
+        }`;
+        const chatPayload = {
+          clinicId: order?.clinicId || "",
+          createdBy: clinicFullname,
+          orderId: order?.id || "",
+          participants: [clinicFullname, order?.orderById || ""],
+          roleName: "main_doctor",
+          title: order?.orderId || order?.refId || "",
+          type: "order",
+          userRole: "main_doctor",
+        };
+        const createNewChat = await chatStorage.createChat(chatPayload);
+        if (!createNewChat) return "Something Went Wrong On Create Chat";
 
-          const updateOrder = {
-            ...order,
-            chatId: createNewChat?.id || "",
-          };
-          const updateOrderData = await orderStorage.updateOrder(order?.id, updateOrder);
-          if (!updateOrderData) return "Order Not Update";
-        }
-      
-        
+        const updateOrder = {
+          ...order,
+          chatId: createNewChat?.id || "",
+        };
+        const updateOrderData = await orderStorage.updateOrder(
+          order?.id,
+          updateOrder
+        );
+        if (!updateOrderData) return "Order Not Update";
+      }
+
       // Only add to logs, never to order.notes
       if (order?.additionalNote) {
         const subLog = {
-          addedBy: order?.orderByName,
+          addedBy: order?.orderById,
           additionalNote: order?.additionalNote,
           extraAdditionalNote: order?.extraAdditionalNote,
           createdAt: new Date(),
@@ -618,7 +648,7 @@ export class OrderStorage implements orderStore {
       crateNo: order.crateNo || "",
       qaNote: order.qaNote || "",
       orderByRole: order.orderByRole || "",
-      orderByName: order.orderByName || "",
+      orderById: order.orderById || "",
       lifeCycle: (Array.isArray(order.lifeCycle) ? order.lifeCycle : []) as any,
       orderStatus: order.orderStatus || "",
       refId: order.refId || "",
@@ -852,6 +882,7 @@ export class OrderStorage implements orderStore {
       patientId: insertPatient,
       clinicInformationId: clinicInformation,
       selectedTeethId: teethGroup,
+      orderById: insertOrder.orderById, // Set orderById from the input data, preserve existing value during updates
       // Defensive: ensure all array fields are arrays
       prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId)
         ? insertOrder.prescriptionTypesId
@@ -883,7 +914,10 @@ export class OrderStorage implements orderStore {
       acceptedDileveryData: fixDate(insertOrder.acceptedDileveryData),
       orderDate: fixDate(insertOrder.orderDate),
       updateDate: fixDate(insertOrder.updateDate),
-      createdAt: isUpdate && insertOrder.createdAt ? fixDate(insertOrder.createdAt) : new Date(), // Preserve original createdAt for updates, use current date for new orders
+      createdAt:
+        isUpdate && insertOrder.createdAt
+          ? fixDate(insertOrder.createdAt)
+          : new Date(), // Preserve original createdAt for updates, use current date for new orders
       updatedAt: new Date(), // Always set to current date for new orders
       files: {
         addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos)

@@ -59,7 +59,8 @@ export const setupOrderRoutes = (app: Express) => {
   // CREATE A ORDER
   app.post("/api/orders", async (req, res) => {
     try {
-      const order = await orderStorage.createOrder(req.body);
+      const user = (req as any).user; // Get user from middleware
+      const order = await orderStorage.createOrder(req.body, user);
       res.status(201).json(order);
     } catch (error) {
       console.log(error);
