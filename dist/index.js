@@ -528,7 +528,8 @@ var orderSchema = pgTable5("orders", {
   notes: text5("notes"),
   additionalNote: text5("additional_note"),
   extraAdditionalNote: text5("extra_additional_note"),
-  orderBy: text5("order_by"),
+  orderByRole: text5("order_by_role"),
+  orderByName: text5("order_by_name"),
   acpectedDileveryData: timestamp5("acpected_dilevery_data"),
   lifeCycle: jsonb5("life_cycle"),
   orderStatus: text5("order_status"),
@@ -907,7 +908,12 @@ var OrderStorage = class {
       };
       teethGroup = await teethGroupStorage.createTeethGroup(teethGroupData);
       console.log(insertOrder.courierData, "courierData");
-      const orderToInsert = await this.orderInsert(insertOrder, insertPatient.id, clinicInformation2.id, teethGroup.id);
+      const orderToInsert = await this.orderInsert(
+        insertOrder,
+        insertPatient.id,
+        clinicInformation2.id,
+        teethGroup.id
+      );
       const fixDate = (val) => {
         if (!val) return null;
         if (val instanceof Date) return val;
@@ -917,15 +923,41 @@ var OrderStorage = class {
         }
         return null;
       };
-      orderToInsert.acpectedDileveryData = fixDate(
-        orderToInsert.acpectedDileveryData
+      orderToInsert.acceptedDileveryData = fixDate(
+        orderToInsert.acceptedDileveryData
       );
       orderToInsert.createdAt = /* @__PURE__ */ new Date();
       orderToInsert.updatedAt = /* @__PURE__ */ new Date();
       const [order] = await db.insert(orderSchema).values(orderToInsert).returning();
+      const chatData = await chatStorage.getChatByOrderId(order?.id);
+      if (!chatData) {
+        const clinicData = await clinicStorage.getClinicById(
+          order?.clinicId || ""
+        );
+        if (!clinicData) return "Clinic Data Not Found";
+        const clinicFullname = `${clinicData?.firstname || ""} ${clinicData?.lastname || ""}`;
+        const chatPayload = {
+          clinicId: order?.clinicId || "",
+          createdBy: clinicFullname,
+          orderId: order?.id || "",
+          participants: [clinicFullname, order?.orderByName || ""],
+          roleName: "main_doctor",
+          title: order?.orderId || order?.refId || "",
+          type: "order",
+          userRole: "main_doctor"
+        };
+        const createNewChat = await chatStorage.createChat(chatPayload);
+        if (!createNewChat) return "Something Went Wrong On Create Chat";
+        const updateOrder = {
+          ...order,
+          chatId: createNewChat?.id || ""
+        };
+        const updateOrderData = await orderStorage.updateOrder(order?.id, updateOrder);
+        if (!updateOrderData) return "Order Not Update";
+      }
       if (order?.additionalNote) {
         const subLog = {
-          addedBy: order?.orderBy,
+          addedBy: order?.orderByName,
           additionalNote: order?.additionalNote,
           extraAdditionalNote: order?.extraAdditionalNote,
           createdAt: /* @__PURE__ */ new Date()
@@ -976,6 +1008,18 @@ var OrderStorage = class {
       }
     }
     if ((body?.orderStatus || "") === "active") {
+      const orderLogsData = await orderLogsStorage.getLogsByOrderId(orderId);
+      if (orderLogsData?.logs?.length > 0) {
+        const log2 = {
+          addedBy: body?.userName,
+          additionalNote: body?.additionalNote,
+          extraAdditionalNote: body?.extraAdditionalNote,
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        const updateLogs = await orderLogsStorage.updateLogs(orderId, {
+          logs: [...orderLogsData?.logs, log2]
+        });
+      }
       const chatData = await chatStorage.getChatByOrderId(orderId);
       if (!chatData) {
         const clinicData = await clinicStorage.getClinicById(
@@ -1041,6 +1085,18 @@ var OrderStorage = class {
         return UpdateOrderData;
       }
     } else if ((body?.orderStatus || "") === "rejected") {
+      const orderLogsData = await orderLogsStorage.getLogsByOrderId(orderId);
+      if (orderLogsData?.logs?.length > 0) {
+        const log2 = {
+          addedBy: body?.userName,
+          additionalNote: body?.resonOfReject,
+          extraAdditionalNote: body?.rejectNote,
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        const updateLogs = await orderLogsStorage.updateLogs(orderId, {
+          logs: [...orderLogsData?.logs, log2]
+        });
+      }
       const updateOrder = {
         ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
@@ -1054,6 +1110,18 @@ var OrderStorage = class {
       if (!UpdateOrderData) return "Order Not Update";
       return UpdateOrderData;
     } else if ((body?.orderStatus || "") === "rescan") {
+      const orderLogsData = await orderLogsStorage.getLogsByOrderId(orderId);
+      if (orderLogsData?.logs?.length > 0) {
+        const log2 = {
+          addedBy: body?.userName,
+          additionalNote: body?.resonOfRescan,
+          extraAdditionalNote: body?.additionalNote,
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        const updateLogs = await orderLogsStorage.updateLogs(orderId, {
+          logs: [...orderLogsData?.logs, log2]
+        });
+      }
       const updateOrder = {
         ...bodyData,
         orderStatus: body?.orderStatus || orderData.orderStatus,
@@ -1099,8 +1167,8 @@ var OrderStorage = class {
         orderId: updateOrder?.orderId,
         prescriptionTypes: updateOrder?.prescriptionTypesId,
         subPrescriptionTypes: updateOrder?.subPrescriptionTypesId,
-        orderDate: order?.createdAt,
-        selectedTeeth: updateOrder?.selectedTeeth,
+        orderDate: updateOrder?.createdAt || updateOrder?.orderDate,
+        selectedTeeth: updateOrder?.teethNumber,
         orderType: updateOrder?.orderType,
         orderStatus: updateOrder?.orderStatus,
         products: updateOrder?.products,
@@ -1214,10 +1282,10 @@ var OrderStorage = class {
       teethGroup: Array.isArray(teethGroup?.teethGroup) ? teethGroup.teethGroup : [],
       teethNumber: Array.isArray(teethnumber) ? teethnumber : [],
       products: Array.isArray(productSummary) ? productSummary : [],
-      acpectedDileveryData: (() => {
-        if (!order.acpectedDileveryData) return /* @__PURE__ */ new Date();
+      acceptedDileveryData: (() => {
+        if (!order.acceptedDileveryData) return /* @__PURE__ */ new Date();
         try {
-          const date11 = new Date(order.acpectedDileveryData);
+          const date11 = new Date(order.acceptedDileveryData);
           return isNaN(date11.getTime()) ? /* @__PURE__ */ new Date() : date11;
         } catch {
           return /* @__PURE__ */ new Date();
@@ -1240,7 +1308,8 @@ var OrderStorage = class {
       orderId: order.orderId || "",
       crateNo: order.crateNo || "",
       qaNote: order.qaNote || "",
-      orderBy: order.orderBy || "",
+      orderByRole: order.orderByRole || "",
+      orderByName: order.orderByName || "",
       lifeCycle: Array.isArray(order.lifeCycle) ? order.lifeCycle : [],
       orderStatus: order.orderStatus || "",
       refId: order.refId || "",
@@ -1275,7 +1344,7 @@ var OrderStorage = class {
     return orderData;
   }
   async updateOrderStatus(id, orderStatus) {
-    const [order] = await db.update(orderSchema).set({ orderStatus }).where(eq9(orderSchema.id, id)).returning();
+    const [order] = await db.update(orderSchema).set({ orderStatus, updatedAt: /* @__PURE__ */ new Date() }).where(eq9(orderSchema.id, id)).returning();
     return order;
   }
   async updateOrder(id, updates) {
@@ -1288,8 +1357,10 @@ var OrderStorage = class {
       if (patientId && (updates.firstName || updates.lastName || updates.age || updates.sex)) {
         try {
           const patientUpdates = {};
-          if (updates.firstName !== void 0) patientUpdates.firstName = updates.firstName;
-          if (updates.lastName !== void 0) patientUpdates.lastName = updates.lastName;
+          if (updates.firstName !== void 0)
+            patientUpdates.firstName = updates.firstName;
+          if (updates.lastName !== void 0)
+            patientUpdates.lastName = updates.lastName;
           if (updates.age !== void 0) patientUpdates.age = updates.age;
           if (updates.sex !== void 0) patientUpdates.sex = updates.sex;
           if (Object.keys(patientUpdates).length > 0) {
@@ -1303,10 +1374,14 @@ var OrderStorage = class {
       if (clinicInformationId && (updates.caseHandleBy || updates.doctorMobileNumber || updates.consultingDoctorName || updates.consultingDoctorMobileNumber)) {
         try {
           const clinicUpdates = {};
-          if (updates.caseHandleBy !== void 0) clinicUpdates.caseHandleBy = updates.caseHandleBy;
-          if (updates.doctorMobileNumber !== void 0) clinicUpdates.doctorMobileNumber = updates.doctorMobileNumber;
-          if (updates.consultingDoctorName !== void 0) clinicUpdates.consultingDoctorName = updates.consultingDoctorName;
-          if (updates.consultingDoctorMobileNumber !== void 0) clinicUpdates.consultingDoctorMobileNumber = updates.consultingDoctorMobileNumber;
+          if (updates.caseHandleBy !== void 0)
+            clinicUpdates.caseHandleBy = updates.caseHandleBy;
+          if (updates.doctorMobileNumber !== void 0)
+            clinicUpdates.doctorMobileNumber = updates.doctorMobileNumber;
+          if (updates.consultingDoctorName !== void 0)
+            clinicUpdates.consultingDoctorName = updates.consultingDoctorName;
+          if (updates.consultingDoctorMobileNumber !== void 0)
+            clinicUpdates.consultingDoctorMobileNumber = updates.consultingDoctorMobileNumber;
           if (Object.keys(clinicUpdates).length > 0) {
             await clinicInformationStorage.updateClinicInformation(
               clinicInformationId,
@@ -1321,10 +1396,15 @@ var OrderStorage = class {
       if (selectedTeethId && (updates.selectedTeeth || updates.teethGroup)) {
         try {
           const teethUpdates = {};
-          if (updates.selectedTeeth !== void 0) teethUpdates.selectedTeeth = updates.selectedTeeth;
-          if (updates.teethGroup !== void 0) teethUpdates.teethGroup = updates.teethGroup;
+          if (updates.selectedTeeth !== void 0)
+            teethUpdates.selectedTeeth = updates.selectedTeeth;
+          if (updates.teethGroup !== void 0)
+            teethUpdates.teethGroup = updates.teethGroup;
           if (Object.keys(teethUpdates).length > 0) {
-            await teethGroupStorage.updateTeethGroup(selectedTeethId, teethUpdates);
+            await teethGroupStorage.updateTeethGroup(
+              selectedTeethId,
+              teethUpdates
+            );
           }
         } catch (error) {
           console.error("Error updating teeth group:", error);
@@ -1342,7 +1422,14 @@ var OrderStorage = class {
       delete orderUpdate.consultingDoctorMobileNumber;
       delete orderUpdate.selectedTeeth;
       delete orderUpdate.teethGroup;
-      const orderToInsert = await this.orderInsert(orderUpdate, order.patientId || "", order.clinicInformationId || "", order.selectedTeethId || "");
+      const orderToInsert = await this.orderInsert(
+        orderUpdate,
+        order.patientId || "",
+        order.clinicInformationId || "",
+        order.selectedTeethId || "",
+        true
+        // Indicate this is an update operation
+      );
       const [updatedOrder] = await db.update(orderSchema).set(orderToInsert).where(eq9(orderSchema.id, id)).returning();
       return updatedOrder;
     } catch (error) {
@@ -1364,7 +1451,7 @@ var OrderStorage = class {
       console.error("Error creating order sample data:", error);
     }
   }
-  async orderInsert(insertOrder, insertPatient, clinicInformation2, teethGroup) {
+  async orderInsert(insertOrder, insertPatient, clinicInformation2, teethGroup, isUpdate = false) {
     const fixDate = (val) => {
       if (!val) return null;
       if (val instanceof Date) return val;
@@ -1381,9 +1468,7 @@ var OrderStorage = class {
       selectedTeethId: teethGroup,
       // Defensive: ensure all array fields are arrays
       prescriptionTypesId: Array.isArray(insertOrder.prescriptionTypesId) ? insertOrder.prescriptionTypesId : [],
-      subPrescriptionTypesId: Array.isArray(
-        insertOrder.subPrescriptionTypesId
-      ) ? insertOrder.subPrescriptionTypesId : [],
+      subPrescriptionTypesId: Array.isArray(insertOrder.subPrescriptionTypesId) ? insertOrder.subPrescriptionTypesId : [],
       accessorios: Array.isArray(insertOrder.accessorios) ? insertOrder.accessorios : [],
       selectedTeeth: Array.isArray(insertOrder.selectedTeeth) ? insertOrder.selectedTeeth : [],
       teethGroup: Array.isArray(insertOrder.teethGroup) ? insertOrder.teethGroup : [],
@@ -1393,11 +1478,13 @@ var OrderStorage = class {
       courierData: insertOrder.courierData,
       lifeCycle: Array.isArray(insertOrder.lifeCycle) ? insertOrder.lifeCycle : [],
       // Safely handle date fields
-      acpectedDileveryData: fixDate(insertOrder.acpectedDileveryData),
+      acceptedDileveryData: fixDate(insertOrder.acceptedDileveryData),
       orderDate: fixDate(insertOrder.orderDate),
       updateDate: fixDate(insertOrder.updateDate),
-      createdAt: fixDate(insertOrder.createdAt),
-      updatedAt: fixDate(insertOrder.updatedAt),
+      createdAt: isUpdate && insertOrder.createdAt ? fixDate(insertOrder.createdAt) : /* @__PURE__ */ new Date(),
+      // Preserve original createdAt for updates, use current date for new orders
+      updatedAt: /* @__PURE__ */ new Date(),
+      // Always set to current date for new orders
       files: {
         addPatientPhotos: Array.isArray(insertOrder.files?.addPatientPhotos) ? insertOrder.files.addPatientPhotos : [],
         faceScan: Array.isArray(insertOrder.files?.faceScan) ? insertOrder.files.faceScan : [],
@@ -2394,7 +2481,7 @@ var qaController = {
   async registerQa(req, res) {
     try {
       const { email, password, name } = req.body;
-      const qaRoleName = "entry_qa";
+      const qaRoleName = "qa";
       console.log("email", email);
       if (!email || !password || !name) {
         return res.status(400).json({ error: "Missing required fields (email, password, name)" });
@@ -2415,14 +2502,16 @@ var qaController = {
         email,
         passwordHash,
         name,
-        roleId
+        roleId,
+        roleName: roleData?.name
       };
       const [user] = await db.insert(qaUserSchema).values(qaData).returning();
       res.status(201).json({
         id: user.id,
         email: user.email,
         name: user.name,
-        roleId: user.roleId
+        roleId: user.roleId,
+        roleName: roleData?.name
       });
     } catch (error) {
       res.status(500).json({ error: error.message || "Failed to register QA" });
@@ -2443,9 +2532,10 @@ var qaController = {
         JWT_SECRET,
         { expiresIn: "1d" }
       );
+      const role2 = await RolesStorage.getRoleById(user.roleId);
       res.status(200).json({
         token,
-        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: "entry_qa" }
+        user: { id: user.id, email: user.email, fullName: user.name, roleId: user.roleId, roleName: role2?.name || "" }
       });
     } catch (error) {
       res.status(500).json({ error: error.message || "Failed to login QA" });
@@ -3356,6 +3446,7 @@ var technicianUser = pgTable19("technician_user", {
   firstName: text17("first_name").notNull(),
   lastName: text17("last_name").notNull(),
   email: text17("email").notNull().unique(),
+  roleId: text17("role_id").notNull(),
   mobileNumber: text17("mobile_number").notNull(),
   departmentId: text17("department_id"),
   employeeId: text17("employee_id").notNull().unique(),
@@ -3413,7 +3504,7 @@ var TechnicianStorage = class {
 var technicianStorage = new TechnicianStorage();
 async function registerTechnician(req, res) {
   try {
-    const { firstName, lastName, email, mobileNumber, departmentId, employeeId, password } = req.body;
+    const { firstName, lastName, email, mobileNumber, departmentId, employeeId, password, roleId } = req.body;
     const existingEmail = await technicianStorage.getTechnicianByEmail(email);
     if (existingEmail) {
       return res.status(400).json({ error: "Email already exists" });
@@ -3439,6 +3530,7 @@ async function registerTechnician(req, res) {
       email,
       mobileNumber,
       departmentId,
+      roleId,
       employeeId,
       password: hashedPassword,
       profilePic,
@@ -3517,7 +3609,8 @@ async function getTechnicianById(req, res) {
       const baseUrl = req.protocol + "://" + req.get("host");
       profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
     }
-    return res.json({ ...technician, profilePic: profilePicUrl });
+    const role2 = await RolesStorage.getRoleById(technician.roleId);
+    return res.json({ ...technician, profilePic: profilePicUrl, roleName: role2?.name });
   } catch (error) {
     console.error("Get technician by id error:", error);
     return res.status(500).json({ error: "Fetch failed" });

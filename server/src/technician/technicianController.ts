@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { RolesStorage } from "../role/roleController";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
@@ -43,7 +44,7 @@ export const technicianStorage = new TechnicianStorage();
 // Controller functions
 export async function registerTechnician(req: Request, res: Response) {
   try {
-    const { firstName, lastName, email, mobileNumber, departmentId, employeeId, password } = req.body;
+    const { firstName, lastName, email, mobileNumber, departmentId, employeeId, password, roleId } = req.body;
     // Check for existing email, mobile number, or employeeId
     const existingEmail = await technicianStorage.getTechnicianByEmail(email);
     if (existingEmail) {
@@ -72,6 +73,7 @@ export async function registerTechnician(req: Request, res: Response) {
       email,
       mobileNumber,
       departmentId,
+      roleId,
       employeeId,
       password: hashedPassword,
       profilePic,
@@ -158,7 +160,8 @@ export async function getTechnicianById(req: Request, res: Response) {
       const baseUrl = req.protocol + '://' + req.get('host');
       profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
     }
-    return res.json({ ...technician, profilePic: profilePicUrl });
+    const role = await RolesStorage.getRoleById(technician.roleId);
+    return res.json({ ...technician, profilePic: profilePicUrl, roleName: role?.name });
   } catch (error) {
     console.error("Get technician by id error:", error);
     return res.status(500).json({ error: "Fetch failed" });

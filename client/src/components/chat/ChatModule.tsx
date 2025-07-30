@@ -173,14 +173,19 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
     if (isConnected) {
       socketSendMessage(chatDetails.id, messageData);
       setNewMessage('');
+      // Scroll to bottom immediately after sending
       setTimeout(() => {
+        scrollToBottom("smooth");
         refetchMessages();
-      }, 500);
+      }, 100);
       toast({ title: "Message sent" });
     } else {
       await sendMessage(messageData);
       setNewMessage('');
-      refetchMessages();
+      setTimeout(() => {
+        scrollToBottom("smooth");
+        refetchMessages();
+      }, 100);
     }
   };
 
@@ -212,7 +217,10 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
       const handleNewMessage = (data: { chatId: string, message: any }) => {
         if (data.chatId === chatDetails.id) {
           setMessagesList((prev) => [...prev, data.message]);
-          scrollToBottom();
+          // Use setTimeout to ensure DOM is updated before scrolling
+          setTimeout(() => {
+            scrollToBottom("smooth");
+          }, 50);
           // Mark messages as read since the user is actively viewing the chat
           if (userData?.fullName) {
             markAllRead({ chatId: chatDetails.id, userId: userData.fullName });
@@ -303,6 +311,10 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior });
     }
+    // Also scroll the container to bottom as backup
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   // Handle scroll events to show/hide scroll button
@@ -325,6 +337,14 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
       scrollToBottom("smooth");
     }
   }, [messagesList]);
+
+  // Force scroll to bottom when component mounts or messages change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom("auto");
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messagesList, chatId]);
 
   // Reset selected participant when chat details change
   useEffect(() => {
@@ -362,7 +382,7 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-card rounded-lg border border-border">
+    <div className="h-full flex flex-col bg-card rounded-lg border border-border overflow-hidden">
       {/* Chat Header */}
       <div className="flex-shrink-0 p-4 border-b border-border">
         <div className="flex items-center justify-between">
@@ -593,7 +613,7 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
       </div>
 
       {/* Messages Area - Scrollable */}
-      <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
         
         {isLoading ? (
           <div className="text-center text-muted-foreground">Loading messages...</div>
@@ -641,7 +661,7 @@ const ChatModule = ({ chatId, userData, onClose }: ChatModuleProps) => {
           ))
         )}
         {/* Scroll target for auto-scroll */}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} style={{ height: '1px' }} />
         
         {/* Scroll to bottom button */}
         {/* {showScrollButton && (

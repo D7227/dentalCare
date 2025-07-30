@@ -22,7 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FileText, Edit, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, Edit, X, Wrench } from "lucide-react";
 import type { CaseStatus } from "../data/cases";
 import {
   useGetOrderByOrderIdQuery,
@@ -79,6 +80,13 @@ export default function OrderReviewModal({
   const [changedFields, setChangedFields] = useState<any[]>([]); // Store changes
 
   console.log(changedFields, "changedFields")
+
+  // Helper function to check if all accessories are validated
+  const areAllAccessoriesChecked = () => {
+    const accessories = formData?.accessorios || [];
+    if (accessories.length === 0) return true; // No accessories means no validation needed
+    return accessories.every((acc: any) => acc.labAccess);
+  };
 
   useEffect(() => {
     setSOrderId(selectedOrderId);
@@ -494,6 +502,7 @@ export default function OrderReviewModal({
             download={true}
           />
 
+       
           {/* Order Notes Card */}
           {Array.isArray(formData.notes) && formData.notes.length > 0 && (
             <Card className="mt-2">
