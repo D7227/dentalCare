@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,6 +21,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Search,
+  LogOut,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -48,9 +51,12 @@ import {
 } from "@/assets/svg";
 import NotificationIconExample from "@/styles/NotificationIconExample";
 import CommonSearchBar from "@/components/common/CommonSearchBar";
+import { clearDepartmentHead } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
 
 const DepartmentHeadDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [selectedDepartment, setSelectedDepartment] = useState("crown-bridge");
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedCaseForChat, setSelectedCaseForChat] = useState<{
@@ -609,6 +615,18 @@ const DepartmentHeadDashboard = () => {
     setSelectedCaseForChat(null);
   };
 
+  const handleLogout = () => {
+    dispatch(clearDepartmentHead());
+    // Force clear localStorage as well
+    localStorage.removeItem("department-head-token");
+    // Use replace to prevent going back
+    navigate("/department-head/login", { replace: true });
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of the department head portal.",
+    });
+  };
+
   const stats: any = [
     {
       title: "Waiting Inward",
@@ -688,6 +706,15 @@ const DepartmentHeadDashboard = () => {
               Search Case
             </Button>
           </div>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
 

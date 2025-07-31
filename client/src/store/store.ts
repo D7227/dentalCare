@@ -1,18 +1,20 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import { orderApi } from './slices/orderApi';
-import { doctorAuthApi } from './slices/doctorAuthApi';
-import { userDataReducer } from './slices';
-import { userDataApi } from './slices/userDataSlice';
-import orderLocalReducer from './slices/orderLocalSlice';
-import { teamMemberApi } from './slices/teamMemberApi';
-import { draftOrderApi } from './slices/draftOrderApi';
-import { chatApi } from './slices/chatApi';
-import chatslice from './slices/chatslice';
-import { qaApi } from './slices/qaslice/qaApi';
-import { orderHistoryApi } from './slices/orderHistorySlice/orderHistoryApi';
-import qaReducer from './slices/qaslice/qaSlice';
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/lib/storage";
+import { orderApi } from "./slices/orderApi";
+import { doctorAuthApi } from "./slices/doctorAuthApi";
+import { userDataReducer } from "./slices";
+import { userDataApi } from "./slices/userDataSlice";
+import orderLocalReducer from "./slices/orderLocalSlice";
+import { teamMemberApi } from "./slices/teamMemberApi";
+import { draftOrderApi } from "./slices/draftOrderApi";
+import { chatApi } from "./slices/chatApi";
+import chatslice from "./slices/chatslice";
+import { qaApi } from "./slices/qaslice/qaApi";
+import { orderHistoryApi } from "./slices/orderHistorySlice/orderHistoryApi";
+import qaReducer from "./slices/qaslice/qaSlice";
+import { departmentHeadApi } from "./slices/departmentHeadSlice/departmentHeadApi";
+import departmentHeadReducer from "./slices/departmentHeadSlice/departmentHeadSlice";
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
@@ -29,12 +31,14 @@ const rootReducer = combineReducers({
   // Add more slices here
   chat: chatslice,
   qa: qaReducer,
+  departmentHead: departmentHeadReducer,
+  [departmentHeadApi.reducerPath]: departmentHeadApi.reducer,
 });
 
 const persistConfig = {
-  key: 'root',
+  key: "root",
   storage,
-  whitelist: ['auth', 'orderLocal', 'userData'], // Persist auth, orderLocal, userData
+  whitelist: ["auth", "orderLocal", "userData", "departmentHead"], // Persist auth, orderLocal, userData, departmentHead
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -45,14 +49,14 @@ export const store = configureStore({
     getDefaultMiddleware({
       serializableCheck: {
         ignoredActions: [
-          'persist/PERSIST',
-          'persist/REHYDRATE',
-          'persist/PAUSE',
-          'persist/FLUSH',
-          'persist/PURGE',
-          'persist/REGISTER',
+          "persist/PERSIST",
+          "persist/REHYDRATE",
+          "persist/PAUSE",
+          "persist/FLUSH",
+          "persist/PURGE",
+          "persist/REGISTER",
         ],
-        ignoredPaths: ['_persist'],
+        ignoredPaths: ["_persist"],
       },
     })
       .concat(orderApi.middleware)
@@ -62,12 +66,13 @@ export const store = configureStore({
       .concat(draftOrderApi.middleware)
       .concat(userDataApi.middleware)
       .concat(qaApi.middleware)
-      .concat(orderHistoryApi.middleware),
-  devTools: process.env.NODE_ENV !== 'production',
+      .concat(orderHistoryApi.middleware)
+      .concat(departmentHeadApi.middleware),
+  devTools: process.env.NODE_ENV !== "production",
 });
 
 export const persistor = persistStore(store);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-// Optionally: setupListeners(store.dispatch); // For RTK Query 
+// Optionally: setupListeners(store.dispatch); // For RTK Query
