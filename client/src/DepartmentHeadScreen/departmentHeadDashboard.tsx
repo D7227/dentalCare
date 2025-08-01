@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,7 +51,12 @@ import {
 } from "@/assets/svg";
 import NotificationIconExample from "@/styles/NotificationIconExample";
 import CommonSearchBar from "@/components/common/CommonSearchBar";
-import { clearDepartmentHead } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
+import {
+  clearDepartmentHead,
+  selectDepartmentHeadUser,
+} from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
+import { useGetDepartmentHeadProfileQuery } from "@/store/slices/departmentHeadSlice/departmentHeadApi";
+import { skipToken } from "@reduxjs/toolkit/query";
 
 const DepartmentHeadDashboard = () => {
   const { toast } = useToast();
@@ -684,6 +689,53 @@ const DepartmentHeadDashboard = () => {
     },
   ];
 
+  const [departments1, setDepartments1] = useState<Department[]>([]);
+  const [selectedDepartment1, setSelectedDepartment1] =
+    useState<Department | null>(null);
+
+  const departmentHeadUser = useSelector(selectDepartmentHeadUser);
+  const { data: departmentHeadProfile } = useGetDepartmentHeadProfileQuery(
+    departmentHeadUser?.id ? { id: departmentHeadUser.id } : skipToken
+  );
+  console.log("departmentHeadUser", departmentHeadUser);
+  console.log("departmentHeadProfile", departmentHeadProfile);
+
+  // Update departments and selected department when API data is available
+  React.useEffect(() => {
+    if (departmentHeadProfile?.data?.departments) {
+      setDepartments1(departmentHeadProfile.data.departments);
+
+      // Set active department as selected if not already set
+      if (
+        departmentHeadProfile.data.activeDepartmentId &&
+        !selectedDepartment1
+      ) {
+        const activeDept = departmentHeadProfile.data.departments.find(
+          (dept: any) =>
+            dept.id === departmentHeadProfile.data.activeDepartmentId
+        );
+        if (activeDept) {
+          setSelectedDepartment1(activeDept);
+        }
+      }
+    }
+  }, [departmentHeadProfile, selectedDepartment1]);
+
+  useEffect(() => {
+    console.log("selectedDepartment1", selectedDepartment1);
+    console.log("departments1", departments1);
+  }, [selectedDepartment1, departments1]);
+
+  // Handler for department selection
+  const handleDepartmentChange = (departmentId: string) => {
+    const selectedDept = departments1.find(
+      (dept: any) => dept.id === departmentId
+    );
+    if (selectedDept) {
+      setSelectedDepartment1(selectedDept);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -719,28 +771,28 @@ const DepartmentHeadDashboard = () => {
       </div>
 
       {/* Department Overview */}
-      {currentDepartment && (
+      {selectedDepartment1 && (
         <div className="px-6 py-4 bg-custonLightGray-100 !m-0 h-[calc(100vh-73px)]">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-2xl font-bold">
-                  {currentDepartment.name}
+                  {selectedDepartment1?.name}
                 </span>
-                <p className="text-sm text-gray-600">
+                {/* <p className="text-sm text-gray-600">
                   {currentDepartment.description}
-                </p>
+                </p> */}
               </div>
               <div>
                 <Select
-                  value={selectedDepartment}
-                  onValueChange={setSelectedDepartment}
+                  value={selectedDepartment1?.id || ""}
+                  onValueChange={handleDepartmentChange}
                 >
                   <SelectTrigger className="w-[250px]">
                     <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((dept) => (
+                    {departments1.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
@@ -785,11 +837,11 @@ const DepartmentHeadDashboard = () => {
                     <Clock className="h-5 w-5 text-gray-600" />
                     <span className="font-semibold text-lg">
                       Waiting to be Inward (
-                      {currentDepartment.waitingInward?.length || 0})
+                      {currentDepartment?.waitingInward?.length || 0})
                     </span>
                   </div>
                   <WaitingInwardTable
-                    data={currentDepartment.waitingInward || []}
+                    data={currentDepartment?.waitingInward || []}
                     onPriorityChange={(caseNumber, newPriority) =>
                       handlePriorityChange(
                         caseNumber,
@@ -810,12 +862,12 @@ const DepartmentHeadDashboard = () => {
                     <ArrowRight className="h-5 w-5 text-blue-600" />
                     <span className="font-semibold text-lg">
                       Inward Pending Cases (
-                      {currentDepartment.inwardPending.length})
+                      {currentDepartment?.inwardPending.length})
                     </span>
                   </div>
                   <InwardPendingTable
-                    data={currentDepartment.inwardPending}
-                    technicians={currentDepartment.technicians}
+                    data={currentDepartment?.inwardPending}
+                    technicians={currentDepartment?.technicians}
                     onPriorityChange={(caseNumber, newPriority) =>
                       handlePriorityChange(
                         caseNumber,

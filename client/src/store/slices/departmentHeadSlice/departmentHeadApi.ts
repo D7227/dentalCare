@@ -29,7 +29,7 @@ export interface DailyReportRequest {
 export const departmentHeadApi = createApi({
   reducerPath: "departmentHeadApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api",
+    baseUrl: "/api/head",
     prepareHeaders: (headers) => {
       const token = localStorage.getItem("department-head-token");
       if (token) {
@@ -42,7 +42,7 @@ export const departmentHeadApi = createApi({
   endpoints: (builder) => ({
     loginDepartmentHead: builder.mutation<AuthToken, LoginRequest>({
       query: (body) => ({
-        url: "/head/login",
+        url: "/login",
         method: "POST",
         body,
       }),
@@ -60,7 +60,7 @@ export const departmentHeadApi = createApi({
     }),
     registerDepartmentHead: builder.mutation<AuthToken, RegisterRequest>({
       query: (body) => ({
-        url: "/head/",
+        url: "/",
         method: "POST",
         body,
       }),
@@ -78,12 +78,19 @@ export const departmentHeadApi = createApi({
     }),
     deleteDepartmentHead: builder.mutation<void, { id: string }>({
       query: ({ id }) => ({
-        url: `/head/${id}`,
+        url: `/${id}`,
         method: "DELETE",
       }),
       async onQueryStarted(arg, { dispatch }) {
         dispatch(clearDepartmentHead());
       },
+    }),
+    getDepartmentHeadProfile: builder.query<any, { id: string }>({
+      query: ({ id }) => ({
+        url: `/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["departmentHead"],
     }),
   }),
 });
@@ -92,4 +99,5 @@ export const {
   useLoginDepartmentHeadMutation,
   useRegisterDepartmentHeadMutation,
   useDeleteDepartmentHeadMutation,
+  useGetDepartmentHeadProfileQuery,
 } = departmentHeadApi;

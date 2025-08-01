@@ -153,9 +153,7 @@ export const departmentHeadController = {
       // Generate JWT token
       const token = jwt.sign(
         {
-          id: user.id,
           email: user.email,
-          name: user.name,
           roleId: user.roleId,
           type: "department_head", // Add type for better token management
         },
@@ -280,9 +278,42 @@ export const departmentHeadController = {
         return res.status(404).json({ error: "Department head not found" });
       }
 
+      // Get department information for the department IDs
+      const departmentIds = normalizeToArray(found.departmentIds);
+      let departments: any[] = [];
+
+      if (departmentIds.length > 0) {
+        // Fetch department details for each department ID
+        const departmentPromises = departmentIds.map(async (deptId) => {
+          const [dept] = await db
+            .select()
+            .from(departmentSchema)
+            .where(eq(departmentSchema.id, deptId));
+          return dept;
+        });
+
+        departments = await Promise.all(departmentPromises);
+        departments = departments.filter((dept) => dept); // Remove any undefined results
+      }
+
+      // Set active department ID (first department ID if available)
+      const activeDepartmentId =
+        departmentIds.length > 0 ? departmentIds[0] : null;
+
+      // Prepare response with department information
+      const responseData = {
+        ...found,
+        departments: departments.map((dept) => ({
+          id: dept.id,
+          name: dept.name,
+          isActive: dept.isActive,
+        })),
+        activeDepartmentId,
+      };
+
       res.status(200).json({
         message: "Department head retrieved successfully",
-        data: found,
+        data: responseData,
       });
     } catch (error: any) {
       console.error("Error fetching department head:", error);

@@ -1,7 +1,6 @@
 import { Router, type Express } from "express";
 import { departmentHeadController } from "./departmentHeadController";
 import { departmentHeadAuthMiddleware } from "../middleWare/departmentHeadMiddleware";
-// import { adminAuthMiddleware } from "../middleWare/adminMiddleware";
 
 const departmentHeadRouter = Router();
 
@@ -15,62 +14,90 @@ departmentHeadRouter.post(
   departmentHeadController.resetPassword
 );
 
-// * INFO : Admin routes (require admin auth) - Admin manages department heads
-// TODO : After add the adminMiddle ware on this api call
-// Admin creates department head
-departmentHeadRouter.post("/", departmentHeadController.create);
+// * INFO : Department Head routes (require department head auth) - Department head can access all APIs
+// Department head creates new department head (temporary - will be admin only later)
+departmentHeadRouter.post(
+  "/",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.create
+);
 
-// Admin gets all department heads
-departmentHeadRouter.get("/", departmentHeadController.getAll);
+// Department head get all department heads
+departmentHeadRouter.get(
+  "/",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getAll
+);
 
-// Department head updates the profile
-departmentHeadRouter.put("/:id", departmentHeadController.update);
+// Department head deletes department head (but not themselves)
+departmentHeadRouter.delete(
+  "/:id",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.delete
+);
 
-// Admin deletes department head
-departmentHeadRouter.delete("/:id", departmentHeadController.delete);
-
-// Admin gets available departments
+// Department head gets available departments
 departmentHeadRouter.get(
   "/available-departments",
+  departmentHeadAuthMiddleware,
   departmentHeadController.getAvailableDepartments
 );
 
-// * INFO : Department Head routes (require department head auth) - Department head manages themselves
-// Admin gets specific department head
-departmentHeadRouter.get("/:id", departmentHeadController.getById);
+// Department head updates department head profile (but not themselves)
+departmentHeadRouter.put(
+  "/:id",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.update
+);
 
-// * INFO : Mange the order cycle
+// Department head gets specific department head profile
+departmentHeadRouter.get(
+  "/:id",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getById
+);
+
+// * INFO : Manage the order cycle (require department head auth + department access)
 
 // GET /head/waiting-inward/:departmentId
 departmentHeadRouter.get(
   "/waiting-inward/:departmentId",
+  departmentHeadAuthMiddleware,
   departmentHeadController.getWaitingInward
 );
 
 // POST /head/inward/:flowId
-departmentHeadRouter.post("/inward/:flowId", departmentHeadController.inward);
+departmentHeadRouter.post(
+  "/inward/:flowId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.inward
+);
 
 // GET /head/assigned-pending
 departmentHeadRouter.get(
   "/assigned-pending/:departmentId",
+  departmentHeadAuthMiddleware,
   departmentHeadController.getAssignedPending
 );
 
 // POST /head/assign-technician/:flowId
 departmentHeadRouter.post(
   "/assign-technician/:flowId",
+  departmentHeadAuthMiddleware,
   departmentHeadController.assignTechnician
 );
 
 // GET /head/outward-pending
 departmentHeadRouter.get(
   "/outward-pending/:departmentId",
+  departmentHeadAuthMiddleware,
   departmentHeadController.getOutwardPending
 );
 
 // POST /head/outward/:flowId
 departmentHeadRouter.post(
   "/outward/:flowId",
+  departmentHeadAuthMiddleware,
   departmentHeadController.outward
 );
 
