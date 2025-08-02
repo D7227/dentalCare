@@ -26,9 +26,9 @@ import { Request, Response } from "express";
 const STATIC_DUE_DATE = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // now + 5 days
 const STATIC_PRIORITY = "medium";
 const STATIC_SEQUENCE = [
+  "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129", // dept-5
   "1c307134-cf0b-420e-b7c3-7347acd81067", // dept-1
   "43140bd3-08c5-45e3-ba36-602cbbd56153", // dept-2
-  "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129", // dept-5
 ];
 
 export interface orderStore {
@@ -410,7 +410,7 @@ export class OrderStorage implements orderStore {
               })
               .returning();
 
-            labOrderId = newLabOrder.id;
+            labOrderId = newLabOrder.orderId;
             console.log(
               `Lab order created successfully for order: ${orderId} with order number: ${updateOrder?.orderId}`
             );
@@ -448,21 +448,21 @@ export class OrderStorage implements orderStore {
                   status: "waiting_inward",
                 });
                 console.log(
-                  `Order flow created successfully for lab order: ${labOrderId} with department: ${STATIC_SEQUENCE[0]}`
+                  `Order flow created successfully for lab order: ${orderId} with department: ${STATIC_SEQUENCE[0]}`
                 );
               } else {
                 console.warn(
-                  `No department ID available for order flow creation for lab order: ${labOrderId}`
+                  `No department ID available for order flow creation for lab order: ${orderId}`
                 );
               }
             } else {
               console.log(
-                `Order flow already exists for lab order: ${labOrderId}`
+                `Order flow already exists for lab order: ${orderId}`
               );
             }
           } catch (error) {
             console.error(
-              `Error creating order flow for lab order ${labOrderId}:`,
+              `Error creating order flow for lab order ${orderId}:`,
               error
             );
             // Don't throw error here as the main order update should still succeed

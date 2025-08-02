@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { technicianUser } from "../technician/technicianSchema";
+import { orderSchema } from "../order/orderSchema";
 
 export const departmentHeadSchema = pgTable("department_head", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -37,7 +38,9 @@ export const departmentSchema = pgTable("department", {
 export const labOrderSchema = pgTable("lab_order", {
   id: uuid("id").primaryKey().defaultRandom(),
   orderNumber: varchar("order_number", { length: 100 }).notNull().unique(),
-  orderId: text("order_id"),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orderSchema.id, { onDelete: "cascade" }),
   orderByRole: text("order_by_role"),
   orderById: text("order_by_id"),
   dueDate: date("due_date").notNull(),
@@ -54,7 +57,7 @@ export const orderFlowSchema = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     orderId: uuid("order_id")
       .notNull()
-      .references(() => labOrderSchema.id, { onDelete: "cascade" }),
+      .references(() => orderSchema.id, { onDelete: "cascade" }),
     departmentId: uuid("department_id").references(() => departmentSchema.id),
     flowStep: smallint("flow_step").notNull(),
     isCurrent: boolean("is_current").default(false),

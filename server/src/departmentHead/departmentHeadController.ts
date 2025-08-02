@@ -5,10 +5,14 @@ import {
   labOrderSchema,
   orderFlowSchema,
 } from "./departmentHeadSchema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { orderSchema } from "../order/orderSchema";
+import { clinic } from "../clinic/clinicSchema";
+import { patients } from "../patient/patientSchema";
+import { clinicInformation } from "../clinicInformation/clinicInformationSchema";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -505,25 +509,50 @@ export const departmentHeadController = {
   async getWaitingInward(req: Request, res: Response) {
     try {
       const { departmentId } = req.params;
-      if (!departmentId)
-        return res.status(400).json({ error: "Department ID is required" });
 
+      if (!departmentId) {
+        return res.status(400).json({ error: "Department ID is required" });
+      }
+
+      // Fetch orders in 'waiting_inward' status for this department
       const waitingOrders = await db
         .select({
           flowId: orderFlowSchema.id,
-          orderId: orderFlowSchema.orderId,
+          flowStatus: orderFlowSchema.status,
+          orderFlowCreatedAt: orderFlowSchema.createdAt,
           departmentId: orderFlowSchema.departmentId,
-          status: orderFlowSchema.status,
+
+          orderId: labOrderSchema.orderId, // actual order.id (not lab order id)
           orderNumber: labOrderSchema.orderNumber,
           priority: labOrderSchema.priority,
           dueDate: labOrderSchema.dueDate,
-          createdAt: labOrderSchema.createdAt,
+          labCreatedAt: labOrderSchema.createdAt,
+          prescriptionTypesId: orderSchema.prescriptionTypesId,
+          patientName:
+            sql`${patients.firstName} || ' ' || ${patients.lastName}`.as(
+              "patientName"
+            ),
+          doctorName: clinicInformation.caseHandleBy,
+          clinicName: clinic.clinicName,
         })
         .from(orderFlowSchema)
         .innerJoin(
           labOrderSchema,
-          eq(orderFlowSchema.orderId, labOrderSchema.id)
+          eq(orderFlowSchema.orderId, labOrderSchema.orderId) // join lab_order using flow.orderId
         )
+        .innerJoin(
+          orderSchema,
+          eq(labOrderSchema.orderId, orderSchema.id) // join orders using lab_order.orderId = orders.id
+        )
+        .leftJoin(
+          clinicInformation,
+          eq(orderSchema.clinicInformationId, clinicInformation.id)
+        )
+        .leftJoin(
+          patients,
+          eq(orderSchema.patientId, patients.id) // join patient using order.patientId
+        )
+        .leftJoin(clinic, eq(orderSchema.clinicId, clinic.id))
         .where(
           and(
             eq(orderFlowSchema.departmentId, departmentId),
@@ -538,8 +567,10 @@ export const departmentHeadController = {
         data: waitingOrders,
       });
     } catch (error: any) {
-      console.error("Error in getWaitingInward:", error);
-      res.status(500).json({ error: "Failed to fetch waiting inward orders" });
+      console.error("Error getting waiting inward orders:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to get waiting inward orders" });
     }
   },
 
