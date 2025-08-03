@@ -1,8 +1,16 @@
-import React from 'react';
-import CommonTable from '@/components/common/CommonTable';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, MessageSquare } from 'lucide-react';
+import React from "react";
+import CommonTable from "@/components/common/CommonTable";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, MessageSquare } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useGetDepartmentHeadInwardPendingQuery } from "@/store/slices/departmentHeadSlice/departmentHeadApi";
 
 interface InwardPendingCase {
   id: string;
@@ -22,39 +30,108 @@ interface Technician {
 }
 
 interface InwardPendingTableProps {
-  data: InwardPendingCase[];
-  technicians: Technician[];
+  // data: InwardPendingCase[];
+  // technicians: Technician[];
   onPriorityChange: (caseNumber: string, newPriority: string) => void;
   onAssign: (caseId: string, technicianId: string) => void;
   onViewDetails: (caseData: InwardPendingCase) => void;
   onChatOpen: (caseNumber: string, caseType: string) => void;
   getPriorityIcon: (priority: string) => React.ReactNode;
+  selectedDepartmentId: any;
 }
 
+const technicians = [
+  {
+    id: "T001",
+    name: "Riya Patel",
+    email: "riya.patel@adelabs.com",
+    department: "Crown & Bridge",
+    specialization: "Ceramic Crowns",
+    experience: "5 years",
+    status: "busy",
+    currentCases: 3,
+    assignments: [
+      {
+        id: "A001",
+        caseId: "ADE-2025-034",
+        caseNumber: "ADE-2025-034",
+        doctorName: "Dr. Pooja Verma",
+        clinicName: "Smile Care Dental",
+        patientName: "Rahul Sharma",
+        caseType: "Crown",
+        priority: "high",
+        status: "in_progress",
+        assignedDate: "2025-06-01",
+        dueDate: "2025-06-06",
+        estimatedCompletion: "2025-06-05",
+        notes: "Patient prefers ceramic material",
+        technicianId: "T001",
+        technicianName: "Riya Patel",
+        logs: [],
+        digitalFiles: [],
+        products: [],
+        accessories: [],
+      },
+    ],
+  },
+  {
+    id: "T002",
+    name: "Anita Gupta",
+    email: "anita.gupta@adelabs.com",
+    department: "Crown & Bridge",
+    specialization: "Zirconia Crowns",
+    experience: "7 years",
+    status: "available",
+    currentCases: 1,
+    assignments: [],
+  },
+];
+
 const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
-  data,
-  technicians,
+  // data,
+  // technicians,
   onPriorityChange,
   onAssign,
   onViewDetails,
   onChatOpen,
   getPriorityIcon,
+  selectedDepartmentId,
 }) => {
+  const { toast } = useToast();
+
+  const {
+    data: InwardPendingData,
+    isLoading,
+    error,
+  } = useGetDepartmentHeadInwardPendingQuery({
+    departmentId: selectedDepartmentId || "",
+    page: 1,
+    limit: 10,
+  });
+
+  console.group("InwardPendingData");
+  console.log("isLoading", isLoading);
+  console.log("error", error);
+  console.log("InwardPendingData", InwardPendingData);
+  console.groupEnd();
+
   const columns = [
     {
-      key: 'caseDetails',
-      title: 'Case Details',
+      key: "caseDetails",
+      title: "Case Details",
       render: (row: InwardPendingCase) => (
         <div>
-          <div className="font-medium">{row.caseNumber}</div>
-          <div className="text-sm text-gray-500">{row.caseType}</div>
+          <div className="font-medium">{row.orderNumber}</div>
+          <div className="text-sm text-gray-500">
+            {row.prescriptionTypesId[0]}
+          </div>
           <div className="text-xs text-gray-400">{row.clinicName}</div>
         </div>
       ),
     },
     {
-      key: 'patientDoctor',
-      title: 'Patient/Doctor',
+      key: "patientDoctor",
+      title: "Patient/Doctor",
       render: (row: InwardPendingCase) => (
         <div>
           <div className="font-medium">{row.patientName}</div>
@@ -63,8 +140,8 @@ const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
       ),
     },
     {
-      key: 'priority',
-      title: 'Priority',
+      key: "priority",
+      title: "Priority",
       render: (row: InwardPendingCase) => (
         <div className="flex items-center space-x-2">
           {getPriorityIcon(row.priority)}
@@ -86,17 +163,21 @@ const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
       ),
     },
     {
-      key: 'dueDate',
-      title: 'Due Date',
+      key: "dueDate",
+      title: "Due Date",
       render: (row: InwardPendingCase) => (
-        <div className={row.dueDate < '2025-06-08' ? 'text-red-600 font-semibold' : ''}>
+        <div
+          className={
+            row.dueDate < "2025-06-08" ? "text-red-600 font-semibold" : ""
+          }
+        >
           {row.dueDate}
         </div>
       ),
     },
     {
-      key: 'actions',
-      title: 'Actions',
+      key: "actions",
+      title: "Actions",
       render: (row: InwardPendingCase) => (
         <div className="flex items-center space-x-2">
           <Select
@@ -135,8 +216,12 @@ const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
   ];
 
   return (
-    <CommonTable columns={columns} data={data} emptyText="No inward pending cases" />
+    <CommonTable
+      columns={columns}
+      data={InwardPendingData?.data || []}
+      emptyText="No inward pending cases"
+    />
   );
 };
 
-export default InwardPendingTable; 
+export default InwardPendingTable;

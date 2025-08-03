@@ -557,58 +557,58 @@ const DepartmentHeadDashboard = () => {
     });
   };
 
-  const handleMakeInward = (waitingCaseId: string) => {
-    setDepartments((prev) =>
-      prev.map((dept) => {
-        if (dept.id === selectedDepartment) {
-          const waitingCase = dept.waitingInward?.find(
-            (c) => c.id === waitingCaseId
-          );
+  // const handleMakeInward = (waitingCaseId: string) => {
+  //   setDepartments((prev) =>
+  //     prev.map((dept) => {
+  //       if (dept.id === selectedDepartment) {
+  //         const waitingCase = dept.waitingInward?.find(
+  //           (c) => c.id === waitingCaseId
+  //         );
 
-          if (waitingCase) {
-            const inwardCase: InwardCase = {
-              id: `IN${Date.now()}`,
-              caseNumber: waitingCase.caseNumber,
-              doctorName: waitingCase.doctorName,
-              clinicName: waitingCase.clinicName,
-              patientName: waitingCase.patientName,
-              caseType: waitingCase.caseType,
-              priority: waitingCase.priority,
-              receivedDate: new Date().toISOString().split("T")[0],
-              dueDate: waitingCase.expectedDate,
-              notes: waitingCase.notes,
-              logs: [
-                ...waitingCase.logs,
-                {
-                  id: `L${Date.now()}`,
-                  timestamp: new Date().toISOString(),
-                  action: "Made Inward",
-                  user: "Admin",
-                  details: "Case processed for assignment",
-                },
-              ],
-              digitalFiles: waitingCase.digitalFiles,
-              products: waitingCase.products,
-              accessories: waitingCase.accessories,
-            };
+  //         if (waitingCase) {
+  //           const inwardCase: InwardCase = {
+  //             id: `IN${Date.now()}`,
+  //             caseNumber: waitingCase.caseNumber,
+  //             doctorName: waitingCase.doctorName,
+  //             clinicName: waitingCase.clinicName,
+  //             patientName: waitingCase.patientName,
+  //             caseType: waitingCase.caseType,
+  //             priority: waitingCase.priority,
+  //             receivedDate: new Date().toISOString().split("T")[0],
+  //             dueDate: waitingCase.expectedDate,
+  //             notes: waitingCase.notes,
+  //             logs: [
+  //               ...waitingCase.logs,
+  //               {
+  //                 id: `L${Date.now()}`,
+  //                 timestamp: new Date().toISOString(),
+  //                 action: "Made Inward",
+  //                 user: "Admin",
+  //                 details: "Case processed for assignment",
+  //               },
+  //             ],
+  //             digitalFiles: waitingCase.digitalFiles,
+  //             products: waitingCase.products,
+  //             accessories: waitingCase.accessories,
+  //           };
 
-            return {
-              ...dept,
-              waitingInward:
-                dept.waitingInward?.filter((c) => c.id !== waitingCaseId) || [],
-              inwardPending: [...dept.inwardPending, inwardCase],
-            };
-          }
-        }
-        return dept;
-      })
-    );
+  //           return {
+  //             ...dept,
+  //             waitingInward:
+  //               dept.waitingInward?.filter((c) => c.id !== waitingCaseId) || [],
+  //             inwardPending: [...dept.inwardPending, inwardCase],
+  //           };
+  //         }
+  //       }
+  //       return dept;
+  //     })
+  //   );
 
-    toast({
-      title: "Case Made Inward",
-      description: `Case has been moved to inward pending`,
-    });
-  };
+  //   toast({
+  //     title: "Case Made Inward",
+  //     description: `Case has been moved to inward pending`,
+  //   });
+  // };
 
   const handleChatOpen = (caseId: string, caseType: string) => {
     setSelectedCaseForChat({ caseId, caseType });
@@ -841,7 +841,7 @@ const DepartmentHeadDashboard = () => {
                     </span>
                   </div>
                   <WaitingInwardTable
-                    data={currentDepartment?.waitingInward || []}
+                    // data={waitingInwardData?.data || []}
                     onPriorityChange={(caseNumber, newPriority) =>
                       handlePriorityChange(
                         caseNumber,
@@ -849,10 +849,11 @@ const DepartmentHeadDashboard = () => {
                         "waiting-inward"
                       )
                     }
-                    onMakeInward={handleMakeInward}
+                    // onMakeInward={handleMakeInward}
                     onViewDetails={handleViewCaseDetails}
                     onChatOpen={handleChatOpen}
                     getPriorityIcon={getPriorityIcon}
+                    selectedDepartmentId={selectedDepartment1?.id}
                   />
                 </>
               ),
@@ -866,8 +867,9 @@ const DepartmentHeadDashboard = () => {
                     </span>
                   </div>
                   <InwardPendingTable
-                    data={currentDepartment?.inwardPending}
-                    technicians={currentDepartment?.technicians}
+                    // data={currentDepartment?.inwardPending}
+                    selectedDepartmentId={selectedDepartment1?.id}
+                    // technicians={currentDepartment?.technicians}
                     onPriorityChange={(caseNumber, newPriority) =>
                       handlePriorityChange(
                         caseNumber,

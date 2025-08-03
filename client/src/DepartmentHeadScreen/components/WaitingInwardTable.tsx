@@ -1,8 +1,19 @@
-import React from 'react';
-import CommonTable from '@/components/common/CommonTable';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, MessageSquare, ArrowRight } from 'lucide-react';
+import React from "react";
+import CommonTable from "@/components/common/CommonTable";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, MessageSquare, ArrowRight } from "lucide-react";
+import {
+  useGetDepartmentHeadWaitingInwardQuery,
+  useInwardOrderMutation,
+} from "@/store/slices/departmentHeadSlice/departmentHeadApi";
+import { useToast } from "@/hooks/use-toast";
 
 interface WaitingInwardCase {
   id: string;
@@ -17,47 +28,81 @@ interface WaitingInwardCase {
 }
 
 interface WaitingInwardTableProps {
-  data: WaitingInwardCase[];
+  // data: WaitingInwardCase[];
   onPriorityChange: (caseNumber: string, newPriority: string) => void;
-  onMakeInward: (waitingCaseId: string) => void;
+  // onMakeInward: (waitingCaseId: string) => void;
   onViewDetails: (caseData: WaitingInwardCase) => void;
   onChatOpen: (caseNumber: string, caseType: string) => void;
   getPriorityIcon: (priority: string) => React.ReactNode;
+  selectedDepartmentId: any;
 }
 
 const WaitingInwardTable: React.FC<WaitingInwardTableProps> = ({
-  data,
+  // data,
   onPriorityChange,
-  onMakeInward,
+  // onMakeInward,
   onViewDetails,
   onChatOpen,
   getPriorityIcon,
+  selectedDepartmentId,
 }) => {
+  const { toast } = useToast();
+
+  const {
+    data: waitingInwardData,
+    isLoading,
+    error,
+  } = useGetDepartmentHeadWaitingInwardQuery({
+    departmentId: selectedDepartmentId || "",
+    page: 1,
+    limit: 10,
+  });
+
+  const [inwardOrder, { isLoading: isInwardOrderLoading }] =
+    useInwardOrderMutation();
+
+  const handleMakeInward = (caseId: string) => {
+    console.log("caseId", caseId);
+    inwardOrder({ id: caseId });
+    toast({
+      title: "Inward Order",
+      description: "Inward order has been made",
+    });
+  };
+
+  console.group("waitingInwardData");
+  console.log("isLoading", isLoading);
+  console.log("error", error);
+  console.log("data", waitingInwardData);
+  console.groupEnd();
+
   const columns = [
     {
-      key: 'caseDetails',
-      title: 'Case Details',
+      key: "caseDetails",
+      title: "Case Details",
       render: (row: WaitingInwardCase) => (
         <div>
-          <div className="font-medium">{row.caseNumber}</div>
-          <div className="text-sm text-gray-500">{row.caseType}</div>
+          <div className="font-medium">{row.orderNumber}</div>
+          <div className="text-sm text-gray-500">
+            {row.prescriptionTypesId[0]}
+          </div>
           <div className="text-xs text-gray-400">{row.clinicName}</div>
         </div>
       ),
     },
     {
-      key: 'patientDoctor',
-      title: 'Patient/Doctor',
+      key: "patientDoctor",
+      title: "Patient/Doctor",
       render: (row: WaitingInwardCase) => (
         <div>
           <div className="font-medium">{row.patientName}</div>
-          <div className="text-sm text-gray-500">{row.doctorName}</div>
+          <div className="text-sm text-gray-500">Dr. {row.doctorName}</div>
         </div>
       ),
     },
     {
-      key: 'priority',
-      title: 'Priority',
+      key: "priority",
+      title: "Priority",
       render: (row: WaitingInwardCase) => (
         <div className="flex items-center space-x-2">
           {getPriorityIcon(row.priority)}
@@ -79,23 +124,27 @@ const WaitingInwardTable: React.FC<WaitingInwardTableProps> = ({
       ),
     },
     {
-      key: 'expectedDate',
-      title: 'Expected Date',
+      key: "expectedDate",
+      title: "Expected Date",
       render: (row: WaitingInwardCase) => (
-        <div className={row.expectedDate < '2025-06-08' ? 'text-red-600 font-semibold' : ''}>
-          {row.expectedDate}
+        <div
+          className={
+            row.expectedDate < "2025-06-08" ? "text-red-600 font-semibold" : ""
+          }
+        >
+          {row.dueDate}
         </div>
       ),
     },
     {
-      key: 'actions',
-      title: 'Actions',
+      key: "actions",
+      title: "Actions",
       render: (row: WaitingInwardCase) => (
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onMakeInward(row.id)}
+            onClick={() => handleMakeInward(row.id)}
             title="Make Inward"
           >
             <ArrowRight className="h-4 w-4 mr-1" />
@@ -123,8 +172,12 @@ const WaitingInwardTable: React.FC<WaitingInwardTableProps> = ({
   ];
 
   return (
-    <CommonTable columns={columns} data={data} emptyText="No cases waiting to be inward" />
+    <CommonTable
+      columns={columns}
+      data={waitingInwardData?.data || []}
+      emptyText="No cases waiting to be inward"
+    />
   );
 };
 
-export default WaitingInwardTable; 
+export default WaitingInwardTable;

@@ -26,6 +26,12 @@ export interface DailyReportRequest {
   [key: string]: any;
 }
 
+export interface WaitingInwardParams {
+  departmentId: string;
+  page?: number;
+  limit?: number;
+}
+
 export const departmentHeadApi = createApi({
   reducerPath: "departmentHeadApi",
   baseQuery: fetchBaseQuery({
@@ -92,6 +98,34 @@ export const departmentHeadApi = createApi({
       }),
       providesTags: ["departmentHead"],
     }),
+    getDepartmentHeadWaitingInward: builder.query<any, WaitingInwardParams>({
+      query: ({ departmentId, page = 1, limit = 10 }) => ({
+        url: `/waiting-inward/${departmentId}`,
+        method: "GET",
+        params: {
+          page,
+          limit,
+        },
+      }),
+      providesTags: ["departmentHead"],
+    }),
+    inwardOrder: builder.mutation<any, { id: string }>({
+      query: ({ id }) => ({
+        url: `/inward/${id}`,
+        method: "POST",
+      }),
+    }),
+    getDepartmentHeadInwardPending: builder.query<any, WaitingInwardParams>({
+      query: ({ departmentId, page = 1, limit = 10 }) => ({
+        url: `/inward-pending/${departmentId}`,
+        method: "GET",
+        params: {
+          page,
+          limit,
+        },
+      }),
+      providesTags: ["departmentHead"],
+    }),
   }),
 });
 
@@ -100,4 +134,7 @@ export const {
   useRegisterDepartmentHeadMutation,
   useDeleteDepartmentHeadMutation,
   useGetDepartmentHeadProfileQuery,
+  useGetDepartmentHeadWaitingInwardQuery,
+  useInwardOrderMutation,
+  useGetDepartmentHeadInwardPendingQuery,
 } = departmentHeadApi;

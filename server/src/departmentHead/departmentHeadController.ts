@@ -5,7 +5,7 @@ import {
   labOrderSchema,
   orderFlowSchema,
 } from "./departmentHeadSchema";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -509,15 +509,46 @@ export const departmentHeadController = {
   async getWaitingInward(req: Request, res: Response) {
     try {
       const { departmentId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
 
       if (!departmentId) {
         return res.status(400).json({ error: "Department ID is required" });
       }
 
-      // Fetch orders in 'waiting_inward' status for this department
+      // Validate pagination parameters
+      if (page < 1 || limit < 1 || limit > 100) {
+        return res.status(400).json({
+          error:
+            "Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100",
+        });
+      }
+
+      // Get total count for pagination
+      const totalCountResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(orderFlowSchema)
+        .innerJoin(
+          labOrderSchema,
+          eq(orderFlowSchema.orderId, labOrderSchema.orderId)
+        )
+        .innerJoin(orderSchema, eq(labOrderSchema.orderId, orderSchema.id))
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "waiting_inward")
+          )
+        );
+
+      const totalCount = totalCountResult[0]?.count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Fetch orders in 'waiting_inward' status for this department with pagination
       const waitingOrders = await db
         .select({
-          flowId: orderFlowSchema.id,
+          id: orderFlowSchema.id,
           flowStatus: orderFlowSchema.status,
           orderFlowCreatedAt: orderFlowSchema.createdAt,
           departmentId: orderFlowSchema.departmentId,
@@ -560,11 +591,21 @@ export const departmentHeadController = {
             eq(orderFlowSchema.status, "waiting_inward")
           )
         )
-        .orderBy(orderFlowSchema.createdAt);
+        .orderBy(orderFlowSchema.createdAt)
+        .limit(limit)
+        .offset(offset);
 
       return res.status(200).json({
         message: "Waiting inward orders retrieved successfully",
         data: waitingOrders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
       });
     } catch (error: any) {
       console.error("Error getting waiting inward orders:", error);
@@ -597,6 +638,119 @@ export const departmentHeadController = {
     } catch (error) {
       console.error("Error in inward:", error);
       res.status(500).json({ error: "Failed to inward order" });
+    }
+  },
+
+  // ✅ Get orders that are inwarded but not assigned to technician
+  async getInwardPending(req: Request, res: Response) {
+    try {
+      const { departmentId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const offset = (page - 1) * limit;
+
+      if (!departmentId) {
+        return res.status(400).json({ error: "Department ID is required" });
+      }
+
+      // Validate pagination parameters
+      if (page < 1 || limit < 1 || limit > 100) {
+        return res.status(400).json({
+          error:
+            "Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100",
+        });
+      }
+
+      // Get total count for pagination
+      const totalCountResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(orderFlowSchema)
+        .innerJoin(
+          labOrderSchema,
+          eq(orderFlowSchema.orderId, labOrderSchema.orderId)
+        )
+        .innerJoin(orderSchema, eq(labOrderSchema.orderId, orderSchema.id))
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "inward_pending"),
+            isNull(orderFlowSchema.technicianId)
+          )
+        );
+
+      const totalCount = totalCountResult[0]?.count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+
+      // Fetch orders in 'inward_pending' status for this department with pagination
+      const inwardPendingOrders = await db
+        .select({
+          id: orderFlowSchema.id,
+          flowStatus: orderFlowSchema.status,
+          orderFlowCreatedAt: orderFlowSchema.createdAt,
+          departmentId: orderFlowSchema.departmentId,
+          technicianId: orderFlowSchema.technicianId,
+
+          orderId: labOrderSchema.orderId, // actual order.id (not lab order id)
+          orderNumber: labOrderSchema.orderNumber,
+          priority: labOrderSchema.priority,
+          dueDate: labOrderSchema.dueDate,
+          labCreatedAt: labOrderSchema.createdAt,
+          prescriptionTypesId: orderSchema.prescriptionTypesId,
+          patientName:
+            sql`${patients.firstName} || ' ' || ${patients.lastName}`.as(
+              "patientName"
+            ),
+          doctorName: clinicInformation.caseHandleBy,
+          clinicName: clinic.clinicName,
+        })
+        .from(orderFlowSchema)
+        .innerJoin(
+          labOrderSchema,
+          eq(orderFlowSchema.orderId, labOrderSchema.orderId) // join lab_order using flow.orderId
+        )
+        .innerJoin(
+          orderSchema,
+          eq(labOrderSchema.orderId, orderSchema.id) // join orders using lab_order.orderId = orders.id
+        )
+        .leftJoin(
+          clinicInformation,
+          eq(orderSchema.clinicInformationId, clinicInformation.id)
+        )
+        .leftJoin(
+          patients,
+          eq(orderSchema.patientId, patients.id) // join patient using order.patientId
+        )
+        .leftJoin(clinic, eq(orderSchema.clinicId, clinic.id))
+        .where(
+          and(
+            eq(orderFlowSchema.departmentId, departmentId),
+            eq(orderFlowSchema.isCurrent, true),
+            eq(orderFlowSchema.status, "inward_pending"),
+            isNull(orderFlowSchema.technicianId)
+          )
+        )
+        .orderBy(orderFlowSchema.createdAt)
+        .limit(limit)
+        .offset(offset);
+
+      return res.status(200).json({
+        message: "Inward pending orders retrieved successfully",
+        data: inwardPendingOrders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error getting inward pending orders:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to get inward pending orders" });
     }
   },
 

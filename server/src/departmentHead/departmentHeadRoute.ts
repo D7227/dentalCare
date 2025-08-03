@@ -73,6 +73,13 @@ departmentHeadRouter.post(
   departmentHeadController.inward
 );
 
+// GET /head/inward-pending/:departmentId
+departmentHeadRouter.get(
+  "/inward-pending/:departmentId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getInwardPending
+);
+
 // GET /head/assigned-pending
 departmentHeadRouter.get(
   "/assigned-pending/:departmentId",
