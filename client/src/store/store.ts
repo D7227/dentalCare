@@ -15,6 +15,7 @@ import { orderHistoryApi } from "./slices/orderHistorySlice/orderHistoryApi";
 import qaReducer from "./slices/qaslice/qaSlice";
 import { departmentHeadApi } from "./slices/departmentHeadSlice/departmentHeadApi";
 import departmentHeadReducer from "./slices/departmentHeadSlice/departmentHeadSlice";
+import { technicianApi } from "./slices/technicianApi";
 
 // Combine all reducers (add more slices/APIs here)
 const rootReducer = combineReducers({
@@ -33,6 +34,7 @@ const rootReducer = combineReducers({
   qa: qaReducer,
   departmentHead: departmentHeadReducer,
   [departmentHeadApi.reducerPath]: departmentHeadApi.reducer,
+  [technicianApi.reducerPath]: technicianApi.reducer,
 });
 
 const persistConfig = {
@@ -67,7 +69,8 @@ export const store = configureStore({
       .concat(userDataApi.middleware)
       .concat(qaApi.middleware)
       .concat(orderHistoryApi.middleware)
-      .concat(departmentHeadApi.middleware),
+      .concat(departmentHeadApi.middleware)
+      .concat(technicianApi.middleware),
   devTools: process.env.NODE_ENV !== "production",
 });
 

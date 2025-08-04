@@ -5,7 +5,11 @@ import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { RolesStorage } from "../role/roleController";
-import { labOrderSchema, orderFlowSchema } from "../departmentHead/departmentHeadSchema";
+import {
+  labOrderSchema,
+  orderFlowSchema,
+  departmentSchema,
+} from "../departmentHead/departmentHeadSchema";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
@@ -65,6 +69,7 @@ export class TechnicianStorage {
 export const technicianStorage = new TechnicianStorage();
 
 // Controller functions
+// ! Done
 export async function registerTechnician(req: Request, res: Response) {
   try {
     const {
@@ -125,6 +130,7 @@ export async function registerTechnician(req: Request, res: Response) {
   }
 }
 
+// ! DOne
 export async function loginTechnician(req: Request, res: Response) {
   try {
     const { mobileNumber, password } = req.body;
@@ -289,7 +295,9 @@ export async function acceptAssignment(req: Request, res: Response) {
     const { technicianId } = req.body;
 
     if (!technicianId || !orderId) {
-      return res.status(400).json({ error: "Order ID and Technician ID are required" });
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
     }
 
     await db
@@ -318,7 +326,9 @@ export async function markAsCompleted(req: Request, res: Response) {
     const { technicianId } = req.body;
 
     if (!technicianId || !orderId) {
-      return res.status(400).json({ error: "Order ID and Technician ID are required" });
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
     }
 
     await db
@@ -339,5 +349,154 @@ export async function markAsCompleted(req: Request, res: Response) {
   } catch (error: any) {
     console.error("Error marking order as completed:", error);
     return res.status(500).json({ error: "Failed to mark order as completed" });
+  }
+}
+
+// Admin management endpoints
+export async function getAllTechnicians(req: Request, res: Response) {
+  try {
+    const technicians = await db
+      .select({
+        id: technicianUser.id,
+        firstName: technicianUser.firstName,
+        lastName: technicianUser.lastName,
+        email: technicianUser.email,
+        mobileNumber: technicianUser.mobileNumber,
+        employeeId: technicianUser.employeeId,
+        departmentId: technicianUser.departmentId,
+        roleId: technicianUser.roleId,
+        profilePic: technicianUser.profilePic,
+        profilePicMimeType: technicianUser.profilePicMimeType,
+      })
+      .from(technicianUser);
+
+    // Get department names and role names
+    const techniciansWithDetails = await Promise.all(
+      technicians.map(async (tech) => {
+        let departmentName = null;
+        let roleName = null;
+
+        if (tech.departmentId) {
+          const [department] = await db
+            .select({ name: departmentSchema.name })
+            .from(departmentSchema)
+            .where(eq(departmentSchema.id, tech.departmentId));
+          departmentName = department?.name;
+        }
+
+        if (tech.roleId) {
+          const role = await RolesStorage.getRoleById(tech.roleId);
+          roleName = role?.name;
+        }
+
+        return {
+          ...tech,
+          departmentName,
+          roleName,
+          status: "active", // You might want to add a status field to the schema
+          specialization: departmentName, // Using department as specialization for now
+          experience: "3 years", // You might want to add this field to the schema
+        };
+      })
+    );
+
+    return res.status(200).json(techniciansWithDetails);
+  } catch (error: any) {
+    console.error("Error getting all technicians:", error);
+    return res.status(500).json({ error: "Failed to get technicians" });
+  }
+}
+
+export async function getTechnicianStats(req: Request, res: Response) {
+  try {
+    const technicians = await db.select().from(technicianUser);
+    const departments = await db.select().from(departmentSchema);
+
+    const total = technicians.length;
+    const active = technicians.length; // Assuming all are active for now
+    const inactive = 0;
+
+    // Count by department
+    const byDepartment: Record<string, number> = {};
+    departments.forEach((dept) => {
+      byDepartment[dept.name] = technicians.filter(
+        (tech) => tech.departmentId === dept.id
+      ).length;
+    });
+
+    // Count by role (assuming all are technicians for now)
+    const byRole: Record<string, number> = {
+      Technician: total,
+    };
+
+    return res.status(200).json({
+      total,
+      active,
+      inactive,
+      byDepartment,
+      byRole,
+    });
+  } catch (error: any) {
+    console.error("Error getting technician stats:", error);
+    return res.status(500).json({ error: "Failed to get technician stats" });
+  }
+}
+
+export async function getTechniciansByDepartment(req: Request, res: Response) {
+  try {
+    const { departmentId } = req.params;
+
+    const technicians = await db
+      .select({
+        id: technicianUser.id,
+        firstName: technicianUser.firstName,
+        lastName: technicianUser.lastName,
+        email: technicianUser.email,
+        mobileNumber: technicianUser.mobileNumber,
+        employeeId: technicianUser.employeeId,
+        departmentId: technicianUser.departmentId,
+        roleId: technicianUser.roleId,
+        profilePic: technicianUser.profilePic,
+        profilePicMimeType: technicianUser.profilePicMimeType,
+      })
+      .from(technicianUser)
+      .where(eq(technicianUser.departmentId, departmentId));
+
+    // Get department name and role names
+    const techniciansWithDetails = await Promise.all(
+      technicians.map(async (tech) => {
+        let departmentName = null;
+        let roleName = null;
+
+        if (tech.departmentId) {
+          const [department] = await db
+            .select({ name: departmentSchema.name })
+            .from(departmentSchema)
+            .where(eq(departmentSchema.id, tech.departmentId));
+          departmentName = department?.name;
+        }
+
+        if (tech.roleId) {
+          const role = await RolesStorage.getRoleById(tech.roleId);
+          roleName = role?.name;
+        }
+
+        return {
+          ...tech,
+          departmentName,
+          roleName,
+          status: "active",
+          specialization: departmentName,
+          experience: "3 years",
+        };
+      })
+    );
+
+    return res.status(200).json(techniciansWithDetails);
+  } catch (error: any) {
+    console.error("Error getting technicians by department:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to get technicians by department" });
   }
 }
