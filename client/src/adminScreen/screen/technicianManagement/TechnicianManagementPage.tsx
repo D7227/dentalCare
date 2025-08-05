@@ -776,7 +776,10 @@ const TechnicianManagementPage = () => {
                   title: "Technician updated",
                   description: "Technician has been successfully updated.",
                 });
-                console.log('selectedTechnician.id',typeof selectedTechnician.id)
+                console.log(
+                  "selectedTechnician.id",
+                  typeof selectedTechnician.id
+                );
               } catch (error: any) {
                 const errorMessage =
                   error?.data?.error ||

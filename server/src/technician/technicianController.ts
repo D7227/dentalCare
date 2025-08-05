@@ -98,6 +98,9 @@ export async function registerTechnician(req: Request, res: Response) {
     if (existingEmployeeId) {
       return res.status(400).json({ error: "Employee ID already exists" });
     }
+    if (!departmentId) {
+      return res.status(400).json({ error: "Please select the department" });
+    }
 
     // Validate status
     if (status && !["active", "inactive"].includes(status)) {
@@ -299,42 +302,33 @@ export async function getTechnicianById(req: Request, res: Response) {
       return res.status(400).json({ error: "Technician ID is required" });
     }
 
-    // const technician = await technicianStorage.getTechnicianById(id);
-    console.log("type", typeof technicianUser.id);
-    console.log("type ==  >>>", typeof id);
-    const [technician] = await db
-      .select()
-      .from(technicianUser)
-      .where(eq(technicianUser.id, id)); // Make sure `id` is a UUID string
+    const technician = await technicianStorage.getTechnicianById(id);
 
     if (!technician) {
       return res.status(404).json({ error: "Technician not found" });
     }
 
     // Get department name
-    // let departmentName = null;
-    // if (technician.departmentId) {
-    //   const [department] = await db
-    //     .select({ name: departmentSchema.name })
-    //     .from(departmentSchema)
-    //     .where(eq(departmentSchema.id, technician.departmentId));
-    //   departmentName = department?.name;
-    // }
+    let departmentName = null;
+    if (technician.departmentId) {
+      const [department] = await db
+        .select({ name: departmentSchema.name })
+        .from(departmentSchema)
+        .where(eq(departmentSchema.id, technician.departmentId));
+      departmentName = department?.name;
+    }
 
     // Attach profilePicUrl endpoint if present
-    // let profilePicUrl = null;
-    // if (technician.profilePic) {
-    //   const baseUrl = req.protocol + "://" + req.get("host");
-    //   profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
-    // }
-
-    // const role = await RolesStorage.getRoleById(technician.roleId);
+    let profilePicUrl = null;
+    if (technician.profilePic) {
+      const baseUrl = req.protocol + "://" + req.get("host");
+      profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
+    }
 
     return res.json({
       ...technician,
-      // profilePic: profilePicUrl,
-      // departmentName,
-      // roleName: role?.name,
+      profilePic: profilePicUrl,
+      departmentName,
     });
   } catch (error) {
     console.error("Get technician by id error:", error);

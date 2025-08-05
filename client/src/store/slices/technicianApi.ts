@@ -76,7 +76,6 @@ export const technicianApi = createApi({
     // Get technician by ID
     getTechnicianById: builder.query<Technician, string>({
       query: (id) => `/${id}`,
-      providesTags: (result, error, id) => [{ type: "Technician", id }],
     }),
 
     // Create new technician
