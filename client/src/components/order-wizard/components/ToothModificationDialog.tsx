@@ -3,7 +3,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LegacyToothGroup } from '../types/tooth';
+import { LegacyToothGroup } from '../types/orderTypes';
 
 interface ToothModificationDialogProps {
   isOpen: boolean;

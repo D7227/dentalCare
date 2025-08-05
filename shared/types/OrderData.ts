@@ -1,6 +1,7 @@
 export interface OrderData {
   referenceId: string;
   orderId?: string;
+  orderMethod: string;
   status:
     | "pending_approval"
     | "approved"
@@ -15,9 +16,11 @@ export interface OrderData {
   patientLastName: string;
   patientAge: number;
   patientSex: string;
-  caseHandledBy: string;
+  caseHandleBy: string;
   consultingDoctor: string;
+  consultingDoctorMobile?: string;
   prescriptionType: string;
+  subcategoryType: string;
   orderType: string;
   restorationProducts: any[];
   category: string;
@@ -41,7 +44,6 @@ export interface OrderData {
   //   notes?: string;
   // };
 
-  orderType: "new" | "repeat" | "repair";
   previousOrderId?: string;
   repairType?: string;
   issueDescription?: string;

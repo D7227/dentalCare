@@ -1,6 +1,14 @@
-import React from 'react';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import React, { useState } from "react";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
 
 export interface ShadeOption {
   value: string;
@@ -15,95 +23,163 @@ interface ShadeSelectorProps {
   placeholder?: string;
   className?: string;
   part?: number;
+  selectedFamily?: string;
+  onFamilyChange?: (family: string) => void;
+  hideFamilySelector?: boolean;
 }
 
-const shadeOptions: ShadeOption[] = [
-  { value: 'a1', label: 'A1 - Vita Classic', family: 'Vita Classic' },
-  { value: 'a2', label: 'A2 - Vita Classic', family: 'Vita Classic' },
-  { value: 'a3', label: 'A3 - Vita Classic', family: 'Vita Classic' },
-  { value: 'a3.5', label: 'A3.5 - Vita Classic', family: 'Vita Classic' },
-  { value: 'b1', label: 'B1 - Vita Classic', family: 'Vita Classic' },
-  { value: 'b2', label: 'B2 - Vita Classic', family: 'Vita Classic' },
-  { value: 'b3', label: 'B3 - Vita Classic', family: 'Vita Classic' },
-  { value: 'c1', label: 'C1 - Vita Classic', family: 'Vita Classic' },
-  { value: 'c2', label: 'C2 - Vita Classic', family: 'Vita Classic' },
-  { value: 'd2', label: 'D2 - Vita Classic', family: 'Vita Classic' },
-  { value: '1m1', label: '1M1 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '1m2', label: '1M2 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '2l1.5', label: '2L1.5 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '2l2.5', label: '2L2.5 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '2m1', label: '2M1 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '2m2', label: '2M2 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '3m1', label: '3M1 - Vita 3D Master', family: 'Vita 3D Master' },
-  { value: '3m2', label: '3M2 - Vita 3D Master', family: 'Vita 3D Master' }
+export const shadeOptions: ShadeOption[] = [
+  { value: "a1", label: "A1 - Vita Classic", family: "Vita Classic" },
+  { value: "a2", label: "A2 - Vita Classic", family: "Vita Classic" },
+  { value: "a3", label: "A3 - Vita Classic", family: "Vita Classic" },
+  { value: "a3.5", label: "A3.5 - Vita Classic", family: "Vita Classic" },
+  { value: "b1", label: "B1 - Vita Classic", family: "Vita Classic" },
+  { value: "b2", label: "B2 - Vita Classic", family: "Vita Classic" },
+  { value: "b3", label: "B3 - Vita Classic", family: "Vita Classic" },
+  { value: "c1", label: "C1 - Vita Classic", family: "Vita Classic" },
+  { value: "c2", label: "C2 - Vita Classic", family: "Vita Classic" },
+  { value: "d2", label: "D2 - Vita Classic", family: "Vita Classic" },
+  { value: "1m1", label: "1M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "1m2", label: "1M2 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2l1.5", label: "2L1.5 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2l2.5", label: "2L2.5 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2m1", label: "2M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "2m2", label: "2M2 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "3m1", label: "3M1 - Vita 3D Master", family: "Vita 3D Master" },
+  { value: "3m2", label: "3M2 - Vita 3D Master", family: "Vita 3D Master" },
 ];
 
 const getShadeColor = (shadeValue: string): string => {
   const shadeColors: Record<string, string> = {
-    'a1': '#f5f0e8',
-    'a2': '#f0e6d2',
-    'a3': '#e8d4b0',
-    'a3.5': '#e0c498',
-    'b1': '#f2ede5',
-    'b2': '#eddfcc',
-    'b3': '#e6d1b3',
-    'c1': '#f0ebe3',
-    'c2': '#e9dcc8',
-    'd2': '#e6d5b8',
-    '1m1': '#f4f0e9',
-    '1m2': '#efe7d8',
-    '2l1.5': '#f1ebe4',
-    '2l2.5': '#ead9c5',
-    '2m1': '#f0e8dc',
-    '2m2': '#e7d6c1',
-    '3m1': '#eee4d7',
-    '3m2': '#e4d1bb'
+    a1: "#f5f0e8",
+    a2: "#f0e6d2",
+    a3: "#e8d4b0",
+    "a3.5": "#e0c498",
+    b1: "#f2ede5",
+    b2: "#eddfcc",
+    b3: "#e6d1b3",
+    c1: "#f0ebe3",
+    c2: "#e9dcc8",
+    d2: "#e6d5b8",
+    "1m1": "#f4f0e9",
+    "1m2": "#efe7d8",
+    "2l1.5": "#f1ebe4",
+    "2l2.5": "#ead9c5",
+    "2m1": "#f0e8dc",
+    "2m2": "#e7d6c1",
+    "3m1": "#eee4d7",
+    "3m2": "#e4d1bb",
   };
-  return shadeColors[shadeValue] || '#f0e6d2';
+  return shadeColors[shadeValue] || "#f0e6d2";
 };
 
-const families = Array.from(new Set(shadeOptions.map(opt => opt.family)));
+const families = Array.from(new Set(shadeOptions.map((opt) => opt.family)));
 
 const ShadeSelector = ({
   value,
   onValueChange,
-  label = 'Shade Selection',
-  placeholder = 'Select shade',
-  className = '',
-  part
+  label = "Shade Selection",
+  placeholder = "Select shade",
+  className = "",
+  part,
+  selectedFamily,
+  onFamilyChange,
+  hideFamilySelector,
 }: ShadeSelectorProps) => {
+  const [internalFamily, setInternalFamily] = useState<string | undefined>(undefined);
+  const family = selectedFamily !== undefined ? selectedFamily : internalFamily;
+  const handleFamilyChange = (fam: string | undefined) => {
+    if (onFamilyChange) onFamilyChange(fam ?? "");
+    setInternalFamily(fam);
+    // If current value is not in new family, clear selection
+    if (fam && value && value.family !== fam) {
+      onValueChange(null);
+    }
+  };
   return (
     <div className={`space-y-3 ${className}`}>
-      {/* <Label className="text-sm font-semibold text-foreground">
-        {label}{part ? ` Part ${part}` : ''}
-      </Label> */}
+      {!hideFamilySelector && (
+        <div className="flex gap-4 mb-1">
+          <label className="flex items-center cursor-pointer gap-2">
+            <input
+              type="radio"
+              name="shade-family"
+              value=""
+              checked={!family}
+              onChange={() => handleFamilyChange(undefined)}
+              className="accent-primary"
+            />
+            <span className="text-xs text-gray-700">All</span>
+          </label>
+          {families.map((fam) => (
+            <label key={fam} className="flex items-center cursor-pointer gap-2">
+              <input
+                type="radio"
+                name="shade-family"
+                value={fam}
+                checked={family === fam}
+                onChange={() => handleFamilyChange(fam)}
+                className="accent-primary"
+              />
+              <span className="text-xs text-gray-700">{fam}</span>
+            </label>
+          ))}
+        </div>
+      )}
       <Select
-        value={value?.value || ''}
-        onValueChange={val => {
-          const found = shadeOptions.find(opt => opt.value === val) || null;
+        value={value?.value || ""}
+        onValueChange={(val) => {
+          const found = shadeOptions.find((opt) => opt.value === val) || null;
           onValueChange(found);
         }}
       >
         <SelectTrigger className="h-[40px] border focus:border-primary transition-colors">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="bg-white z-50 max-h-72 overflow-y-auto">
-          {families.map(family => (
-            <SelectGroup key={family}>
-              <SelectLabel className="text-xs text-gray-500 px-2 py-1">{family}</SelectLabel>
-              {shadeOptions.filter(opt => opt.family === family).map(shade => (
-                <SelectItem key={shade.value} value={shade.value}>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
-                      style={{ background: getShadeColor(shade.value) }}
-                    ></div>
-                    <span className="text-sm">{shade.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          ))}
+        <SelectContent className="bg-white max-h-72 overflow-y-auto z-[9999]">
+          {!family
+            ? families.map((family) => (
+                <SelectGroup key={family}>
+                  <SelectLabel className="text-xs text-gray-500 px-2 py-1">
+                    {family}
+                  </SelectLabel>
+                  {shadeOptions
+                    .filter((opt) => opt.family === family)
+                    .map((shade) => (
+                      <SelectItem key={shade.value} value={shade.value}>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
+                            style={{ background: getShadeColor(shade.value) }}
+                          ></div>
+                          <span className="text-sm">{shade.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              ))
+            : families
+                .filter((fam) => fam === family)
+                .map((family) => (
+                  <SelectGroup key={family}>
+                    <SelectLabel className="text-xs text-gray-500 px-2 py-1">
+                      {family}
+                    </SelectLabel>
+                    {shadeOptions
+                      .filter((opt) => opt.family === family)
+                      .map((shade) => (
+                        <SelectItem key={shade.value} value={shade.value}>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-4 h-4 rounded border border-gray-300 flex-shrink-0"
+                              style={{ background: getShadeColor(shade.value) }}
+                            ></div>
+                            <span className="text-sm">{shade.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                ))}
         </SelectContent>
       </Select>
     </div>

@@ -1,108 +1,435 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Phone, Search, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/hooks";
+import { useGetTeamMembersByClinicQuery } from "@/store/slices/teamMemberApi";
+import CommonModal from "@/components/common/CommonModal";
+import { cn } from "@/lib/utils";
 
 interface CaseInfoCardProps {
   formData: any;
   setFormData: (data: any) => void;
+  readMode?: boolean;
+  editMode?: boolean;
 }
 
-const CaseInfoCard = ({ formData, setFormData }: CaseInfoCardProps) => {
-  const clinicDoctors = [{
-    id: 'dr1',
-    name: 'Dr. James Wilson',
-    role: 'Consulting Dr.'
-  }, {
-    id: 'dr2',
-    name: 'Dr. Sarah Chen',
-    role: 'Senior Dentist'
-  }, {
-    id: 'dr3',
-    name: 'Dr. Michael Brown',
-    role: 'Orthodontist'
-  }, {
-    id: 'dr4',
-    name: 'Dr. Emily Davis',
-    role: 'Prosthodontist'
-  }, {
-    id: 'dr5',
-    name: 'Dr. Robert Taylor',
-    role: 'Oral Surgeon'
-  }];
+interface Clinic {
+  id: string;
+  clinicName: string;
+  firstname: string;
+  lastname: string;
+}
 
-  return (
-      <Card className='bg-[#EFF9F7]'>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">Clinic Information</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="caseHandledBy">Case Handled By *</Label>
-          <Select 
-            value={formData.caseHandledBy} 
-            onValueChange={value => setFormData({
-              ...formData,
-              caseHandledBy: value
-            })}
-          >
-            <SelectTrigger className="mt-1" 
-            style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
-              borderRadius: '0.5rem'
-            }}
-            >
-              <SelectValue placeholder="Select doctor" />
-            </SelectTrigger>
-            <SelectContent>
-              {clinicDoctors.map(doctor => (
-                <SelectItem key={doctor.id} value={doctor.name}>
-                  {doctor.name} ({doctor.role})
+const CaseInfoCard = ({
+  formData,
+  setFormData,
+  readMode = false,
+  editMode = false,
+}: CaseInfoCardProps) => {
+  const [errors, setErrors] = useState<{
+    doctorMobileNumber?: string;
+    consultingDoctorMobileNumber?: string;
+  }>({});
+  const [clinicSearchTerm, setClinicSearchTerm] = useState("");
+  const [isClinicDropdownOpen, setIsClinicDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState(formData);
+  const endPort = window.location.pathname;
+
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+
+  // Function to validate mobile number input
+  const validateMobileNumber = (value: string): boolean => {
+    // Only allow digits
+    const numberOnly = /^\d*$/.test(value);
+    return numberOnly;
+  };
+
+  // --- Handlers for editData (modal) ---
+  const handleEditChange = (field: string, value: any) => {
+    setEditData((prev: any) => ({ ...prev, [field]: value }));
+  };
+  const handleEditMobileNumberChange = (field: string, value: string) => {
+    if (value === "" || validateMobileNumber(value)) {
+      setEditData((prev: any) => ({ ...prev, [field]: value }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    } else {
+      setErrors((prev) => ({ ...prev, [field]: "Please enter only numbers" }));
+    }
+  };
+
+  // --- Handlers for formData (default mode) ---
+  const handleFormChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  };
+  const handleFormMobileNumberChange = (field: string, value: string) => {
+    if (value === "" || validateMobileNumber(value)) {
+      setFormData((prev: any) => ({ ...prev, [field]: value }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    } else {
+      setErrors((prev) => ({ ...prev, [field]: "Please enter only numbers" }));
+    }
+  };
+
+  // --- Data fetching ---
+  const {
+    data: teamMembers = [],
+    error,
+    isLoading,
+    refetch: refetchTeamMembers,
+  } = useGetTeamMembersByClinicQuery(
+    // For QA users, use the selected clinic from formData, otherwise use user's clinicId
+    user?.roleName === "qa" 
+      ? (formData.clinicId || "") 
+      : (user?.clinicId ?? ""), 
+    {
+      skip: user?.roleName === "qa" 
+        ? !formData.clinicId  // Skip if QA user hasn't selected a clinic yet
+        : !user?.clinicId,    // Skip if non-QA user doesn't have clinicId
+    }
+  );
+  const {
+    data: clinics = [],
+    isLoading: clinicsLoading,
+    error: clinicsError,
+  } = useQuery({
+    queryKey: ["/api/clinics"],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/clinics", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error("Failed to fetch clinics");
+      return response.json();
+    },
+  });
+
+  const availableTeamMembers = Array.isArray(teamMembers)
+    ? teamMembers.filter((member: any) => {
+        const isCurrentUser = member.fullName === user?.fullName;
+        const isReceptionist =
+          member.roleName?.toLowerCase() === "receptionist";
+        return !isCurrentUser && !isReceptionist;
+      })
+    : [];
+
+  // --- Clinic select logic ---
+  const handleClinicSelect = (clinic: Clinic, isEdit = false) => {
+    if (isEdit) {
+      setEditData((prev: any) => ({ ...prev, clinicId: clinic.id }));
+      setClinicSearchTerm(clinic.clinicName);
+    } else {
+      setFormData((prev: any) => ({ ...prev, clinicId: clinic.id }));
+      setClinicSearchTerm(clinic.clinicName);
+      // For QA users, refetch team members when clinic is selected
+      if (user?.roleName === "qa") {
+        // Small delay to ensure formData is updated before refetch
+        setTimeout(() => {
+          refetchTeamMembers();
+        }, 100);
+      }
+    }
+    setIsClinicDropdownOpen(false);
+  };
+
+  // --- Render helpers ---
+  const renderInputs = (
+    data: any,
+    onChange: any,
+    onMobileChange: any,
+    isEdit = false
+  ) => (
+    <div className="space-y-4">
+      {user?.roleName === "qa" && (
+        <div className="relative">
+          <Label className="text-sm font-medium mb-2 block">
+            Clinic Name *
+          </Label>
+          <div className="relative">
+            <Input
+              placeholder={
+                clinicsLoading
+                  ? "Loading clinics..."
+                  : "Search and select clinic"
+              }
+              value={clinicSearchTerm}
+              onChange={(e) => setClinicSearchTerm(e.target.value)}
+              onFocus={() => setIsClinicDropdownOpen(true)}
+              className="pl-8"
+              disabled={clinicsLoading}
+            />
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+          {isClinicDropdownOpen && (
+            <Card className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto shadow-lg">
+              <CardContent className="p-0">
+                {clinicsLoading ? (
+                  <div className="p-3 text-sm text-gray-500 text-center">
+                    Loading clinics...
+                  </div>
+                ) : clinicsError ? (
+                  <div className="p-3 text-sm text-red-500 text-center">
+                    Failed to load clinics
+                  </div>
+                ) : clinics.length > 0 ? (
+                  clinics.map((clinic: Clinic) => (
+                    <div
+                      key={clinic.id}
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      onClick={() => handleClinicSelect(clinic, isEdit)}
+                    >
+                      <div className="font-medium text-sm text-gray-900">
+                        {clinic.clinicName}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {clinic.firstname} {clinic.lastname}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-3 text-sm text-gray-500 text-center">
+                    {clinicSearchTerm
+                      ? "No clinics found"
+                      : "No clinics available"}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+      <div className="space-y-1">
+        <Label htmlFor="caseHandleBy">Case Handled By *</Label>
+        <Select
+          value={data.caseHandledById || ""}
+          onValueChange={(value) => {
+            const selectedMember = availableTeamMembers?.find(
+              (member: any) => member.id === value
+            );
+            onChange("caseHandledById", selectedMember?.id || "");
+            onChange("caseHandleBy", selectedMember?.fullName || "");
+            onChange("consultingDoctor", selectedMember?.fullName || "");
+            onChange(
+              "doctorMobileNumber",
+              selectedMember?.contactNumber || data.doctorMobileNumber
+            );
+          }}
+          disabled={isLoading || !!error || (user?.roleName === "qa" && !formData.clinicId)}
+        >
+          <SelectTrigger className="mt-1" style={{ borderRadius: "0.5rem" }}>
+            <SelectValue
+              placeholder={
+                user?.roleName === "qa" && !formData.clinicId
+                  ? "Please select a clinic first"
+                  : isLoading
+                  ? "Loading..."
+                  : error
+                  ? "Failed to load team members"
+                  : "Select team member"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {user?.roleName === "qa" && !formData.clinicId ? (
+              <div className="p-2 text-sm text-gray-500">
+                Please select a clinic first to view team members
+              </div>
+            ) : isLoading ? (
+              <div className="p-2 text-sm text-gray-500">
+                Loading team members...
+              </div>
+            ) : error ? (
+              <div className="p-2 text-sm text-red-500">
+                Failed to load team members
+              </div>
+            ) : availableTeamMembers.length === 0 ? (
+              <div className="p-2 text-sm text-gray-500">
+                No team members available
+              </div>
+            ) : (
+              availableTeamMembers.map((member: any) => (
+                <SelectItem key={member.id} value={member.id}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{member.fullName}</span>
+                  </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="doctorMobile">Doctor Mobile Number</Label>
-          <Input 
-            id="doctorMobile" 
-            style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
-              borderRadius: '0.5rem'
-            }}
-
-            value={formData.doctorMobile} 
-            onChange={e => setFormData({
-              ...formData,
-              doctorMobile: e.target.value
-            })} 
-            className="mt-1" 
+              ))
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="doctorMobileNumber">Doctor Mobile Number</Label>
+        <div className="relative">
+          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+          <Input
+            id="doctorMobileNumber"
+            style={{ borderRadius: "0.5rem" }}
+            value={data.doctorMobileNumber}
+            onChange={(e) =>
+              onMobileChange("doctorMobileNumber", e.target.value)
+            }
+            className="mt-1 pl-10"
+            placeholder="Enter mobile number (numbers only)"
+            error={!!errors.doctorMobileNumber}
+            errorMessage={errors.doctorMobileNumber}
           />
         </div>
-        <div>
-          <Label htmlFor="consultingDoctor">Consulting Doctor</Label>
-          <Input 
-            id="consultingDoctor" 
-            style={{
-              // background: 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 20%, #0B80431A 100%)',
-              // border: '1px solid #CCDAD8',
-              borderRadius: '0.5rem'
-            }}
-
-            value={formData.consultingDoctor} 
-            onChange={e => setFormData({
-              ...formData,
-              consultingDoctor: e.target.value
-            })} 
-            className="mt-1" 
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="consultingDoctorName">Consulting Doctor</Label>
+        <Input
+          id="consultingDoctorName"
+          style={{ borderRadius: "0.5rem" }}
+          value={data.consultingDoctorName}
+          onChange={(e) => onChange("consultingDoctorName", e.target.value)}
+          className="mt-1"
+          placeholder="Enter Consulting Doctor Name"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="consultingDoctorMobileNumber">
+          Consulting Doctor Mobile Number
+        </Label>
+        <div className="relative">
+          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+          <Input
+            id="consultingDoctorMobileNumber"
+            style={{ borderRadius: "0.5rem" }}
+            value={data.consultingDoctorMobileNumber}
+            onChange={(e) =>
+              onMobileChange("consultingDoctorMobileNumber", e.target.value)
+            }
+            className="mt-1 pl-10"
+            placeholder="Enter mobile number (numbers only)"
+            error={!!errors.consultingDoctorMobileNumber}
+            errorMessage={errors.consultingDoctorMobileNumber}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+
+  const renderSummary = (data: any) => (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Clinic Name</Label>
+        <div className="text-sm font-medium">{data.clinicName || "-"}</div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Case Handled By</Label>
+        <div className="text-sm font-medium">{data.caseHandleBy || "-"}</div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Doctor Mobile</Label>
+        <div className="text-sm font-medium">
+          {data.doctorMobileNumber || "-"}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">
+          Consulting Doctor
+        </Label>
+        <div className="text-sm font-medium">
+          {data.consultingDoctorName || "-"}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">
+          Consulting Doctor Mobile
+        </Label>
+        <div className="text-sm font-medium">
+          {data.consultingDoctorMobileNumber || "-"}
+        </div>
+      </div>
+    </div>
+  );
+
+  // --- Main readMode ---
+  return (
+    <>
+      <Card>
+        <CardHeader className="py-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-semibold flex gap-2 items-center">
+            <div
+              className={cn(
+                "p-2 border bg-[#1D4ED826] text-[#1D4ED8] h-[32px] w-[32px] rounded-[6px]",
+                readMode || editMode ? "flex" : "hidden"
+              )}
+            >
+              <User className="h-4 w-4" />
+            </div>
+            Clinic Information
+          </CardTitle>
+          {editMode && (
+            <button
+              onClick={() => {
+                setEditData(formData);
+                setIsModalOpen(true);
+              }}
+              className="ml-2 px-3 py-1 rounded bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200"
+            >
+              Edit
+            </button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {readMode || editMode
+            ? renderSummary(formData)
+            : renderInputs(
+                formData,
+                handleFormChange,
+                handleFormMobileNumberChange,
+                false
+              )}
+        </CardContent>
+      </Card>
+      <CommonModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        title="Update Clinic Information"
+      >
+        <div className="space-y-4 p-2">
+          {renderInputs(
+            editData,
+            handleEditChange,
+            handleEditMobileNumberChange,
+            true
+          )}
+        </div>
+        <div className="flex justify-end pt-4 gap-2">
+          <button
+            className="px-4 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+            onClick={() => {
+              setEditData(formData);
+              setIsModalOpen(false);
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={() => {
+              setFormData(editData);
+              setIsModalOpen(false);
+            }}
+          >
+            Save Changes
+          </button>
+        </div>
+      </CommonModal>
+    </>
   );
 };
 

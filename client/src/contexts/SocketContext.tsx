@@ -5,8 +5,8 @@ import { useAppSelector } from '@/store/hooks';
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
-  joinChat: (chatId: number) => void;
-  leaveChat: (chatId: number) => void;
+  joinChat: (chatId: string, userId: string) => void;
+  leaveChat: (chatId: string, userId: string) => void;
   sendMessage: (chatId: string, message: any) => void;
   sendTyping: (chatId: number, user: string, isTyping: boolean) => void;
   getSocket: () => Socket | null;
@@ -31,12 +31,20 @@ interface SocketProviderProps {
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector((state) => state.userData.userData);
 
   // Delay socket connection until user is available
   useEffect(() => {
     if (user?.id) {
-      const serverUrl = `http://${window.location.hostname}:5000`;
+      // Use window.location.hostname and support ws/wss and env port
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const hostname = window.location.hostname;
+      const envPort = import.meta.env.VITE_WS_PORT;
+      let port = envPort || window.location.port;
+      if (!port) {
+        port = protocol === 'wss' ? '443' : '5000';
+      }
+      const serverUrl = `${protocol}://${hostname}:${port}`;
       const newSocket = io(serverUrl, {
         transports: ['websocket', 'polling'],
         autoConnect: true,
@@ -62,28 +70,32 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     }
   }, [user?.id]);
 
-  // Register user with socket after connection and user.fullName is available
+  // Register user with socket after connection and user is available
   useEffect(() => {
-    if (socket && isConnected && user?.fullName) {
-      socket.emit('register-user', user.fullName);
+    if (socket && isConnected && user?.id) {
+      socket.emit('register-user', user.id);
+      console.log('Registered socket with user.id:', user.id);
     }
-  }, [socket, isConnected, user?.fullName]);
+  }, [socket, isConnected, user?.id]);
 
-  const joinChat = (chatId: number) => {
+  const joinChat = (chatId: string, userId: string) => {
+    console.log("joinChat", chatId, userId);
     if (socket && isConnected) {
-      socket.emit('join-chat', chatId);
-      console.log(`Joined chat room: ${chatId}`);
+      socket.emit('join-chat', chatId, userId);
+      console.log(`Joined chat room: ${chatId} as user: ${userId}`);
     }
   };
 
-  const leaveChat = (chatId: number) => {
+  const leaveChat = (chatId: string, userId: string) => {
+    console.log("leaveChat", chatId, userId);
     if (socket && isConnected) {
-      socket.emit('leave-chat', chatId);
-      console.log(`Left chat room: ${chatId}`);
+      socket.emit('leave-chat', chatId, userId);
+      console.log(`Left chat room: ${chatId} as user: ${userId}`);
     }
   };
 
   const sendMessage = (chatId: string, message: any) => {
+    console.log("sendMessage", chatId, message);
     if (socket && isConnected) {
       socket.emit('send-message', { chatId, message });
       console.log(`Sending message to chat ${chatId}:`, message);
@@ -91,6 +103,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const sendTyping = (chatId: number, user: string, isTyping: boolean) => {
+    console.log("sendTyping", chatId, user, isTyping);
     if (socket && isConnected) {
       socket.emit('typing', { chatId, user, isTyping });
     }
@@ -101,12 +114,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   };
 
   const onUnreadCountUpdate = (callback: (data: { chatId: string; unreadCount: number }) => void) => {
+    console.log("onUnreadCountUpdate", callback);
     if (socket) {
       socket.on('unread-count-update', callback);
     }
   };
 
   const offUnreadCountUpdate = (callback: (data: { chatId: string; unreadCount: number }) => void) => {
+    console.log("offUnreadCountUpdate", callback);
     if (socket) {
       socket.off('unread-count-update', callback);
     }

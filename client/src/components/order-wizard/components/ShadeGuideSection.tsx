@@ -1,13 +1,8 @@
-import React, { useState } from 'react';
-import { ToothGroup } from '../types/tooth';
-import ShadeSelectModal from './ShadeSelectModal';
-import { AnteriorSVG, PosteriorSVG } from '@/assets/svg';
-import { X, CheckCircle } from 'lucide-react';
-
-interface ShadeGuide {
-  type: 'anterior' | 'posterior';
-  shades: string[];
-}
+import React, { useState } from "react";
+import ShadeSelectModal from "./ShadeSelectModal";
+import { AnteriorSVG, PosteriorSVG } from "@/assets/svg";
+import { X, CheckCircle } from "lucide-react";
+import { ShadeGuide, ToothGroup } from "../types/orderTypes";
 
 interface ShadeGuideSectionProps {
   selectedGroups: ToothGroup[];
@@ -15,9 +10,15 @@ interface ShadeGuideSectionProps {
   selectedGuide?: ShadeGuide | null;
 }
 
-const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }: ShadeGuideSectionProps) => {
+const ShadeGuideSection = ({
+  selectedGroups,
+  onShadeGuideChange,
+  selectedGuide,
+}: ShadeGuideSectionProps) => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<'anterior' | 'posterior' | null>(null);
+  const [selectedType, setSelectedType] = useState<
+    "anterior" | "posterior" | null
+  >(null);
   // Store shades for the selected type only
   const [guide, setGuide] = useState<ShadeGuide | null>(null);
 
@@ -30,7 +31,7 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
     }
   }, [selectedGuide]);
 
-  const handleSVGClick = (type: 'anterior' | 'posterior') => {
+  const handleSVGClick = (type: "anterior" | "posterior") => {
     setSelectedType(type);
     setModalOpen(true);
   };
@@ -41,11 +42,13 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
   };
 
   const handleShadeSelect = (data: {
-    type: 'anterior' | 'posterior';
+    type: "anterior" | "posterior";
     shades: { part: number; value: string; label: string; family: string }[];
   }) => {
     // Only keep selected type and its shades
-    const validShades = data.shades.filter(shade => shade.value && shade.label).map(s => s.label);
+    const validShades = data.shades
+      .filter((shade) => shade.value && shade.label)
+      .map((s) => s.label);
     const newGuide: ShadeGuide = { type: data.type, shades: validShades };
     setGuide(newGuide);
     if (onShadeGuideChange) {
@@ -67,26 +70,30 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
       <div className="flex justify-start gap-24">
         {/* Anterior */}
         <div className="flex flex-col items-center">
-          <span className="text-xs font-medium text-gray-700 mb-2">Anterior</span>
+          <span className="text-xs font-medium text-gray-700 mb-2">
+            Anterior
+          </span>
           <button
             type="button"
-            onClick={() => handleSVGClick('anterior')}
-            className={`transition-all ${guide?.type === 'anterior' ? 'ring-2 ring-teal-500' : ''} ${guide?.type === 'posterior' ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-80'}`}
-            style={{ background: 'none', border: 'none', padding: 0 }}
-            disabled={guide?.type === 'posterior'}
+            onClick={() => handleSVGClick("anterior")}
+            className={`transition-all ${guide?.type === "anterior" ? "ring-2 ring-teal-500" : ""} ${guide?.type === "posterior" ? "opacity-40 cursor-not-allowed" : "hover:opacity-80"}`}
+            style={{ background: "none", border: "none", padding: 0 }}
+            disabled={guide?.type === "posterior"}
           >
             <img src={AnteriorSVG} alt="Anterior" width={70} height={60} />
           </button>
         </div>
         {/* Posterior */}
         <div className="flex flex-col items-center">
-          <span className="text-xs font-medium text-gray-700 mb-2">Posterior</span>
+          <span className="text-xs font-medium text-gray-700 mb-2">
+            Posterior
+          </span>
           <button
             type="button"
-            onClick={() => handleSVGClick('posterior')}
-            className={`transition-all ${guide?.type === 'posterior' ? 'ring-2 ring-teal-500' : ''} ${guide?.type === 'anterior' ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-80'}`}
-            style={{ background: 'none', border: 'none', padding: 0 }}
-            disabled={guide?.type === 'anterior'}
+            onClick={() => handleSVGClick("posterior")}
+            className={`transition-all ${guide?.type === "posterior" ? "ring-2 ring-teal-500" : ""} ${guide?.type === "anterior" ? "opacity-40 cursor-not-allowed" : "hover:opacity-80"}`}
+            style={{ background: "none", border: "none", padding: 0 }}
+            disabled={guide?.type === "anterior"}
           >
             <img src={PosteriorSVG} alt="Posterior" width={70} height={60} />
           </button>
@@ -96,9 +103,18 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
       <ShadeSelectModal
         open={modalOpen}
         onClose={handleModalClose}
-        toothType={selectedType || 'anterior'}
+        toothType={selectedType || "anterior"}
         onSelect={handleShadeSelect}
-        defaultShades={selectedType && guide?.type === selectedType ? (guide.shades.map((label, idx) => ({ part: idx + 1, value: label, label, family: '' })) as any) : [null, null, null]}
+        defaultShades={
+          selectedType && guide?.type === selectedType
+            ? (guide.shades.map((label, idx) => ({
+              part: idx + 1,
+              value: label,
+              label,
+              family: "",
+            })) as any)
+            : [null, null, null]
+        }
       />
       {/* Show selected shade info if needed */}
       {guide && guide?.shades?.length > 0 && (
@@ -107,7 +123,8 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-teal-600" />
               <span className="text-sm font-medium text-teal-800">
-                {guide.type.charAt(0).toUpperCase() + guide.type.slice(1)} Shade Selected
+                {guide.type.charAt(0).toUpperCase() + guide.type.slice(1)} Shade
+                Selected
               </span>
             </div>
             <button
@@ -125,7 +142,9 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
                 key={index}
                 className="inline-flex items-center gap-2 px-2 py-1 bg-white border border-teal-200 rounded-md text-xs"
               >
-                <span className="text-teal-700 font-medium">Part {index + 1}:</span>
+                <span className="text-teal-700 font-medium">
+                  {index === 0 ? "Incical:" : index === 1 ? "Middle:" : "Cervical:"}
+                </span>
                 <span className="text-gray-700">{shade}</span>
               </div>
             ))}
@@ -136,5 +155,4 @@ const ShadeGuideSection = ({ selectedGroups, onShadeGuideChange, selectedGuide }
   );
 };
 
-export type { ShadeGuide };
 export default ShadeGuideSection;

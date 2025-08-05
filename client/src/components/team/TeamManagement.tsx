@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import EditTeamMemberModal from './EditTeamMemberModal';
 import AddTeamMemberModal from './AddTeamMemberModal';
 import { useAppSelector } from '@/store/hooks';
+import { useSocket } from '@/contexts/SocketContext';
 
 interface TeamMember {
   id: string;
@@ -44,7 +45,22 @@ const TeamManagement = () => {
     }
   ]);
 
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+
+  const { getSocket } = useSocket();
+
+  React.useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handleTeamMemberUpdated = (updatedMember: TeamMember) => {
+      setTeamMembers(prev => prev.map(m => m.id === updatedMember.id ? { ...m, ...updatedMember } : m));
+    };
+    socket.on('team-member-updated', handleTeamMemberUpdated);
+    return () => {
+      socket.off('team-member-updated', handleTeamMemberUpdated);
+    };
+  }, [getSocket]);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {

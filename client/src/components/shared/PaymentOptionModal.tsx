@@ -4,7 +4,7 @@ import { CreditCard, Banknote } from 'lucide-react';
 import BaseModal from './BaseModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import CashCollectionModal from '../billing/CashCollectionModal';
+import CashCollectionModal from '../../doctor/components/billing/CashCollectionModal';
 
 interface PaymentOptionModalProps {
   isOpen: boolean;

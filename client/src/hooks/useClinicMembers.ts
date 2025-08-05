@@ -10,10 +10,8 @@ export interface ClinicMember {
   status?: string;
 }
 
-export const useClinicMembers = (clinicName?: string) => {
-  const queryKey = clinicName
-    ? ['/api/team-members?clinicName=', clinicName]
-    : ['/api/team-members'];
+export const useClinicMembers = (clinicId?: string) => {
+  const queryKey = [`/api/team-members/${clinicId}`];
 
   const {
     data: members = [],
@@ -21,8 +19,17 @@ export const useClinicMembers = (clinicName?: string) => {
     error,
   } = useQuery<ClinicMember[]>({
     queryKey,
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/team-members/${clinicId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Failed to fetch clinic members');
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    enabled: !!clinicId,
   });
 
   return {

@@ -35,7 +35,7 @@ const BaseModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 flex items-center justify-center`}>
+    <div className={`fixed inset-0 flex items-center justify-center z-[999]`}>
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div
         className={`relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 ${height}  ${overflow && overflow} ${className}`}

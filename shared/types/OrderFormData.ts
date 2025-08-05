@@ -35,6 +35,8 @@ export interface OrderFormData {
   restorationType?: string;
   productSelection?: string;
   notes?: string;
+  prescriptionType?: string;
+  subcategoryType?: string;
 
   // Tooth groups and accessories (optional arrays)
   toothGroups?: any[];
@@ -71,6 +73,7 @@ export interface OrderFormData {
 
   // Context fields for logged-in users
   clinicId?: string;
+  consultingDoctorMobile?: string;
 }
 
 // Helper to convert OrderFormData to OrderData for submission
@@ -100,6 +103,8 @@ export const convertToOrderData = (formData: OrderFormData): Partial<OrderData> 
     restorationType: formData.restorationType || '',
     productSelection: formData.productSelection || '',
     notes: formData.notes,
+    prescriptionType: formData.prescriptionType,
+    subcategoryType: formData.subcategoryType,
     toothGroups: formData.toothGroups || [],
     accessories: formData.accessories || [],
     otherAccessory: formData.otherAccessory,
@@ -118,7 +123,9 @@ export const convertToOrderData = (formData: OrderFormData): Partial<OrderData> 
     repairType: formData.repairType,
     issueDescription: formData.issueDescription,
     returnWithTrial: formData.returnWithTrial || false,
-    files: formData.files || []
+    files: formData.files || [],
+    consultingDoctorMobile: formData.consultingDoctorMobile,
+    clinicId: formData.clinicId,
   };
 };
 

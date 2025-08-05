@@ -5,12 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X, Shield, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import FileUploader from '@/components/shared/FileUploader';
-import { useOrders } from '@/hooks/shared/useOrders';
-import { OrderData } from '@/types';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 
 interface RepairOrderFlowProps {
   currentStep: number;
@@ -21,7 +19,7 @@ interface RepairOrderFlowProps {
 
 const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderId }: RepairOrderFlowProps) => {
   // Use dynamic order data instead of mock data
-  const { data: allOrders = [], isLoading, error } = useOrders();
+  const { data: allOrders = [], isLoading, error } = useGetOrdersQuery();
 
   // Filter orders that are eligible for repair (delivered or rejected status)
   // const ordersForRepair = allOrders.filter((order: OrderData) => 

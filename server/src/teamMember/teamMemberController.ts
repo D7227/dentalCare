@@ -10,7 +10,7 @@ getTeamMembersByClinic(clinicName: string): Promise<TeamMember[]>;
 updateTeamMember(id: string, updates: Partial<InsertTeamMember>): Promise<TeamMember | undefined>;
 deleteTeamMember(id: string): Promise<void>;
 getTeamMemberByMobileNumber(mobileNumber: string): Promise<TeamMember | undefined>;
-getTeamMemberByFullName(fullName: string): Promise<TeamMember | undefined>;
+getTeamMemberById(fullName: string): Promise<TeamMember | undefined>;
 }
 
 export class TeamMemberStorage implements TeamMemberStorage {
@@ -76,8 +76,8 @@ export class TeamMemberStorage implements TeamMemberStorage {
         return teamMember;
       }
     
-      async getTeamMemberByFullName(fullName: string): Promise<TeamMember | undefined> {
-        const [member] = await db.select().from(teamMembers).where(eq(teamMembers.fullName, fullName));
+      async getTeamMemberById(id: string): Promise<TeamMember | undefined> {
+        const [member] = await db.select().from(teamMembers).where(eq(teamMembers.id, id));
         return member;
       }
 }

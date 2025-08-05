@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToothGroup } from '../types/tooth';
+import { ToothGroup } from '../types/orderTypes';
 
 interface SelectedTooth {
   prescriptionType: 'implant' | 'crown-bridge';

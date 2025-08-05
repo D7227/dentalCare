@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
-import type { RootState, AppDispatch } from './index';
-import { hasPermission } from './slices/authSlice';
+import type { RootState, AppDispatch } from './store';
+import { hasPermission } from './slices/userDataSlice';
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch: () => AppDispatch = useDispatch;

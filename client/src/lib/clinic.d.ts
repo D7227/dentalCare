@@ -1,11 +1,11 @@
 interface ClinicData {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstname: string;
+  lastname: string;
   email: string;
   phone: string;
   clinicName: string;
-  licenseNumber: string;
+  clinicLicenseNumber: string;
   clinicAddressLine1: string;
   clinicAddressLine2: string;
   clinicCity: string;

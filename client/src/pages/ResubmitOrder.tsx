@@ -10,7 +10,7 @@ import FormField from '@/components/shared/FormField';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import FileUploader from '@/components/shared/FileUploader';
 import { ordersData } from '@/data/ordersData';
-import Header from '@/components/Header';
+import Header from '@/doctor/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const ResubmitOrder = () => {

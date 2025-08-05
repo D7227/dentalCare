@@ -1,4 +1,15 @@
 import { OrderCategory, Step } from '../types/orderTypes';
+import {
+  User,
+  FileText,
+  Target,
+  Package,
+  Upload,
+  CheckCircle,
+  Repeat,
+  Wrench,
+  Grid3X3,
+} from "lucide-react";
 export const useOrderSteps = () => {
   const getStepsForCategory = (category: OrderCategory, hasSelectedTeeth: boolean = false): Step[] => {
     switch (category) {
@@ -7,10 +18,11 @@ export const useOrderSteps = () => {
           { number: 0, title: 'Category', description: 'Select order type' },
           { number: 1, title: 'Patient Details', description: 'Basic information' },
           { number: 2, title: 'Restoration Type', description: 'Prescription and method' },
-          { number: 3, title: 'Teeth Selection', description: 'Select teeth' },
-          { number: 4, title: 'Product Selection', description: 'Configure products' },
-          { number: 5, title: 'Upload & Logistics', description: 'Files and delivery' },
-          { number: 6, title: 'Review Order', description: 'Confirm and submit' }
+          { number: 3, title: 'Subcategory', description: 'Select subcategory' },
+          { number: 4, title: 'Teeth Selection', description: 'Select teeth' },
+          { number: 5, title: 'Product Selection', description: 'Configure products' },
+          { number: 6, title: 'Upload & Logistics', description: 'Files and delivery' },
+          { number: 7, title: 'Review Order', description: 'Confirm and submit' }
         ];
       case 'repeat': {
         const baseSteps: Step[] = [
