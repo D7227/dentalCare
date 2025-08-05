@@ -1,312 +1,106 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { Router, Route, useLocation } from "wouter";
-import { useState, useEffect, useRef, useCallback } from "react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { SocketProvider, useSocket } from "@/contexts/SocketContext";
-import { useAppSelector, useAppDispatch, hasPermission } from "@/store/hooks";
-import { useAuthPersistence } from "@/hooks/useAuthPersistence";
-import DashboardContent from "./components/DashboardContent";
-// import OrdersHistory from './components/orders/OrdersHistory';
-import ScanBookingContent from "./components/ScanBookingContent";
-import PickupRequestsContent from "./components/pickup/PickupRequestsContent";
-import BillingContent from "./components/billing/BillingContent";
-import ChatContent from "./components/chat/ChatContent";
-import TeamManagementContent from "./components/TeamManagementContent";
-import ProfileContent from "./components/profile/ProfileContent";
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
-import PlaceOrder from "./pages/PlaceOrder";
-import OrderDetails from "./pages/OrderDetails";
-import ResubmitOrder from "./pages/ResubmitOrder";
+import { SocketProvider } from "@/contexts/SocketContext";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/authentication/login";
-import { setUser } from "@/store/slices/authSlice";
-import { useToast } from "@/components/ui/use-toast";
 import Register from "./pages/authentication/register";
-import OrderTable from "./components/orders/OrderTable";
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { doctorRoutes } from "./router/doctorRoutes";
+import { qaRoutes } from "./router/qaRoutes";
+import { useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { chatApi } from "@/store/slices/chatApi";
+import { useSocket } from "@/contexts/SocketContext";
+import { useGetUserDataQuery, setUser } from "./store/slices/userDataSlice";
+import { jwtDecode } from "jwt-decode";
+import { adminRoutes } from "./router/adminRoutes";
+import QALogin from "./qaScreen/screen/authentication/qaLogin";
+import { departmentHeadRoutes } from "./router/departmentHeadRoutes";
+import StylesComponets from "./styles";
 
+const router = createBrowserRouter([
+  ...doctorRoutes,
+  ...qaRoutes,
+  ...adminRoutes,
+  ...departmentHeadRoutes,
+  { path: "/login", element: <Login /> },
+  { path: "/qa/login", element: <QALogin /> },
+  { path: "/register", element: <Register /> },
+  { path: "/styles", element: <StylesComponets /> },
+  { path: "*", element: <NotFound /> },
+]);
 
-
-const DashboardLayout = () => {
-  const [location, setLocation] = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeSection, setActiveSection] = useState('dashboard');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  const queryClient = useQueryClient();
-  const { user, isAuthenticated } = useAuthPersistence();
-  const { onUnreadCountUpdate, offUnreadCountUpdate, getSocket } = useSocket();
-  
-  // Debug Redux state
-  const authState = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
-  
-  const { toast } = useToast();
-  
-  // Fetch chats for unread count
-  const { data: chats = [] } = useQuery({
-    queryKey: ['/api/chats', user?.fullName],
-    queryFn: async () => {
-      const url = user?.fullName 
-        ? `/api/chats?userId=${encodeURIComponent(user.fullName)}`
-        : '/api/chats';
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch chats');
-      return response.json();
-    },
-    enabled: !!user?.fullName
-  });
-
-  // Calculate unread group count (filtered for user permissions)
-  const userFullName = user?.fullName || '';
-  let permissionFilteredChats = chats;
-  
-  // Check if user has chat permission
-  const hasChatPermission = hasPermission(user, 'chat');
-  const userRole = user?.roleName || '';
-  
-  // Apply participant-based filtering for all users
-  if (!hasChatPermission) {
-    permissionFilteredChats = chats.filter((chat: any) => {
-      const isParticipant = chat.participants.some((participant: string) => {
-        return participant.trim().toLowerCase() === userFullName.trim().toLowerCase();
-      });
-      return isParticipant;
-    });
-  } else {
-    // For users with chat permission, apply role-based filtering similar to ChatContent
-    if (userRole === 'admin_doctor' || userRole === 'assistant_doctor' || userRole === 'receptionist') {
-      permissionFilteredChats = chats.filter((chat: any) => {
-        const isParticipant = chat.participants.some((participant: string) => {
-          return participant.trim().toLowerCase() === userFullName.trim().toLowerCase();
-        });
-        return isParticipant;
-      });
-    } else {
-      // For main_doctor and other roles with chat permission, show all chats
-      permissionFilteredChats = chats;
-    }
-  }
-
-  const unreadMessagesCount = permissionFilteredChats.filter((chat: any) => chat.unreadCount && chat.unreadCount > 0).length;
-  
-  const prevPermissionsRef = useRef<string[]>(user?.permissions || []);
+// SocketEventsListener component to handle socket events within the provider
+const SocketEventsListener = () => {
+  const dispatch = useDispatch();
+  const { getSocket } = useSocket();
 
   useEffect(() => {
-  }, [authState, user, isAuthenticated]);
+    const socket = getSocket();
+    if (!socket) return;
 
-  useEffect(() => {
-    const handleUnreadCountUpdate = () => {
-      if (user?.fullName) {
-        queryClient.invalidateQueries({ queryKey: ["/api/chats", user.fullName] });
+    const handleNewMessage = (data: any) => {
+      dispatch(chatApi.util.invalidateTags(["Chat"]));
+      if (data?.chatId) {
+        dispatch(
+          chatApi.util.invalidateTags([{ type: "Message", id: data.chatId }])
+        );
       }
     };
-    onUnreadCountUpdate(handleUnreadCountUpdate);
+    const handleUnreadCountUpdate = (data: any) => {
+      dispatch(chatApi.util.invalidateTags(["Chat"]));
+    };
+    socket.on("new-message", handleNewMessage);
+    socket.on("unread-count-update", handleUnreadCountUpdate);
     return () => {
-      offUnreadCountUpdate(handleUnreadCountUpdate);
+      socket.off("new-message", handleNewMessage);
+      socket.off("unread-count-update", handleUnreadCountUpdate);
     };
-  }, [onUnreadCountUpdate, offUnreadCountUpdate, queryClient, user?.fullName]);
-  
-  const handlePermissionsUpdated = useCallback(async () => {
-    try {
-      const headers = user?.contactNumber ? { 'x-mobile-number': user.contactNumber } : undefined;
-      const response = await fetch('/api/me', headers ? { headers } : undefined);
-      if (response && response.ok) {
-        const updatedUser = await response.json();
-        dispatch(setUser(updatedUser));
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        toast({ title: "Your permissions have been updated. Please check your access." });
-      }
-    } catch (err) {
-    }
-  }, [dispatch, user?.contactNumber, toast]);
-
-  useEffect(() => {
-    const socket = typeof getSocket === 'function' ? getSocket() : null;
-    if (!socket){
-      return;
-    } 
-    
-    socket.on('permissions-updated', handlePermissionsUpdated);
-    return () => {
-      socket.off('permissions-updated', handlePermissionsUpdated);
-    };
-  }, [getSocket, handlePermissionsUpdated]);
-  
-  useEffect(() => {
-    // Register user with socket for real-time events
-    const socket = getSocket && getSocket();
-    if (socket && user?.fullName) {
-      socket.emit('register-user', user.fullName);
-    }
-  }, [user?.fullName, isAuthenticated, getSocket]);
-  
-  // Map sections to required permissions
-  const sectionPermissionMap: Record<string, string> = {
-    billing: 'billing',
-    appointments: 'scan_booking',
-    pickup: 'pickup_requests',
-    messages: 'chat',
-    orders: 'tracking',
-    // Add more if needed
-  };
-
-  useEffect(() => {
-    // If the current section requires a permission the user no longer has, redirect to dashboard
-    const requiredPermission = sectionPermissionMap[activeSection];
-    if (requiredPermission && user && !user.permissions.includes(requiredPermission)) {
-      setActiveSection('dashboard');
-      toast({
-        title: 'Access Revoked',
-        description: 'Your access to this section was revoked by the admin.',
-        variant: 'destructive',
-      });
-    }
-  }, [user?.permissions, activeSection, toast]);
-
-  useEffect(() => {
-    const prevPermissions = prevPermissionsRef.current;
-    const currentPermissions = user?.permissions || [];
-
-    // Only show toasts if this is not the first mount (i.e., prevPermissions is not empty)
-    if (prevPermissions.length > 0) {
-      // Find revoked permissions
-      const revoked = prevPermissions.filter(p => !currentPermissions.includes(p));
-      // Find granted permissions
-      const granted = currentPermissions.filter(p => !prevPermissions.includes(p));
-
-      if (revoked.length > 0) {
-        revoked.forEach(permission => {
-          toast({
-            title: 'Access Revoked',
-            description: `Your access to "${permission}" was revoked by the admin.`,
-            variant: 'destructive',
-          });
-        });
-      }
-      if (granted.length > 0) {
-        granted.forEach(permission => {
-          toast({
-            title: 'Access Granted',
-            description: `You have been granted access to "${permission}" by the admin.`,
-            variant: 'default',
-          });
-        });
-      }
-    }
-
-    prevPermissionsRef.current = currentPermissions;
-  }, [user?.permissions, toast]);
-
-  const handleNewCase = () => {
-    setLocation('/place-order');
-  };
-
-  const handleToggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  const handleMobileMenuToggle = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const handleSectionChange = (section: string) => {
-    setActiveSection(section);
-    setIsMobileMenuOpen(false);
-  };
-
-  const renderMainContent = () => {
-    switch (activeSection) {
-      case 'dashboard':
-        return <DashboardContent onNewCase={handleNewCase} onSectionChange={handleSectionChange} />;
-      case 'orders':
-        return <OrderTable />;
-      case 'appointments':
-        return <ScanBookingContent />;
-      case 'pickup':
-        return <PickupRequestsContent />;
-      case 'billing':
-        return <BillingContent />;
-      case 'messages':
-        return <ChatContent />;
-      case 'my-team':
-        return <TeamManagementContent onSectionChange={handleSectionChange} />;
-      case 'profile':
-        return <ProfileContent />;
-      default:
-        return <DashboardContent onNewCase={handleNewCase} onSectionChange={handleSectionChange} />;
-    }
-  };
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLocation('/login');
-    }
-  }, [isAuthenticated, setLocation]);
-
-  return (
-    <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out`}>
-        <Sidebar
-          isCollapsed={isCollapsed}
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-          unreadMessagesCount={unreadMessagesCount}
-          permissions={user?.permissions || []}
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className={`flex-1 flex flex-col min-w-0 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'} transition-all duration-300`}>
-        <Header
-          onToggleSidebar={handleToggleSidebar}
-          onMobileMenuToggle={handleMobileMenuToggle}
-          doctorName="Dr. Sarah Mitchell"
-          clinicName="Smile Dental Clinic"
-          onSectionChange={handleSectionChange}
-        />
-        <main className="flex-1 p-6 bg-mainBrackground">
-          {renderMainContent()}
-        </main>
-      </div>
-    </div>
-  );
+  }, [getSocket, dispatch]);
+  return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <SocketProvider>
-          <Router>
-            <Route path="/" component={DashboardLayout} />
-            <Route path="/login" component={Login} />
-            <Route path="/register" component={Register} />
-            <Route path="/place-order" component={PlaceOrder} />
-            <Route path="/order/:orderId" component={OrderDetails} />
-            <Route path="/resubmit-order/:orderId" component={ResubmitOrder} />
-            <Route component={NotFound} />
-          </Router>
-        </SocketProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const dispatch = useDispatch();
+  const token = localStorage.getItem("token");
+  let userId: string | null = null;
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      userId = decoded.id;
+    } catch (e) {
+      userId = null;
+    }
+  }
+  const queryResult = userId
+    ? useGetUserDataQuery(userId)
+    : { data: undefined, isSuccess: false };
+  const { data: userData, isSuccess } = queryResult;
+
+  useEffect(() => {
+    if (isSuccess && userData) {
+      dispatch(setUser(userData));
+    }
+  }, [isSuccess, userData, dispatch]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <SocketProvider>
+            <SocketEventsListener />
+            <RouterProvider router={router}></RouterProvider>
+          </SocketProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

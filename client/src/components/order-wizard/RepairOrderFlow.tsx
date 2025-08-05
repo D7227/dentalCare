@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,74 +5,81 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, X, Shield, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import FileUploader from '@/components/shared/FileUploader';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
 
 interface RepairOrderFlowProps {
   currentStep: number;
   formData: any;
   setFormData: (data: any) => void;
+  setSelectedOrderId: (id: string) => void;
 }
 
-const RepairOrderFlow = ({ currentStep, formData, setFormData }: RepairOrderFlowProps) => {
-  // File upload is now handled by the shared FileUploader component
+const RepairOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderId }: RepairOrderFlowProps) => {
+  // Use dynamic order data instead of mock data
+  const { data: allOrders = [], isLoading, error } = useGetOrdersQuery();
 
-  const mockOrdersForRepair = [
-    { id: 'ORD-2024-001', patient: 'John Smith', type: 'Crown', date: '2024-01-15', status: 'Delivered' },
-    { id: 'ORD-2024-004', patient: 'Emily Davis', type: 'Implant Crown', date: '2024-01-12', status: 'Rejected' },
-    { id: 'ORD-2024-007', patient: 'Robert Brown', type: 'Bridge', date: '2024-01-09', status: 'Delivered' }
-  ];
+  // Filter orders that are eligible for repair (delivered or rejected status)
+  // const ordersForRepair = allOrders.filter((order: OrderData) => 
+  //   order.status === 'delivered' || order.status === 'rejected'
+  // );
+
+  // File upload is now handled by the shared FileUploader component
 
   if (currentStep === 1) {
     return (
-      <Card>
+      <Card className="w-full max-w-full">
         <CardHeader>
-          <CardTitle className="text-primary">Select Order to Repair</CardTitle>
+          <CardTitle className="text-primary text-base sm:text-lg">Select Order to Repair</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-2 sm:p-4">
           <div>
-            <Label htmlFor="repairOrderId">Order to Repair</Label>
+            <Label htmlFor="repairOrderId" className="text-xs sm:text-sm">Order to Repair</Label>
             <Select onValueChange={(value) => {
-              const selectedOrder = mockOrdersForRepair.find(order => order.id === value);
+              const selectedOrder = allOrders.find(order => order.referenceId === value);
               setFormData({
-                ...formData, 
+                ...selectedOrder,
                 repairOrderId: value,
-                restorationType: selectedOrder?.type.toLowerCase().replace(' ', '-'),
-                originalStatus: selectedOrder?.status
+                restorationType: selectedOrder?.restorationType || '',
+                originalStatus: selectedOrder?.status,
+                issueDescription: selectedOrder?.issueDescription || '',
+                issueCategory: '',
+                repairType: selectedOrder?.repairType || '',
+                returnWithTrial: selectedOrder?.returnWithTrial || false,
+                repairInstructions: '',
               });
+              setSelectedOrderId(selectedOrder?.id);
             }}>
-              <SelectTrigger className="mt-1">
+              <SelectTrigger className="mt-1 text-xs sm:text-sm">
                 <SelectValue placeholder="Select order to repair" />
               </SelectTrigger>
               <SelectContent>
-                {mockOrdersForRepair.map((order) => (
-                  <SelectItem key={order.id} value={order.id}>
-                    {order.id} - {order.patient} ({order.type}) - {order.status}
+                {allOrders.map((order) => (
+                  <SelectItem key={order.referenceId} value={order.referenceId} className="text-xs sm:text-sm">
+                    {order.referenceId} - {order.patientFirstName} {order.patientLastName} ({order.prescriptionType}) - {order.status}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
           {formData.repairOrderId && (
-            <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
-              <h4 className="font-medium text-warning-foreground mb-2 flex items-center gap-2">
+            <div className="p-2 sm:p-4 bg-warning/10 border border-warning/20 rounded-lg">
+              <h4 className="font-medium text-warning-foreground mb-2 flex items-center gap-2 text-xs sm:text-sm">
                 <AlertTriangle size={16} />
                 Order Details
               </h4>
-              <div className="text-sm space-y-1">
+              <div className="text-xs sm:text-sm space-y-1">
                 <p><span className="font-medium">Order ID:</span> {formData.repairOrderId}</p>
-                <p><span className="font-medium">Type:</span> {formData.restorationType}</p>
+                <p><span className="font-medium">Type:</span> {formData.prescriptionType}</p>
                 <p><span className="font-medium">Status:</span> 
                   <Badge variant="outline" className="ml-2">{formData.originalStatus}</Badge>
                 </p>
               </div>
             </div>
           )}
-
-          <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+          <div className="p-2 sm:p-4 bg-success/10 border border-success/20 rounded-lg">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="checkWarranty"
@@ -81,7 +87,7 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData }: RepairOrderFlow
                 onCheckedChange={(checked) => setFormData({...formData, checkWarranty: checked})}
               />
               <div className="grid gap-1.5 leading-none">
-                <Label htmlFor="checkWarranty" className="flex items-center gap-2 text-sm font-medium">
+                <Label htmlFor="checkWarranty" className="flex items-center gap-2 text-xs sm:text-sm font-medium">
                   <Shield size={16} className="text-success" />
                   Check Warranty Eligibility
                 </Label>
@@ -107,7 +113,7 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData }: RepairOrderFlow
             <Label htmlFor="issueDescription">Issue Description</Label>
             <Textarea
               id="issueDescription"
-              value={formData.issueDescription}
+              value={formData.issueDescription || ''}
               onChange={(e) => setFormData({...formData, issueDescription: e.target.value})}
               placeholder="Please describe the issue in detail..."
               className="mt-1"
@@ -162,7 +168,7 @@ const RepairOrderFlow = ({ currentStep, formData, setFormData }: RepairOrderFlow
           <div className="flex items-center space-x-2">
             <Checkbox
               id="returnWithTrial"
-              checked={formData.returnWithTrial}
+              checked={formData.returnWithTrial || false}
               onCheckedChange={(checked) => setFormData({...formData, returnWithTrial: checked})}
             />
             <Label htmlFor="returnWithTrial" className="text-sm font-medium">

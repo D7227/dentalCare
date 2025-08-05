@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import EditTeamMemberModal from './EditTeamMemberModal';
 import AddTeamMemberModal from './AddTeamMemberModal';
 import { useAppSelector } from '@/store/hooks';
+import { useSocket } from '@/contexts/SocketContext';
 
 interface TeamMember {
   id: string;
@@ -44,7 +45,22 @@ const TeamManagement = () => {
     }
   ]);
 
-  const { user } = useAppSelector((state) => state.auth);
+  const UserData = useAppSelector((state) => state.userData);
+  const user = UserData.userData;
+
+  const { getSocket } = useSocket();
+
+  React.useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handleTeamMemberUpdated = (updatedMember: TeamMember) => {
+      setTeamMembers(prev => prev.map(m => m.id === updatedMember.id ? { ...m, ...updatedMember } : m));
+    };
+    socket.on('team-member-updated', handleTeamMemberUpdated);
+    return () => {
+      socket.off('team-member-updated', handleTeamMemberUpdated);
+    };
+  }, [getSocket]);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -107,8 +123,8 @@ const TeamManagement = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
-          <p className="text-muted-foreground">Manage your team members and their permissions</p>
+          {/* <h1 className="text-3xl font-bold text-foreground">Team Management</h1>
+          <p className="text-muted-foreground">Manage your team members and their permissions</p> */}
         </div>
         {user?.roleName === 'main_doctor' && (
           <Button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>

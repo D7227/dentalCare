@@ -225,7 +225,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     font-size: 16px;
     line-height: 1.5;
   }
@@ -496,4 +496,21 @@
 [data-tooltip]:hover::after {
   @apply absolute z-50 rounded bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md;
   content: attr(data-tooltip);
+}
+
+/* Custom horizontal scrollbar for table overflow */
+.custom-scrollbar {
+  scrollbar-width: thin;           /* Firefox */
+  scrollbar-color: #cbd5e1 #f1f5f9; /* Firefox */
+}
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
 }

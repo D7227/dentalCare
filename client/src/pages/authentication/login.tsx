@@ -1,51 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { findUserByMobile, clearError } from '@/store/slices/authSlice';
+import { useLoginMutation } from '@/store/slices/doctorAuthApi';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
   const [, setLocation] = useLocation();
-  
-  const dispatch = useAppDispatch();
-  const { isLoading, error, isAuthenticated } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate()
 
-  // Redirect if already authenticated
+  const [login, { isLoading, error, data }] = useLoginMutation();
+  const [formError, setFormError] = useState<string | null>(null);
+
   React.useEffect(() => {
-    if (isAuthenticated) {
+    if (data && data.token) {
+      // You can store the token or redirect here
+      // localStorage.setItem('token', data.token);
       setLocation('/');
     }
-  }, [isAuthenticated, setLocation]);
+  }, [data, setLocation]);
+
+  console.log('data', data, error)
+
+  if (data) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setFormError(null);
     if (!mobileNumber || !password) {
+      setFormError('Mobile number and password are required');
       return;
     }
-
     try {
-      // Find user by mobile number (works for both team members and clinics)
-      const userResult = await dispatch(findUserByMobile(mobileNumber)).unwrap();
-      
-      // If user found, initialize them with role name and permissions
-      if (userResult) {
-        console.log("userResult", userResult);
-        // setLocation('/');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-    }
-  };
-
-  const handleInputChange = () => {
-    if (error) {
-      dispatch(clearError());
+      await login({ mobileNumber, password });
+      navigate('/');
+    } catch (err: any) {
+      setFormError(err?.data?.error || 'Login failed');
     }
   };
 
@@ -60,7 +56,7 @@ const Login = () => {
             Enter your mobile number and password to access your account
           </p>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Login</CardTitle>
@@ -73,36 +69,29 @@ const Login = () => {
                   id="mobileNumber"
                   type="tel"
                   value={mobileNumber}
-                  onChange={(e) => {
-                    setMobileNumber(e.target.value);
-                    handleInputChange();
-                  }}
+                  onChange={(e) => setMobileNumber(e.target.value)}
                   placeholder="Enter your mobile number"
                   required
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    handleInputChange();
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
                 />
               </div>
 
-              {error && (
+              {(formError || (error && 'data' in error && (error as any).data?.error)) && (
                 <div className="text-red-600 text-sm text-center">
-                  {error}
+                  {formError || (error && 'data' in error && (error as any).data?.error)}
                 </div>
               )}
-
               <Button
                 type="submit"
                 className="w-full bg-[#11AB93] hover:bg-[#11AB93]/90"

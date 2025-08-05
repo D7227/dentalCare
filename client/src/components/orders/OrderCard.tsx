@@ -16,41 +16,42 @@ import { CrownBridgeTeeth, ImpantTeeth } from "@/assets/svg";
 import CustomStatusBatch from "../common/customStatusBatch";
 import CustomStatusLabel from "../common/customStatusLabel";
 import dayjs from "dayjs";
+import { FormData, Message } from "@/components/order-wizard/types/orderTypes";
 
 export interface OrderMessage {
   label: string;
   messageBy: "lab" | "pickup" | "our";
 }
 
-export interface DentalOrder {
-  id: string;
-  refId: string;
-  orderId: string;
-  prescription: string;
-  patientName: string;
-  teethNo: string;
-  productName: string;
-  quantity: number;
-  orderDate: string;
-  orderCategory: string;
-  orderStatus: "new" | "repair" | "repeat" | "custom";
-  statusLabel:
-  | "pending"
-  | "active"
-  | "trial"
-  | "rejected"
-  | "dispatched"
-  | "delivered";
-  percentage: number;
-  chatConnection: boolean;
-  unreadMessages?: number;
-  messages?: OrderMessage[];
-  isUrgent?: boolean;
-  currency?: string;
-  exportQuality?: string;
-  paymentStatus?: "pending" | "paid" | "rejected";
-  category?: string;
-}
+// export interface DentalOrder {
+//   id: string;
+//   refId: string;
+//   orderId: string;
+//   prescription: string;
+//   patientName: string;
+//   teethNo: string;
+//   productName: string;
+//   quantity: number;
+//   orderDate: string;
+//   orderCategory: string;
+//   orderStatus: "new" | "repair" | "repeat" | "custom";
+//   statusLabel:
+//   | "pending"
+//   | "active"
+//   | "trial"
+//   | "rejected"
+//   | "dispatched"
+//   | "delivered";
+//   percentage: number;
+//   chatConnection: boolean;
+//   unreadMessages?: number;
+//   messages?: OrderMessage[];
+//   isUrgent?: boolean;
+//   currency?: string;
+//   exportQuality?: string;
+//   paymentStatus?: "pending" | "paid" | "rejected";
+//   category?: string;
+// }
 
 const statusConfig = {
   pending: {
@@ -111,11 +112,11 @@ const orderStatusConfig = {
 };
 
 interface DentalOrderCardProps {
-  order: DentalOrder;
+  order: FormData;
   onView?: (orderId: string) => void;
   onPricing?: (orderId: string) => void;
   onPayNow?: (orderId: string) => void;
-  onResubmit?: (order: DentalOrder) => void;
+  onResubmit?: (order: FormData) => void;
   isSelected?: boolean;
 }
 
@@ -127,15 +128,15 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
   onResubmit,
   isSelected = false,
 }) => {
-  const statusStyle = statusConfig[order?.statusLabel];
-  const orderStatusStyle = orderStatusConfig[order?.orderStatus];
+  const statusStyle =
+    statusConfig[order?.orderStatus as keyof typeof statusConfig];
+  const orderStatusStyle =
+    orderStatusConfig[order?.orderStatus as keyof typeof orderStatusConfig];
 
   const isPaymentCompleted =
-    order?.paymentStatus === "paid" || order?.statusLabel === "delivered";
+    order?.paymentStatus === "paid" || order?.orderStatus === "delivered";
   const isRejected =
-    order?.statusLabel === "rejected" || order?.paymentStatus === "rejected";
-
-    console.log("order thi is s af  ", order);
+    order?.orderStatus === "rejected" || order?.paymentStatus === "rejected";
   return (
     <Card
       className={cn(
@@ -143,7 +144,8 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
         isSelected ? "ring-2 ring-[#00A3C8]" : ""
       )}
       style={{
-        background: statusStyle?.gradient,
+        // background: statusStyle?.gradient,
+        background: "white",
         // minHeight: "294px",
       }}
     >
@@ -161,7 +163,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
           <div className="flex items-start gap-3">
             {/* Category Icon */}
             <div className="w-10 h-10 bg-teal-500 rounded-[6px] flex items-center justify-center flex-shrink-0">
-              {order.category === "implant" ? (
+              {order.prescriptionType === "implant" ? (
                 <img src={ImpantTeeth} alt="CrownBridgeTeeth" />
               ) : (
                 <img src={CrownBridgeTeeth} alt="CrownBridgeTeeth" />
@@ -176,7 +178,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                 </h3>
               </div>
               <p className="text-14/20 text-customBlack-100 font-medium">
-                {order?.prescription}
+                {order?.prescriptionType}
               </p>
             </div>
           </div>
@@ -237,12 +239,19 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
             {/* Left side - Reference, Patient, Teeth */}
             <div className="flex-1">
               <div className="text-base text-gray-600 font-semibold mb-1">
-                {order?.patientName}
+                {order?.firstName && order?.lastName
+                  ? `${order.firstName} ${order.lastName}`.trim()
+                  : order?.firstName || "Unknown Patient"}
               </div>
               <div className="text-sm text-gray-600">
                 Teeth No :{" "}
                 <span className="text-gray-900 font-medium">
-                  {order?.teethNo}
+                  {order?.teethNo ||
+                    (Array.isArray(order?.selectedTeeth)
+                      ? order.selectedTeeth
+                        .map((t: any) => t.toothNumber || t)
+                        .join(", ")
+                      : "")}
                 </span>
               </div>
               {/* Dates */}
@@ -253,8 +262,8 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                     <span>Order Date</span>
                   </div>
                   <span className="text-customGray-100 font-medium text-12/16">
-                    {(order as any)?.createdAt
-                      ? dayjs((order as any).createdAt).format("DD-MM-YYYY | hh:mm A")
+                    {order?.orderDate
+                      ? dayjs(order.orderDate).format("DD-MM-YYYY")
                       : order?.orderDate || "-"}
                   </span>
                 </div>
@@ -271,11 +280,13 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
                 E-max 10 year x {order?.quantity}
               </div>
               <div className="flex items-center my-2">
-                <CustomStatusBatch label={order?.orderStatus as "new" | "repair" | "repeat"} />
+                <CustomStatusBatch
+                  label={order?.type as "new" | "repair" | "repeat"}
+                />
               </div>
               <CustomStatusLabel
-                label={order?.statusLabel}
-                status={order?.statusLabel}
+                label={order?.orderStatus || ""}
+                status={order?.orderStatus || ""}
               />
             </div>
           </div>
@@ -285,7 +296,7 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
         {!isRejected && order?.messages && order?.messages?.length > 0 && (
           <div className="flex items-start gap-2">
             <div className="flex-1 space-y-2 my-2">
-              {order?.messages?.map((msg, idx) => (
+              {order?.messages?.map((msg: any, idx: number) => (
                 <div key={idx} className="text-sm leading-5">
                   {msg.messageBy === "pickup" ? (
                     <p className="font-semibold text-red-600 text-[12px] leading-[16px]">
@@ -375,14 +386,14 @@ export const OrderCard: React.FC<DentalOrderCardProps> = ({
               size="sm"
               className={cn(
                 "flex-1",
-                order?.statusLabel === "delivered"
+                order?.orderStatus === "delivered"
                   ? "bg-teal-500 hover:bg-teal-600 text-white"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               )}
-              disabled={order?.statusLabel !== "delivered"}
+              disabled={order?.orderStatus !== "delivered"}
               onClick={(e) => {
                 e.stopPropagation();
-                if (order?.statusLabel === "delivered") {
+                if (order?.orderStatus === "delivered") {
                   onPayNow?.(order?.id);
                 }
               }}

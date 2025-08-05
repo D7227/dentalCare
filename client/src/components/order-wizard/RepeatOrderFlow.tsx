@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,20 +9,21 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import ToothSelector from './ToothSelector';
-import ToothChartSVG from './ToothChartSVG';
-import ReviewDetailsStep from './ReviewDetailsStep';
 import AccessoryTagging from './AccessoryTagging';
 import FileUploader from '@/components/shared/FileUploader';
 
-import { ordersData } from '../../data/ordersData';
+import { useGetOrdersQuery } from '@/store/slices/orderApi';
+import ProductSelection from './ProductSelection';
 
 interface RepeatOrderFlowProps {
   currentStep: number;
   formData: any;
   setFormData: (data: any) => void;
+  setSelectedOrderId: (order: string) => void;
+  onAddMoreProducts?: () => void;
 }
 
-const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlowProps) => {
+const RepeatOrderFlow = ({ currentStep, formData, setFormData, setSelectedOrderId, onAddMoreProducts }: RepeatOrderFlowProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
@@ -31,25 +31,32 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
   const [warrantyStatus, setWarrantyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'expired'>('idle');
   const [warrantyInfo, setWarrantyInfo] = useState<any>(null);
 
+  // Fetch orders dynamically
+  const { data: orders = [], isLoading, isError } = useGetOrdersQuery();
+
+  console.log(formData);
+
   // Filter previous orders based on search criteria
   const filteredOrders = useMemo(() => {
-    return ordersData.filter(order => {
-      const matchesSearch = order.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.type.toLowerCase().includes(searchTerm.toLowerCase());
-      
+    return orders.filter(order => {
+      const patientName = `${order.patientFirstName || ''} ${order.patientLastName || ''}`.toLowerCase();
+      const matchesSearch =
+        patientName.includes(searchTerm.toLowerCase()) ||
+        (order.orderId || order.referenceId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.restorationType || '').toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus;
-      
-      const matchesDate = !selectedDate || order.date === selectedDate;
-      
+
+      const matchesDate = !selectedDate || (order.createdAt && order.createdAt.split('T')[0] === selectedDate);
+
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [searchTerm, selectedStatus, selectedDate]);
+  }, [orders, searchTerm, selectedStatus, selectedDate]);
 
   // Area managers for scan booking
   const areaManagers = [
     'John Smith - North Region',
-    'Sarah Johnson - South Region', 
+    'Sarah Johnson - South Region',
     'Mike Wilson - East Region',
     'Emily Davis - West Region',
     'Tom Brown - Central Region'
@@ -69,8 +76,8 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
       ...formData,
       orderType: value,
       // Clear scan booking data if not requesting scan
-      ...(value !== 'request-scan' && { 
-        scanBooking: undefined 
+      ...(value !== 'request-scan' && {
+        scanBooking: undefined
       })
     });
   };
@@ -92,7 +99,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
     }
 
     setWarrantyStatus('checking');
-    
+
     // Simulate API call for warranty verification
     setTimeout(() => {
       // Mock warranty verification logic
@@ -118,7 +125,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
       };
 
       const warrantyData = mockWarrantyData[warrantyAuthId as keyof typeof mockWarrantyData];
-      
+
       if (warrantyData) {
         if (warrantyData.status === 'valid') {
           setWarrantyStatus('valid');
@@ -144,37 +151,46 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
     }
   };
 
+  // Helper to check if teeth are selected
+  const hasSelectedTeeth = (
+    (formData.toothGroups && formData.toothGroups.length > 0 && formData.toothGroups.some((g: any) => g.teeth && g.teeth.length > 0)) ||
+    (formData.selectedTeeth && formData.selectedTeeth.length > 0)
+  );
+  // Only show ProductSelection if user has edited teeth
+  const showProductSelection = currentStep === 3 && hasSelectedTeeth && formData.teethEditedByUser;
+  // Only show Upload & Logistics if user has edited teeth and is on step 4, or if user hasn't selected teeth and is on step 3 (to allow skipping)
+  const showUploadAndLogistics = (currentStep === 4 && hasSelectedTeeth && formData.teethEditedByUser) || (currentStep === 3 && (!hasSelectedTeeth || !formData.teethEditedByUser));
+
   if (currentStep === 1) {
     return (
-      <Card className="border-l-4 border-l-primary">
+      <Card className="border-l-4 border-l-primary w-full max-w-full">
         <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
-          <CardTitle className="text-primary flex items-center gap-2">
+          <CardTitle className="text-primary flex items-center gap-2 text-base sm:text-lg">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-sm font-bold text-primary">1</span>
             </div>
             Select Previous Order
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 p-6">
+        <CardContent className="space-y-6 p-4 sm:p-6">
           {/* Search and Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Search Orders</Label>
+              <Label className="text-xs sm:text-sm font-medium">Search Orders</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
                   placeholder="Search by order ID, patient, or type..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
-            
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Filter by Status</Label>
+              <Label className="text-xs sm:text-sm font-medium">Filter by Status</Label>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -185,91 +201,78 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                 </SelectContent>
               </Select>
             </div>
-            
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Filter by Date</Label>
+              <Label className="text-xs sm:text-sm font-medium">Filter by Date</Label>
               <Input
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                className="text-xs sm:text-sm"
               />
             </div>
           </div>
-
           {/* Orders List */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold text-foreground">
-                Previous Orders ({filteredOrders.length} found)
-              </Label>
-              {filteredOrders.length > 10 && (
-                <span className="text-xs text-gray-500">Showing top 10 results</span>
-              )}
-            </div>
-            
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading orders...</div>
+          ) : isError ? (
+            <div className="text-center py-8 text-red-500">Failed to load orders.</div>
+          ) : (
             <div className="max-h-96 overflow-y-auto space-y-2 border rounded-lg p-2">
               {filteredOrders.slice(0, 10).map((order) => (
-                <Card 
-                  key={order.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md border-2 ${
-                    formData.previousOrderId === order.id 
-                      ? 'border-primary bg-primary/5' 
+                <Card
+                  key={order.orderId || order.referenceId}
+                  className={`cursor-pointer transition-all hover:shadow-md border-2 w-full ${formData.previousOrderId === (order.orderId || order.referenceId)
+                      ? 'border-primary bg-primary/5'
                       : 'border-gray-200 hover:border-primary/50'
-                  }`}
+                    }`}
                   onClick={() => {
                     setFormData({
-                      ...formData,
-                      previousOrderId: order.id,
+                      ...order,
+                      patientFirstName: order.patientFirstName || '',
+                      patientLastName: order.patientLastName || '',
+                      patientAge: order.patientAge || '',
+                      patientSex: order.patientSex || '',
+                      previousOrderId: order.orderId || order.referenceId,
                       selectedOrder: order,
-                      restorationType: order.type.toLowerCase().replace(' ', '-'),
-                      toothGroups: order.toothNumber ? [{
-                        groupId: 'existing-1',
-                        teeth: [parseInt(order.toothNumber || '0')],
-                        type: 'separate',
-                        productType: 'crown-bridge',
-                        material: order.product || 'Zirconia Crown',
-                        shade: 'A2',
-                        notes: order.notes || '',
-                        occlusalStaining: 'medium',
-                        ponticDesign: '',
-                        products: [{
-                          id: '1',
-                          name: order.product || 'Zirconia Crown',
-                          category: 'Crown',
-                          material: order.product || 'Zirconia Crown',
-                          description: order.product || 'Zirconia Crown',
-                          quantity: 1
-                        }]
-                      }] : []
+                      restorationType: order.restorationType?.toLowerCase().replace(' ', '-') || '',
+                      toothGroups: order.toothGroups || [],
+                      accessories: order.accessories || [],
+                      teethEditedByUser: false,
                     });
+                    setSelectedOrderId(order?.id || '');
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+                  <CardContent className="p-2 sm:p-4">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-0">
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">{order.id}</span>
+                          <span className="font-semibold text-xs sm:text-sm">{order.orderId || order.referenceId}</span>
                           <Badge className={getStatusColor(order.status)}>
                             {order.status}
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          <div>Patient: <span className="font-medium">{order.patient}</span></div>
-                          <div>Type: <span className="font-medium">{order.type}</span></div>
-                          <div>Date: <span className="font-medium">{order.date}</span></div>
-                          {order.toothNumber && (
-                            <div>Tooth: <span className="font-medium">#{order.toothNumber}</span></div>
+                        <div className="text-xs sm:text-sm text-gray-600">
+                          <div>Patient: <span className="font-medium">{order.patientFirstName || ''} {order.patientLastName || ''}</span></div>
+                          <div>Type: <span className="font-medium">{order.prescriptionType || ''}</span></div>
+                          <div>Date: <span className="font-medium">{order.createdAt?.split('T')[0] || ''}</span></div>
+                          {/* Show all selected teeth for this order */}
+                          {order.toothGroups && order.toothGroups.length > 0 && (
+                            <div>
+                              Teeth: <span className="font-medium">
+                                {order.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
-                      {formData.previousOrderId === order.id && (
+                      {formData.previousOrderId === (order.orderId || order.referenceId) && (
                         <CheckCircle className="text-primary" size={20} />
                       )}
                     </div>
                   </CardContent>
                 </Card>
               ))}
-              
               {filteredOrders.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <AlertCircle className="mx-auto mb-2" size={24} />
@@ -277,7 +280,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Selected Order Preview */}
           {formData.previousOrderId && (
@@ -292,30 +295,33 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Patient:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.patient}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.patientFirstName || ''} {formData.selectedOrder?.patientLastName || ''}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Type:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.type}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.prescriptionType || ''}</span>
                     </div>
+                    {/* Show all selected teeth for the selected order */}
+                    {formData.selectedOrder?.toothGroups && formData.selectedOrder.toothGroups.length > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-blue-700">Teeth:</span>
+                        <span className="text-sm text-blue-600">
+                          {formData.selectedOrder.toothGroups.map((g: any) => g.teeth).flat().join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Date:</span>
-                      <span className="text-sm text-blue-600">{formData.selectedOrder?.date}</span>
+                      <span className="text-sm text-blue-600">{formData.selectedOrder?.createdAt?.split('T')[0] || ''}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm font-medium text-blue-700">Status:</span>
-                      <Badge className={getStatusColor(formData.selectedOrder?.status)}>
-                        {formData.selectedOrder?.status}
+                      <Badge className={getStatusColor(formData.selectedOrder?.status || '')}>
+                        {formData.selectedOrder?.status || ''}
                       </Badge>
                     </div>
-                    {formData.selectedOrder?.toothNumber && (
-                      <div className="flex justify-between">
-                        <span className="text-sm font-medium text-blue-700">Tooth:</span>
-                        <span className="text-sm text-blue-600">#{formData.selectedOrder.toothNumber}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -329,7 +335,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                 <Checkbox
                   id="checkWarranty"
                   checked={formData.checkWarranty || false}
-                  onCheckedChange={(checked) => setFormData({...formData, checkWarranty: checked})}
+                  onCheckedChange={(checked) => setFormData({ ...formData, checkWarranty: checked })}
                   className="mt-1"
                 />
                 <div className="space-y-3 flex-1">
@@ -342,7 +348,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                       Verify warranty status before placing repeat order
                     </p>
                   </div>
-                  
+
                   {formData.checkWarranty && (
                     <div className="space-y-3 mt-4 p-3 bg-white rounded border">
                       <div className="space-y-2">
@@ -354,7 +360,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                             onChange={(e) => setWarrantyAuthId(e.target.value)}
                             className="flex-1"
                           />
-                          <Button 
+                          <Button
                             onClick={handleWarrantyCheck}
                             disabled={warrantyStatus === 'checking'}
                             className="bg-green-600 hover:bg-green-700"
@@ -376,9 +382,9 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                             <span className="font-medium text-green-800">Valid Warranty</span>
                           </div>
                           <div className="text-sm text-green-700 space-y-1">
-                            <p><strong>Coverage:</strong> {warrantyInfo.coverage}</p>
-                            <p><strong>Expiry:</strong> {warrantyInfo.expiryDate}</p>
-                            <p><strong>Lab:</strong> {warrantyInfo.manufacturingLab}</p>
+                            <p><strong>Coverage:</strong> {warrantyInfo.coverage || ''}</p>
+                            <p><strong>Expiry:</strong> {warrantyInfo.expiryDate || ''}</p>
+                            <p><strong>Lab:</strong> {warrantyInfo.manufacturingLab || ''}</p>
                           </div>
                         </div>
                       )}
@@ -390,8 +396,8 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                             <span className="font-medium text-orange-800">Warranty Expired</span>
                           </div>
                           <div className="text-sm text-orange-700 space-y-1">
-                            <p><strong>Expired:</strong> {warrantyInfo.expiryDate}</p>
-                            <p><strong>Original Coverage:</strong> {warrantyInfo.coverage}</p>
+                            <p><strong>Expired:</strong> {warrantyInfo.expiryDate || ''}</p>
+                            <p><strong>Original Coverage:</strong> {warrantyInfo.coverage || ''}</p>
                           </div>
                         </div>
                       )}
@@ -418,6 +424,8 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
     );
   }
 
+  console.log('formData', formData)
+
   if (currentStep === 2) {
     return (
       <Card className="border-l-4 border-l-primary">
@@ -441,11 +449,11 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
               </div>
               <div>
                 <Label className="text-sm font-medium text-blue-700">Patient</Label>
-                <p className="text-sm text-blue-600">{formData.selectedOrder?.patient}</p>
+                <p className="text-sm text-blue-600">{formData.selectedOrder?.patientFirstName || ''} {formData.selectedOrder?.patientLastName || ''}</p>
               </div>
               <div>
                 <Label className="text-sm font-medium text-blue-700">Original Date</Label>
-                <p className="text-sm text-blue-600">{formData.selectedOrder?.date}</p>
+                <p className="text-sm text-blue-600">{formData.selectedOrder?.createdAt?.split('T')[0] || ''}</p>
               </div>
             </CardContent>
           </Card>
@@ -469,11 +477,16 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
             </CardContent>
           </Card>
 
-          <ToothSelector 
+          <ToothSelector
             selectedGroups={formData.toothGroups || []}
-            onGroupsChange={(groups) => setFormData({
+            selectedTeeth={formData?.selectedTeeth || []}
+            prescriptionType={formData.prescriptionType}
+            onSelectionChange={(groups, teeth) => setFormData({
               ...formData,
-              toothGroups: groups
+              toothGroups: groups,
+              selectedTeeth: teeth,
+              teethEditedByUser: true,
+              teethToConfigure: teeth,
             })}
           />
         </CardContent>
@@ -481,7 +494,19 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
     );
   }
 
-  if (currentStep === 3) {
+  if (showProductSelection) {
+    return (
+        <div className="space-y-4 sm:space-y-6">
+        <Card className='border-none p-0'>
+          <div className='p-0 mt-4'>
+            <ProductSelection formData={formData} setFormData={setFormData} onAddMoreProducts={onAddMoreProducts} />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (showUploadAndLogistics) {
     return (
       <div className="space-y-6">
         {/* File Upload Section */}
@@ -497,7 +522,7 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
               <div className="space-y-3">
                 <FileUploader
                   files={formData.files || []}
-                  onFilesChange={(files) => setFormData({...formData, files})}
+                  onFilesChange={(files) => setFormData({ ...formData, files })}
                   maxFiles={10}
                   maxFileSize={10}
                   acceptedTypes={['.jpg', '.jpeg', '.png', '.pdf', '.stl']}
@@ -554,41 +579,42 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                     <div>
                       <Label htmlFor="pickupDate">Pickup Date</Label>
-                      <Input 
-                        id="pickupDate" 
-                        type="date" 
-                        value={formData.pickupDate || ''} 
+                      <Input
+                        id="pickupDate"
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={formData.pickupDate || ''}
                         onChange={e => setFormData({
                           ...formData,
                           pickupDate: e.target.value
-                        })} 
-                        className="mt-1" 
+                        })}
+                        className="mt-1"
                       />
                     </div>
                     <div>
                       <Label htmlFor="pickupTime">Pickup Time</Label>
-                      <Input 
-                        id="pickupTime" 
-                        type="time" 
-                        value={formData.pickupTime || ''} 
+                      <Input
+                        id="pickupTime"
+                        type="time"
+                        value={formData.pickupTime || ''}
                         onChange={e => setFormData({
                           ...formData,
                           pickupTime: e.target.value
-                        })} 
-                        className="mt-1" 
+                        })}
+                        className="mt-1"
                       />
                     </div>
                     <div className="md:col-span-2">
                       <Label htmlFor="pickupRemarks">Pickup Remarks</Label>
-                      <Textarea 
-                        id="pickupRemarks" 
-                        value={formData.pickupRemarks || ''} 
+                      <Textarea
+                        id="pickupRemarks"
+                        value={formData.pickupRemarks || ''}
                         onChange={e => setFormData({
                           ...formData,
                           pickupRemarks: e.target.value
-                        })} 
-                        className="mt-1" 
-                        rows={3} 
+                        })}
+                        className="mt-1"
+                        rows={3}
                       />
                     </div>
                   </div>
@@ -598,8 +624,8 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                     <div>
                       <Label htmlFor="areaManagerId">Area Manager *</Label>
-                      <Select 
-                        value={formData.scanBooking?.areaManagerId || ''} 
+                      <Select
+                        value={formData.scanBooking?.areaManagerId || ''}
                         onValueChange={value => handleScanBookingChange('areaManagerId', value)}
                       >
                         <SelectTrigger className="mt-1">
@@ -616,18 +642,19 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                     </div>
                     <div>
                       <Label htmlFor="scanDate">Scan Date *</Label>
-                      <Input 
-                        id="scanDate" 
-                        type="date" 
-                        value={formData.scanBooking?.scanDate || ''} 
-                        onChange={e => handleScanBookingChange('scanDate', e.target.value)} 
-                        className="mt-1" 
+                      <Input
+                        id="scanDate"
+                        min={new Date().toISOString().split('T')[0]}
+                        type="date"
+                        value={formData.scanBooking?.scanDate || ''}
+                        onChange={e => handleScanBookingChange('scanDate', e.target.value)}
+                        className="mt-1"
                       />
                     </div>
                     <div>
                       <Label htmlFor="scanTime">Scan Time *</Label>
-                      <Select 
-                        value={formData.scanBooking?.scanTime || ''} 
+                      <Select
+                        value={formData.scanBooking?.scanTime || ''}
                         onValueChange={value => handleScanBookingChange('scanTime', value)}
                       >
                         <SelectTrigger className="mt-1">
@@ -644,12 +671,12 @@ const RepeatOrderFlow = ({ currentStep, formData, setFormData }: RepeatOrderFlow
                     </div>
                     <div className="md:col-span-2">
                       <Label htmlFor="scanNotes">Scan Notes</Label>
-                      <Textarea 
-                        id="scanNotes" 
-                        value={formData.scanBooking?.notes || ''} 
-                        onChange={e => handleScanBookingChange('notes', e.target.value)} 
-                        className="mt-1" 
-                        rows={3} 
+                      <Textarea
+                        id="scanNotes"
+                        value={formData.scanBooking?.notes || ''}
+                        onChange={e => handleScanBookingChange('notes', e.target.value)}
+                        className="mt-1"
+                        rows={3}
                       />
                     </div>
                   </div>

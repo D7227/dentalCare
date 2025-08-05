@@ -9,6 +9,7 @@ interface FigmaStatCardProps {
   bigBackgroundSrc: string;
   onClick?: () => void;
   subtext?: string;
+  showIcon?: boolean;
 }
 
 const FigmaStatCard: React.FC<FigmaStatCardProps> = ({
@@ -19,6 +20,7 @@ const FigmaStatCard: React.FC<FigmaStatCardProps> = ({
   bigBackgroundSrc,
   onClick,
   subtext,
+  showIcon=true,
 }) => {
   return (
     <div
@@ -63,9 +65,11 @@ const FigmaStatCard: React.FC<FigmaStatCardProps> = ({
           <div className="text-[28px] font-bold text-black leading-none">
             {value}
           </div>
-          <div className="bg-white rounded-[8px] flex justify-center items-center p-[8px] shadow-[0px_0px_4px_0px_rgba(0, 0, 0, 0.25)]">
-            <img src={eyeIcon} alt="Background" draggable={false} />
-          </div>
+          {showIcon && (
+            <div className="bg-white rounded-[8px] flex justify-center items-center p-[8px] shadow-md">
+              <img src={eyeIcon} alt="Background" draggable={false} />
+            </div>
+          )}
         </div>
         {subtext && (
           <div className="text-xs text-muted-foreground mt-1">{subtext}</div>

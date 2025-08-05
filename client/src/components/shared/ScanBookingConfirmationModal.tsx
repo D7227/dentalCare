@@ -54,6 +54,7 @@ const ScanBookingConfirmationModal = ({ isOpen, onClose, onConfirm }: ScanBookin
               id="scan-date"
               type="date"
               value={bookingData.date}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setBookingData(prev => ({ ...prev, date: e.target.value }))}
             />
           </div>
