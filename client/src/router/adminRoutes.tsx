@@ -11,7 +11,7 @@ import UserManagementPage from "@/adminScreen/screen/userManagement/UserManageme
 import ClinicManagementPage from "@/adminScreen/screen/clinicManagment/ClinicManagementPage";
 import CaseManagementPage from "@/adminScreen/screen/caseManagement/CaseManagementPage";
 import OrderManagementPage from "@/adminScreen/screen/orderManagement/OrderManagementPage";
-import TechnicianManagementPage from "@/adminScreen/screen/technicianManagement/TechnicianManagementPage";
+import TechnicianManagementPage from "@/adminScreen/screen/taskAssignment/TaskAssignmentPage";
 import InventoryPage from "@/adminScreen/screen/inventory/InventoryPage";
 import AccessoryManagementPage from "@/adminScreen/screen/accessoryManagement/AccessoryManagementPage";
 import BillingManagementPage from "@/adminScreen/screen/billingManagement/BillingManagementPage";
