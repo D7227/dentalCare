@@ -60,12 +60,12 @@ const SocketEventsListener = () => {
       socket.off("new-message", handleNewMessage);
       socket.off("unread-count-update", handleUnreadCountUpdate);
     };
-  }, [getSocket, dispatch]);
+  }, [getSocket]);
   return null;
 };
 
 const App = () => {
-  const dispatch = useDispatch();
+  // const dispatch = useDispatch();
   const token = localStorage.getItem("token");
   let userId: string | null = null;
   if (token) {
@@ -76,16 +76,16 @@ const App = () => {
       userId = null;
     }
   }
-  const queryResult = userId
-    ? useGetUserDataQuery(userId)
-    : { data: undefined, isSuccess: false };
-  const { data: userData, isSuccess } = queryResult;
+  // const queryResult = userId
+  //   ? useGetUserDataQuery(userId)
+  //   : { data: undefined, isSuccess: false };
+  // const { data: userData, isSuccess } = queryResult;
 
-  useEffect(() => {
-    if (isSuccess && userData) {
-      dispatch(setUser(userData));
-    }
-  }, [isSuccess, userData, dispatch]);
+  // useEffect(() => {
+  //   if (isSuccess && userData) {
+  //     dispatch(setUser(userData));
+  //   }
+  // }, [isSuccess, userData, dispatch]);
 
   return (
     <QueryClientProvider client={queryClient}>

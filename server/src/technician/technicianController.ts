@@ -1,6 +1,6 @@
 import { db } from "../../database/db";
 import { technicianUser } from "./technicianSchema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
@@ -80,6 +80,7 @@ export async function registerTechnician(req: Request, res: Response) {
       departmentId,
       employeeId,
       password,
+      status = "active", // Default to active if not provided
     } = req.body;
     // Check for existing email, mobile number, or employeeId
     const existingEmail = await technicianStorage.getTechnicianByEmail(email);
@@ -96,6 +97,13 @@ export async function registerTechnician(req: Request, res: Response) {
       await technicianStorage.getTechnicianByEmployeeId(employeeId);
     if (existingEmployeeId) {
       return res.status(400).json({ error: "Employee ID already exists" });
+    }
+
+    // Validate status
+    if (status && !["active", "inactive"].includes(status)) {
+      return res
+        .status(400)
+        .json({ error: "Status must be either 'active' or 'inactive'" });
     }
     const technicianRoleName = "technician";
     const roleData = await RolesStorage.getRoleByName(technicianRoleName);
@@ -120,6 +128,7 @@ export async function registerTechnician(req: Request, res: Response) {
       password: hashedPassword,
       profilePic,
       profilePicMimeType,
+      status, // Use the status from request body or default
     });
     return res
       .status(201)
@@ -167,25 +176,97 @@ export async function updateTechnician(req: Request, res: Response) {
   try {
     const { id } = req.params;
     let updates = { ...req.body };
+
+    // Check if technician exists
+    const existingTechnician = await technicianStorage.getTechnicianById(id);
+    if (!existingTechnician) {
+      return res.status(404).json({ error: "Technician not found" });
+    }
+
+    // Validate unique fields if they're being updated
+    if (updates.email && updates.email !== existingTechnician.email) {
+      const existingEmail = await technicianStorage.getTechnicianByEmail(
+        updates.email
+      );
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email already exists" });
+      }
+    }
+
+    // Validate status if it's being updated
+    if (updates.status && !["active", "inactive"].includes(updates.status)) {
+      return res
+        .status(400)
+        .json({ error: "Status must be either 'active' or 'inactive'" });
+    }
+
+    if (
+      updates.mobileNumber &&
+      updates.mobileNumber !== existingTechnician.mobileNumber
+    ) {
+      const existingMobile =
+        await technicianStorage.getTechnicianByMobileNumber(
+          updates.mobileNumber
+        );
+      if (existingMobile) {
+        return res.status(400).json({ error: "Mobile number already exists" });
+      }
+    }
+
+    if (
+      updates.employeeId &&
+      updates.employeeId !== existingTechnician.employeeId
+    ) {
+      const existingEmployeeId =
+        await technicianStorage.getTechnicianByEmployeeId(updates.employeeId);
+      if (existingEmployeeId) {
+        return res.status(400).json({ error: "Employee ID already exists" });
+      }
+    }
+
     // If password is being updated, hash it
     if (updates.password) {
       updates.password = await bcrypt.hash(updates.password, 10);
     }
+
     // Handle file upload (store as base64 and mimetype)
     if (req.file) {
       updates.profilePic = req.file.buffer.toString("base64");
       updates.profilePicMimeType = req.file.mimetype;
     }
+
     const updatedTechnician = await technicianStorage.updateTechnician(
       id,
       updates
     );
-    if (!updatedTechnician) {
-      return res.status(404).json({ error: "Technician not found" });
+
+    // Get department and role information for the response
+    let departmentName = null;
+    let roleName = null;
+
+    if (updatedTechnician.departmentId) {
+      const [department] = await db
+        .select({ name: departmentSchema.name })
+        .from(departmentSchema)
+        .where(eq(departmentSchema.id, updatedTechnician.departmentId));
+      departmentName = department?.name;
     }
+
+    if (updatedTechnician.roleId) {
+      const role = await RolesStorage.getRoleById(updatedTechnician.roleId);
+      roleName = role?.name;
+    }
+
+    const responseData = {
+      ...updatedTechnician,
+      departmentName,
+      roleName,
+      status: updatedTechnician.status || "active",
+    };
+
     return res.json({
       message: "Technician updated successfully",
-      updatedTechnician,
+      updatedTechnician: responseData,
     });
   } catch (error) {
     console.error("Technician update error:", error);
@@ -213,21 +294,47 @@ export async function deleteTechnician(req: Request, res: Response) {
 export async function getTechnicianById(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const technician = await technicianStorage.getTechnicianById(id);
+
+    if (!id) {
+      return res.status(400).json({ error: "Technician ID is required" });
+    }
+
+    // const technician = await technicianStorage.getTechnicianById(id);
+    console.log("type", typeof technicianUser.id);
+    console.log("type ==  >>>", typeof id);
+    const [technician] = await db
+      .select()
+      .from(technicianUser)
+      .where(eq(technicianUser.id, id)); // Make sure `id` is a UUID string
+
     if (!technician) {
       return res.status(404).json({ error: "Technician not found" });
     }
+
+    // Get department name
+    // let departmentName = null;
+    // if (technician.departmentId) {
+    //   const [department] = await db
+    //     .select({ name: departmentSchema.name })
+    //     .from(departmentSchema)
+    //     .where(eq(departmentSchema.id, technician.departmentId));
+    //   departmentName = department?.name;
+    // }
+
     // Attach profilePicUrl endpoint if present
-    let profilePicUrl = null;
-    if (technician.profilePic) {
-      const baseUrl = req.protocol + "://" + req.get("host");
-      profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
-    }
-    const role = await RolesStorage.getRoleById(technician.roleId);
+    // let profilePicUrl = null;
+    // if (technician.profilePic) {
+    //   const baseUrl = req.protocol + "://" + req.get("host");
+    //   profilePicUrl = `${baseUrl}/api/technician/${technician.id}/profile-pic`;
+    // }
+
+    // const role = await RolesStorage.getRoleById(technician.roleId);
+
     return res.json({
       ...technician,
-      profilePic: profilePicUrl,
-      roleName: role?.name,
+      // profilePic: profilePicUrl,
+      // departmentName,
+      // roleName: role?.name,
     });
   } catch (error) {
     console.error("Get technician by id error:", error);
@@ -251,110 +358,114 @@ export async function getTechnicianProfilePic(req: Request, res: Response) {
   }
 }
 
-export async function getAssignedOrders(req: Request, res: Response) {
-  try {
-    const { technicianId } = req.params;
+// export async function getAssignedOrders(req: Request, res: Response) {
+//   try {
+//     const { technicianId } = req.params;
 
-    if (!technicianId) {
-      return res.status(400).json({ error: "Technician ID is required" });
-    }
+//     if (!technicianId) {
+//       return res.status(400).json({ error: "Technician ID is required" });
+//     }
 
-    const assignedOrders = await db
-      .select({
-        flowId: orderFlowSchema.id,
-        orderId: orderFlowSchema.orderId,
-        status: orderFlowSchema.status,
-        orderNumber: labOrderSchema.orderNumber,
-        priority: labOrderSchema.priority,
-        dueDate: labOrderSchema.dueDate,
-        createdAt: labOrderSchema.createdAt,
-      })
-      .from(orderFlowSchema)
-      .innerJoin(labOrderSchema, eq(orderFlowSchema.orderId, labOrderSchema.id))
-      .where(
-        and(
-          eq(orderFlowSchema.technicianId, technicianId),
-          eq(orderFlowSchema.status, "assigned_pending"),
-          eq(orderFlowSchema.isCurrent, true)
-        )
-      );
+//     const assignedOrders = await db
+//       .select({
+//         flowId: orderFlowSchema.id,
+//         orderId: orderFlowSchema.orderId,
+//         status: orderFlowSchema.status,
+//         orderNumber: labOrderSchema.orderNumber,
+//         priority: labOrderSchema.priority,
+//         dueDate: labOrderSchema.dueDate,
+//         createdAt: labOrderSchema.createdAt,
+//       })
+//       .from(orderFlowSchema)
+//       .innerJoin(labOrderSchema, eq(orderFlowSchema.orderId, labOrderSchema.id))
+//       .where(
+//         and(
+//           eq(orderFlowSchema.technicianId, technicianId),
+//           eq(orderFlowSchema.status, "assigned_pending"),
+//           eq(orderFlowSchema.isCurrent, true)
+//         )
+//       );
 
-    return res.status(200).json({
-      message: "Assigned orders retrieved successfully",
-      data: assignedOrders,
-    });
-  } catch (error: any) {
-    console.error("Error getting assigned orders:", error);
-    return res.status(500).json({ error: "Failed to get assigned orders" });
-  }
-}
+//     return res.status(200).json({
+//       message: "Assigned orders retrieved successfully",
+//       data: assignedOrders,
+//     });
+//   } catch (error: any) {
+//     console.error("Error getting assigned orders:", error);
+//     return res.status(500).json({ error: "Failed to get assigned orders" });
+//   }
+// }
 
-export async function acceptAssignment(req: Request, res: Response) {
-  try {
-    const { orderId } = req.params;
-    const { technicianId } = req.body;
+// export async function acceptAssignment(req: Request, res: Response) {
+//   try {
+//     const { orderId } = req.params;
+//     const { technicianId } = req.body;
 
-    if (!technicianId || !orderId) {
-      return res
-        .status(400)
-        .json({ error: "Order ID and Technician ID are required" });
-    }
+//     if (!technicianId || !orderId) {
+//       return res
+//         .status(400)
+//         .json({ error: "Order ID and Technician ID are required" });
+//     }
 
-    await db
-      .update(orderFlowSchema)
-      .set({ status: "in_progress" })
-      .where(
-        and(
-          eq(orderFlowSchema.orderId, orderId),
-          eq(orderFlowSchema.technicianId, technicianId),
-          eq(orderFlowSchema.isCurrent, true)
-        )
-      );
+//     await db
+//       .update(orderFlowSchema)
+//       .set({ status: "in_progress" })
+//       .where(
+//         and(
+//           eq(orderFlowSchema.orderId, orderId),
+//           eq(orderFlowSchema.technicianId, technicianId),
+//           eq(orderFlowSchema.isCurrent, true)
+//         )
+//       );
 
-    return res.status(200).json({
-      message: "Order marked as in progress",
-    });
-  } catch (error: any) {
-    console.error("Error accepting assignment:", error);
-    return res.status(500).json({ error: "Failed to accept assignment" });
-  }
-}
+//     return res.status(200).json({
+//       message: "Order marked as in progress",
+//     });
+//   } catch (error: any) {
+//     console.error("Error accepting assignment:", error);
+//     return res.status(500).json({ error: "Failed to accept assignment" });
+//   }
+// }
 
-export async function markAsCompleted(req: Request, res: Response) {
-  try {
-    const { orderId } = req.params;
-    const { technicianId } = req.body;
+// export async function markAsCompleted(req: Request, res: Response) {
+//   try {
+//     const { orderId } = req.params;
+//     const { technicianId } = req.body;
 
-    if (!technicianId || !orderId) {
-      return res
-        .status(400)
-        .json({ error: "Order ID and Technician ID are required" });
-    }
+//     if (!technicianId || !orderId) {
+//       return res
+//         .status(400)
+//         .json({ error: "Order ID and Technician ID are required" });
+//     }
 
-    await db
-      .update(orderFlowSchema)
-      .set({ status: "outward_pending" })
-      .where(
-        and(
-          eq(orderFlowSchema.orderId, orderId),
-          eq(orderFlowSchema.technicianId, technicianId),
-          eq(orderFlowSchema.isCurrent, true),
-          eq(orderFlowSchema.status, "in_progress")
-        )
-      );
+//     await db
+//       .update(orderFlowSchema)
+//       .set({ status: "outward_pending" })
+//       .where(
+//         and(
+//           eq(orderFlowSchema.orderId, orderId),
+//           eq(orderFlowSchema.technicianId, technicianId),
+//           eq(orderFlowSchema.isCurrent, true),
+//           eq(orderFlowSchema.status, "in_progress")
+//         )
+//       );
 
-    return res.status(200).json({
-      message: "Order marked as completed (outward pending)",
-    });
-  } catch (error: any) {
-    console.error("Error marking order as completed:", error);
-    return res.status(500).json({ error: "Failed to mark order as completed" });
-  }
-}
+//     return res.status(200).json({
+//       message: "Order marked as completed (outward pending)",
+//     });
+//   } catch (error: any) {
+//     console.error("Error marking order as completed:", error);
+//     return res.status(500).json({ error: "Failed to mark order as completed" });
+//   }
+// }
 
 // Admin management endpoints
 export async function getAllTechnicians(req: Request, res: Response) {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = (page - 1) * limit;
+
     const technicians = await db
       .select({
         id: technicianUser.id,
@@ -367,7 +478,15 @@ export async function getAllTechnicians(req: Request, res: Response) {
         roleId: technicianUser.roleId,
         profilePic: technicianUser.profilePic,
         profilePicMimeType: technicianUser.profilePicMimeType,
+        status: technicianUser.status,
       })
+      .from(technicianUser)
+      .limit(limit)
+      .offset(offset);
+
+    // Get total count for pagination
+    const totalCount = await db
+      .select({ count: sql`count(*)` })
       .from(technicianUser);
 
     // Get department names and role names
@@ -393,28 +512,39 @@ export async function getAllTechnicians(req: Request, res: Response) {
           ...tech,
           departmentName,
           roleName,
-          status: "active", // You might want to add a status field to the schema
-          specialization: departmentName, // Using department as specialization for now
-          experience: "3 years", // You might want to add this field to the schema
+          status: tech.status || "active",
         };
       })
     );
 
-    return res.status(200).json(techniciansWithDetails);
+    return res.status(200).json({
+      technicians: techniciansWithDetails,
+      pagination: {
+        page,
+        limit,
+        total: Number(totalCount[0]?.count) || 0,
+        totalPages: Math.ceil((Number(totalCount[0]?.count) || 0) / limit),
+      },
+    });
   } catch (error: any) {
     console.error("Error getting all technicians:", error);
     return res.status(500).json({ error: "Failed to get technicians" });
   }
 }
 
+// ! Done
 export async function getTechnicianStats(req: Request, res: Response) {
   try {
     const technicians = await db.select().from(technicianUser);
     const departments = await db.select().from(departmentSchema);
 
     const total = technicians.length;
-    const active = technicians.length; // Assuming all are active for now
-    const inactive = 0;
+    const active = technicians.filter(
+      (tech) => tech.status === "active"
+    ).length;
+    const inactive = technicians.filter(
+      (tech) => tech.status === "inactive"
+    ).length;
 
     // Count by department
     const byDepartment: Record<string, number> = {};
@@ -424,17 +554,11 @@ export async function getTechnicianStats(req: Request, res: Response) {
       ).length;
     });
 
-    // Count by role (assuming all are technicians for now)
-    const byRole: Record<string, number> = {
-      Technician: total,
-    };
-
     return res.status(200).json({
       total,
       active,
       inactive,
       byDepartment,
-      byRole,
     });
   } catch (error: any) {
     console.error("Error getting technician stats:", error);
@@ -458,6 +582,7 @@ export async function getTechniciansByDepartment(req: Request, res: Response) {
         roleId: technicianUser.roleId,
         profilePic: technicianUser.profilePic,
         profilePicMimeType: technicianUser.profilePicMimeType,
+        status: technicianUser.status,
       })
       .from(technicianUser)
       .where(eq(technicianUser.departmentId, departmentId));
@@ -485,9 +610,7 @@ export async function getTechniciansByDepartment(req: Request, res: Response) {
           ...tech,
           departmentName,
           roleName,
-          status: "active",
-          specialization: departmentName,
-          experience: "3 years",
+          status: tech.status || "active",
         };
       })
     );

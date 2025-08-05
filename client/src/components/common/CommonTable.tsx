@@ -16,6 +16,17 @@ interface CommonTableProps<T> {
   initialPageSize?: number;
   emptyText?: string;
   className?: string;
+  // External pagination props
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
+  // Loading state
+  isLoading?: boolean;
 }
 
 function CommonTable<T extends { id?: string | number }>({
@@ -25,24 +36,58 @@ function CommonTable<T extends { id?: string | number }>({
   initialPageSize = 10,
   emptyText = "No data found",
   className = "",
+  pagination,
+  isLoading = false,
 }: CommonTableProps<T>) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(initialPageSize);
+  // Use external pagination if provided, otherwise use internal pagination
+  const isExternalPagination = !!pagination;
 
-  const totalPages = Math.ceil(data.length / pageSize);
-  const paginatedData = useMemo(
-    () => data.slice((page - 1) * pageSize, page * pageSize),
-    [data, page, pageSize]
-  );
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
+
+  // Use external or internal pagination values
+  const currentPage = isExternalPagination
+    ? pagination!.currentPage
+    : internalPage;
+  const pageSize = isExternalPagination
+    ? pagination!.pageSize
+    : internalPageSize;
+  const totalPages = isExternalPagination
+    ? pagination!.totalPages
+    : Math.ceil(data.length / pageSize);
+  const totalItems = isExternalPagination
+    ? pagination!.totalItems
+    : data.length;
+
+  // Use external or internal data
+  const displayData = isExternalPagination
+    ? data
+    : useMemo(
+        () =>
+          data.slice(
+            (internalPage - 1) * internalPageSize,
+            internalPage * internalPageSize
+          ),
+        [data, internalPage, internalPageSize]
+      );
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
-    setPage(newPage);
+
+    if (isExternalPagination) {
+      pagination!.onPageChange(newPage);
+    } else {
+      setInternalPage(newPage);
+    }
   };
 
   const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setPage(1);
+    if (isExternalPagination) {
+      pagination!.onPageSizeChange(size);
+    } else {
+      setInternalPageSize(size);
+      setInternalPage(1);
+    }
   };
 
   // Pagination numbers logic (with ellipsis)
@@ -51,9 +96,9 @@ function CommonTable<T extends { id?: string | number }>({
     if (totalPages <= 5) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      if (page <= 3) {
+      if (currentPage <= 3) {
         pages.push(1, 2, 3, 4, "...", totalPages);
-      } else if (page >= totalPages - 2) {
+      } else if (currentPage >= totalPages - 2) {
         pages.push(
           1,
           "...",
@@ -63,18 +108,31 @@ function CommonTable<T extends { id?: string | number }>({
           totalPages
         );
       } else {
-        pages.push(1, "...", page - 1, page, page + 1, "...", totalPages);
+        pages.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages
+        );
       }
     }
     return pages;
   };
 
-  const startEntry = data.length === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endEntry = Math.min(page * pageSize, data.length);
+  const startEntry = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endEntry = Math.min(currentPage * pageSize, totalItems);
 
   return (
     <div className={`w-full ${className}`}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
         <table
           className="min-w-full border border-gray-200 rounded-xl bg-white"
           style={{ borderCollapse: "separate", borderSpacing: 0 }}
@@ -101,7 +159,7 @@ function CommonTable<T extends { id?: string | number }>({
             </tr>
           </thead>
           <tbody>
-            {paginatedData.length === 0 ? (
+            {displayData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -111,7 +169,7 @@ function CommonTable<T extends { id?: string | number }>({
                 </td>
               </tr>
             ) : (
-              paginatedData.map((row, rowIndex) => (
+              displayData.map((row: T, rowIndex) => (
                 <tr
                   key={row.id || rowIndex}
                   className={`border-b border-gray-200 last:rounded-b-xl last:border-b-0 hover:bg-gray-50 transition`}
@@ -139,7 +197,7 @@ function CommonTable<T extends { id?: string | number }>({
         {/* Left: Showing X to Y of Z entries */}
         <div className="text-sm text-gray-600 flex items-center gap-2">
           <span>
-          {`Showing ${startEntry} to ${endEntry} of ${data.length} entries`}
+            {`Showing ${startEntry} to ${endEntry} of ${totalItems} entries`}
           </span>
           {/* Center: Page size dropdown */}
           <div className="flex items-center gap-2">
@@ -185,8 +243,8 @@ function CommonTable<T extends { id?: string | number }>({
         <div className="flex items-center gap-1">
           <button
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 disabled:opacity-50"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
             aria-label="Previous"
           >
             <svg
@@ -213,12 +271,12 @@ function CommonTable<T extends { id?: string | number }>({
                 key={p as number}
                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all
                   ${
-                    p === page
+                    p === currentPage
                       ? "bg-[#10b39c] text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                   }`}
                 onClick={() => handlePageChange(Number(p))}
-                disabled={p === page}
+                disabled={p === currentPage}
               >
                 {p}
               </button>
@@ -226,8 +284,8 @@ function CommonTable<T extends { id?: string | number }>({
           )}
           <button
             className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 disabled:opacity-50"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages || totalPages === 0}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages || totalPages === 0}
             aria-label="Next"
           >
             <svg

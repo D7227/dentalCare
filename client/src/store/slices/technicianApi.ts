@@ -11,9 +11,8 @@ export interface Technician {
   departmentName?: string;
   roleName?: string;
   status: "active" | "inactive";
-  specialization?: string;
-  experience?: string;
   profilePic?: string;
+  password?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -26,8 +25,7 @@ export interface CreateTechnicianRequest {
   employeeId: string;
   departmentId: string;
   password: string;
-  specialization?: string;
-  experience?: string;
+  status?: "active" | "inactive";
 }
 
 export interface UpdateTechnicianRequest {
@@ -38,8 +36,6 @@ export interface UpdateTechnicianRequest {
   mobileNumber?: string;
   employeeId?: string;
   departmentId?: string;
-  specialization?: string;
-  experience?: string;
   status?: "active" | "inactive";
 }
 
@@ -57,17 +53,31 @@ export const technicianApi = createApi({
   }),
   tagTypes: ["Technician", "Department"],
   endpoints: (builder) => ({
-    // Get all technicians
-    getTechnicians: builder.query<Technician[], void>({
-      query: () => "/",
+    // Get all technicians with pagination
+    getTechnicians: builder.query<
+      {
+        technicians: Technician[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      },
+      { page?: number; limit?: number }
+    >({
+      query: (params) => ({
+        url: "/",
+        params,
+      }),
       providesTags: ["Technician"],
     }),
 
-    // // Get technician by ID
-    // getTechnicianById: builder.query<Technician, string>({
-    //   query: (id) => `/technician/${id}`,
-    //   providesTags: (result, error, id) => [{ type: "Technician", id }],
-    // }),
+    // Get technician by ID
+    getTechnicianById: builder.query<Technician, string>({
+      query: (id) => `/${id}`,
+      providesTags: (result, error, id) => [{ type: "Technician", id }],
+    }),
 
     // Create new technician
     createTechnician: builder.mutation<Technician, CreateTechnicianRequest>({
@@ -76,21 +86,16 @@ export const technicianApi = createApi({
         method: "POST",
         body: technician,
       }),
-      invalidatesTags: ["Technician"],
     }),
 
-    // // Update technician
-    // updateTechnician: builder.mutation<Technician, UpdateTechnicianRequest>({
-    //   query: ({ id, ...updates }) => ({
-    //     url: `/technician/${id}`,
-    //     method: "PUT",
-    //     body: updates,
-    //   }),
-    //   invalidatesTags: (result, error, { id }) => [
-    //     { type: "Technician", id },
-    //     "Technician",
-    //   ],
-    // }),
+    // Update technician
+    updateTechnician: builder.mutation<Technician, UpdateTechnicianRequest>({
+      query: ({ id, ...updates }) => ({
+        url: `/${id}`,
+        method: "PATCH",
+        body: updates,
+      }),
+    }),
 
     // Delete technician
     deleteTechnician: builder.mutation<void, string>({
@@ -98,7 +103,6 @@ export const technicianApi = createApi({
         url: `/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Technician"],
     }),
 
     // Get all departments
@@ -106,36 +110,28 @@ export const technicianApi = createApi({
       query: () => "/departments",
     }),
 
-    // // Get technicians by department
-    // getTechniciansByDepartment: builder.query<Technician[], string>({
-    //   query: (departmentId) => `/technician/department/${departmentId}`,
-    //   providesTags: ["Technician"],
-    // }),
-
-    // // Get technician statistics
-    // getTechnicianStats: builder.query<
-    //   {
-    //     total: number;
-    //     active: number;
-    //     inactive: number;
-    //     byDepartment: Record<string, number>;
-    //     byRole: Record<string, number>;
-    //   },
-    //   void
-    // >({
-    //   query: () => "/technician/stats",
-    //   providesTags: ["Technician"],
-    // }),
+    // Get technician statistics
+    getTechnicianStats: builder.query<
+      {
+        total: number;
+        active: number;
+        inactive: number;
+        byDepartment: Record<string, number>;
+      },
+      void
+    >({
+      query: () => "/stats",
+    }),
   }),
 });
 
 export const {
   useGetTechniciansQuery,
-  // useGetTechnicianByIdQuery,
+  useGetTechnicianByIdQuery,
   useCreateTechnicianMutation,
-  // useUpdateTechnicianMutation,
+  useUpdateTechnicianMutation,
   useDeleteTechnicianMutation,
   useGetDepartmentsQuery,
   // useGetTechniciansByDepartmentQuery,
-  // useGetTechnicianStatsQuery,
+  useGetTechnicianStatsQuery,
 } = technicianApi;

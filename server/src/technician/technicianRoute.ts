@@ -7,9 +7,9 @@ import {
   deleteTechnician,
   getTechnicianById,
   getTechnicianProfilePic,
-  getAssignedOrders,
-  acceptAssignment,
-  markAsCompleted,
+  // getAssignedOrders,
+  // acceptAssignment,
+  // markAsCompleted,
   getAllTechnicians,
   getTechnicianStats,
   getTechniciansByDepartment,
@@ -29,26 +29,30 @@ technicianRouter.post(
 );
 // ! Done
 technicianRouter.post("/login", loginTechnician);
+
 technicianRouter.patch("/:id", upload.single("profilePic"), updateTechnician);
-// ! progress
+// ! Done // TODO: check the one logic if tecnicican is remove so taht time what is the flow
 technicianRouter.delete("/:id", deleteTechnician);
-// technicianRouter.get("/:id", getTechnicianById);
+// ! in progress
+technicianRouter.get("/:id", getTechnicianById);
+
 technicianRouter.get("/:id/profile-pic", getTechnicianProfilePic);
 
-technicianRouter.get("/assigned/:technicianId", getAssignedOrders);
+// technicianRouter.get("/assigned/:technicianId", getAssignedOrders);
 
-technicianRouter.post("/accept/:orderId", acceptAssignment);
+// technicianRouter.post("/accept/:orderId", acceptAssignment);
 
-technicianRouter.post("/complete/:orderId", markAsCompleted);
+// technicianRouter.post("/complete/:orderId", markAsCompleted);
 
 // Admin management routes
 technicianRouter.get("/", getAllTechnicians);
+// ! Done
 technicianRouter.get("/stats", getTechnicianStats);
 // technicianRouter.get("/department/:departmentId", getTechniciansByDepartment);
 
 // Department routes (for admin management)
 // ! Done
-technicianRouter.get("/departments", async (req, res) => {
+technicianRouter.get("/department", async (req, res) => {
   try {
     const { db } = await import("../../database/db");
     const { departmentSchema } = await import(
@@ -62,6 +66,8 @@ technicianRouter.get("/departments", async (req, res) => {
       })
       .from(departmentSchema)
       .where(eq(departmentSchema.isActive, true));
+
+    console.log("departments", departments);
 
     res.json(departments);
   } catch (error) {
