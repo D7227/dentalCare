@@ -43,6 +43,13 @@ departmentHeadRouter.get(
   departmentHeadController.getAvailableDepartments
 );
 
+// Department head gets technicians
+departmentHeadRouter.get(
+  "/technicians/:departmentId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getTechnicians
+);
+
 // Department head updates department head profile (but not themselves)
 departmentHeadRouter.put(
   "/:id",

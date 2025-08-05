@@ -46,6 +46,7 @@ export const departmentHeadApi = createApi({
   }),
   tagTypes: ["departmentHead"],
   endpoints: (builder) => ({
+    // Login Department Head
     loginDepartmentHead: builder.mutation<AuthToken, LoginRequest>({
       query: (body) => ({
         url: "/login",
@@ -64,6 +65,8 @@ export const departmentHeadApi = createApi({
         }
       },
     }),
+
+    // Register Department Head
     registerDepartmentHead: builder.mutation<AuthToken, RegisterRequest>({
       query: (body) => ({
         url: "/",
@@ -82,6 +85,8 @@ export const departmentHeadApi = createApi({
         }
       },
     }),
+
+    // Delete Department Head
     deleteDepartmentHead: builder.mutation<void, { id: string }>({
       query: ({ id }) => ({
         url: `/${id}`,
@@ -91,6 +96,16 @@ export const departmentHeadApi = createApi({
         dispatch(clearDepartmentHead());
       },
     }),
+
+    // Get Technicians
+    getTechnicians: builder.query<any, { id: string }>({
+      query: ({ id }) => ({
+        url: `/technicians/${id}`,
+        method: "GET",
+      }),
+    }),
+
+    // Get Department Head Profile
     getDepartmentHeadProfile: builder.query<any, { id: string }>({
       query: ({ id }) => ({
         url: `/${id}`,
@@ -98,6 +113,8 @@ export const departmentHeadApi = createApi({
       }),
       providesTags: ["departmentHead"],
     }),
+
+    // Get Department Head Waiting Inward
     getDepartmentHeadWaitingInward: builder.query<any, WaitingInwardParams>({
       query: ({ departmentId, page = 1, limit = 10 }) => ({
         url: `/waiting-inward/${departmentId}`,
@@ -109,12 +126,16 @@ export const departmentHeadApi = createApi({
       }),
       providesTags: ["departmentHead"],
     }),
+
+    // Inward Order
     inwardOrder: builder.mutation<any, { id: string }>({
       query: ({ id }) => ({
         url: `/inward/${id}`,
         method: "POST",
       }),
     }),
+
+    // Get Department Head Inward Pending
     getDepartmentHeadInwardPending: builder.query<any, WaitingInwardParams>({
       query: ({ departmentId, page = 1, limit = 10 }) => ({
         url: `/inward-pending/${departmentId}`,
@@ -133,6 +154,7 @@ export const {
   useLoginDepartmentHeadMutation,
   useRegisterDepartmentHeadMutation,
   useDeleteDepartmentHeadMutation,
+  useGetTechniciansQuery,
   useGetDepartmentHeadProfileQuery,
   useGetDepartmentHeadWaitingInwardQuery,
   useInwardOrderMutation,

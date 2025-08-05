@@ -5,11 +5,22 @@ import { Users, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TechnicianTable from "../components/TechnicianTable";
 import { departmentsData } from "../staticData";
+import { useGetTechniciansQuery } from "@/store/slices/departmentHeadSlice/departmentHeadApi";
+import { selectSelectedDepartment } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
+import { useSelector } from "react-redux";
 
 const TechniciansPage = () => {
   const { toast } = useToast();
   const [selectedDepartment] = useState("crown-bridge");
   const [technicianSearch, setTechnicianSearch] = useState("");
+
+  // const selectedDepartment = useSelector(selectSelectedDepartment);
+
+  // const { data: technicians } = useGetTechniciansQuery({
+  //   id: selectedDepartment?.id,
+  // });
+
+  // console.log("technicians", technicians);
 
   const departments = departmentsData;
   const currentDepartment = departments.find(

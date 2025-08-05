@@ -13,6 +13,7 @@ import { orderSchema } from "../order/orderSchema";
 import { clinic } from "../clinic/clinicSchema";
 import { patients } from "../patient/patientSchema";
 import { clinicInformation } from "../clinicInformation/clinicInformationSchema";
+import { technicianUser } from "../technician/technicianSchema";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -502,6 +503,30 @@ export const departmentHeadController = {
     } catch (error: any) {
       console.error("Error getting available departments:", error);
       res.status(500).json({ error: "Failed to get available departments" });
+    }
+  },
+
+  // Get technicians
+  async getTechnicians(req: Request, res: Response) {
+    try {
+      const { departmentId } = req.params;
+
+      if (!departmentId) {
+        return res.status(400).json({ error: "Department ID is required" });
+      }
+
+      const technicians = await db
+        .select()
+        .from(technicianUser)
+        .where(eq(technicianUser.departmentId, departmentId));
+
+      res.status(200).json({
+        message: "Technicians retrieved successfully",
+        data: technicians,
+      });
+    } catch (error: any) {
+      console.error("Error getting technicians:", error);
+      res.status(500).json({ error: "Failed to get technicians" });
     }
   },
 

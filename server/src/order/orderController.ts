@@ -26,9 +26,11 @@ import { Request, Response } from "express";
 const STATIC_DUE_DATE = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000); // now + 5 days
 const STATIC_PRIORITY = "medium";
 const STATIC_SEQUENCE = [
-  "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129", // dept-5
-  "1c307134-cf0b-420e-b7c3-7347acd81067", // dept-1
+  "abd8b609-0cf6-4577-b737-cd83640ce10a", // dept-1
   "43140bd3-08c5-45e3-ba36-602cbbd56153", // dept-2
+  "9b063880-0c9e-45bb-866e-1c18c1f5191e", // dept-3
+  "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129", // dept-4
+  "1c307134-cf0b-420e-b7c3-7347acd81067", // dept-5
 ];
 
 export interface orderStore {
