@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +20,17 @@ import {
   ArrowRight,
   ArrowLeft,
   Search,
-  LogOut,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import WaitingInwardTable from "./components/WaitingInwardTable";
-import InwardPendingTable from "./components/InwardPendingTable";
-import AssignedPendingTable from "./components/AssignedPendingTable";
-import InProgressTable from "./components/InProgressTable";
-import OutwardPendingTable from "./components/OutwardPendingTable";
-import TechnicianTable from "./components/TechnicianTable";
-import { departmentsData } from "./staticData";
-import CaseDetailsDialog from "./components/CaseDetailsDialog";
+import WaitingInwardTable from "../components/WaitingInwardTable";
+import InwardPendingTable from "../components/InwardPendingTable";
+import AssignedPendingTable from "../components/AssignedPendingTable";
+import InProgressTable from "../components/InProgressTable";
+import OutwardPendingTable from "../components/OutwardPendingTable";
+import TechnicianTable from "../components/TechnicianTable";
+import { departmentsData } from "../staticData";
+import CaseDetailsDialog from "../components/CaseDetailsDialog";
 import CommonTabs from "@/components/common/CommonTabs";
 import FigmaStatCard from "@/components/ui/FigmaStatCard";
 import {
@@ -49,19 +47,18 @@ import {
   icon_5,
   icon_6,
 } from "@/assets/svg";
-import NotificationIconExample from "@/styles/NotificationIconExample";
 import CommonSearchBar from "@/components/common/CommonSearchBar";
 import {
-  clearDepartmentHead,
   selectDepartmentHeadUser,
+  selectSelectedDepartment,
 } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
 import { useGetDepartmentHeadProfileQuery } from "@/store/slices/departmentHeadSlice/departmentHeadApi";
 import { skipToken } from "@reduxjs/toolkit/query";
 
-const DepartmentHeadDashboard = () => {
+const DashboardPage = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const selectedDepartments = useSelector(selectSelectedDepartment);
   const [selectedDepartment, setSelectedDepartment] = useState("crown-bridge");
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
   const [selectedCaseForChat, setSelectedCaseForChat] = useState<{
@@ -557,59 +554,6 @@ const DepartmentHeadDashboard = () => {
     });
   };
 
-  // const handleMakeInward = (waitingCaseId: string) => {
-  //   setDepartments((prev) =>
-  //     prev.map((dept) => {
-  //       if (dept.id === selectedDepartment) {
-  //         const waitingCase = dept.waitingInward?.find(
-  //           (c) => c.id === waitingCaseId
-  //         );
-
-  //         if (waitingCase) {
-  //           const inwardCase: InwardCase = {
-  //             id: `IN${Date.now()}`,
-  //             caseNumber: waitingCase.caseNumber,
-  //             doctorName: waitingCase.doctorName,
-  //             clinicName: waitingCase.clinicName,
-  //             patientName: waitingCase.patientName,
-  //             caseType: waitingCase.caseType,
-  //             priority: waitingCase.priority,
-  //             receivedDate: new Date().toISOString().split("T")[0],
-  //             dueDate: waitingCase.expectedDate,
-  //             notes: waitingCase.notes,
-  //             logs: [
-  //               ...waitingCase.logs,
-  //               {
-  //                 id: `L${Date.now()}`,
-  //                 timestamp: new Date().toISOString(),
-  //                 action: "Made Inward",
-  //                 user: "Admin",
-  //                 details: "Case processed for assignment",
-  //               },
-  //             ],
-  //             digitalFiles: waitingCase.digitalFiles,
-  //             products: waitingCase.products,
-  //             accessories: waitingCase.accessories,
-  //           };
-
-  //           return {
-  //             ...dept,
-  //             waitingInward:
-  //               dept.waitingInward?.filter((c) => c.id !== waitingCaseId) || [],
-  //             inwardPending: [...dept.inwardPending, inwardCase],
-  //           };
-  //         }
-  //       }
-  //       return dept;
-  //     })
-  //   );
-
-  //   toast({
-  //     title: "Case Made Inward",
-  //     description: `Case has been moved to inward pending`,
-  //   });
-  // };
-
   const handleChatOpen = (caseId: string, caseType: string) => {
     setSelectedCaseForChat({ caseId, caseType });
     setIsChatModalOpen(true);
@@ -618,18 +562,6 @@ const DepartmentHeadDashboard = () => {
   const handleChatClose = () => {
     setIsChatModalOpen(false);
     setSelectedCaseForChat(null);
-  };
-
-  const handleLogout = () => {
-    dispatch(clearDepartmentHead());
-    // Force clear localStorage as well
-    localStorage.removeItem("department-head-token");
-    // Use replace to prevent going back
-    navigate("/department-head/login", { replace: true });
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out of the department head portal.",
-    });
   };
 
   const stats: any = [
@@ -689,62 +621,52 @@ const DepartmentHeadDashboard = () => {
     },
   ];
 
-  const [departments1, setDepartments1] = useState<Department[]>([]);
-  const [selectedDepartment1, setSelectedDepartment1] =
-    useState<Department | null>(null);
+  // const [departments1, setDepartments1] = useState<Department[]>([]);
+  // const [selectedDepartment1, setSelectedDepartment1] =
+  //   useState<Department | null>(null);
 
-  const departmentHeadUser = useSelector(selectDepartmentHeadUser);
-  const { data: departmentHeadProfile } = useGetDepartmentHeadProfileQuery(
-    departmentHeadUser?.id ? { id: departmentHeadUser.id } : skipToken
-  );
-  console.log("departmentHeadUser", departmentHeadUser);
-  console.log("departmentHeadProfile", departmentHeadProfile);
+  // const departmentHeadUser = useSelector(selectDepartmentHeadUser);
+  // const { data: departmentHeadProfile } = useGetDepartmentHeadProfileQuery(
+  //   departmentHeadUser?.id ? { id: departmentHeadUser.id } : skipToken
+  // );
 
   // Update departments and selected department when API data is available
-  React.useEffect(() => {
-    if (departmentHeadProfile?.data?.departments) {
-      setDepartments1(departmentHeadProfile.data.departments);
+  // React.useEffect(() => {
+  //   if (departmentHeadProfile?.data?.departments) {
+  //     setDepartments1(departmentHeadProfile.data.departments);
 
-      // Set active department as selected if not already set
-      if (
-        departmentHeadProfile.data.activeDepartmentId &&
-        !selectedDepartment1
-      ) {
-        const activeDept = departmentHeadProfile.data.departments.find(
-          (dept: any) =>
-            dept.id === departmentHeadProfile.data.activeDepartmentId
-        );
-        if (activeDept) {
-          setSelectedDepartment1(activeDept);
-        }
-      }
-    }
-  }, [departmentHeadProfile, selectedDepartment1]);
+  //     // Set active department as selected if not already set
+  //     if (
+  //       departmentHeadProfile.data.activeDepartmentId &&
+  //       !selectedDepartment1
+  //     ) {
+  //       const activeDept = departmentHeadProfile.data.departments.find(
+  //         (dept: any) =>
+  //           dept.id === departmentHeadProfile.data.activeDepartmentId
+  //       );
+  //       if (activeDept) {
+  //         setSelectedDepartment1(activeDept);
+  //       }
+  //     }
+  //   }
+  // }, [departmentHeadProfile, selectedDepartment1]);
 
-  useEffect(() => {
-    console.log("selectedDepartment1", selectedDepartment1);
-    console.log("departments1", departments1);
-  }, [selectedDepartment1, departments1]);
+  // // Handler for department selection
+  // const handleDepartmentChange = (departmentId: string) => {
+  //   const selectedDept = departments1.find(
+  //     (dept: any) => dept.id === departmentId
+  //   );
+  //   if (selectedDept) {
+  //     setSelectedDepartment1(selectedDept);
+  //   }
+  // };
 
-  // Handler for department selection
-  const handleDepartmentChange = (departmentId: string) => {
-    const selectedDept = departments1.find(
-      (dept: any) => dept.id === departmentId
-    );
-    if (selectedDept) {
-      setSelectedDepartment1(selectedDept);
-    }
-  };
+  console.log("selectedDepartments", selectedDepartments);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white h-[73px]">
-        <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Department View</h2>
-        </div>
-
+    <div className="p-6">
+      {/* Search Bar */}
+      {/* <div className="mb-6">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <CommonSearchBar
@@ -758,240 +680,206 @@ const DepartmentHeadDashboard = () => {
               Search Case
             </Button>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
         </div>
-      </div>
+      </div> */}
 
       {/* Department Overview */}
-      {selectedDepartment1 && (
-        <div className="px-6 py-4 bg-custonLightGray-100 !m-0 h-[calc(100vh-73px)]">
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-2xl font-bold">
-                  {selectedDepartment1?.name}
-                </span>
-                {/* <p className="text-sm text-gray-600">
-                  {currentDepartment.description}
-                </p> */}
-              </div>
-              <div>
-                <Select
-                  value={selectedDepartment1?.id || ""}
-                  onValueChange={handleDepartmentChange}
-                >
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Select Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments1.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {selectedDepartments && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {/* <div>
+              <span className="text-2xl font-bold">
+                {selectedDepartment1?.name}
+              </span>
             </div>
-            <div className="flex gap-3 flex-wrap mt-6">
-              {stats.map((stat: any, index: any) => (
-                <FigmaStatCard
-                  key={index}
-                  title={stat?.title}
-                  value={stat?.value}
-                  iconSrc={stat?.iconSrc}
-                  backgroundSrc={stat?.backgroundSrc}
-                  bigBackgroundSrc={stat?.bigBackgroundSrc}
-                  subtext={stat?.subtext}
-                  onClick={() => console.log("clicked")}
-                  showIcon={false}
-                />
-              ))}
-            </div>
+            <div>
+              <Select
+                value={selectedDepartment1?.id || ""}
+                onValueChange={handleDepartmentChange}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select Department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments1.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div> */}
           </div>
-
-          {/* Tabbed Interface for Better Organization */}
-          <CommonTabs
-            tabs={[
-              { label: "Waiting Inward", value: "waiting-inward" },
-              { label: "Inward Pending", value: "inward-pending" },
-              { label: "Assigned (Pending)", value: "assigned-pending" },
-              { label: "In Progress", value: "in-progress" },
-              { label: "Outward Pending", value: "outward-pending" },
-              { label: "Technicians", value: "technicians" },
-            ]}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            children={{
-              "waiting-inward": (
-                <>
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <Clock className="h-5 w-5 text-gray-600" />
-                    <span className="font-semibold text-lg">
-                      Waiting to be Inward (
-                      {currentDepartment?.waitingInward?.length || 0})
-                    </span>
-                  </div>
-                  <WaitingInwardTable
-                    // data={waitingInwardData?.data || []}
-                    onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(
-                        caseNumber,
-                        newPriority,
-                        "waiting-inward"
-                      )
-                    }
-                    // onMakeInward={handleMakeInward}
-                    onViewDetails={handleViewCaseDetails}
-                    onChatOpen={handleChatOpen}
-                    getPriorityIcon={getPriorityIcon}
-                    selectedDepartmentId={selectedDepartment1?.id}
-                  />
-                </>
-              ),
-              "inward-pending": (
-                <>
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <ArrowRight className="h-5 w-5 text-blue-600" />
-                    <span className="font-semibold text-lg">
-                      Inward Pending Cases (
-                      {currentDepartment?.inwardPending.length})
-                    </span>
-                  </div>
-                  <InwardPendingTable
-                    // data={currentDepartment?.inwardPending}
-                    selectedDepartmentId={selectedDepartment1?.id}
-                    // technicians={currentDepartment?.technicians}
-                    onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(
-                        caseNumber,
-                        newPriority,
-                        "inward-pending"
-                      )
-                    }
-                    onAssign={handleAdminAssign}
-                    onViewDetails={handleViewCaseDetails}
-                    onChatOpen={handleChatOpen}
-                    getPriorityIcon={getPriorityIcon}
-                  />
-                </>
-              ),
-              "assigned-pending": (
-                <>
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                    <span className="font-semibold text-lg">
-                      Assigned (Pending) Cases (
-                      {
-                        allAssignments.filter((a) => a.status === "pending")
-                          .length
-                      }
-                      )
-                    </span>
-                  </div>
-                  <AssignedPendingTable
-                    data={allAssignments.filter((a) => a.status === "pending")}
-                    onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, "assigned")
-                    }
-                    onStartWork={handleStartWork}
-                    onViewDetails={handleViewCaseDetails}
-                    onChatOpen={handleChatOpen}
-                    getPriorityIcon={getPriorityIcon}
-                  />
-                </>
-              ),
-              "in-progress": (
-                <>
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <AlertCircle className="h-5 w-5 text-purple-600" />
-                    <span className="font-semibold text-lg">
-                      In Progress Cases (
-                      {
-                        allAssignments.filter((a) => a.status === "in_progress")
-                          .length
-                      }
-                      )
-                    </span>
-                  </div>
-                  <InProgressTable
-                    data={allAssignments.filter(
-                      (a) => a.status === "in_progress"
-                    )}
-                    onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(caseNumber, newPriority, "assigned")
-                    }
-                    onCompleteTask={handleCompleteTask}
-                    onViewDetails={handleViewCaseDetails}
-                    onChatOpen={handleChatOpen}
-                    getPriorityIcon={getPriorityIcon}
-                  />
-                </>
-              ),
-              "outward-pending": (
-                <>
-                  <div className="flex items-center gap-2 mb-2 mt-2">
-                    <ArrowLeft className="h-5 w-5 text-green-600" />
-                    <span className="font-semibold text-lg">
-                      Outward Pending Cases (
-                      {currentDepartment.outwardPending.length})
-                    </span>
-                  </div>
-                  <OutwardPendingTable
-                    data={currentDepartment.outwardPending}
-                    onPriorityChange={(caseNumber, newPriority) =>
-                      handlePriorityChange(
-                        caseNumber,
-                        newPriority,
-                        "outward-pending"
-                      )
-                    }
-                    onMakeOutward={handleMakeOutward}
-                    onViewDetails={handleViewCaseDetails}
-                    onChatOpen={handleChatOpen}
-                    getPriorityIcon={getPriorityIcon}
-                  />
-                </>
-              ),
-              technicians: (
-                <>
-                  <div className="flex items-center justify-between mb-2 mt-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      <span className="font-semibold text-lg">
-                        Technicians ({currentDepartment.technicians.length})
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search technicians..."
-                        value={technicianSearch}
-                        onChange={(e) => setTechnicianSearch(e.target.value)}
-                        className="w-64"
-                      />
-                    </div>
-                  </div>
-                  <TechnicianTable
-                    data={filteredTechnicians}
-                    inwardPendingCases={currentDepartment.inwardPending}
-                    onAssign={handleSelfAssign}
-                    getStatusBadge={getStatusBadge}
-                  />
-                </>
-              ),
-            }}
-          />
+          <div className="flex gap-3 flex-wrap mt-6">
+            {stats.map((stat: any, index: any) => (
+              <FigmaStatCard
+                key={index}
+                title={stat?.title}
+                value={stat?.value}
+                iconSrc={stat?.iconSrc}
+                backgroundSrc={stat?.backgroundSrc}
+                bigBackgroundSrc={stat?.bigBackgroundSrc}
+                subtext={stat?.subtext}
+                onClick={() => console.log("clicked")}
+                showIcon={false}
+              />
+            ))}
+          </div>
         </div>
       )}
+
+      {/* Tabbed Interface for Better Organization */}
+      <CommonTabs
+        tabs={[
+          { label: "Waiting Inward", value: "waiting-inward" },
+          { label: "Inward Pending", value: "inward-pending" },
+          { label: "Assigned (Pending)", value: "assigned-pending" },
+          { label: "In Progress", value: "in-progress" },
+          { label: "Outward Pending", value: "outward-pending" },
+          { label: "Not Taken", value: "not-taken" },
+        ]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        children={{
+          "waiting-inward": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <Clock className="h-5 w-5 text-gray-600" />
+                <span className="font-semibold text-lg">
+                  Waiting to be Inward (
+                  {currentDepartment?.waitingInward?.length || 0})
+                </span>
+              </div>
+              <WaitingInwardTable
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(
+                    caseNumber,
+                    newPriority,
+                    "waiting-inward"
+                  )
+                }
+                onViewDetails={handleViewCaseDetails}
+                onChatOpen={handleChatOpen}
+                getPriorityIcon={getPriorityIcon}
+                selectedDepartmentId={selectedDepartments?.id}
+              />
+            </>
+          ),
+          "inward-pending": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <ArrowRight className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold text-lg">
+                  Inward Pending Cases (
+                  {currentDepartment?.inwardPending?.length || 0})
+                </span>
+              </div>
+              <InwardPendingTable
+                selectedDepartmentId={selectedDepartments?.id}
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(
+                    caseNumber,
+                    newPriority,
+                    "inward-pending"
+                  )
+                }
+                onAssign={handleAdminAssign}
+                onViewDetails={handleViewCaseDetails}
+                onChatOpen={handleChatOpen}
+                getPriorityIcon={getPriorityIcon}
+              />
+            </>
+          ),
+          "assigned-pending": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <Clock className="h-5 w-5 text-yellow-600" />
+                <span className="font-semibold text-lg">
+                  Assigned (Pending) Cases (
+                  {allAssignments.filter((a) => a.status === "pending").length})
+                </span>
+              </div>
+              <AssignedPendingTable
+                data={allAssignments.filter((a) => a.status === "pending")}
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(caseNumber, newPriority, "assigned")
+                }
+                onStartWork={handleStartWork}
+                onViewDetails={handleViewCaseDetails}
+                onChatOpen={handleChatOpen}
+                getPriorityIcon={getPriorityIcon}
+              />
+            </>
+          ),
+          "in-progress": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <AlertCircle className="h-5 w-5 text-purple-600" />
+                <span className="font-semibold text-lg">
+                  In Progress Cases (
+                  {
+                    allAssignments.filter((a) => a.status === "in_progress")
+                      .length
+                  }
+                  )
+                </span>
+              </div>
+              <InProgressTable
+                data={allAssignments.filter((a) => a.status === "in_progress")}
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(caseNumber, newPriority, "assigned")
+                }
+                onCompleteTask={handleCompleteTask}
+                onViewDetails={handleViewCaseDetails}
+                onChatOpen={handleChatOpen}
+                getPriorityIcon={getPriorityIcon}
+              />
+            </>
+          ),
+          "outward-pending": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <ArrowLeft className="h-5 w-5 text-green-600" />
+                <span className="font-semibold text-lg">
+                  Outward Pending Cases (
+                  {currentDepartment?.outwardPending?.length || 0})
+                </span>
+              </div>
+              <OutwardPendingTable
+                data={currentDepartment?.outwardPending || []}
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(
+                    caseNumber,
+                    newPriority,
+                    "outward-pending"
+                  )
+                }
+                onMakeOutward={handleMakeOutward}
+                onViewDetails={handleViewCaseDetails}
+                onChatOpen={handleChatOpen}
+                getPriorityIcon={getPriorityIcon}
+              />
+            </>
+          ),
+          "not-taken": (
+            <>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <Clock className="h-5 w-5 text-gray-600" />
+                <span className="font-semibold text-lg">
+                  Not Taken Cases
+                  {/* ({currentDepartment?.notTaken?.length || 0}) */}
+                </span>
+              </div>
+              {/* <NotTakenTable
+                data={currentDepartment?.notTaken || []}
+                onPriorityChange={(caseNumber, newPriority) =>
+                  handlePriorityChange(caseNumber, newPriority, "not-taken")
+                }
+              /> */}
+            </>
+          ),
+        }}
+      />
 
       {/* Case Details Modal */}
       <CaseDetailsDialog
@@ -1018,18 +906,8 @@ const DepartmentHeadDashboard = () => {
         handleChatOpen={handleChatOpen}
         setIsCaseDetailsOpen={setIsCaseDetailsOpen}
       />
-
-      {/* Case Chat Modal */}
-      {/* {selectedCaseForChat && (
-            <CaseChatModal
-              isOpen={isChatModalOpen}
-              onClose={handleChatClose}
-              caseId={selectedCaseForChat.caseId}
-              caseType={selectedCaseForChat.caseType}
-            />
-          )} */}
     </div>
   );
 };
 
-export default DepartmentHeadDashboard;
+export default DashboardPage;

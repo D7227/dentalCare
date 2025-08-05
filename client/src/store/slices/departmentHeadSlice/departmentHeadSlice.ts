@@ -11,12 +11,20 @@ interface DepartmentHeadState {
   departmentHeadUser: DepartmentHeadUser | null;
   departmentHeadToken: string | null;
   dailyReports: DailyReport[];
+  selectedDepartments: {
+    id: any;
+    name: any;
+  };
 }
 
 const initialState: DepartmentHeadState = {
   departmentHeadUser: null,
   departmentHeadToken: localStorage.getItem("department-head-token"),
   dailyReports: [],
+  selectedDepartments: {
+    id: "",
+    name: "",
+  },
 };
 
 const departmentHeadSlice = createSlice({
@@ -28,6 +36,9 @@ const departmentHeadSlice = createSlice({
       action: PayloadAction<DepartmentHeadUser | null>
     ) {
       state.departmentHeadUser = action.payload;
+    },
+    setSelectedDepartments(state, action: PayloadAction<any | null>) {
+      state.selectedDepartments = action.payload;
     },
     setDepartmentHeadToken(state, action: PayloadAction<string | null>) {
       state.departmentHeadToken = action.payload;
@@ -46,6 +57,7 @@ export const {
   setDepartmentHeadUser,
   setDepartmentHeadToken,
   clearDepartmentHead,
+  setSelectedDepartments,
 } = departmentHeadSlice.actions;
 export default departmentHeadSlice.reducer;
 
@@ -59,3 +71,6 @@ export const selectDepartmentHeadToken = (state: {
 export const selectDepartmentHeadDailyReports = (state: {
   departmentHead: DepartmentHeadState;
 }) => state.departmentHead?.dailyReports;
+export const selectSelectedDepartment = (state: {
+  departmentHead: DepartmentHeadState;
+}) => state.departmentHead?.selectedDepartments;

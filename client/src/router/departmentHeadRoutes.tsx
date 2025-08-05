@@ -1,12 +1,12 @@
-import DepartmentHeadDashboard from "@/DepartmentHeadScreen/departmentHeadDashboard";
+import DepartmentHeadLayout from "@/DepartmentHeadScreen/DepartmentHeadLayout";
 import DepartmentHeadLogin from "@/DepartmentHeadScreen/authentication/departmentHeadLogin";
-import PlaceOrder from "@/pages/PlaceOrder";
-import React, { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import DashboardPage from "@/DepartmentHeadScreen/pages/DashboardPage";
+import TechniciansPage from "@/DepartmentHeadScreen/pages/TechniciansPage";
 import { selectDepartmentHeadToken } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
-// Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const departmentHeadToken = useSelector(selectDepartmentHeadToken);
@@ -39,25 +39,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return <>{children}</>;
 };
-
 export const departmentHeadRoutes = [
   {
     path: "/department-head",
-    element: (
-      <div>
-        <Outlet />
-      </div>
-    ),
+    element: <DepartmentHeadLayout />,
     children: [
+      { index: true, element: <DashboardPage /> },
       {
-        path: "login",
-        element: <DepartmentHeadLogin />,
-      },
-      {
-        index: true,
+        path: "dashboard",
         element: (
           <ProtectedRoute>
-            <DepartmentHeadDashboard />
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "technicians",
+        element: (
+          <ProtectedRoute>
+            <TechniciansPage />
           </ProtectedRoute>
         ),
       },

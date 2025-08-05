@@ -21,6 +21,7 @@ import { adminRoutes } from "./router/adminRoutes";
 import QALogin from "./qaScreen/screen/authentication/qaLogin";
 import { departmentHeadRoutes } from "./router/departmentHeadRoutes";
 import StylesComponets from "./styles";
+import DepartmentHeadLogin from "./DepartmentHeadScreen/authentication/departmentHeadLogin";
 
 const router = createBrowserRouter([
   ...doctorRoutes,
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
   ...departmentHeadRoutes,
   { path: "/login", element: <Login /> },
   { path: "/qa/login", element: <QALogin /> },
+  {
+    path: "/department-head/login",
+    element: <DepartmentHeadLogin />,
+  },
   { path: "/register", element: <Register /> },
   { path: "/styles", element: <StylesComponets /> },
   { path: "*", element: <NotFound /> },
