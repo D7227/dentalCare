@@ -6,21 +6,29 @@ import { Request, Response } from "express";
 
 export class DraftOrderStorage {
   async getDraftOrder(id: string): Promise<any | undefined> {
-    const [order] = await db.select().from(draftOrderSchema).where(eq(draftOrderSchema.id, id));
+    const [order] = await db
+      .select()
+      .from(draftOrderSchema)
+      .where(eq(draftOrderSchema.id, id));
     return order;
   }
 
   async createDraftOrder(order: any): Promise<any> {
-    const [created] = await db.insert(draftOrderSchema).values(order).returning();
+    const [created] = await db
+      .insert(draftOrderSchema)
+      .values(order)
+      .returning();
     return created;
   }
 
   async getDraftOrdersByClinicId(clinicId: string): Promise<any[]> {
-    return await db.select().from(draftOrderSchema).where(eq(draftOrderSchema.clinicId, clinicId));
+    return await db
+      .select()
+      .from(draftOrderSchema)
+      .where(eq(draftOrderSchema.clinicId, clinicId));
   }
 
   async deleteDraftOrder(id: string): Promise<void> {
-
     await db.delete(draftOrderSchema).where(eq(draftOrderSchema.id, id));
   }
 }
@@ -41,7 +49,9 @@ export async function getDraftOrderById(req: Request, res: Response) {
 
 export async function getDraftOrdersByClinicId(req: Request, res: Response) {
   try {
-    const orders = await draftOrderStorage.getDraftOrdersByClinicId(req.params.clinicId);
+    const orders = await draftOrderStorage.getDraftOrdersByClinicId(
+      req.params.clinicId
+    );
     res.json(orders);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch draft orders" });
@@ -63,7 +73,7 @@ function parseJsonbField(val: any) {
         return val
           .slice(1, -1)
           .split(",")
-          .map(s => s.replace(/^"|"$/g, ""));
+          .map((s) => s.replace(/^"|"$/g, ""));
       }
       return [];
     }
@@ -76,7 +86,7 @@ export async function createDraftOrder(req: Request, res: Response) {
     // Defensive: ensure all fields are correct type/shape
     const body = req.body || {};
     console.log(body, "body");
-    
+
     // All JSONB fields need proper parsing
     const prescriptionTypesId = parseJsonbField(body.prescriptionTypesId);
     const subPrescriptionTypesId = parseJsonbField(body.subPrescriptionTypesId);
@@ -87,9 +97,14 @@ export async function createDraftOrder(req: Request, res: Response) {
     const scanBooking = parseJsonbField(body.scanBooking);
     const courierData = parseJsonbField(body.courierData);
     const pickupData = parseJsonbField(body.pickupData);
-    
+
     // Strings
-    const refId = body.refId || `REF-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const refId =
+      body.refId ||
+      `REF-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 4)
+        .toUpperCase()}`;
     const orderType = body.orderType || "";
     const orderStatus = body.orderStatus || "";
     const paymentType = body.paymentType || "";
@@ -101,7 +116,8 @@ export async function createDraftOrder(req: Request, res: Response) {
     const caseHandleBy = body.caseHandleBy || "";
     const doctorMobileNumber = body.doctorMobileNumber || "";
     const consultingDoctorName = body.consultingDoctorName || "";
-    const consultingDoctorMobileNumber = body.consultingDoctorMobileNumber || "";
+    const consultingDoctorMobileNumber =
+      body.consultingDoctorMobileNumber || "";
     const orderMethod = body.orderMethod || "";
     const handllingType = body.handllingType || "";
     const pickupRemarks = body.pickupRemarks || "";

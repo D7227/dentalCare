@@ -19,7 +19,7 @@ export const draftOrderSchema = pgTable("draft_order", {
   orderStatus: text("order_status"),
   paymentType: text("payment_type"),
 
-  clinicId: text("clinic_id"),
+  clinicId: uuid("clinic_id"),
 
   firstName: text("first_name"),
   lastName: text("last_name"),
