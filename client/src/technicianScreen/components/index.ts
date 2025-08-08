@@ -1,0 +1,8 @@
+export { default as AllTasksTab } from './AllTasksTab';
+export { default as AssignedTasksTab } from './AssignedTasksTab';
+export { default as AcceptedTasksTab } from './AcceptedTasksTab';
+export { default as InProgressTasksTab } from './InProgressTasksTab';
+export { default as CompletedTasksTab } from './CompletedTasksTab';
+export { default as DashboardStats } from './DashboardStats';
+export { default as QuickActions } from './QuickActions';
+export { default as TaskTable } from './TaskTable'; 

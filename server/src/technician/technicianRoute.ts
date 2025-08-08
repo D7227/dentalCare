@@ -13,6 +13,7 @@ import {
   getAllTechnicians,
   getTechnicianStats,
   getTechniciansByDepartment,
+  getTechniciansAllTasks,
 } from "./technicianController";
 import { eq } from "drizzle-orm";
 
@@ -70,6 +71,8 @@ technicianRouter.delete("/:id", deleteTechnician);
 technicianRouter.get("/:id", getTechnicianById);
 
 technicianRouter.get("/:id/profile-pic", getTechnicianProfilePic);
+
+technicianRouter.get("/total/:departmentId", getTechniciansAllTasks);
 
 // Total
 // technicianRouter.get("/assigned/:technicianId", getAssignedOrders);

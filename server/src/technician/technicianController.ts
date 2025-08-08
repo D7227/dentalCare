@@ -352,6 +352,102 @@ export async function getTechnicianProfilePic(req: Request, res: Response) {
   }
 }
 
+export async function getTechniciansAllTasks(req: Request, res: Response) {
+  try {
+    const { departmentId } = req.params;
+
+    // Import required schemas
+    const { orderSchema } = await import("../order/orderSchema");
+    const { labOrderSchema, orderFlowSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+    const { teethGroups } = await import("../teethGroup/teethGroupSchema");
+
+    const orders = await db
+      .select({
+        // Order Flow details
+        flowId: orderFlowSchema.id,
+        orderId: orderFlowSchema.orderId,
+        departmentId: orderFlowSchema.departmentId,
+        status: orderFlowSchema.status,
+
+        // Order details
+        prescriptionTypesId: orderSchema.prescriptionTypesId,
+        subPrescriptionTypesId: orderSchema.subPrescriptionTypesId,
+        selectedTeethId: orderSchema.selectedTeethId,
+
+        // Teeth Group details
+        teethGroupData: teethGroups.teethGroup,
+        selectedTeethData: teethGroups.selectedTeeth,
+      })
+      .from(orderFlowSchema)
+      .innerJoin(
+        labOrderSchema,
+        eq(orderFlowSchema.orderId, labOrderSchema.orderId)
+      )
+      .innerJoin(orderSchema, eq(labOrderSchema.orderId, orderSchema.id))
+      .leftJoin(teethGroups, eq(orderSchema.selectedTeethId, teethGroups.id))
+      .where(
+        and(
+          eq(orderFlowSchema.departmentId, departmentId),
+          eq(orderFlowSchema.isCurrent, true),
+          eq(orderFlowSchema.status, "inward_pending")
+        )
+      );
+
+    // Process orders to extract teeth numbers
+    const processedOrders = orders.map((order) => {
+      const extractedTeethNumbers: number[] = [];
+
+      // Extract teeth numbers from teethGroup data
+      if (order.teethGroupData && Array.isArray(order.teethGroupData)) {
+        order.teethGroupData.forEach((group: any) => {
+          if (group.teethDetails && Array.isArray(group.teethDetails)) {
+            group.teethDetails.forEach((detailArray: any) => {
+              if (Array.isArray(detailArray)) {
+                detailArray.forEach((toothDetail: any) => {
+                  if (toothDetail.teethNumber) {
+                    extractedTeethNumbers.push(toothDetail.teethNumber);
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Extract teeth numbers from selectedTeeth data
+      if (order.selectedTeethData && Array.isArray(order.selectedTeethData)) {
+        order.selectedTeethData.forEach((tooth: any) => {
+          if (tooth.toothNumber) {
+            extractedTeethNumbers.push(tooth.toothNumber);
+          }
+        });
+      }
+
+      // Remove duplicates and sort
+      const uniqueSortedTeethNumbers = Array.from(
+        new Set(extractedTeethNumbers)
+      ).sort((a, b) => a - b);
+
+      return {
+        ...order,
+        extractedTeethNumbers: uniqueSortedTeethNumbers,
+        teethGroupData: undefined,
+        selectedTeethData: undefined,
+      };
+    });
+
+    return res.status(200).json({
+      message: "Technician tasks retrieved successfully",
+      data: processedOrders,
+    });
+  } catch (error) {
+    console.error("Error getting technician tasks:", error);
+    return res.status(500).json({ error: "Failed to get technician tasks" });
+  }
+}
+
 // export async function getAssignedOrders(req: Request, res: Response) {
 //   try {
 //     const { technicianId } = req.params;
