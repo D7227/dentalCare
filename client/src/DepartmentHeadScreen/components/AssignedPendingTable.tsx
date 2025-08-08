@@ -1,8 +1,14 @@
-import React from 'react';
-import CommonTable from '@/components/common/CommonTable';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, MessageSquare } from 'lucide-react';
+import React from "react";
+import CommonTable from "@/components/common/CommonTable";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, MessageSquare } from "lucide-react";
 
 interface AssignedPendingCase {
   id: string;
@@ -17,6 +23,13 @@ interface AssignedPendingCase {
   [key: string]: any;
 }
 
+interface Technician {
+  id: string;
+  firstName: string;
+  lastName: string;
+  departmentId: string;
+}
+
 interface AssignedPendingTableProps {
   data: AssignedPendingCase[];
   onPriorityChange: (caseNumber: string, newPriority: string) => void;
@@ -24,6 +37,8 @@ interface AssignedPendingTableProps {
   onViewDetails: (caseData: AssignedPendingCase) => void;
   onChatOpen: (caseId: string, caseType: string) => void;
   getPriorityIcon: (priority: string) => React.ReactNode;
+  technicians: Technician[];
+  onAssign: (caseId: string, technicianId: string) => void;
 }
 
 const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
@@ -33,11 +48,13 @@ const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
   onViewDetails,
   onChatOpen,
   getPriorityIcon,
+  technicians,
+  onAssign,
 }) => {
   const columns = [
     {
-      key: 'caseDetails',
-      title: 'Case Details',
+      key: "caseDetails",
+      title: "Case Details",
       render: (row: AssignedPendingCase) => (
         <div>
           <div className="font-medium">{row.caseNumber}</div>
@@ -47,8 +64,8 @@ const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
       ),
     },
     {
-      key: 'patientDoctor',
-      title: 'Patient/Doctor',
+      key: "patientDoctor",
+      title: "Patient/Doctor",
       render: (row: AssignedPendingCase) => (
         <div>
           <div className="font-medium">{row.patientName}</div>
@@ -57,15 +74,15 @@ const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
       ),
     },
     {
-      key: 'technicianName',
-      title: 'Technician',
+      key: "technicianName",
+      title: "Technician",
       render: (row: AssignedPendingCase) => (
         <div className="font-medium">{row.technicianName}</div>
       ),
     },
     {
-      key: 'priority',
-      title: 'Priority',
+      key: "priority",
+      title: "Priority",
       render: (row: AssignedPendingCase) => (
         <div className="flex items-center space-x-2">
           {getPriorityIcon(row.priority)}
@@ -87,27 +104,44 @@ const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
       ),
     },
     {
-      key: 'dueDate',
-      title: 'Due Date',
+      key: "dueDate",
+      title: "Due Date",
       render: (row: AssignedPendingCase) => (
-        <div className={row.dueDate < '2025-06-08' ? 'text-red-600 font-semibold' : ''}>
+        <div
+          className={
+            row.dueDate < "2025-06-08" ? "text-red-600 font-semibold" : ""
+          }
+        >
           {row.dueDate}
         </div>
       ),
     },
     {
-      key: 'actions',
-      title: 'Actions',
+      key: "actions",
+      title: "Actions",
       render: (row: AssignedPendingCase) => (
         <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onStartWork(row.id)}
-            title="Start Work"
+          <Select
+            onValueChange={(technicianId) => onAssign(row.id, technicianId)}
+            disabled={technicians.length === 0}
           >
-            Start Work
-          </Button>
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue
+                placeholder={
+                  technicians.length === 0
+                    ? "No technicians"
+                    : "Reassign to..."
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {technicians.map((tech) => (
+                <SelectItem key={tech.id} value={tech.id}>
+                  {tech.firstName} {tech.lastName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="ghost"
             size="sm"
@@ -130,8 +164,12 @@ const AssignedPendingTable: React.FC<AssignedPendingTableProps> = ({
   ];
 
   return (
-    <CommonTable columns={columns} data={data} emptyText="No assigned pending cases" />
+    <CommonTable
+      columns={columns}
+      data={data}
+      emptyText="No assigned pending cases"
+    />
   );
 };
 
-export default AssignedPendingTable; 
+export default AssignedPendingTable;

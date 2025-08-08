@@ -64,6 +64,19 @@ departmentHeadRouter.get(
   departmentHeadController.getById
 );
 
+// Department head gets Dashboard Data + Technician name list
+departmentHeadRouter.get(
+  "/dashboard/:departmentId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getDashboardData
+);
+
+departmentHeadRouter.get(
+  "/technician-list/:departmentId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.getTechnicianList
+);
+
 // * INFO : Manage the order cycle (require department head auth + department access)
 
 // GET /head/waiting-inward/:departmentId
@@ -113,6 +126,13 @@ departmentHeadRouter.post(
   "/outward/:flowId",
   departmentHeadAuthMiddleware,
   departmentHeadController.outward
+);
+
+// * INFO : assign the technician to the flow, update praority of the flow.
+departmentHeadRouter.post(
+  "/update-flow/:flowId",
+  departmentHeadAuthMiddleware,
+  departmentHeadController.updateFlow
 );
 
 export function setupDepartmentHeadRoutes(app: Express) {

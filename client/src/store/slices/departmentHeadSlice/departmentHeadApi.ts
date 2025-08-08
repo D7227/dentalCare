@@ -32,6 +32,12 @@ export interface WaitingInwardParams {
   limit?: number;
 }
 
+export interface UpdateFlowRequest {
+  flowId: string;
+  technicianId?: string;
+  priority?: "low" | "medium" | "high" | "urgent";
+}
+
 export const departmentHeadApi = createApi({
   reducerPath: "departmentHeadApi",
   baseQuery: fetchBaseQuery({
@@ -97,6 +103,14 @@ export const departmentHeadApi = createApi({
       },
     }),
 
+    // Get Dashboard Data
+    getDashboardData: builder.query<any, { departmentId: string }>({
+      query: ({ departmentId }) => ({
+        url: `/dashboard/${departmentId}`,
+        method: "GET",
+      }),
+    }),
+
     // Get Technicians
     getTechnicians: builder.query<any, { id: string }>({
       query: ({ id }) => ({
@@ -147,6 +161,24 @@ export const departmentHeadApi = createApi({
       }),
       providesTags: ["departmentHead"],
     }),
+
+    // Update Flow (Assign Technician and Update Priority)
+    updateFlow: builder.mutation<any, UpdateFlowRequest>({
+      query: ({ flowId, technicianId, priority }) => ({
+        url: `/update-flow/${flowId}`,
+        method: "PUT",
+        body: { technicianId, priority },
+      }),
+      invalidatesTags: ["departmentHead"],
+    }),
+
+    // Get Technician List
+    getTechnicianList: builder.query<any, { departmentId: string }>({
+      query: ({ departmentId }) => ({
+        url: `/technician-list/${departmentId}`,
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -155,8 +187,11 @@ export const {
   useRegisterDepartmentHeadMutation,
   useDeleteDepartmentHeadMutation,
   useGetTechniciansQuery,
+  useGetDashboardDataQuery,
   useGetDepartmentHeadProfileQuery,
   useGetDepartmentHeadWaitingInwardQuery,
   useInwardOrderMutation,
   useGetDepartmentHeadInwardPendingQuery,
+  useUpdateFlowMutation,
+  useGetTechnicianListQuery,
 } = departmentHeadApi;

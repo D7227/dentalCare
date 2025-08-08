@@ -22,6 +22,7 @@ import QALogin from "./qaScreen/screen/authentication/qaLogin";
 import { departmentHeadRoutes } from "./router/departmentHeadRoutes";
 import StylesComponets from "./styles";
 import DepartmentHeadLogin from "./DepartmentHeadScreen/authentication/departmentHeadLogin";
+import TechnicianDashboard from "./technicianScreen/technicianDashboard";
 
 const router = createBrowserRouter([
   ...doctorRoutes,
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
   { path: "/register", element: <Register /> },
   { path: "/styles", element: <StylesComponets /> },
   { path: "*", element: <NotFound /> },
+  { path: "/technician/dashboard", element: <TechnicianDashboard /> },
 ]);
 
 // SocketEventsListener component to handle socket events within the provider

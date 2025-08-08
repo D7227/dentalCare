@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Users,
   Clock,
@@ -28,7 +20,6 @@ import InwardPendingTable from "../components/InwardPendingTable";
 import AssignedPendingTable from "../components/AssignedPendingTable";
 import InProgressTable from "../components/InProgressTable";
 import OutwardPendingTable from "../components/OutwardPendingTable";
-import TechnicianTable from "../components/TechnicianTable";
 import { departmentsData } from "../staticData";
 import CaseDetailsDialog from "../components/CaseDetailsDialog";
 import CommonTabs from "@/components/common/CommonTabs";
@@ -47,13 +38,21 @@ import {
   icon_5,
   icon_6,
 } from "@/assets/svg";
-import CommonSearchBar from "@/components/common/CommonSearchBar";
 import {
-  selectDepartmentHeadUser,
   selectSelectedDepartment,
 } from "@/store/slices/departmentHeadSlice/departmentHeadSlice";
-import { useGetDepartmentHeadProfileQuery } from "@/store/slices/departmentHeadSlice/departmentHeadApi";
-import { skipToken } from "@reduxjs/toolkit/query";
+import {
+  useGetDepartmentHeadProfileQuery,
+  useGetTechnicianListQuery,
+  useUpdateFlowMutation,
+} from "@/store/slices/departmentHeadSlice/departmentHeadApi";
+
+interface Technician {
+  id: string;
+  firstName: string;
+  lastName: string;
+  departmentId: string;
+}
 
 const DashboardPage = () => {
   const { toast } = useToast();
@@ -85,6 +84,15 @@ const DashboardPage = () => {
   const currentDepartment = departments.find(
     (dept) => dept.id === selectedDepartment
   );
+
+  // Fetch technicians at dashboard level
+  const { data: technicianList, isLoading: techniciansLoading } =
+    useGetTechnicianListQuery({
+      departmentId: selectedDepartments?.id || "",
+    });
+
+  // Get technicians from API response
+  const technicians: Technician[] = technicianList?.data || [];
 
   // Get all assignments across all technicians
   const allAssignments =
@@ -661,6 +669,28 @@ const DashboardPage = () => {
   //   }
   // };
 
+  const [updateFlow] = useUpdateFlowMutation();
+
+  const handleActions = async (row: any, value: any, type: string) => {
+    console.log("row", row);
+    console.log("value", value);
+    console.log("type", type);
+
+    if (type === "priority") {
+      await updateFlow({
+        flowId: row.id,
+        priority: value,
+        technicianId: row.technicianId,
+      });
+    } else if (type === "assignTechnician") {
+      await updateFlow({
+        flowId: row.id,
+        technicianId: value,
+        priority: row.priority,
+      });
+    }
+  };
+
   console.log("selectedDepartments", selectedDepartments);
 
   return (
@@ -686,30 +716,6 @@ const DashboardPage = () => {
       {/* Department Overview */}
       {selectedDepartments && (
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {/* <div>
-              <span className="text-2xl font-bold">
-                {selectedDepartment1?.name}
-              </span>
-            </div>
-            <div>
-              <Select
-                value={selectedDepartment1?.id || ""}
-                onValueChange={handleDepartmentChange}
-              >
-                <SelectTrigger className="w-[250px]">
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments1.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div> */}
-          </div>
           <div className="flex gap-3 flex-wrap mt-6">
             {stats.map((stat: any, index: any) => (
               <FigmaStatCard
@@ -776,17 +782,11 @@ const DashboardPage = () => {
               </div>
               <InwardPendingTable
                 selectedDepartmentId={selectedDepartments?.id}
-                onPriorityChange={(caseNumber, newPriority) =>
-                  handlePriorityChange(
-                    caseNumber,
-                    newPriority,
-                    "inward-pending"
-                  )
-                }
-                onAssign={handleAdminAssign}
+                onActions={handleActions}
                 onViewDetails={handleViewCaseDetails}
                 onChatOpen={handleChatOpen}
                 getPriorityIcon={getPriorityIcon}
+                technicians={technicians}
               />
             </>
           ),
@@ -808,6 +808,8 @@ const DashboardPage = () => {
                 onViewDetails={handleViewCaseDetails}
                 onChatOpen={handleChatOpen}
                 getPriorityIcon={getPriorityIcon}
+                technicians={technicians}
+                onAssign={handleAdminAssign}
               />
             </>
           ),

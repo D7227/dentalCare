@@ -71,6 +71,9 @@ technicianRouter.get("/:id", getTechnicianById);
 
 technicianRouter.get("/:id/profile-pic", getTechnicianProfilePic);
 
+// Total
+// technicianRouter.get("/assigned/:technicianId", getAssignedOrders);
+
 // technicianRouter.get("/assigned/:technicianId", getAssignedOrders);
 
 // technicianRouter.post("/accept/:orderId", acceptAssignment);

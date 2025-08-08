@@ -26,79 +26,28 @@ interface InwardPendingCase {
 
 interface Technician {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  departmentId: string;
 }
 
 interface InwardPendingTableProps {
-  // data: InwardPendingCase[];
-  // technicians: Technician[];
-  onPriorityChange: (caseNumber: string, newPriority: string) => void;
-  onAssign: (caseId: string, technicianId: string) => void;
+  onActions: (row: any, value: any, type: string) => void;
   onViewDetails: (caseData: InwardPendingCase) => void;
   onChatOpen: (caseNumber: string, caseType: string) => void;
   getPriorityIcon: (priority: string) => React.ReactNode;
   selectedDepartmentId: any;
+  technicians: Technician[];
 }
 
-const technicians = [
-  {
-    id: "T001",
-    name: "Riya Patel",
-    email: "riya.patel@adelabs.com",
-    department: "Crown & Bridge",
-    specialization: "Ceramic Crowns",
-    experience: "5 years",
-    status: "busy",
-    currentCases: 3,
-    assignments: [
-      {
-        id: "A001",
-        caseId: "ADE-2025-034",
-        caseNumber: "ADE-2025-034",
-        doctorName: "Dr. Pooja Verma",
-        clinicName: "Smile Care Dental",
-        patientName: "Rahul Sharma",
-        caseType: "Crown",
-        priority: "high",
-        status: "in_progress",
-        assignedDate: "2025-06-01",
-        dueDate: "2025-06-06",
-        estimatedCompletion: "2025-06-05",
-        notes: "Patient prefers ceramic material",
-        technicianId: "T001",
-        technicianName: "Riya Patel",
-        logs: [],
-        digitalFiles: [],
-        products: [],
-        accessories: [],
-      },
-    ],
-  },
-  {
-    id: "T002",
-    name: "Anita Gupta",
-    email: "anita.gupta@adelabs.com",
-    department: "Crown & Bridge",
-    specialization: "Zirconia Crowns",
-    experience: "7 years",
-    status: "available",
-    currentCases: 1,
-    assignments: [],
-  },
-];
-
 const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
-  // data,
-  // technicians,
-  onPriorityChange,
-  onAssign,
+  onActions,
   onViewDetails,
   onChatOpen,
   getPriorityIcon,
   selectedDepartmentId,
+  technicians,
 }) => {
-  const { toast } = useToast();
-
   const {
     data: InwardPendingData,
     isLoading,
@@ -147,7 +96,7 @@ const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
           {getPriorityIcon(row.priority)}
           <Select
             value={row.priority}
-            onValueChange={(value) => onPriorityChange(row.caseNumber, value)}
+            onValueChange={(value) => onActions(row, value, "priority")}
           >
             <SelectTrigger className="w-[100px] h-8">
               <SelectValue />
@@ -181,15 +130,22 @@ const InwardPendingTable: React.FC<InwardPendingTableProps> = ({
       render: (row: InwardPendingCase) => (
         <div className="flex items-center space-x-2">
           <Select
-            onValueChange={(technicianId) => onAssign(row.id, technicianId)}
+            onValueChange={(technicianId) =>
+              onActions(row, technicianId, "assignTechnician")
+            }
+            disabled={technicians.length === 0}
           >
             <SelectTrigger className="w-[140px] h-8">
-              <SelectValue placeholder="Assign to..." />
+              <SelectValue
+                placeholder={
+                  technicians.length === 0 ? "No technicians" : "Assign to..."
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {technicians.map((tech) => (
                 <SelectItem key={tech.id} value={tech.id}>
-                  {tech.name}
+                  {tech.firstName} {tech.lastName}
                 </SelectItem>
               ))}
             </SelectContent>
