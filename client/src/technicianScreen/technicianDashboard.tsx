@@ -2,12 +2,15 @@ import React, { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 import {
   AllTasksTab,
   AcceptedTasksTab,
   InProgressTasksTab,
   CompletedTasksTab,
+  TechnicianAssignedTasks,
 } from "./components";
 import { mockTasks } from "./mockTasks";
 import { TaskItem } from "./types";
@@ -15,6 +18,10 @@ import { TaskItem } from "./types";
 export default function TechnicianDashboard() {
   const [tasks, setTasks] = useState<TaskItem[]>(mockTasks);
   const [activeTab, setActiveTab] = useState("all");
+  const [departmentId, setDepartmentId] = useState(
+    "b9caa2f4-a8ee-461c-8d83-ed0ff1d58129"
+  );
+  const [technicianId, setTechnicianId] = useState("test-technician-123");
   const { toast } = useToast();
 
   const allTasks = tasks;
@@ -135,21 +142,51 @@ export default function TechnicianDashboard() {
         <h1 className="text-2xl font-semibold">Technician Dashboard</h1>
       </div>
 
-      {/* Dashboard Statistics */}
-      {/* <DashboardStats tasks={tasks} /> */}
-
-      {/* Quick Actions */}
-      {/* <QuickActions
-        onRefresh={handleRefresh}
-        onFilterUrgent={handleFilterUrgent}
-        onViewToday={handleViewToday}
-        urgentCount={urgentCount}
-        todayCount={todayCount}
-      /> */}
+      {/* Testing Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">API Testing Configuration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="departmentId">
+                Department ID (for API testing)
+              </Label>
+              <Input
+                id="departmentId"
+                type="text"
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                placeholder="Enter department ID"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="technicianId">
+                Technician ID (for API testing)
+              </Label>
+              <Input
+                id="technicianId"
+                type="text"
+                value={technicianId}
+                onChange={(e) => setTechnicianId(e.target.value)}
+                placeholder="Enter technician ID"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="text-sm text-gray-600 mt-2">
+            <p>Department ID: {departmentId}</p>
+            <p>Technician ID: {technicianId}</p>
+            <p>API Endpoint: /api/technician/total/{departmentId}</p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          {/* <CardTitle className="text-lg">Task Management</CardTitle> */}
+          <CardTitle className="text-lg">Task Management</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs
@@ -157,15 +194,25 @@ export default function TechnicianDashboard() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="all">All Tasks</TabsTrigger>
+              <TabsTrigger value="assigned">Assigned</TabsTrigger>
               <TabsTrigger value="accepted">Accepted</TabsTrigger>
               <TabsTrigger value="inprogress">In Progress</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="mt-6">
-              <AllTasksTab tasks={allTasks} onAccept={handleAccept} />
+              <AllTasksTab
+                tasks={allTasks}
+                onAccept={handleAccept}
+                departmentId={departmentId}
+                technicianId={technicianId}
+              />
+            </TabsContent>
+
+            <TabsContent value="assigned" className="mt-6">
+              <TechnicianAssignedTasks technicianId={technicianId} />
             </TabsContent>
 
             <TabsContent value="accepted" className="mt-6">

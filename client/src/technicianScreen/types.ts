@@ -4,6 +4,7 @@ export type TaskPriority = "low" | "medium" | "high" | "urgent";
 
 export interface TaskItem {
   id: string;
+  orderNumber: string;
   caseType: string;
   priority: TaskPriority;
   dueDate: string; // ISO or human-readable for mock

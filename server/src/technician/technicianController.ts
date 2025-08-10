@@ -370,6 +370,7 @@ export async function getTechniciansAllTasks(req: Request, res: Response) {
         orderId: orderFlowSchema.orderId,
         departmentId: orderFlowSchema.departmentId,
         status: orderFlowSchema.status,
+        orderNumber: labOrderSchema.orderNumber,
 
         // Order details
         prescriptionTypesId: orderSchema.prescriptionTypesId,
@@ -711,5 +712,371 @@ export async function getTechniciansByDepartment(req: Request, res: Response) {
     return res
       .status(500)
       .json({ error: "Failed to get technicians by department" });
+  }
+}
+
+// Technician Task Management APIs
+export async function acceptTask(req: Request, res: Response) {
+  try {
+    const { orderId } = req.params;
+    const { technicianId } = req.body;
+
+    if (!technicianId || !orderId) {
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
+    }
+
+    // Import required schemas
+    const { orderFlowSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+
+    // Check if the task is available for acceptance
+    const currentTask = await db
+      .select()
+      .from(orderFlowSchema)
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.status, "inward_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    console.log("currentTask", currentTask);
+
+    if (currentTask.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Task not found or not available for acceptance" });
+    }
+
+    // Update the task to assign it to the technician
+    await db
+      .update(orderFlowSchema)
+      .set({
+        status: "assigned_pending",
+        technicianId: technicianId,
+      })
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.status, "inward_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    return res.status(200).json({
+      message: "Task accepted successfully",
+      data: { orderId, technicianId, status: "assigned_pending" },
+    });
+  } catch (error: any) {
+    console.error("Error accepting task:", error);
+    return res.status(500).json({ error: "Failed to accept task" });
+  }
+}
+
+export async function startTask(req: Request, res: Response) {
+  try {
+    const { orderId } = req.params;
+    const { technicianId } = req.body;
+
+    if (!technicianId || !orderId) {
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
+    }
+
+    // Import required schemas
+    const { orderFlowSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+
+    // Check if the task is assigned to this technician
+    const currentTask = await db
+      .select()
+      .from(orderFlowSchema)
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "assigned_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    if (currentTask.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Task not found or not assigned to this technician" });
+    }
+
+    // Update the task to mark it as in progress
+    await db
+      .update(orderFlowSchema)
+      .set({
+        status: "in_progress",
+        workStartedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "assigned_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    return res.status(200).json({
+      message: "Task started successfully",
+      data: { orderId, technicianId, status: "in_progress" },
+    });
+  } catch (error: any) {
+    console.error("Error starting task:", error);
+    return res.status(500).json({ error: "Failed to start task" });
+  }
+}
+
+export async function completeTask(req: Request, res: Response) {
+  try {
+    const { orderId } = req.params;
+    const { technicianId } = req.body;
+
+    if (!technicianId || !orderId) {
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
+    }
+
+    // Import required schemas
+    const { orderFlowSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+
+    // Check if the task is in progress for this technician
+    const currentTask = await db
+      .select()
+      .from(orderFlowSchema)
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "in_progress"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    if (currentTask.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Task not found or not in progress" });
+    }
+
+    // Update the task to mark it as completed
+    await db
+      .update(orderFlowSchema)
+      .set({
+        status: "outward_pending",
+        workCompletedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "in_progress"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    return res.status(200).json({
+      message: "Task completed successfully",
+      data: { orderId, technicianId, status: "outward_pending" },
+    });
+  } catch (error: any) {
+    console.error("Error completing task:", error);
+    return res.status(500).json({ error: "Failed to complete task" });
+  }
+}
+
+export async function resignTask(req: Request, res: Response) {
+  try {
+    const { orderId } = req.params;
+    const { technicianId } = req.body;
+
+    if (!technicianId || !orderId) {
+      return res
+        .status(400)
+        .json({ error: "Order ID and Technician ID are required" });
+    }
+
+    // Import required schemas
+    const { orderFlowSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+
+    // Check if the task is assigned to this technician and can be resigned
+    const currentTask = await db
+      .select()
+      .from(orderFlowSchema)
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "assigned_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    if (currentTask.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Task not found or cannot be resigned" });
+    }
+
+    // Check if the task was assigned within the last 30 minutes (resignation window)
+    // Since we don't have assignedAt field, we'll use createdAt as a proxy
+    const createdAt = currentTask[0].createdAt;
+    if (createdAt) {
+      const createdTime = new Date(createdAt).getTime();
+      const currentTime = new Date().getTime();
+      const thirtyMinutes = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+      if (currentTime - createdTime > thirtyMinutes) {
+        return res
+          .status(400)
+          .json({ error: "Cannot resign task after 30 minutes of acceptance" });
+      }
+    }
+
+    // Update the task to remove technician assignment and return to inward_pending
+    await db
+      .update(orderFlowSchema)
+      .set({
+        status: "inward_pending",
+        technicianId: null,
+      })
+      .where(
+        and(
+          eq(orderFlowSchema.orderId, orderId),
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.status, "assigned_pending"),
+          eq(orderFlowSchema.isCurrent, true)
+        )
+      );
+
+    return res.status(200).json({
+      message: "Task resigned successfully",
+      data: { orderId, technicianId, status: "inward_pending" },
+    });
+  } catch (error: any) {
+    console.error("Error resigning task:", error);
+    return res.status(500).json({ error: "Failed to resign task" });
+  }
+}
+
+export async function getTechnicianAssignedTasks(req: Request, res: Response) {
+  try {
+    const { technicianId } = req.params;
+
+    if (!technicianId) {
+      return res.status(400).json({ error: "Technician ID is required" });
+    }
+
+    // Import required schemas
+    const { orderFlowSchema, labOrderSchema } = await import(
+      "../departmentHead/departmentHeadSchema"
+    );
+    const { orderSchema } = await import("../order/orderSchema");
+    const { teethGroups } = await import("../teethGroup/teethGroupSchema");
+
+    const assignedTasks = await db
+      .select({
+        // Order Flow details
+        flowId: orderFlowSchema.id,
+        orderId: orderFlowSchema.orderId,
+        orderNumber: labOrderSchema.orderNumber,
+        departmentId: orderFlowSchema.departmentId,
+        status: orderFlowSchema.status,
+        technicianId: orderFlowSchema.technicianId,
+        workStartedAt: orderFlowSchema.workStartedAt,
+        workCompletedAt: orderFlowSchema.workCompletedAt,
+
+        // Order details
+        prescriptionTypesId: orderSchema.prescriptionTypesId,
+        subPrescriptionTypesId: orderSchema.subPrescriptionTypesId,
+        selectedTeethId: orderSchema.selectedTeethId,
+
+        // Teeth Group details
+        teethGroupData: teethGroups.teethGroup,
+        selectedTeethData: teethGroups.selectedTeeth,
+      })
+      .from(orderFlowSchema)
+      .innerJoin(
+        labOrderSchema,
+        eq(orderFlowSchema.orderId, labOrderSchema.orderId)
+      )
+      .innerJoin(orderSchema, eq(labOrderSchema.orderId, orderSchema.id))
+      .leftJoin(teethGroups, eq(orderSchema.selectedTeethId, teethGroups.id))
+      .where(
+        and(
+          eq(orderFlowSchema.technicianId, technicianId),
+          eq(orderFlowSchema.isCurrent, true),
+          sql`${orderFlowSchema.status} IN ('assigned_pending', 'in_progress')`
+        )
+      );
+
+    // Process tasks to extract teeth numbers
+    const processedTasks = assignedTasks.map((task) => {
+      const extractedTeethNumbers: number[] = [];
+
+      // Extract teeth numbers from teethGroup data
+      if (task.teethGroupData && Array.isArray(task.teethGroupData)) {
+        task.teethGroupData.forEach((group: any) => {
+          if (group.teethDetails && Array.isArray(group.teethDetails)) {
+            group.teethDetails.forEach((detailArray: any) => {
+              if (Array.isArray(detailArray)) {
+                detailArray.forEach((toothDetail: any) => {
+                  if (toothDetail.teethNumber) {
+                    extractedTeethNumbers.push(toothDetail.teethNumber);
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Extract teeth numbers from selectedTeeth data
+      if (task.selectedTeethData && Array.isArray(task.selectedTeethData)) {
+        task.selectedTeethData.forEach((tooth: any) => {
+          if (tooth.toothNumber) {
+            extractedTeethNumbers.push(tooth.toothNumber);
+          }
+        });
+      }
+
+      // Remove duplicates and sort
+      const uniqueSortedTeethNumbers = Array.from(
+        new Set(extractedTeethNumbers)
+      ).sort((a, b) => a - b);
+
+      return {
+        ...task,
+        extractedTeethNumbers: uniqueSortedTeethNumbers,
+        teethGroupData: undefined,
+        selectedTeethData: undefined,
+      };
+    });
+
+    return res.status(200).json({
+      message: "Technician assigned tasks retrieved successfully",
+      data: processedTasks,
+    });
+  } catch (error) {
+    console.error("Error getting technician assigned tasks:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to get technician assigned tasks" });
   }
 }

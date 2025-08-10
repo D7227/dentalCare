@@ -5,4 +5,5 @@ export { default as InProgressTasksTab } from './InProgressTasksTab';
 export { default as CompletedTasksTab } from './CompletedTasksTab';
 export { default as DashboardStats } from './DashboardStats';
 export { default as QuickActions } from './QuickActions';
+export { default as TechnicianAssignedTasks } from './TechnicianAssignedTasks';
 export { default as TaskTable } from './TaskTable'; 

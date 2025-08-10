@@ -14,6 +14,11 @@ import {
   getTechnicianStats,
   getTechniciansByDepartment,
   getTechniciansAllTasks,
+  acceptTask,
+  startTask,
+  completeTask,
+  resignTask,
+  getTechnicianAssignedTasks,
 } from "./technicianController";
 import { eq } from "drizzle-orm";
 
@@ -73,6 +78,14 @@ technicianRouter.get("/:id", getTechnicianById);
 technicianRouter.get("/:id/profile-pic", getTechnicianProfilePic);
 
 technicianRouter.get("/total/:departmentId", getTechniciansAllTasks);
+
+// Technician Task Management Routes
+// * Accept the task
+technicianRouter.post("/accept/:orderId", acceptTask);
+technicianRouter.post("/start/:orderId", startTask);
+technicianRouter.post("/complete/:orderId", completeTask);
+technicianRouter.post("/resign/:orderId", resignTask);
+technicianRouter.get("/assigned/:technicianId", getTechnicianAssignedTasks);
 
 // Total
 // technicianRouter.get("/assigned/:technicianId", getAssignedOrders);
