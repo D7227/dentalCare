@@ -15,7 +15,7 @@ const ponticOptions = [
     { key: 'pontic5', src: pontic4, name: "conical" },
 ];
 
-export const PonticSelector: React.FC<PonticSelectorProps> = ({ value, onChange, readonly }) => {
+const PonticSelector: React.FC<PonticSelectorProps> = ({ value, onChange, readonly }) => {
     const [selected, setSelected] = useState<string | undefined>(value);
 
     useEffect(() => {
