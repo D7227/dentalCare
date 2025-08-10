@@ -10,19 +10,6 @@ lerna-debug.log*
 node_modules/
 jspm_packages/
 
-# Build output
-dist/
-build/
-dist/public/
-dist/index.js
-.next/
-out/
-.nuxt/
-.vuepress/dist
-.serverless/
-.fusebox/
-.dynamodb/
-
 # Production builds
 /client/build/
 /client/dist/
