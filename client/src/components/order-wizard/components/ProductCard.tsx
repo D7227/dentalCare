@@ -16,7 +16,7 @@ import BaseModal from "@/components/shared/BaseModal";
 import { useToast } from "@/hooks/use-toast";
 import ProductSearch from "../ProductSearch";
 import { SelectedProduct } from "@/qaScreen/data/cases";
-import PonticSelector from "./PonticSelector";
+import PonticSelectorOptions from "./PonticSelectorOptions";
 
 interface ProductCardProps {
   type: string;
@@ -1214,7 +1214,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </p>
             <div className="mt-1">
-              <PonticSelector value={group.ponticDesign} readonly />
+              <PonticSelectorOptions value={group.ponticDesign} readonly />
             </div>
           </div>
         </div>
@@ -1272,7 +1272,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             />
           )}
           {editField?.field === "ponticDesign" && (
-            <PonticSelector
+            <PonticSelectorOptions
               value={editFieldValue as string}
               onChange={(val) => setEditFieldValue(val)}
             />

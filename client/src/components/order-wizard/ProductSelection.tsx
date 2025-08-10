@@ -18,7 +18,7 @@ import React from "react";
 import ImplantTypeSelector from "./components/ImplantTypeSelector";
 import ProductCard from "./components/ProductCard";
 import { ShadeGuide } from "@/types/orderType";
-import PonticSelector from "./components/PonticSelector";
+import PonticSelectorOptions from "./components/PonticSelectorOptions";
 
 interface ProductSelectionProps {
   formData: any;
@@ -1104,7 +1104,7 @@ const ProductSelection = ({
                             <h6 className="text-sm font-medium text-gray-900 mb-3">
                               Select Pontic
                             </h6>
-                            <PonticSelector
+                            <PonticSelectorOptions
                               value={productDetails.ponticDesign}
                               onChange={(val) =>
                                 handleProductDetailsChange("ponticDesign", val)
