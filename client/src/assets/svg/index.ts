@@ -49,7 +49,7 @@ import Sleep_AccesoriesIcon from "../svg/prescription/Sleep_Accesories.svg";
 import SplintsIcon from "../svg/prescription/Splints.svg";
 import Surgical_GuideIcon from "../svg/prescription/Surgical_Guide.svg";
 import VeneersIcon from "../svg/prescription/Veneers.svg";
-import onlayIcon from "../svg/prescription/onlay.svg";
+import onlayIcon from "../svg/prescription/Onlay.svg";
 
 export {
   Anterior,
