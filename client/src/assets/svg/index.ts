@@ -38,18 +38,18 @@ import ImpantTeeth from "./ImpantTeeth.svg";
 import AnteriorSVG from "./Anterior.svg";
 import PosteriorSVG from "./Posterior.svg";
 
-import BridgeIcon from "../svg/prescription/Bridge.svg";
-import DenturesIcon from "../svg/prescription/Dentures.svg";
-import Fixed_RestorationIcon from "../svg/prescription/Fixed_Restoration.svg";
-import ImplantIcon from "../svg/prescription/Implant.svg";
-import Implant_SolutionIcon from "../svg/prescription/Implant_Solution.svg";
-import InlayIcon from "../svg/prescription/Inlay.svg";
-import OrthoIcon from "../svg/prescription/Ortho.svg";
-import Sleep_AccesoriesIcon from "../svg/prescription/Sleep_Accesories.svg";
-import SplintsIcon from "../svg/prescription/Splints.svg";
-import Surgical_GuideIcon from "../svg/prescription/Surgical_Guide.svg";
-import VeneersIcon from "../svg/prescription/Veneers.svg";
-import onlayIcon from "../svg/prescription/Onlay.svg";
+import BridgeIcon from "./prescription/Bridge.svg";
+import DenturesIcon from "./prescription/Dentures.svg";
+import Fixed_RestorationIcon from "./prescription/Fixed_Restoration.svg";
+import ImplantIcon from "./prescription/Implant.svg";
+import Implant_SolutionIcon from "./prescription/Implant_Solution.svg";
+import InlayIcon from "./prescription/Inlay.svg";
+import OrthoIcon from "./prescription/Ortho.svg";
+import Sleep_AccesoriesIcon from "./prescription/Sleep_Accesories.svg";
+import SplintsIcon from "./prescription/Splints.svg";
+import Surgical_GuideIcon from "./prescription/Surgical_Guide.svg";
+import VeneersIcon from "./prescription/Veneers.svg";
+import onlayIcon from "./prescription/Onlay.svg";
 
 export {
   Anterior,
